@@ -31,7 +31,7 @@ const AdminPrint = () => {
 
       const [itemsRes, profileRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase.from("profiles").select("full_name, phone, complement, quadra, lote").eq("user_id", orderData.user_id).single(),
+        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
       ]);
 
       setItems(itemsRes.data || []);
@@ -90,6 +90,7 @@ const AdminPrint = () => {
   const paymentLabel = isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
 
   const clienteName = profile?.full_name || "Cliente";
+  const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
 
   const isCozinha = tipo === "cozinha";
   const isEntrega = tipo === "entrega";
@@ -232,7 +233,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">COZINHA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
@@ -256,7 +257,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">ENTREGA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
@@ -288,7 +289,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label-big">OBRIGADO!</div>
       <div className="separator" />
-      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
       <div className="separator" />
       <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho e higiene!</div>
       <div className="separator" />

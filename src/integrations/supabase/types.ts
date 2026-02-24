@@ -359,6 +359,7 @@ export type Database = {
           city: string
           complement: string | null
           created_at: string
+          customer_code: number
           full_name: string
           id: string
           lote: string
@@ -376,6 +377,7 @@ export type Database = {
           city?: string
           complement?: string | null
           created_at?: string
+          customer_code?: number
           full_name?: string
           id?: string
           lote?: string
@@ -393,6 +395,7 @@ export type Database = {
           city?: string
           complement?: string | null
           created_at?: string
+          customer_code?: number
           full_name?: string
           id?: string
           lote?: string
