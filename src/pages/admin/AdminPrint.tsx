@@ -234,7 +234,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">COZINHA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
@@ -258,7 +258,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">ENTREGA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
@@ -290,7 +290,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label-big">OBRIGADO!</div>
       <div className="separator" />
-      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| ${customerCode}`}</div>
+      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="separator" />
       <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho e higiene!</div>
       <div className="separator" />
