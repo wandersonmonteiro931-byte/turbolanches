@@ -21,6 +21,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminPrint from "./pages/admin/AdminPrint";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
                 <Route path="produtos" element={<AdminProducts />} />
                 <Route path="categorias" element={<AdminCategories />} />
               </Route>
+              <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
