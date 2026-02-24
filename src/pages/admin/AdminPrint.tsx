@@ -65,7 +65,8 @@ const AdminPrint = () => {
       <style>{`
         @page {
           size: 72mm auto;
-          margin: 0 0 0 0;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         @media print {
           html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
@@ -77,7 +78,8 @@ const AdminPrint = () => {
           font-size: 12px;
           font-weight: 900;
           width: 72mm;
-          padding: 2mm 3mm 0mm 3mm;
+          padding: 0;
+          margin: 0;
           color: #000;
           background: #fff;
         }
