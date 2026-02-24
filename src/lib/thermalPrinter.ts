@@ -1,41 +1,5 @@
-// ESC/POS thermal printer via Web Serial API
+/* Thermal-style printing using window.print() */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-const ESC = 0x1b;
-const GS = 0x1d;
-const LF = 0x0a;
-
-const encoder = new TextEncoder();
-
-function cmd(...bytes: number[]): Uint8Array {
-  return new Uint8Array(bytes);
-}
-
-function text(str: string): Uint8Array {
-  return encoder.encode(str);
-}
-
-function concat(...arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((s, a) => s + a.length, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const arr of arrays) {
-    result.set(arr, offset);
-    offset += arr.length;
-  }
-  return result;
-}
-
-const INIT = cmd(ESC, 0x40);
-const BOLD_ON = cmd(ESC, 0x45, 0x01);
-const BOLD_OFF = cmd(ESC, 0x45, 0x00);
-const ALIGN_CENTER = cmd(ESC, 0x61, 0x01);
-const ALIGN_LEFT = cmd(ESC, 0x61, 0x00);
-const DOUBLE_SIZE = cmd(GS, 0x21, 0x11);
-const NORMAL_SIZE = cmd(GS, 0x21, 0x00);
-const CUT = cmd(GS, 0x56, 0x00);
-const FEED = cmd(LF);
-const SEPARATOR = text("--------------------------------\n");
 
 export interface PrintOrderData {
   orderId: string;
@@ -50,115 +14,120 @@ export interface PrintOrderData {
   createdAt: string;
 }
 
-function buildReceipt(order: PrintOrderData): Uint8Array {
+function buildReceiptHTML(order: PrintOrderData): string {
   const time = new Date(order.createdAt).toLocaleString("pt-BR", {
     day: "2-digit", month: "2-digit", year: "2-digit",
     hour: "2-digit", minute: "2-digit",
   });
 
-  const parts: Uint8Array[] = [
-    INIT,
-    ALIGN_CENTER,
-    DOUBLE_SIZE, BOLD_ON,
-    text("TURBO DELIVERY\n"),
-    NORMAL_SIZE, BOLD_OFF,
-    text("LANCHES\n"),
-    FEED, SEPARATOR,
-    ALIGN_LEFT,
-    BOLD_ON, text(`PEDIDO #${order.orderId.slice(0, 6).toUpperCase()}\n`), BOLD_OFF,
-    text(`Data: ${time}\n`),
-    SEPARATOR,
-    text(`Cliente: ${order.customerName}\n`),
-    text(`Tel: ${order.customerPhone}\n`),
-    text(`End: ${order.address}\n`),
-    SEPARATOR,
-    BOLD_ON, text("ITENS:\n"), BOLD_OFF,
-  ];
+  const subtotal = order.total - order.deliveryFee;
 
-  for (const item of order.items) {
+  const itemsHTML = order.items.map((item) => {
     const lineTotal = item.unitPrice * item.quantity;
-    parts.push(text(`${item.quantity}x ${item.name}\n`));
-    parts.push(text(`   R$ ${lineTotal.toFixed(2).replace(".", ",")}\n`));
+    let html = `<div class="item"><span>${item.quantity}x ${item.name}</span><span>R$ ${lineTotal.toFixed(2).replace(".", ",")}</span></div>`;
     if (item.addons && item.addons.length > 0) {
       for (const addon of item.addons) {
-        parts.push(text(`   + ${addon.name}\n`));
+        html += `<div class="addon">+ ${addon.name}</div>`;
       }
     }
     if (item.observations) {
-      parts.push(text(`   Obs: ${item.observations}\n`));
+      html += `<div class="addon">Obs: ${item.observations}</div>`;
     }
+    return html;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pedido #${order.orderId.slice(0, 6)}</title>
+<style>
+  @page {
+    size: 72mm auto;
+    margin: 0;
   }
-
-  parts.push(SEPARATOR);
-  const subtotal = order.total - order.deliveryFee;
-  parts.push(text(`Subtotal:  R$ ${subtotal.toFixed(2).replace(".", ",")}\n`));
-  parts.push(text(`Entrega:   R$ ${order.deliveryFee.toFixed(2).replace(".", ",")}\n`));
-  parts.push(BOLD_ON, DOUBLE_SIZE);
-  parts.push(text(`TOTAL: R$ ${order.total.toFixed(2).replace(".", ",")}\n`));
-  parts.push(NORMAL_SIZE, BOLD_OFF);
-  parts.push(text(`Pagamento: ${order.paymentMethod.toUpperCase()}\n`));
-
-  if (order.observations) {
-    parts.push(SEPARATOR);
-    parts.push(text(`OBS: ${order.observations}\n`));
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    width: 72mm;
+    padding: 4mm;
+    color: #000;
   }
+  .center { text-align: center; }
+  .bold { font-weight: bold; }
+  .title { font-size: 18px; font-weight: bold; }
+  .subtitle { font-size: 11px; margin-bottom: 4px; }
+  .separator { border-top: 1px dashed #000; margin: 6px 0; }
+  .item { display: flex; justify-content: space-between; margin: 2px 0; }
+  .addon { font-size: 10px; padding-left: 12px; color: #333; }
+  .total-line { display: flex; justify-content: space-between; margin: 2px 0; }
+  .grand-total { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; margin: 4px 0; }
+  .info { font-size: 11px; margin: 1px 0; }
+  .footer { font-size: 10px; text-align: center; margin-top: 8px; }
+  @media print {
+    body { width: 72mm; }
+  }
+</style>
+</head>
+<body>
+  <div class="center">
+    <div class="title">TURBO DELIVERY</div>
+    <div class="subtitle">LANCHES</div>
+  </div>
+  <div class="separator"></div>
 
-  parts.push(SEPARATOR);
-  parts.push(ALIGN_CENTER);
-  parts.push(text("Obrigado pela preferencia!\n"));
-  parts.push(FEED, FEED, FEED, CUT);
+  <div class="bold">PEDIDO #${order.orderId.slice(0, 6).toUpperCase()}</div>
+  <div class="info">Data: ${time}</div>
+  <div class="separator"></div>
 
-  return concat(...parts);
+  <div class="info">Cliente: ${order.customerName}</div>
+  <div class="info">Tel: ${order.customerPhone}</div>
+  <div class="info">End: ${order.address}</div>
+  <div class="separator"></div>
+
+  <div class="bold">ITENS:</div>
+  ${itemsHTML}
+  <div class="separator"></div>
+
+  <div class="total-line"><span>Subtotal</span><span>R$ ${subtotal.toFixed(2).replace(".", ",")}</span></div>
+  <div class="total-line"><span>Entrega</span><span>R$ ${order.deliveryFee.toFixed(2).replace(".", ",")}</span></div>
+  <div class="grand-total"><span>TOTAL</span><span>R$ ${order.total.toFixed(2).replace(".", ",")}</span></div>
+  <div class="info">Pagamento: ${order.paymentMethod.toUpperCase()}</div>
+
+  ${order.observations ? `<div class="separator"></div><div class="info">OBS: ${order.observations}</div>` : ""}
+
+  <div class="separator"></div>
+  <div class="footer">Obrigado pela preferencia!</div>
+
+  <script>window.onload = function() { window.print(); }</script>
+</body>
+</html>`;
 }
 
-const serial = (navigator as any).serial;
-
-let savedPort: any = null;
-let savedWriter: any = null;
-
-export async function connectPrinter(): Promise<boolean> {
+export function printOrder(order: PrintOrderData): boolean {
   try {
-    const port = await serial.requestPort();
-    await port.open({ baudRate: 9600 });
-    savedPort = port;
-    savedWriter = port.writable.getWriter();
-    return true;
-  } catch (err) {
-    console.error("Erro ao conectar impressora:", err);
-    return false;
-  }
-}
-
-export async function printOrder(order: PrintOrderData): Promise<boolean> {
-  try {
-    // Try reconnecting to previously paired port
-    if (!savedWriter) {
-      const ports = await serial.getPorts();
-      if (ports.length > 0) {
-        const port = ports[0];
-        if (!port.readable) {
-          await port.open({ baudRate: 9600 });
-        }
-        savedPort = port;
-        savedWriter = port.writable.getWriter();
-      } else {
-        // No port paired - need user click
-        return false;
-      }
+    const receiptHTML = buildReceiptHTML(order);
+    const printWindow = window.open("", "_blank", "width=300,height=600");
+    if (!printWindow) {
+      alert("Permita pop-ups para imprimir pedidos.");
+      return false;
     }
-
-    const receipt = buildReceipt(order);
-    await savedWriter.write(receipt);
+    printWindow.document.open();
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
     return true;
   } catch (err) {
     console.error("Erro ao imprimir:", err);
-    // Reset on error
-    savedWriter = null;
-    savedPort = null;
     return false;
   }
 }
 
 export function isPrinterSupported(): boolean {
-  return !!serial;
+  return true; // window.print works everywhere
+}
+
+// No-op for compatibility
+export async function connectPrinter(): Promise<boolean> {
+  return true;
 }
