@@ -40,8 +40,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 };
 
 const nextStatus: Record<string, string> = {
-  pending: "accepted",
-  accepted: "delivering",
+  pending: "preparing",
+  preparing: "delivering",
   delivering: "delivered",
 };
 
@@ -103,7 +103,7 @@ const AdminOrders = () => {
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     // Silent print via hidden iframe(s)
-    if (newStatus === "accepted") {
+    if (newStatus === "preparing") {
       printReceipt(orderId, "cozinha");
     } else if (newStatus === "delivering") {
       // Duas impressões separadas: entrega + cliente (com delay para corte)
@@ -246,7 +246,7 @@ const AdminOrders = () => {
                       onClick={() => updateStatus(order.id, next)}
                       className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                     >
-                      {next === "accepted" ? "✅ Aceitar" : `Avançar → ${statusConfig[next]?.label}`}
+                      {next === "preparing" ? "✅ Aceitar" : `Avançar → ${statusConfig[next]?.label}`}
                     </button>
                   )}
                   {order.status === "pending" && (

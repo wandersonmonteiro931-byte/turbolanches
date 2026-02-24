@@ -1,4 +1,3 @@
-import { Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { Product } from "@/data/menu";
 
@@ -35,12 +34,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
               R$ {product.originalPrice.toFixed(2).replace(".", ",")}
             </span>
           )}
-        </div>
-        <div className="mt-1 flex items-center gap-1">
-          <Star size={12} className="fill-fire-yellow text-fire-yellow" />
-          <span className="text-xs text-muted-foreground">
-            {product.rating} ({product.ratingCount})
-          </span>
         </div>
       </div>
       <img

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Star, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { products } from "@/data/menu";
 import type { ProductAddon } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
@@ -69,12 +69,6 @@ const ProductDetail = () => {
                 R$ {product.originalPrice.toFixed(2).replace(".", ",")}
               </span>
             )}
-          </div>
-          <div className="mt-2 flex items-center gap-1">
-            <Star size={14} className="fill-fire-yellow text-fire-yellow" />
-            <span className="text-sm text-muted-foreground">
-              {product.rating} ({product.ratingCount} avaliações)
-            </span>
           </div>
         </div>
 

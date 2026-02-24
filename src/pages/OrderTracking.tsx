@@ -31,14 +31,13 @@ interface OrderItemData {
 
 const statusSteps = [
   { key: "pending", label: "Pedido confirmado", icon: Check },
-  { key: "accepted", label: "Aceito", icon: Check },
   { key: "preparing", label: "Em preparo", icon: ChefHat },
   { key: "ready", label: "Pronto", icon: Package },
   { key: "delivering", label: "Saiu para entrega", icon: Truck },
   { key: "delivered", label: "Entregue", icon: Check },
 ];
 
-const statusOrder = ["awaiting_payment", "pending", "accepted", "preparing", "ready", "delivering", "delivered"];
+const statusOrder = ["awaiting_payment", "pending", "preparing", "ready", "delivering", "delivered"];
 
 const OrderTracking = () => {
   const { id } = useParams();
