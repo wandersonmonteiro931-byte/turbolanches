@@ -51,12 +51,12 @@ interface StoreSettings {
 }
 
 const tabs = [
-  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500" },
-  { key: "preparing", label: "Em Preparo", icon: ChefHat, color: "bg-purple-500" },
-  { key: "ready", label: "Aguardando", icon: Package, color: "bg-emerald-500" },
-  { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500" },
-  { key: "delivered", label: "Finalizados", icon: Check, color: "bg-green-600" },
-  { key: "cancelled", label: "Recusados", icon: X, color: "bg-red-500" },
+  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending", "awaiting_payment"] },
+  { key: "preparing", label: "Em Preparo", icon: ChefHat, color: "bg-purple-500", statuses: ["preparing"] },
+  { key: "ready", label: "Aguardando", icon: Package, color: "bg-emerald-500", statuses: ["ready"] },
+  { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
+  { key: "delivered", label: "Finalizados", icon: Check, color: "bg-green-600", statuses: ["delivered"] },
+  { key: "cancelled", label: "Recusados", icon: X, color: "bg-red-500", statuses: ["cancelled"] },
 ];
 
 const nextStatus: Record<string, string> = {
@@ -67,6 +67,7 @@ const nextStatus: Record<string, string> = {
 };
 
 const AdminDashboard = () => {
+  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [activeTab, setActiveTab] = useState("pending");
@@ -88,7 +89,22 @@ const AdminDashboard = () => {
       .select("*")
       .gte("created_at", today.toISOString())
       .order("created_at", { ascending: false });
-    if (data) setOrders(data as Order[]);
+    if (data) {
+      setOrders(data as Order[]);
+      // Fetch profiles for customer codes
+      const userIds = [...new Set(data.map(o => o.user_id))];
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, customer_code, full_name, phone")
+          .in("user_id", userIds);
+        if (profilesData) {
+          const map: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+          profilesData.forEach(p => { map[p.user_id] = p; });
+          setProfiles(map);
+        }
+      }
+    }
   }, []);
 
   const fetchStoreSettings = useCallback(async () => {
@@ -273,7 +289,8 @@ const AdminDashboard = () => {
     setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
 
-  const filteredOrders = orders.filter(o => o.status === activeTab);
+  const activeTabConfig = tabs.find(t => t.key === activeTab);
+  const filteredOrders = orders.filter(o => activeTabConfig?.statuses.includes(o.status));
 
   const getElapsed = (preparingAt: string | null) => {
     if (!preparingAt) return null;
@@ -284,7 +301,7 @@ const AdminDashboard = () => {
   };
 
   const stats = {
-    pending: orders.filter(o => o.status === "pending").length,
+    pending: orders.filter(o => o.status === "pending" || o.status === "awaiting_payment").length,
     preparing: orders.filter(o => o.status === "preparing").length,
     ready: orders.filter(o => o.status === "ready").length,
     delivering: orders.filter(o => o.status === "delivering").length,
@@ -437,8 +454,10 @@ const AdminDashboard = () => {
       ) : (
         <div className="space-y-3">
           {filteredOrders.map((order) => {
-            const next = nextStatus[order.status];
+            const next = order.status === "awaiting_payment" ? null : nextStatus[order.status];
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
+            const profile = profiles[order.user_id];
+            const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
 
             return (
               <div key={order.id} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -450,17 +469,28 @@ const AdminDashboard = () => {
                   className="flex w-full items-center gap-3 p-4 text-left"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-base font-bold text-foreground">
                         #{String(order.order_number).padStart(5, "0")}
                       </span>
+                      {customerCode && (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                          CLIENTE: {customerCode}
+                        </span>
+                      )}
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
+                        {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
                       </span>
+                      {order.status === "awaiting_payment" && (
+                        <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-800">
+                          AG. PIX
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       {" · "}{order.payment_method.toUpperCase()}
+                      {profile?.full_name ? ` · ${profile.full_name}` : ""}
                     </p>
                   </div>
 
@@ -514,19 +544,24 @@ const AdminDashboard = () => {
 
                     {/* Payment actions */}
                     <div className="flex flex-wrap gap-2">
-                      {order.payment_method === "pix" && !order.payment_confirmed && (
-                        <button onClick={() => confirmPayment(order.id)}
+                      {order.status === "awaiting_payment" && (
+                        <button onClick={async () => {
+                          await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
+                          toast({ title: "✅ PIX confirmado! Pedido em preparo." });
+                          await fetchOrders();
+                          printReceipt(order.id, "cozinha");
+                        }}
                           className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
                           <DollarSign size={14} /> Confirmar PIX
                         </button>
                       )}
-                      {!order.payment_confirmed && order.status !== "cancelled" && (
+                      {order.payment_method !== "fiado" && order.status !== "cancelled" && (
                         <button onClick={() => markAsFiado(order.id)}
                           className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white">
                           📝 Marcar Fiado
                         </button>
                       )}
-                      {order.payment_confirmed && (
+                      {order.payment_confirmed && order.status !== "awaiting_payment" && (
                         <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
                           ✅ {order.payment_method === "fiado" ? "FIADO" : "PAGO"}
                         </span>
