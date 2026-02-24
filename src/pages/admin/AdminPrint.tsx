@@ -64,7 +64,7 @@ const AdminPrint = () => {
     <>
       <style>{`
         @page {
-          size: 72mm auto;
+          size: 72mm 210mm;
           margin: 0 !important;
           padding: 0 !important;
         }
@@ -74,7 +74,7 @@ const AdminPrint = () => {
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-          font-family: 'Courier New', monospace;
+          font-family: Arial, Helvetica, sans-serif;
           font-size: 12px;
           font-weight: 900;
           width: 72mm;
@@ -101,7 +101,7 @@ const AdminPrint = () => {
       </div>
       <div className="separator" />
 
-      <div className="bold">PEDIDO #{order.id.slice(0, 6).toUpperCase()}</div>
+      <div className="bold">PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="info">Data: {time}</div>
       <div className="separator" />
 
