@@ -27,7 +27,35 @@ const CompleteProfile = () => {
     }
   }, [user]);
 
+  const [cepLoading, setCepLoading] = useState(false);
+
   const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
+
+  const fetchCep = async (cep: string) => {
+    const cleaned = cep.replace(/\D/g, "");
+    if (cleaned.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleaned}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      setForm((f) => ({
+        ...f,
+        street: data.logradouro || f.street,
+        neighborhood: data.bairro || f.neighborhood,
+        city: data.localidade || f.city,
+        state: data.uf || f.state,
+        complement: data.complemento || f.complement,
+      }));
+    } catch {
+      toast.error("Erro ao buscar CEP");
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +104,11 @@ const CompleteProfile = () => {
               <input
                 type="text"
                 value={(form as any)[f.key]}
-                onChange={(e) => update(f.key, e.target.value)}
-                placeholder={f.label}
+                onChange={(e) => {
+                  update(f.key, e.target.value);
+                  if (f.key === "zip_code") fetchCep(e.target.value);
+                }}
+                placeholder={f.label + (f.key === "zip_code" && cepLoading ? " (buscando...)" : "")}
                 required={f.required}
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
