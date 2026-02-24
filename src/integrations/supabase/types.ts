@@ -169,6 +169,7 @@ export type Database = {
           discount: number
           id: string
           observations: string | null
+          order_number: number
           payment_method: string
           status: string
           subtotal: number
@@ -189,6 +190,7 @@ export type Database = {
           discount?: number
           id?: string
           observations?: string | null
+          order_number?: number
           payment_method?: string
           status?: string
           subtotal: number
@@ -209,6 +211,7 @@ export type Database = {
           discount?: number
           id?: string
           observations?: string | null
+          order_number?: number
           payment_method?: string
           status?: string
           subtotal?: number
