@@ -256,25 +256,28 @@ const AdminOrders = () => {
 
                 <div className="flex gap-2 mb-2">
                   <button
-                    onClick={() => printReceipt(order.id, "cozinha")}
+                    onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=cozinha`, `reprint_cozinha_${Date.now()}`, "width=400,height=600")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Cozinha
                   </button>
                   <button
-                    onClick={() => printDeliveryAndCustomer(order.id)}
+                    onClick={() => {
+                      window.open(`/admin/imprimir/${order.id}?tipo=entrega`, `reprint_entrega_${Date.now()}`, "width=400,height=600");
+                      setTimeout(() => window.open(`/admin/imprimir/${order.id}?tipo=cliente`, `reprint_cliente_${Date.now()}`, "width=400,height=600"), 1800);
+                    }}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega + Cliente
                   </button>
                   <button
-                    onClick={() => printReceipt(order.id, "entrega")}
+                    onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=entrega`, `reprint_entrega_${Date.now()}`, "width=400,height=600")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega
                   </button>
                   <button
-                    onClick={() => printReceipt(order.id, "cliente")}
+                    onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=cliente`, `reprint_cliente_${Date.now()}`, "width=400,height=600")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Cliente
