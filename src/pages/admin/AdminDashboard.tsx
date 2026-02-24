@@ -27,6 +27,8 @@ interface Order {
   observations: string | null;
   preparing_at: string | null;
   ready_at: string | null;
+  payment_confirmed: boolean;
+  change_for: number | null;
 }
 
 interface OrderItem {
@@ -177,6 +179,18 @@ const AdminDashboard = () => {
       printReceipt(orderId, "entrega");
       setTimeout(() => printReceipt(orderId, "cliente"), 2000);
     }
+  };
+
+  const confirmPayment = async (orderId: string) => {
+    await supabase.from("orders").update({ payment_confirmed: true }).eq("id", orderId);
+    toast({ title: "💰 Pagamento confirmado manualmente!" });
+    fetchOrders();
+  };
+
+  const markAsFiado = async (orderId: string) => {
+    await supabase.from("orders").update({ payment_confirmed: true, payment_method: "fiado" }).eq("id", orderId);
+    toast({ title: "📝 Pedido marcado como fiado!" });
+    fetchOrders();
   };
 
   const printReceipt = (orderId: string, tipo: string) => {
@@ -488,6 +502,27 @@ const AdminDashboard = () => {
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Entrega+Cliente
                       </button>
+                    </div>
+
+                    {/* Payment actions */}
+                    <div className="flex flex-wrap gap-2">
+                      {order.payment_method === "pix" && !order.payment_confirmed && (
+                        <button onClick={() => confirmPayment(order.id)}
+                          className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
+                          <DollarSign size={14} /> Confirmar PIX
+                        </button>
+                      )}
+                      {!order.payment_confirmed && order.status !== "cancelled" && (
+                        <button onClick={() => markAsFiado(order.id)}
+                          className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white">
+                          📝 Marcar Fiado
+                        </button>
+                      )}
+                      {order.payment_confirmed && (
+                        <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
+                          ✅ {order.payment_method === "fiado" ? "FIADO" : "PAGO"}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex gap-2">
