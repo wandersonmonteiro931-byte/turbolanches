@@ -83,6 +83,30 @@ export type Database = {
         }
         Relationships: []
       }
+      delivery_zones: {
+        Row: {
+          active: boolean
+          created_at: string
+          delivery_fee: number
+          id: string
+          neighborhood: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          delivery_fee?: number
+          id?: string
+          neighborhood: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          delivery_fee?: number
+          id?: string
+          neighborhood?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           addons_json: Json | null

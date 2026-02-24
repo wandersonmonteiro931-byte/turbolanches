@@ -1,7 +1,7 @@
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
-import { toast } from "sonner";
+
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -109,11 +109,7 @@ const Cart = () => {
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card p-4 safe-bottom">
         <div className="mx-auto max-w-md">
           <button
-            onClick={() => {
-              toast.success("Pedido enviado com sucesso! 🔥");
-              clearCart();
-              navigate("/");
-            }}
+            onClick={() => navigate("/checkout")}
             className="w-full rounded-xl bg-fire-gradient py-4 text-center font-bold text-primary-foreground shadow-fire-lg transition-all active:scale-[0.98]"
           >
             Finalizar Pedido • R$ {grandTotal.toFixed(2).replace(".", ",")}
