@@ -43,6 +43,8 @@ const AdminPrint = () => {
     if (!ready) return;
     const timer = setTimeout(() => {
       window.print();
+      // If opened in iframe or as page, try to close
+      setTimeout(() => { window.close(); }, 1000);
     }, 600);
     return () => clearTimeout(timer);
   }, [ready]);

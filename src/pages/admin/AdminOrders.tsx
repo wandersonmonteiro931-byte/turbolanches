@@ -99,9 +99,21 @@ const AdminOrders = () => {
     fetchOrders();
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Auto-print when accepting order
+    // Silent print via hidden iframe
     if (newStatus === "accepted") {
-      window.open(`/admin/imprimir/${orderId}`, "_blank");
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.top = "-10000px";
+      iframe.style.left = "-10000px";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "none";
+      iframe.src = `/admin/imprimir/${orderId}`;
+      document.body.appendChild(iframe);
+      // Cleanup after print
+      setTimeout(() => {
+        try { document.body.removeChild(iframe); } catch {}
+      }, 10000);
     }
   };
 
