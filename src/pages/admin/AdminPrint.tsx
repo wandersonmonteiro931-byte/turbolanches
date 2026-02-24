@@ -93,58 +93,67 @@ const AdminPrint = () => {
   const styles = `
     @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
     @media print {
-      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
+      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }
       .page-break { page-break-before: always; }
-      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 9px;
+      font-family: 'Arial Black', 'Arial', Helvetica, sans-serif;
+      font-size: 10px;
       font-weight: 900;
       width: 72mm;
-      padding: 1mm;
+      padding: 1.5mm 2mm;
       margin: 0;
       color: #000;
       background: #fff;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: unset;
+      text-rendering: geometricPrecision;
+      letter-spacing: 0.2px;
+      line-height: 1.3;
     }
     .center { text-align: center; }
-    .separator { border-top: 1px dashed #000; margin: 1px 0; }
-    .item { display: flex; justify-content: space-between; margin: 0; font-weight: 900; font-size: 9px; }
-    .addon { font-size: 8px; padding-left: 8px; font-weight: 900; }
-    .total-line { display: flex; justify-content: space-between; margin: 0; font-weight: 900; font-size: 9px; }
-    .grand-total { font-size: 10px; font-weight: 900; display: flex; justify-content: space-between; margin: 0; }
-    .info { font-size: 9px; margin: 0; font-weight: 900; line-height: 1.2; }
-    .footer { font-size: 8px; text-align: center; margin-top: 1px; font-weight: 900; padding-bottom: 1mm; }
+    .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
+    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; line-height: 1.4; }
+    .addon { font-size: 9px; padding-left: 10px; font-weight: 900; line-height: 1.3; }
+    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
+    .grand-total { font-size: 12px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
+    .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
+    .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; line-height: 1.4; }
     .tipo-label {
-      font-size: 22px; font-weight: 900; text-align: center;
-      letter-spacing: 2px; margin: 1px 0; padding: 3px 0; border: 2px solid #000;
+      font-size: 24px; font-weight: 900; text-align: center;
+      letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
     .tipo-label-big {
-      font-size: 22px; font-weight: 900; text-align: center;
-      letter-spacing: 2px; margin: 1px 0; padding: 3px 0; border: 2px solid #000;
+      font-size: 24px; font-weight: 900; text-align: center;
+      letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
-    .store-name { font-size: 8px; font-weight: 900; text-align: center; margin: 0; }
+    .store-name { font-size: 9px; font-weight: 900; text-align: center; margin: 0; letter-spacing: 1px; }
     .highlight-delivery {
-      font-size: 10px; font-weight: 900; text-align: center;
-      margin: 1px 0; padding: 1px 0; letter-spacing: 1px;
+      font-size: 12px; font-weight: 900; text-align: center;
+      margin: 3px 0; padding: 2px 0; letter-spacing: 2px;
     }
     .box-highlight {
-      font-size: 14px; font-weight: 900; margin: 1px 0; padding: 3px 2px;
-      border: 2px solid #000;
+      font-size: 11px; font-weight: 900; margin: 3px 0; padding: 4px 3px;
+      border: 2.5px solid #000; line-height: 1.4;
     }
     .box-highlight-flex {
       font-size: 14px; font-weight: 900; display: flex; justify-content: space-between;
-      margin: 1px 0; padding: 3px 2px; border: 2px solid #000;
+      margin: 3px 0; padding: 4px 3px; border: 2.5px solid #000;
     }
     .box-itens {
-      border: 2px solid #000; padding: 2px; margin: 1px 0;
+      border: 2.5px solid #000; padding: 3px; margin: 3px 0;
     }
-    .pedido-destaque { font-size: 18px; font-weight: 900; text-align: center; margin: 1px 0; letter-spacing: 1px; }
-    .msg-carinho { font-size: 8px; font-weight: 900; text-align: center; margin: 1px 0; font-style: italic; }
+    .pedido-destaque { font-size: 20px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 2px; }
+    .msg-carinho { font-size: 9px; font-weight: 900; text-align: center; margin: 3px 0; font-style: italic; line-height: 1.4; }
   `;
 
   // Totais section (reused)
