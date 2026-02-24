@@ -105,7 +105,7 @@ const Kitchen = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
         .kds-header {
           background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);

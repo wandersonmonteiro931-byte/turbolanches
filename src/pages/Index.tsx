@@ -8,10 +8,12 @@ import ProductCard from "@/components/ProductCard";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
+import { useStoreStatus } from "@/hooks/useStoreStatus";
 
 const Index = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { isOpen: storeIsOpen } = useStoreStatus();
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
@@ -34,6 +36,14 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-32">
+      {/* Store Closed Banner */}
+      {!storeIsOpen && (
+        <div className="bg-red-600 px-4 py-3 text-center">
+          <p className="text-sm font-bold text-white">🔴 LOJA FECHADA NO MOMENTO</p>
+          <p className="text-xs text-white/80">Volte em breve!</p>
+        </div>
+      )}
+
       {/* Hero Banner */}
       <div className="relative w-full">
         <div className="relative h-48 w-full overflow-hidden bg-primary">
