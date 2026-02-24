@@ -120,7 +120,7 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega") => {
+  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente") => {
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
     iframe.style.top = "-10000px";
@@ -232,7 +232,13 @@ const AdminOrders = () => {
                     onClick={() => printReceipt(order.id, "entrega")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
-                    <Printer size={14} /> Entrega
+                    <Printer size={14} /> Entrega + Cliente
+                  </button>
+                  <button
+                    onClick={() => printReceipt(order.id, "cliente")}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    <Printer size={14} /> Cliente
                   </button>
                 </div>
 

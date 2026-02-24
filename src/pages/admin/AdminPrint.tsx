@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega"
+  const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega" | "cliente"
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +60,8 @@ const AdminPrint = () => {
     hour: "2-digit", minute: "2-digit",
   });
 
-  // Horário máximo: +45 min
   const maxEntrega = new Date(createdAt.getTime() + 45 * 60 * 1000);
   const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-  // Horário de saída (para comanda entrega) = agora
   const horarioSaida = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   const address = order.address_street
@@ -75,120 +72,59 @@ const AdminPrint = () => {
 
   const total = Number(order.total);
   const paid = order.payment_method === "pix" || order.payment_method === "cartao" || order.payment_method === "credito" || order.payment_method === "debito";
-  const totalPago = paid ? total : 0;
   const changeFor = order.change_for ? Number(order.change_for) : 0;
   const totalReceber = paid ? 0 : (changeFor > 0 ? changeFor : total);
   const troco = changeFor > total ? changeFor - total : 0;
 
+  const clienteName = profile?.full_name || "Cliente";
+
   const isCozinha = tipo === "cozinha";
+  const isEntrega = tipo === "entrega";
+  const isCliente = tipo === "cliente";
 
-  return (
+  const styles = `
+    @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
+    @media print {
+      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
+      .no-print { display: none !important; }
+      .page-break { page-break-before: always; }
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      font-weight: 900;
+      width: 72mm;
+      padding: 2mm;
+      margin: 0;
+      color: #000;
+      background: #fff;
+    }
+    .center { text-align: center; }
+    .separator { border-top: 1px dashed #000; margin: 3px 0; }
+    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
+    .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
+    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
+    .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
+    .info { font-size: 11px; margin: 0; font-weight: 900; }
+    .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
+    .tipo-label {
+      font-size: 22px; font-weight: 900; text-align: center;
+      letter-spacing: 2px; margin: 2px 0; padding: 3px 0; border: 2px solid #000;
+    }
+    .store-name { font-size: 11px; font-weight: 900; text-align: center; margin: 1px 0; }
+    .highlight-delivery {
+      font-size: 14px; font-weight: 900; text-align: center;
+      margin: 3px 0; padding: 2px 0; border: 1px solid #000; letter-spacing: 1px;
+    }
+    .address-big { font-size: 14px; font-weight: 900; margin: 2px 0; }
+    .pedido-destaque { font-size: 16px; font-weight: 900; text-align: center; margin: 2px 0; }
+    .msg-carinho { font-size: 11px; font-weight: 900; text-align: center; margin: 2px 0; font-style: italic; }
+  `;
+
+  // Totais section (reused)
+  const totaisSection = (
     <>
-      <style>{`
-        @page {
-          size: 72mm auto;
-          margin: 0 !important;
-          padding: 0 !important;
-        }
-        @media print {
-          html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
-          .no-print { display: none !important; }
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 12px;
-          font-weight: 900;
-          width: 72mm;
-          padding: 2mm;
-          margin: 0;
-          color: #000;
-          background: #fff;
-        }
-        .center { text-align: center; }
-        .separator { border-top: 1px dashed #000; margin: 3px 0; }
-        .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
-        .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
-        .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
-        .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
-        .info { font-size: 11px; margin: 0; font-weight: 900; }
-        .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
-        .tipo-label {
-          font-size: 22px;
-          font-weight: 900;
-          text-align: center;
-          letter-spacing: 2px;
-          margin: 2px 0;
-          padding: 3px 0;
-          border: 2px solid #000;
-        }
-        .store-name {
-          font-size: 11px;
-          font-weight: 900;
-          text-align: center;
-          margin: 1px 0;
-        }
-        .highlight-delivery {
-          font-size: 14px;
-          font-weight: 900;
-          text-align: center;
-          margin: 3px 0;
-          padding: 2px 0;
-          border: 1px solid #000;
-          letter-spacing: 1px;
-        }
-        .address-big {
-          font-size: 14px;
-          font-weight: 900;
-          margin: 2px 0;
-        }
-      `}</style>
-
-      <div className="store-name">TURBO DELIVERY LANCHES</div>
-
-      {/* Tipo da comanda em destaque */}
-      <div className="tipo-label">{isCozinha ? "COZINHA" : "ENTREGA"}</div>
-
-      <div className="separator" />
-
-      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
-      <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
-      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
-      <div className="separator" />
-
-      <div className="info">Cliente: {profile?.full_name || "Cliente"}</div>
-      <div className="info">Telefone: {profile?.phone || ""}</div>
-      {isCozinha ? (
-        <div className="info">Endereço: {address}</div>
-      ) : (
-        <div className="address-big">Endereço: {address}</div>
-      )}
-      <div className="separator" />
-
-      {/* Itens só na comanda COZINHA */}
-      {isCozinha && (
-        <>
-          <div style={{ fontWeight: 900 }}>ITENS:</div>
-          {items.map((item) => {
-            const lineTotal = Number(item.unit_price) * item.quantity;
-            const addons = item.addons_json as any[] | null;
-            return (
-              <div key={item.id}>
-                <div className="item">
-                  <span>{item.quantity}x {item.product_name}</span>
-                  <span>R$ {lineTotal.toFixed(2).replace(".", ",")}</span>
-                </div>
-                {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-                  <div key={i} className="addon">+ {a.name}</div>
-                ))}
-                {item.observations && <div className="addon">Obs: {item.observations}</div>}
-              </div>
-            );
-          })}
-          <div className="separator" />
-        </>
-      )}
-
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
       {Number(order.discount) > 0 && (
@@ -198,32 +134,126 @@ const AdminPrint = () => {
       <div className="total-line"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
+    </>
+  );
 
-      {isCozinha && (
-        <>
-          <div className="separator" />
-          <div className="highlight-delivery">*** {deliveryLabel} ***</div>
-        </>
-      )}
+  // Items section (reused)
+  const itensSection = (
+    <>
+      <div style={{ fontWeight: 900 }}>ITENS:</div>
+      {items.map((item) => {
+        const lineTotal = Number(item.unit_price) * item.quantity;
+        const addons = item.addons_json as any[] | null;
+        return (
+          <div key={item.id}>
+            <div className="item">
+              <span>{item.quantity}x {item.product_name}</span>
+              <span>R$ {lineTotal.toFixed(2).replace(".", ",")}</span>
+            </div>
+            {addons && addons.length > 0 && addons.map((a: any, i: number) => (
+              <div key={i} className="addon">+ {a.name}</div>
+            ))}
+            {item.observations && <div className="addon">Obs: {item.observations}</div>}
+          </div>
+        );
+      })}
+      <div className="separator" />
+    </>
+  );
 
+  // ===== COMANDA COZINHA =====
+  const comandaCozinha = (
+    <div>
+      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="tipo-label">COZINHA</div>
+      <div className="separator" />
+      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
+      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
+      <div className="separator" />
+      <div className="info">Cliente: {clienteName}</div>
+      <div className="info">Telefone: {profile?.phone || ""}</div>
+      <div className="info">Endereço: {address}</div>
+      <div className="separator" />
+      {itensSection}
+      {totaisSection}
+      <div className="separator" />
+      <div className="highlight-delivery">*** {deliveryLabel} ***</div>
       {order.observations && (
         <>
           <div className="separator" />
           <div className="info">OBS: {order.observations}</div>
         </>
       )}
-
-      {/* Campos extras na comanda de entrega */}
-      {!isCozinha && (
-        <>
-          <div className="separator" />
-          <div className="info">ENTREGADOR: ___________________</div>
-          <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
-        </>
-      )}
-
       <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
+    </div>
+  );
+
+  // ===== COMANDA ENTREGA =====
+  const comandaEntrega = (
+    <div>
+      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="tipo-label">ENTREGA</div>
+      <div className="separator" />
+      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
+      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
+      <div className="separator" />
+      <div className="info">Cliente: {clienteName}</div>
+      <div className="info">Telefone: {profile?.phone || ""}</div>
+      <div className="address-big">Endereço: {address}</div>
+      <div className="separator" />
+      {totaisSection}
+      {order.observations && (
+        <>
+          <div className="separator" />
+          <div className="info">OBS: {order.observations}</div>
+        </>
+      )}
+      <div className="separator" />
+      <div className="info">ENTREGADOR: ___________________</div>
+      <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
+      <div className="separator" />
+      <div className="footer">Agradecemos a preferência!</div>
+    </div>
+  );
+
+  // ===== COMANDA CLIENTE =====
+  const comandaCliente = (
+    <div>
+      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="tipo-label">OBRIGADO!</div>
+      <div className="separator" />
+      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div className="separator" />
+      <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho!</div>
+      <div className="separator" />
+      {itensSection}
+      {totaisSection}
+      <div className="separator" />
+      <div className="footer">Agradecemos a preferência!</div>
+    </div>
+  );
+
+  // Tipo "entrega" imprime entrega + cliente juntos
+  const renderContent = () => {
+    if (isCozinha) return comandaCozinha;
+    if (isCliente) return comandaCliente;
+    // "entrega" imprime as duas comandas separadas (entrega + cliente)
+    return (
+      <>
+        {comandaEntrega}
+        <div className="page-break" />
+        {comandaCliente}
+      </>
+    );
+  };
+
+  return (
+    <>
+      <style>{styles}</style>
+      {renderContent()}
     </>
   );
 };
