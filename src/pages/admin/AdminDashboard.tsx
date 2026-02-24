@@ -7,6 +7,13 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  cancelPrintJobs,
+  preparePrintJobs,
+  runPrintJobs,
+  type PrintJob,
+  type PrintTipo,
+} from "@/lib/printJobs";
 
 interface Order {
   id: string;
@@ -178,23 +185,34 @@ const AdminDashboard = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    // Open print windows BEFORE awaiting (popup-blocker safe)
+    const jobs: PrintJob[] = [];
+    if (newStatus === "preparing") jobs.push({ tipo: "cozinha" });
+    if (newStatus === "delivering") jobs.push({ tipo: "entrega" }, { tipo: "cliente", delayMs: 2000 });
+
+    const handles = jobs.length
+      ? preparePrintJobs(jobs, () =>
+          toast({
+            title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+            variant: "destructive",
+          })
+        )
+      : [];
+
     const updateData: any = { status: newStatus };
     if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
     if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
+      cancelPrintJobs(handles);
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
+
     toast({ title: `Pedido atualizado!` });
 
-    if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
-    } else if (newStatus === "delivering") {
-      printReceipt(orderId, "entrega");
-      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
-    }
+    if (handles.length) runPrintJobs(orderId, handles);
   };
 
   const confirmPayment = async (orderId: string) => {
@@ -209,11 +227,16 @@ const AdminDashboard = () => {
     fetchOrders();
   };
 
-  const printReceipt = (orderId: string, tipo: string) => {
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, `print_${tipo}_${Date.now()}`, "width=400,height=600");
-    if (!w) {
-      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
-    }
+  const printReceipt = (orderId: string, tipo: PrintTipo, delayMs?: number) => {
+    const handles = preparePrintJobs(
+      [{ tipo, delayMs }],
+      () =>
+        toast({
+          title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+          variant: "destructive",
+        })
+    );
+    runPrintJobs(orderId, handles);
   };
 
   const handleCloseDay = async () => {
