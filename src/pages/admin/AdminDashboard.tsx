@@ -444,8 +444,8 @@ const AdminDashboard = () => {
 
                   {elapsed && (
                     <div className={`rounded-lg px-3 py-1.5 text-sm font-bold tabular-nums ${
-                      elapsed.min >= 25 ? "bg-red-600 text-white animate-pulse" :
-                      elapsed.min >= 20 ? "bg-amber-500 text-white" :
+                      elapsed.min >= 20 ? "bg-red-600 text-white animate-pulse" :
+                      elapsed.min >= 15 ? "bg-amber-500 text-white" :
                       "bg-green-600 text-white"
                     }`}>
                       {elapsed.min}:{String(elapsed.sec).padStart(2, "0")}
