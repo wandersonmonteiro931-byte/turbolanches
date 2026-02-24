@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Truck, Clock, ChefHat, Package } from "lucide-react";
+import { Check, X, Truck, Clock, ChefHat, Package, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -120,6 +120,21 @@ const AdminOrders = () => {
     }
   };
 
+  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega") => {
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "-10000px";
+    iframe.style.left = "-10000px";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "none";
+    iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch {}
+    }, 10000);
+  };
+
   const toggleExpand = (orderId: string) => {
     if (expandedOrder === orderId) {
       setExpandedOrder(null);
@@ -204,6 +219,21 @@ const AdminOrders = () => {
                       </span>
                     </div>
                   ))}
+                </div>
+
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => printReceipt(order.id, "cozinha")}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    <Printer size={14} /> Cozinha
+                  </button>
+                  <button
+                    onClick={() => printReceipt(order.id, "entrega")}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                  >
+                    <Printer size={14} /> Entrega
+                  </button>
                 </div>
 
                 <div className="flex gap-2">
