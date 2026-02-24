@@ -1,6 +1,5 @@
-// ESC/POS commands for thermal printers via WebUSB
+// ESC/POS thermal printer via Web Serial API
 /* eslint-disable @typescript-eslint/no-explicit-any */
-const nav = navigator as any;
 
 const ESC = 0x1b;
 const GS = 0x1d;
@@ -27,19 +26,18 @@ function concat(...arrays: Uint8Array[]): Uint8Array {
   return result;
 }
 
-// ESC/POS helpers
-const INIT = cmd(ESC, 0x40); // Initialize printer
+const INIT = cmd(ESC, 0x40);
 const BOLD_ON = cmd(ESC, 0x45, 0x01);
 const BOLD_OFF = cmd(ESC, 0x45, 0x00);
 const ALIGN_CENTER = cmd(ESC, 0x61, 0x01);
 const ALIGN_LEFT = cmd(ESC, 0x61, 0x00);
-const DOUBLE_SIZE = cmd(GS, 0x21, 0x11); // Double width + height
+const DOUBLE_SIZE = cmd(GS, 0x21, 0x11);
 const NORMAL_SIZE = cmd(GS, 0x21, 0x00);
-const CUT = cmd(GS, 0x56, 0x00); // Full cut
+const CUT = cmd(GS, 0x56, 0x00);
 const FEED = cmd(LF);
 const SEPARATOR = text("--------------------------------\n");
 
-interface PrintOrderData {
+export interface PrintOrderData {
   orderId: string;
   customerName: string;
   customerPhone: string;
@@ -61,27 +59,20 @@ function buildReceipt(order: PrintOrderData): Uint8Array {
   const parts: Uint8Array[] = [
     INIT,
     ALIGN_CENTER,
-    DOUBLE_SIZE,
-    BOLD_ON,
+    DOUBLE_SIZE, BOLD_ON,
     text("TURBO DELIVERY\n"),
-    NORMAL_SIZE,
-    BOLD_OFF,
+    NORMAL_SIZE, BOLD_OFF,
     text("LANCHES\n"),
-    FEED,
-    SEPARATOR,
+    FEED, SEPARATOR,
     ALIGN_LEFT,
-    BOLD_ON,
-    text(`PEDIDO #${order.orderId.slice(0, 6).toUpperCase()}\n`),
-    BOLD_OFF,
+    BOLD_ON, text(`PEDIDO #${order.orderId.slice(0, 6).toUpperCase()}\n`), BOLD_OFF,
     text(`Data: ${time}\n`),
     SEPARATOR,
     text(`Cliente: ${order.customerName}\n`),
     text(`Tel: ${order.customerPhone}\n`),
     text(`End: ${order.address}\n`),
     SEPARATOR,
-    BOLD_ON,
-    text("ITENS:\n"),
-    BOLD_OFF,
+    BOLD_ON, text("ITENS:\n"), BOLD_OFF,
   ];
 
   for (const item of order.items) {
@@ -99,7 +90,6 @@ function buildReceipt(order: PrintOrderData): Uint8Array {
   }
 
   parts.push(SEPARATOR);
-
   const subtotal = order.total - order.deliveryFee;
   parts.push(text(`Subtotal:  R$ ${subtotal.toFixed(2).replace(".", ",")}\n`));
   parts.push(text(`Entrega:   R$ ${order.deliveryFee.toFixed(2).replace(".", ",")}\n`));
@@ -121,77 +111,54 @@ function buildReceipt(order: PrintOrderData): Uint8Array {
   return concat(...parts);
 }
 
-let savedDevice: any = null;
+const serial = (navigator as any).serial;
 
-export async function connectPrinter(): Promise<any> {
+let savedPort: any = null;
+let savedWriter: any = null;
+
+export async function connectPrinter(): Promise<boolean> {
   try {
-    const device = await nav.usb.requestDevice({
-      filters: [],
-    });
-    await device.open();
-    if (device.configuration === null) {
-      await device.selectConfiguration(1);
-    }
-    await device.claimInterface(0);
-    savedDevice = device;
-    return device;
+    const port = await serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    savedPort = port;
+    savedWriter = port.writable.getWriter();
+    return true;
   } catch (err) {
     console.error("Erro ao conectar impressora:", err);
-    return null;
+    return false;
   }
 }
 
 export async function printOrder(order: PrintOrderData): Promise<boolean> {
   try {
-    let device = savedDevice;
-
-    if (device) {
-      try {
-        if (!device.opened) {
-          await device.open();
-          if (device.configuration === null) {
-            await device.selectConfiguration(1);
-          }
-          await device.claimInterface(0);
+    // Try reconnecting to previously paired port
+    if (!savedWriter) {
+      const ports = await serial.getPorts();
+      if (ports.length > 0) {
+        const port = ports[0];
+        if (!port.readable) {
+          await port.open({ baudRate: 9600 });
         }
-      } catch {
-        device = null;
-        savedDevice = null;
-      }
-    }
-
-    if (!device) {
-      const devices = await nav.usb.getDevices();
-      if (devices.length > 0) {
-        device = devices[0];
-        if (!device.opened) {
-          await device.open();
-          if (device.configuration === null) {
-            await device.selectConfiguration(1);
-          }
-          await device.claimInterface(0);
-        }
-        savedDevice = device;
+        savedPort = port;
+        savedWriter = port.writable.getWriter();
       } else {
-        device = await connectPrinter();
-        if (!device) return false;
+        // No port paired - need user click
+        return false;
       }
     }
 
     const receipt = buildReceipt(order);
-
-    const iface = device.configuration?.interfaces[0];
-    const endpoint = iface?.alternate?.endpoints.find((e: any) => e.direction === "out");
-    const endpointNumber = endpoint?.endpointNumber || 1;
-
-    await device.transferOut(endpointNumber, receipt);
+    await savedWriter.write(receipt);
     return true;
   } catch (err) {
     console.error("Erro ao imprimir:", err);
+    // Reset on error
+    savedWriter = null;
+    savedPort = null;
     return false;
   }
 }
 
 export function isPrinterSupported(): boolean {
-  return !!nav.usb;
+  return !!serial;
 }
