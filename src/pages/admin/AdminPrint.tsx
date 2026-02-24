@@ -110,8 +110,9 @@ const AdminPrint = () => {
     .info { font-size: 12px; margin: 0; font-weight: 900; }
     .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
     .tipo-label {
-      font-size: 22px; font-weight: 900; text-align: center;
-      letter-spacing: 2px; margin: 2px 0; padding: 3px 0; border: 2px solid #000;
+      font-size: 28px; font-weight: 900; text-align: center;
+      letter-spacing: 3px; margin: 3px 0; padding: 6px 0; border: 3px solid #000;
+      text-transform: uppercase;
     }
     .tipo-label-big {
       font-size: 28px; font-weight: 900; text-align: center;
@@ -183,18 +184,12 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">COZINHA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 15 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
-      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
+      <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
-      <div className="info">Cliente: {clienteName}</div>
-      <div className="info">Telefone: {profile?.phone || ""}</div>
-      <div className="info">Endereço: {address}</div>
-      <div className="separator" />
-      <div className="box-itens">
-        {itensSection}
-      </div>
-      {totaisSection(false)}
+      {itensSection}
+      <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
       {order.observations && (
@@ -213,24 +208,26 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">ENTREGA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 15 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
-      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
+      <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
       <div className="info">Cliente: {clienteName}</div>
       <div className="info">Telefone: {profile?.phone || ""}</div>
       <div className="box-highlight">Endereço: {address}</div>
       <div className="separator" />
-      {totaisSection(true)}
-      {order.observations && (
-        <>
-          <div className="separator" />
-          <div className="info">OBS: {order.observations}</div>
-        </>
+      <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
+      <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
+      {Number(order.discount) > 0 && (
+        <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
       )}
+      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+      <div className="box-highlight-flex"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
       <div className="separator" />
       <div className="info">ENTREGADOR: ___________________</div>
-      <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
+      <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
       <div className="separator" />
     </div>
   );
