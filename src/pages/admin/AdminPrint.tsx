@@ -93,50 +93,50 @@ const AdminPrint = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 12px;
+      font-size: 9px;
       font-weight: 900;
       width: 72mm;
-      padding: 2mm;
+      padding: 1mm;
       margin: 0;
       color: #000;
       background: #fff;
     }
     .center { text-align: center; }
-    .separator { border-top: 1px dashed #000; margin: 3px 0; }
-    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 13px; }
-    .addon { font-size: 11px; padding-left: 10px; font-weight: 900; }
-    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 13px; }
-    .grand-total { font-size: 15px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
-    .info { font-size: 12px; margin: 0; font-weight: 900; }
-    .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
+    .separator { border-top: 1px dashed #000; margin: 1px 0; }
+    .item { display: flex; justify-content: space-between; margin: 0; font-weight: 900; font-size: 9px; }
+    .addon { font-size: 8px; padding-left: 8px; font-weight: 900; }
+    .total-line { display: flex; justify-content: space-between; margin: 0; font-weight: 900; font-size: 9px; }
+    .grand-total { font-size: 10px; font-weight: 900; display: flex; justify-content: space-between; margin: 0; }
+    .info { font-size: 9px; margin: 0; font-weight: 900; line-height: 1.2; }
+    .footer { font-size: 8px; text-align: center; margin-top: 1px; font-weight: 900; padding-bottom: 1mm; }
     .tipo-label {
-      font-size: 28px; font-weight: 900; text-align: center;
-      letter-spacing: 3px; margin: 3px 0; padding: 6px 0; border: 3px solid #000;
+      font-size: 22px; font-weight: 900; text-align: center;
+      letter-spacing: 2px; margin: 1px 0; padding: 3px 0; border: 2px solid #000;
       text-transform: uppercase;
     }
     .tipo-label-big {
-      font-size: 28px; font-weight: 900; text-align: center;
-      letter-spacing: 3px; margin: 3px 0; padding: 6px 0; border: 3px solid #000;
+      font-size: 22px; font-weight: 900; text-align: center;
+      letter-spacing: 2px; margin: 1px 0; padding: 3px 0; border: 2px solid #000;
       text-transform: uppercase;
     }
-    .store-name { font-size: 11px; font-weight: 900; text-align: center; margin: 1px 0; }
+    .store-name { font-size: 8px; font-weight: 900; text-align: center; margin: 0; }
     .highlight-delivery {
-      font-size: 14px; font-weight: 900; text-align: center;
-      margin: 3px 0; padding: 2px 0; border: 1px solid #000; letter-spacing: 1px;
+      font-size: 10px; font-weight: 900; text-align: center;
+      margin: 1px 0; padding: 1px 0; letter-spacing: 1px;
     }
     .box-highlight {
-      font-size: 16px; font-weight: 900; margin: 3px 0; padding: 5px 4px;
+      font-size: 14px; font-weight: 900; margin: 1px 0; padding: 3px 2px;
       border: 2px solid #000;
     }
     .box-highlight-flex {
-      font-size: 16px; font-weight: 900; display: flex; justify-content: space-between;
-      margin: 3px 0; padding: 5px 4px; border: 2px solid #000;
+      font-size: 14px; font-weight: 900; display: flex; justify-content: space-between;
+      margin: 1px 0; padding: 3px 2px; border: 2px solid #000;
     }
     .box-itens {
-      border: 2px solid #000; padding: 4px; margin: 3px 0;
+      border: 2px solid #000; padding: 2px; margin: 1px 0;
     }
-    .pedido-destaque { font-size: 20px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
-    .msg-carinho { font-size: 11px; font-weight: 900; text-align: center; margin: 2px 0; font-style: italic; }
+    .pedido-destaque { font-size: 18px; font-weight: 900; text-align: center; margin: 1px 0; letter-spacing: 1px; }
+    .msg-carinho { font-size: 8px; font-weight: 900; text-align: center; margin: 1px 0; font-style: italic; }
   `;
 
   // Totais section (reused)
@@ -184,7 +184,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">COZINHA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 15 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
@@ -208,7 +208,7 @@ const AdminPrint = () => {
       <div className="store-name">TURBO DELIVERY LANCHES</div>
       <div className="tipo-label">ENTREGA</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 15 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
