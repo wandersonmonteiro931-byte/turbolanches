@@ -221,7 +221,7 @@ const AdminOrders = () => {
                     <Printer size={14} /> Cozinha
                   </button>
                   <button
-                    onClick={() => printReceipt(order.id, "entrega")}
+                    onClick={() => { printReceipt(order.id, "entrega"); setTimeout(() => printReceipt(order.id, "cliente"), 2000); }}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega + Cliente
