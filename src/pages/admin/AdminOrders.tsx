@@ -102,21 +102,13 @@ const AdminOrders = () => {
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Silent print via hidden iframe
-    if (newStatus === "accepted" || newStatus === "delivering") {
-      const tipo = newStatus === "accepted" ? "cozinha" : "entrega";
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.top = "-10000px";
-      iframe.style.left = "-10000px";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "none";
-      iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
-      document.body.appendChild(iframe);
-      setTimeout(() => {
-        try { document.body.removeChild(iframe); } catch {}
-      }, 10000);
+    // Silent print via hidden iframe(s)
+    if (newStatus === "accepted") {
+      printReceipt(orderId, "cozinha");
+    } else if (newStatus === "delivering") {
+      // Duas impressões separadas: entrega + cliente (com delay para corte)
+      printReceipt(orderId, "entrega");
+      setTimeout(() => printReceipt(orderId, "cliente"), 3000);
     }
   };
 

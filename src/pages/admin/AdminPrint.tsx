@@ -240,14 +240,8 @@ const AdminPrint = () => {
   const renderContent = () => {
     if (isCozinha) return comandaCozinha;
     if (isCliente) return comandaCliente;
-    // "entrega" imprime as duas comandas separadas (entrega + cliente)
-    return (
-      <>
-        {comandaEntrega}
-        <div className="page-break" />
-        {comandaCliente}
-      </>
-    );
+    // "entrega" agora imprime só a comanda do entregador
+    return comandaEntrega;
   };
 
   return (
