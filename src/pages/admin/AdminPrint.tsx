@@ -181,7 +181,7 @@ const AdminPrint = () => {
         <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
       )}
       <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className="total-line"><span>TOTAL A RECEBER DO CLIENTE</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+      <div className="total-line"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
 
