@@ -31,7 +31,7 @@ const AdminPrint = () => {
 
       const [itemsRes, profileRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase.from("profiles").select("full_name, phone").eq("user_id", orderData.user_id).single(),
+        supabase.from("profiles").select("full_name, phone, complement, quadra, lote").eq("user_id", orderData.user_id).single(),
       ]);
 
       setItems(itemsRes.data || []);
@@ -64,9 +64,17 @@ const AdminPrint = () => {
   const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const horarioSaida = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  const address = order.address_street
-    ? `${order.address_street}, ${order.address_number || "S/N"} - ${order.address_neighborhood || ""}`
-    : "Retirada no local";
+  const complemento = order.address_complement || profile?.complement || "";
+  const quadra = profile?.quadra || "";
+  const lote = profile?.lote || "";
+  const addressParts = [
+    order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : null,
+    complemento ? `Compl: ${complemento}` : null,
+    quadra ? `Qd: ${quadra}` : null,
+    lote ? `Lt: ${lote}` : null,
+    order.address_neighborhood || null,
+  ].filter(Boolean).join(" - ");
+  const address = addressParts || "Retirada no local";
 
   const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
@@ -237,6 +245,7 @@ const AdminPrint = () => {
       <div className="info">Cliente: {clienteName}</div>
       <div className="info">Telefone: {profile?.phone || ""}</div>
       <div className="box-highlight">Endereço: {address}</div>
+      {order.observations && <div className="info">OBS: {order.observations}</div>}
       <div className="separator" />
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
