@@ -88,24 +88,24 @@ const Kitchen = () => {
     await supabase.from("orders").update({ status: "ready", ready_at: new Date().toISOString() }).eq("id", orderId);
   };
 
-  const getElapsed = (preparingAt: string | null) => {
-    if (!preparingAt) return { minutes: 0, seconds: 0 };
-    const diff = now - new Date(preparingAt).getTime();
-    return { minutes: Math.floor(diff / 60000), seconds: Math.floor((diff % 60000) / 1000) };
+  const getElapsed = (order: KitchenOrder) => {
+    const ref = order.preparing_at || order.created_at;
+    if (!ref) return { minutes: 0, seconds: 0, totalMs: 0 };
+    const diff = now - new Date(ref).getTime();
+    return { minutes: Math.floor(diff / 60000), seconds: Math.floor((diff % 60000) / 1000), totalMs: diff };
   };
 
   const getTimerClass = (minutes: number) => {
-    if (minutes >= 25) return "kds-timer-late";
-    if (minutes >= 20) return "kds-timer-warning";
+    if (minutes >= 20) return "kds-timer-late";
+    if (minutes >= 15) return "kds-timer-warning";
     return "kds-timer-normal";
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
 
         .kds-header {
           background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
@@ -203,9 +203,9 @@ const Kitchen = () => {
       ) : (
         <div className="kds-grid">
           {orders.map((order) => {
-            const { minutes, seconds } = getElapsed(order.preparing_at);
+            const { minutes, seconds } = getElapsed(order);
             const timerClass = getTimerClass(minutes);
-            const cardBorder = minutes >= 25 ? " kds-card-late" : minutes >= 20 ? " kds-card-warning" : "";
+            const cardBorder = minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
             const orderItems = items[order.id] || [];
 
             return (
