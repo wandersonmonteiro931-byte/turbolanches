@@ -179,6 +179,27 @@ const AdminPrint = () => {
   );
 
   // ===== COMANDA COZINHA =====
+  const itensCozinha = (
+    <>
+      <div style={{ fontWeight: 900, fontSize: 14 }}>ITENS:</div>
+      {items.map((item) => {
+        const addons = item.addons_json as any[] | null;
+        return (
+          <div key={item.id}>
+            <div style={{ fontWeight: 900, fontSize: 14, margin: 0 }}>
+              {item.quantity}x {item.product_name}
+            </div>
+            {addons && addons.length > 0 && addons.map((a: any, i: number) => (
+              <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}</div>
+            ))}
+            {item.observations && <div style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
+          </div>
+        );
+      })}
+      <div className="separator" />
+    </>
+  );
+
   const comandaCozinha = (
     <div>
       <div className="store-name">TURBO DELIVERY LANCHES</div>
@@ -188,7 +209,7 @@ const AdminPrint = () => {
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
-      {itensSection}
+      {itensCozinha}
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
