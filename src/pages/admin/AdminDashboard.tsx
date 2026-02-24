@@ -210,11 +210,10 @@ const AdminDashboard = () => {
   };
 
   const printReceipt = (orderId: string, tipo: string) => {
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:-10000px;left:-10000px;width:0;height:0;border:none;";
-    iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
-    document.body.appendChild(iframe);
-    setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 10000);
+    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, `print_${tipo}_${Date.now()}`, "width=400,height=600");
+    if (!w) {
+      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
+    }
   };
 
   const handleCloseDay = async () => {
