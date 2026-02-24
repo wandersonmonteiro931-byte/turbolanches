@@ -41,7 +41,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 
 const nextStatus: Record<string, string> = {
   pending: "preparing",
-  preparing: "delivering",
+  preparing: "ready",
+  ready: "delivering",
   delivering: "delivered",
 };
 
@@ -93,7 +94,11 @@ const AdminOrders = () => {
   }, []);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    const { error: updateErr } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
+    const updateData: any = { status: newStatus };
+    if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
+    if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
+    
+    const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
