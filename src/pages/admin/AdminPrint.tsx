@@ -93,7 +93,7 @@ const AdminPrint = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
       width: 72mm;
       padding: 2mm;
@@ -103,10 +103,10 @@ const AdminPrint = () => {
     }
     .center { text-align: center; }
     .separator { border-top: 1px dashed #000; margin: 3px 0; }
-    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 11px; }
+    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
     .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
-    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 11px; }
-    .grand-total { font-size: 13px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
+    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
+    .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
     .info { font-size: 11px; margin: 0; font-weight: 900; }
     .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
     .tipo-label {
@@ -120,15 +120,15 @@ const AdminPrint = () => {
     }
     .store-name { font-size: 11px; font-weight: 900; text-align: center; margin: 1px 0; }
     .highlight-delivery {
-      font-size: 13px; font-weight: 900; text-align: center;
+      font-size: 14px; font-weight: 900; text-align: center;
       margin: 3px 0; padding: 2px 0; border: 1px solid #000; letter-spacing: 1px;
     }
     .box-highlight {
-      font-size: 14px; font-weight: 900; margin: 3px 0; padding: 4px 3px;
+      font-size: 16px; font-weight: 900; margin: 3px 0; padding: 4px 3px;
       border: 2px solid #000;
     }
     .box-highlight-flex {
-      font-size: 14px; font-weight: 900; display: flex; justify-content: space-between;
+      font-size: 16px; font-weight: 900; display: flex; justify-content: space-between;
       margin: 3px 0; padding: 4px 3px; border: 2px solid #000;
     }
     .pedido-destaque { font-size: 20px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
