@@ -14,6 +14,11 @@ import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import CompleteProfile from "./pages/CompleteProfile";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +39,12 @@ const App = () => (
               <Route path="/perfil" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/completar-perfil" element={<CompleteProfile />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="pedidos" element={<AdminOrders />} />
+                <Route path="produtos" element={<AdminProducts />} />
+                <Route path="categorias" element={<AdminCategories />} />
+              </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
