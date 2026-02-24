@@ -177,81 +177,44 @@ const AdminDashboard = () => {
     toast({ title: "⏰ Horários salvos!" });
   };
 
-  type PrintTipo = "cozinha" | "entrega" | "cliente";
-  type PreparedPrintBatch = { commit: () => void; cancel: () => void };
-
-  const preparePrintBatch = (orderId: string, jobs: { tipo: PrintTipo; delayMs?: number }[]): PreparedPrintBatch | null => {
-    const opened = jobs.map(({ tipo, delayMs = 0 }) => ({
-      tipo,
-      delayMs,
-      win: window.open("", `print_${tipo}_${Date.now()}_${Math.random().toString(36).slice(2)}`, "width=400,height=600"),
-    }));
-
-    if (opened.some((entry) => !entry.win)) {
-      opened.forEach((entry) => entry.win?.close());
-      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
-      return null;
-    }
-
-    return {
-      commit: () => {
-        opened.forEach(({ win, tipo, delayMs }) => {
-          const goToPrint = () => {
-            if (!win || win.closed) return;
-            win.location.href = `/admin/imprimir/${orderId}?tipo=${tipo}`;
-          };
-
-          if (delayMs > 0) window.setTimeout(goToPrint, delayMs);
-          else goToPrint();
-        });
-      },
-      cancel: () => opened.forEach(({ win }) => win?.close()),
-    };
-  };
-
-  const printReceipt = (orderId: string, tipo: PrintTipo) => {
-    const batch = preparePrintBatch(orderId, [{ tipo }]);
-    batch?.commit();
-  };
-
-  const printDeliveryAndCustomer = (orderId: string) => {
-    const batch = preparePrintBatch(orderId, [
-      { tipo: "entrega" },
-      { tipo: "cliente", delayMs: 1800 },
-    ]);
-    batch?.commit();
-  };
-
   const updateStatus = async (orderId: string, newStatus: string) => {
-    const queuedPrint =
-      newStatus === "preparing"
-        ? preparePrintBatch(orderId, [{ tipo: "cozinha" }])
-        : newStatus === "delivering"
-          ? preparePrintBatch(orderId, [
-              { tipo: "entrega" },
-              { tipo: "cliente", delayMs: 1800 },
-            ])
-          : null;
-
     const updateData: any = { status: newStatus };
     if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
     if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
-      queuedPrint?.cancel();
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
     toast({ title: `Pedido atualizado!` });
 
-    queuedPrint?.commit();
+    if (newStatus === "preparing") {
+      printReceipt(orderId, "cozinha");
+    } else if (newStatus === "delivering") {
+      printReceipt(orderId, "entrega");
+      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
+    }
+  };
+
+  const confirmPayment = async (orderId: string) => {
+    await supabase.from("orders").update({ payment_confirmed: true }).eq("id", orderId);
+    toast({ title: "💰 Pagamento confirmado manualmente!" });
+    fetchOrders();
   };
 
   const markAsFiado = async (orderId: string) => {
     await supabase.from("orders").update({ payment_confirmed: true, payment_method: "fiado" }).eq("id", orderId);
     toast({ title: "📝 Pedido marcado como fiado!" });
     fetchOrders();
+  };
+
+  const printReceipt = (orderId: string, tipo: string) => {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-10000px;left:-10000px;width:0;height:0;border:none;";
+    iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
+    document.body.appendChild(iframe);
+    setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 10000);
   };
 
   const handleCloseDay = async () => {
@@ -569,24 +532,13 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=cozinha`, `reprint_cozinha_${Date.now()}`, "width=400,height=600")}
+                      <button onClick={() => printReceipt(order.id, "cozinha")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Cozinha
                       </button>
-                      <button onClick={() => {
-                        window.open(`/admin/imprimir/${order.id}?tipo=entrega`, `reprint_entrega_${Date.now()}`, "width=400,height=600");
-                        setTimeout(() => window.open(`/admin/imprimir/${order.id}?tipo=cliente`, `reprint_cliente_${Date.now()}`, "width=400,height=600"), 1800);
-                      }}
+                      <button onClick={() => { printReceipt(order.id, "entrega"); setTimeout(() => printReceipt(order.id, "cliente"), 2000); }}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Entrega+Cliente
-                      </button>
-                      <button onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=entrega`, `reprint_entrega_${Date.now()}`, "width=400,height=600")}
-                        className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Entrega
-                      </button>
-                      <button onClick={() => window.open(`/admin/imprimir/${order.id}?tipo=cliente`, `reprint_cliente_${Date.now()}`, "width=400,height=600")}
-                        className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Cliente
                       </button>
                     </div>
 
@@ -594,21 +546,10 @@ const AdminDashboard = () => {
                     <div className="flex flex-wrap gap-2">
                       {order.status === "awaiting_payment" && (
                         <button onClick={async () => {
-                          const queuedPrint = preparePrintBatch(order.id, [{ tipo: "cozinha" }]);
-                          const { error } = await supabase
-                            .from("orders")
-                            .update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() })
-                            .eq("id", order.id);
-
-                          if (error) {
-                            queuedPrint?.cancel();
-                            toast({ title: "Erro ao confirmar PIX", variant: "destructive" });
-                            return;
-                          }
-
+                          await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
                           toast({ title: "✅ PIX confirmado! Pedido em preparo." });
                           await fetchOrders();
-                          queuedPrint?.commit();
+                          printReceipt(order.id, "cozinha");
                         }}
                           className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
                           <DollarSign size={14} /> Confirmar PIX
