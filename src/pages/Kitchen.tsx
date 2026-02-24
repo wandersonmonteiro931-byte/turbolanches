@@ -86,6 +86,7 @@ const Kitchen = () => {
 
   const markReady = async (orderId: string) => {
     await supabase.from("orders").update({ status: "ready", ready_at: new Date().toISOString() }).eq("id", orderId);
+    await fetchOrders();
   };
 
   const getElapsed = (order: KitchenOrder) => {
