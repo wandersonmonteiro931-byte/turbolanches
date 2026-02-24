@@ -209,6 +209,7 @@ export type Database = {
           id: string
           observations: string | null
           order_number: number
+          payment_confirmed: boolean
           payment_method: string
           preparing_at: string | null
           ready_at: string | null
@@ -232,6 +233,7 @@ export type Database = {
           id?: string
           observations?: string | null
           order_number?: number
+          payment_confirmed?: boolean
           payment_method?: string
           preparing_at?: string | null
           ready_at?: string | null
@@ -255,6 +257,7 @@ export type Database = {
           id?: string
           observations?: string | null
           order_number?: number
+          payment_confirmed?: boolean
           payment_method?: string
           preparing_at?: string | null
           ready_at?: string | null

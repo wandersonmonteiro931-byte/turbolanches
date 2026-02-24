@@ -81,13 +81,14 @@ const AdminPrint = () => {
   const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
   const total = Number(order.total);
-  const isPaidOnline = order.payment_method === "pix";
-  const isPaidAtDelivery = !isPaidOnline; // dinheiro, cartao, credito, debito = pago na entrega
+  const isFiado = order.payment_method === "fiado";
+  const isPaidOnline = order.payment_method === "pix" || order.payment_confirmed;
+  const isPaidAtDelivery = !isPaidOnline && !isFiado;
   const discount = Number(order.discount) || 0;
   const changeFor = order.change_for ? Number(order.change_for) : 0;
-  const totalReceber = isPaidOnline ? 0 : total;
+  const totalReceber = (isPaidOnline || isFiado) ? 0 : total;
   const troco = isPaidAtDelivery && changeFor > total ? changeFor - total : 0;
-  const paymentLabel = isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
+  const paymentLabel = isFiado ? "FIADO" : isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
 
   const clienteName = profile?.full_name || "Cliente";
   const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
