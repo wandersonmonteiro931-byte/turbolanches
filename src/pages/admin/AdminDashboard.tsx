@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power, Settings,
-  FileText, AlertTriangle
+  FileText, AlertTriangle, Plus
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -308,6 +308,14 @@ const AdminDashboard = () => {
         >
           <Power size={18} />
           {storeSettings?.is_open ? "LOJA ABERTA" : "ABRIR LOJA"}
+        </button>
+
+        <button
+          onClick={() => navigate("/admin/novo-pedido")}
+          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus size={16} />
+          Novo Pedido
         </button>
 
         <button
