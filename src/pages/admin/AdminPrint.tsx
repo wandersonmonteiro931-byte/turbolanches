@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,6 +9,24 @@ const AdminPrint = () => {
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Convert logo to base64 so it works in iframe print
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0);
+      setLogoBase64(canvas.toDataURL("image/jpeg", 0.95));
+    };
+    img.onerror = () => setLogoBase64(null);
+    img.src = "/logo-print.jpeg";
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -96,7 +114,7 @@ const AdminPrint = () => {
       `}</style>
 
       <div className="center">
-        <img src="/logo-print.jpeg" alt="Turbo Lanches" style={{ width: '55mm', margin: '0 auto', display: 'block' }} />
+        {logoBase64 && <img src={logoBase64} alt="Turbo Lanches" style={{ width: '55mm', margin: '0 auto', display: 'block' }} />}
       </div>
       <div className="separator" />
 
