@@ -3,6 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Truck, Clock, ChefHat, Package, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  cancelPrintJobs,
+  preparePrintJobs,
+  runPrintJobs,
+  type PrintJob,
+  type PrintTipo,
+} from "@/lib/printJobs";
 
 interface Order {
   id: string;
@@ -95,34 +102,48 @@ const AdminOrders = () => {
   }, []);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    // Open print windows BEFORE awaiting (popup-blocker safe)
+    const jobs: PrintJob[] = [];
+    if (newStatus === "preparing") jobs.push({ tipo: "cozinha" });
+    if (newStatus === "delivering") jobs.push({ tipo: "entrega" }, { tipo: "cliente", delayMs: 2000 });
+
+    const handles = jobs.length
+      ? preparePrintJobs(jobs, () =>
+          toast({
+            title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+            variant: "destructive",
+          })
+        )
+      : [];
+
     const updateData: any = { status: newStatus };
     if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
     if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
-    
+
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
+      cancelPrintJobs(handles);
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
+
     await fetchOrders();
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Silent print via hidden iframe(s)
-    if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
-    } else if (newStatus === "delivering") {
-      // Duas impressões separadas: entrega + cliente (com delay para corte)
-      printReceipt(orderId, "entrega");
-      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
-    }
+    if (handles.length) runPrintJobs(orderId, handles);
   };
 
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente") => {
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, `print_${tipo}_${Date.now()}`, "width=400,height=600");
-    if (!w) {
-      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
-    }
+  const printReceipt = (orderId: string, tipo: PrintTipo, delayMs?: number) => {
+    const handles = preparePrintJobs(
+      [{ tipo, delayMs }],
+      () =>
+        toast({
+          title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+          variant: "destructive",
+        })
+    );
+    runPrintJobs(orderId, handles);
   };
 
   const toggleExpand = (orderId: string) => {
@@ -219,7 +240,20 @@ const AdminOrders = () => {
                     <Printer size={14} /> Cozinha
                   </button>
                   <button
-                    onClick={() => { printReceipt(order.id, "entrega"); setTimeout(() => printReceipt(order.id, "cliente"), 2000); }}
+                    onClick={() => {
+                      const handles = preparePrintJobs(
+                        [
+                          { tipo: "entrega" },
+                          { tipo: "cliente", delayMs: 2000 },
+                        ],
+                        () =>
+                          toast({
+                            title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+                            variant: "destructive",
+                          })
+                      );
+                      runPrintJobs(order.id, handles);
+                    }}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega + Cliente
@@ -242,10 +276,33 @@ const AdminOrders = () => {
                   {order.status === "awaiting_payment" && (
                     <button
                       onClick={async () => {
-                        await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
+                        const handles = preparePrintJobs(
+                          [{ tipo: "cozinha" }],
+                          () =>
+                            toast({
+                              title: "⚠️ Popup bloqueado! Permita popups para impressão.",
+                              variant: "destructive",
+                            })
+                        );
+
+                        const { error } = await supabase
+                          .from("orders")
+                          .update({
+                            payment_confirmed: true,
+                            status: "preparing",
+                            preparing_at: new Date().toISOString(),
+                          })
+                          .eq("id", order.id);
+
+                        if (error) {
+                          cancelPrintJobs(handles);
+                          toast({ title: "Erro ao confirmar PIX", variant: "destructive" });
+                          return;
+                        }
+
                         toast({ title: "✅ PIX confirmado! Pedido em preparo." });
                         await fetchOrders();
-                        printReceipt(order.id, "cozinha");
+                        runPrintJobs(order.id, handles);
                       }}
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
                     >
