@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import logoTurbo from "@/assets/logo-turbo.jpeg";
 
 interface KitchenOrder {
   id: string;
@@ -32,7 +33,6 @@ const Kitchen = () => {
       .order("preparing_at", { ascending: true });
     if (data) {
       setOrders(data);
-      // Fetch items for all orders
       const ids = data.map((o) => o.id);
       if (ids.length > 0) {
         const { data: itemsData } = await supabase
@@ -47,6 +47,8 @@ const Kitchen = () => {
           });
           setItems(grouped);
         }
+      } else {
+        setItems({});
       }
     }
   }, []);
@@ -61,8 +63,8 @@ const Kitchen = () => {
       })
       .subscribe();
 
-    // Timer tick every 10s
-    const timer = setInterval(() => setNow(Date.now()), 10000);
+    // Tick every second for accurate timer
+    const timer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => {
       supabase.removeChannel(channel);
@@ -86,125 +88,153 @@ const Kitchen = () => {
     await supabase.from("orders").update({ status: "ready", ready_at: new Date().toISOString() }).eq("id", orderId);
   };
 
-  const getElapsedMinutes = (preparingAt: string | null) => {
-    if (!preparingAt) return 0;
-    return Math.floor((now - new Date(preparingAt).getTime()) / 60000);
+  const getElapsed = (preparingAt: string | null) => {
+    if (!preparingAt) return { minutes: 0, seconds: 0 };
+    const diff = now - new Date(preparingAt).getTime();
+    return { minutes: Math.floor(diff / 60000), seconds: Math.floor((diff % 60000) / 1000) };
   };
 
   const getTimerClass = (minutes: number) => {
-    if (minutes >= 25) return "timer-late";
-    if (minutes >= 15) return "timer-warning";
-    return "timer-normal";
+    if (minutes >= 25) return "kds-timer-late";
+    if (minutes >= 20) return "kds-timer-warning";
+    return "kds-timer-normal";
   };
 
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #111; color: #fff; font-family: Arial, sans-serif; }
-        .kitchen-header {
-          background: #000; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;
-          border-bottom: 2px solid #333;
+        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+
+        .kds-header {
+          background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+          padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
+          border-bottom: 1px solid #222;
         }
-        .kitchen-header h1 { font-size: 24px; font-weight: 900; letter-spacing: 2px; }
-        .kitchen-header .count { font-size: 18px; color: #aaa; }
-        .kitchen-grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 16px; padding: 16px; height: calc(100vh - 60px); overflow-y: auto;
+        .kds-header-left { display: flex; align-items: center; gap: 14px; }
+        .kds-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
+        .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
+        .kds-subtitle { font-size: 13px; font-weight: 500; color: #4ade80; letter-spacing: 1px; text-transform: uppercase; }
+        .kds-count { font-size: 16px; color: #888; font-weight: 700; }
+
+        .kds-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 20px; padding: 20px; height: calc(100vh - 76px); overflow-y: auto;
           align-content: start;
         }
-        .kitchen-card {
-          background: #1a1a1a; border-radius: 12px; border: 2px solid #333;
+
+        .kds-card {
+          background: #151515; border-radius: 16px; border: 1px solid #2a2a2a;
           overflow: hidden; display: flex; flex-direction: column;
+          transition: border-color 0.3s;
         }
-        .kitchen-card-header {
+        .kds-card-late { border-color: #dc3545; }
+        .kds-card-warning { border-color: #ffc107; }
+
+        .kds-card-head {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 12px 16px; font-weight: 900;
+          padding: 16px 20px; border-bottom: 1px solid #222;
         }
-        .kitchen-card-header .order-num { font-size: 22px; }
-        .kitchen-card-header .timer {
-          font-size: 22px; padding: 4px 12px; border-radius: 8px; font-weight: 900;
-          min-width: 80px; text-align: center;
+        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; }
+        .kds-badge {
+          font-size: 10px; padding: 3px 10px; border-radius: 6px;
+          background: #222; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
         }
-        .timer-normal { background: #1e7e34; color: #fff; }
-        .timer-warning { background: #ffc107; color: #000; }
-        .timer-late { background: #dc3545; color: #fff; animation: piscar 1s infinite; }
-        @keyframes piscar { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .kitchen-card-items { padding: 8px 16px; flex: 1; }
-        .kitchen-item {
-          font-size: 18px; font-weight: 900; padding: 4px 0;
-          border-bottom: 1px solid #2a2a2a;
+        .kds-timer {
+          font-size: 24px; padding: 6px 16px; border-radius: 10px; font-weight: 900;
+          min-width: 100px; text-align: center; font-variant-numeric: tabular-nums;
         }
-        .kitchen-item:last-child { border-bottom: none; }
-        .kitchen-item-addons { font-size: 14px; color: #aaa; padding-left: 16px; }
-        .kitchen-item-obs { font-size: 14px; color: #ffc107; padding-left: 16px; font-style: italic; }
-        .kitchen-order-obs {
-          padding: 8px 16px; font-size: 14px; color: #ffc107; font-weight: 700;
-          border-top: 1px dashed #333;
+        .kds-timer-normal { background: #166534; color: #4ade80; }
+        .kds-timer-warning { background: #854d0e; color: #fbbf24; animation: kds-pulse 2s ease-in-out infinite; }
+        .kds-timer-late { background: #991b1b; color: #fca5a5; animation: kds-blink 0.8s ease-in-out infinite; }
+
+        @keyframes kds-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes kds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        .kds-items { padding: 12px 20px; flex: 1; }
+        .kds-item {
+          font-size: 20px; font-weight: 700; padding: 6px 0;
+          border-bottom: 1px solid #1e1e1e; letter-spacing: 0.3px;
         }
-        .kitchen-card-footer { padding: 12px 16px; }
-        .btn-ready {
-          width: 100%; padding: 14px; border: none; border-radius: 8px;
-          background: #1e7e34; color: #fff; font-size: 18px; font-weight: 900;
-          cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
-          transition: background 0.2s;
+        .kds-item:last-child { border-bottom: none; }
+        .kds-addon { font-size: 15px; color: #888; padding-left: 20px; font-weight: 500; }
+        .kds-item-obs { font-size: 15px; color: #fbbf24; padding-left: 20px; font-weight: 600; }
+        .kds-order-obs {
+          padding: 10px 20px; font-size: 15px; color: #fbbf24; font-weight: 700;
+          border-top: 1px dashed #2a2a2a; background: #1a1500;
         }
-        .btn-ready:hover { background: #28a745; }
-        .btn-ready:active { transform: scale(0.98); }
-        .delivery-badge {
-          font-size: 11px; padding: 2px 8px; border-radius: 4px;
-          background: #333; color: #ccc; font-weight: 700; text-transform: uppercase;
+
+        .kds-footer { padding: 14px 20px; }
+        .kds-btn {
+          width: 100%; padding: 16px; border: none; border-radius: 12px;
+          background: linear-gradient(135deg, #166534, #15803d); color: #fff;
+          font-size: 18px; font-weight: 900; cursor: pointer;
+          text-transform: uppercase; letter-spacing: 2px;
+          transition: all 0.15s; font-family: 'Inter', sans-serif;
         }
-        .empty-state {
+        .kds-btn:hover { background: linear-gradient(135deg, #15803d, #22c55e); }
+        .kds-btn:active { transform: scale(0.98); }
+
+        .kds-empty {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          height: calc(100vh - 60px); color: #555; font-size: 24px; font-weight: 700;
+          height: calc(100vh - 76px); color: #333; font-size: 28px; font-weight: 700;
+          letter-spacing: 1px;
         }
-        .empty-state span { font-size: 64px; margin-bottom: 16px; }
+        .kds-empty span { font-size: 72px; margin-bottom: 20px; }
       `}</style>
 
-      <div className="kitchen-header">
-        <h1>🍳 COZINHA</h1>
-        <div className="count">{orders.length} pedido{orders.length !== 1 ? "s" : ""} em preparo</div>
+      <div className="kds-header">
+        <div className="kds-header-left">
+          <img src={logoTurbo} alt="Logo" className="kds-logo" />
+          <div>
+            <div className="kds-title">COZINHA</div>
+            <div className="kds-subtitle">EM PREPARO</div>
+          </div>
+        </div>
+        <div className="kds-count">{orders.length} pedido{orders.length !== 1 ? "s" : ""}</div>
       </div>
 
       {orders.length === 0 ? (
-        <div className="empty-state">
+        <div className="kds-empty">
           <span>✅</span>
           Nenhum pedido em preparo
         </div>
       ) : (
-        <div className="kitchen-grid">
+        <div className="kds-grid">
           {orders.map((order) => {
-            const elapsed = getElapsedMinutes(order.preparing_at);
+            const { minutes, seconds } = getElapsed(order.preparing_at);
+            const timerClass = getTimerClass(minutes);
+            const cardBorder = minutes >= 25 ? " kds-card-late" : minutes >= 20 ? " kds-card-warning" : "";
             const orderItems = items[order.id] || [];
 
             return (
-              <div key={order.id} className="kitchen-card">
-                <div className="kitchen-card-header">
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span className="order-num">#{String(order.order_number).padStart(5, "0")}</span>
-                    <span className="delivery-badge">
+              <div key={order.id} className={`kds-card${cardBorder}`}>
+                <div className="kds-card-head">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="kds-order-num">#{String(order.order_number).padStart(5, "0")}</span>
+                    <span className="kds-badge">
                       {order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
                     </span>
                   </div>
-                  <div className={`timer ${getTimerClass(elapsed)}`}>
-                    {elapsed} MIN
+                  <div className={`kds-timer ${timerClass}`}>
+                    {minutes}:{String(seconds).padStart(2, "0")}
                   </div>
                 </div>
 
-                <div className="kitchen-card-items">
+                <div className="kds-items">
                   {orderItems.map((item) => {
                     const addons = item.addons_json as any[] | null;
                     return (
                       <div key={item.id}>
-                        <div className="kitchen-item">
+                        <div className="kds-item">
                           {item.quantity}x {item.product_name}
                         </div>
                         {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-                          <div key={i} className="kitchen-item-addons">+ {a.name}</div>
+                          <div key={i} className="kds-addon">+ {a.name}</div>
                         ))}
                         {item.observations && (
-                          <div className="kitchen-item-obs">⚠ {item.observations}</div>
+                          <div className="kds-item-obs">⚠ {item.observations}</div>
                         )}
                       </div>
                     );
@@ -212,13 +242,11 @@ const Kitchen = () => {
                 </div>
 
                 {order.observations && (
-                  <div className="kitchen-order-obs">
-                    📝 {order.observations}
-                  </div>
+                  <div className="kds-order-obs">📝 {order.observations}</div>
                 )}
 
-                <div className="kitchen-card-footer">
-                  <button className="btn-ready" onClick={() => markReady(order.id)}>
+                <div className="kds-footer">
+                  <button className="kds-btn" onClick={() => markReady(order.id)}>
                     ✅ MARCAR PRONTO
                   </button>
                 </div>
