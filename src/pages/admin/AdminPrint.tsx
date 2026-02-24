@@ -88,6 +88,7 @@ const AdminPrint = () => {
       html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
       .no-print { display: none !important; }
       .page-break { page-break-before: always; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
