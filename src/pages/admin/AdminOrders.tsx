@@ -100,7 +100,8 @@ const AdminOrders = () => {
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     // Silent print via hidden iframe
-    if (newStatus === "accepted") {
+    if (newStatus === "accepted" || newStatus === "delivering") {
+      const tipo = newStatus === "accepted" ? "cozinha" : "entrega";
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
       iframe.style.top = "-10000px";
@@ -108,9 +109,8 @@ const AdminOrders = () => {
       iframe.style.width = "0";
       iframe.style.height = "0";
       iframe.style.border = "none";
-      iframe.src = `/admin/imprimir/${orderId}`;
+      iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
       document.body.appendChild(iframe);
-      // Cleanup after print
       setTimeout(() => {
         try { document.body.removeChild(iframe); } catch {}
       }, 10000);
