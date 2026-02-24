@@ -94,35 +94,78 @@ const AdminOrders = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
+  type PrintTipo = "cozinha" | "entrega" | "cliente";
+  type PreparedPrintBatch = { commit: () => void; cancel: () => void };
+
+  const preparePrintBatch = (orderId: string, jobs: { tipo: PrintTipo; delayMs?: number }[]): PreparedPrintBatch | null => {
+    const opened = jobs.map(({ tipo, delayMs = 0 }) => ({
+      tipo,
+      delayMs,
+      win: window.open("", `print_${tipo}_${Date.now()}_${Math.random().toString(36).slice(2)}`, "width=400,height=600"),
+    }));
+
+    if (opened.some((entry) => !entry.win)) {
+      opened.forEach((entry) => entry.win?.close());
+      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
+      return null;
+    }
+
+    return {
+      commit: () => {
+        opened.forEach(({ win, tipo, delayMs }) => {
+          const goToPrint = () => {
+            if (!win || win.closed) return;
+            win.location.href = `/admin/imprimir/${orderId}?tipo=${tipo}`;
+          };
+
+          if (delayMs > 0) window.setTimeout(goToPrint, delayMs);
+          else goToPrint();
+        });
+      },
+      cancel: () => opened.forEach(({ win }) => win?.close()),
+    };
+  };
+
+  const printReceipt = (orderId: string, tipo: PrintTipo) => {
+    const batch = preparePrintBatch(orderId, [{ tipo }]);
+    batch?.commit();
+  };
+
+  const printDeliveryAndCustomer = (orderId: string) => {
+    const batch = preparePrintBatch(orderId, [
+      { tipo: "entrega" },
+      { tipo: "cliente", delayMs: 1800 },
+    ]);
+    batch?.commit();
+  };
+
   const updateStatus = async (orderId: string, newStatus: string) => {
+    const queuedPrint =
+      newStatus === "preparing"
+        ? preparePrintBatch(orderId, [{ tipo: "cozinha" }])
+        : newStatus === "delivering"
+          ? preparePrintBatch(orderId, [
+              { tipo: "entrega" },
+              { tipo: "cliente", delayMs: 1800 },
+            ])
+          : null;
+
     const updateData: any = { status: newStatus };
     if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
     if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
-    
+
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
+      queuedPrint?.cancel();
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
+
     await fetchOrders();
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Silent print via hidden iframe(s)
-    if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
-    } else if (newStatus === "delivering") {
-      // Duas impressões separadas: entrega + cliente (com delay para corte)
-      printReceipt(orderId, "entrega");
-      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
-    }
-  };
-
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente") => {
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, `print_${tipo}_${Date.now()}`, "width=400,height=600");
-    if (!w) {
-      toast({ title: "⚠️ Popup bloqueado! Permita popups para impressão.", variant: "destructive" });
-    }
+    queuedPrint?.commit();
   };
 
   const toggleExpand = (orderId: string) => {
@@ -219,7 +262,7 @@ const AdminOrders = () => {
                     <Printer size={14} /> Cozinha
                   </button>
                   <button
-                    onClick={() => { printReceipt(order.id, "entrega"); setTimeout(() => printReceipt(order.id, "cliente"), 2000); }}
+                    onClick={() => printDeliveryAndCustomer(order.id)}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega + Cliente
@@ -242,10 +285,21 @@ const AdminOrders = () => {
                   {order.status === "awaiting_payment" && (
                     <button
                       onClick={async () => {
-                        await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
+                        const queuedPrint = preparePrintBatch(order.id, [{ tipo: "cozinha" }]);
+                        const { error } = await supabase
+                          .from("orders")
+                          .update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() })
+                          .eq("id", order.id);
+
+                        if (error) {
+                          queuedPrint?.cancel();
+                          toast({ title: "Erro ao confirmar PIX", variant: "destructive" });
+                          return;
+                        }
+
                         toast({ title: "✅ PIX confirmado! Pedido em preparo." });
                         await fetchOrders();
-                        printReceipt(order.id, "cozinha");
+                        queuedPrint?.commit();
                       }}
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
                     >
