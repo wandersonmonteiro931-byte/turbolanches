@@ -1,16 +1,18 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega"
+
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   // Convert logo to base64 so it works in iframe print
   useEffect(() => {
@@ -61,7 +63,6 @@ const AdminPrint = () => {
     if (!ready) return;
     const timer = setTimeout(() => {
       window.print();
-      // If opened in iframe or as page, try to close
       setTimeout(() => { window.close(); }, 1000);
     }, 600);
     return () => clearTimeout(timer);
@@ -70,19 +71,39 @@ const AdminPrint = () => {
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
   if (!ready || !order) return <div style={{ padding: 20, fontFamily: "monospace" }}>Carregando...</div>;
 
-  const time = new Date(order.created_at).toLocaleString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "2-digit",
+  const createdAt = new Date(order.created_at);
+  const dataHora = createdAt.toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
 
-  const subtotal = Number(order.total) - Number(order.delivery_fee);
-  const address = `${order.address_street || ""}, ${order.address_number || ""} - ${order.address_neighborhood || ""}`;
+  // Horário máximo: +45 min
+  const maxEntrega = new Date(createdAt.getTime() + 45 * 60 * 1000);
+  const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  // Horário de saída (para comanda entrega) = agora
+  const horarioSaida = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  const address = order.address_street
+    ? `${order.address_street}, ${order.address_number || "S/N"} - ${order.address_neighborhood || ""}`
+    : "Retirada no local";
+
+  const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
+
+  const total = Number(order.total);
+  const paid = order.payment_method === "pix" || order.payment_method === "cartao" || order.payment_method === "credito" || order.payment_method === "debito";
+  const totalPago = paid ? total : 0;
+  const changeFor = order.change_for ? Number(order.change_for) : 0;
+  const totalReceber = paid ? 0 : (changeFor > 0 ? changeFor : total);
+  const troco = changeFor > total ? changeFor - total : 0;
+
+  const isCozinha = tipo === "cozinha";
 
   return (
     <>
       <style>{`
         @page {
-          size: 72mm 210mm;
+          size: 72mm auto;
           margin: 0 !important;
           padding: 0 !important;
         }
@@ -102,8 +123,6 @@ const AdminPrint = () => {
           background: #fff;
         }
         .center { text-align: center; }
-        .title { font-size: 16px; font-weight: 900; }
-        .subtitle { font-size: 10px; font-weight: 900; }
         .separator { border-top: 1px dashed #000; margin: 3px 0; }
         .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
         .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
@@ -111,23 +130,54 @@ const AdminPrint = () => {
         .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
         .info { font-size: 11px; margin: 0; font-weight: 900; }
         .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
+        .tipo-label {
+          font-size: 22px;
+          font-weight: 900;
+          text-align: center;
+          letter-spacing: 2px;
+          margin: 2px 0;
+          padding: 3px 0;
+          border: 2px solid #000;
+        }
+        .store-name {
+          font-size: 11px;
+          font-weight: 900;
+          text-align: center;
+          margin: 1px 0;
+        }
+        .highlight-delivery {
+          font-size: 14px;
+          font-weight: 900;
+          text-align: center;
+          margin: 3px 0;
+          padding: 2px 0;
+          border: 1px solid #000;
+          letter-spacing: 1px;
+        }
       `}</style>
 
+      {/* Logo pequeno */}
       <div className="center">
         {logoBase64 && <img src={logoBase64} alt="Turbo Lanches" style={{ width: '25mm', margin: '0 auto', display: 'block' }} />}
       </div>
+      <div className="store-name">TURBO DELIVERY LANCHES</div>
+
+      {/* Tipo da comanda em destaque */}
+      <div className="tipo-label">{isCozinha ? "COZINHA" : "ENTREGA"}</div>
+
       <div className="separator" />
 
-      <div className="bold">PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
-      <div className="info">Data: {time}</div>
+      <div style={{ fontWeight: 900, fontSize: 13 }}>PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
+      <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
+      <div className="info">HORÁRIO MÁX ENTREGA: {horarioMax}</div>
       <div className="separator" />
 
       <div className="info">Cliente: {profile?.full_name || "Cliente"}</div>
-      <div className="info">Tel: {profile?.phone || ""}</div>
-      <div className="info">End: {address}</div>
+      <div className="info">Telefone: {profile?.phone || ""}</div>
+      <div className="info">Endereço: {address}</div>
       <div className="separator" />
 
-      <div className="bold">ITENS:</div>
+      <div style={{ fontWeight: 900 }}>ITENS:</div>
       {items.map((item) => {
         const lineTotal = Number(item.unit_price) * item.quantity;
         const addons = item.addons_json as any[] | null;
@@ -146,20 +196,37 @@ const AdminPrint = () => {
       })}
       <div className="separator" />
 
-      <div className="total-line"><span>Subtotal</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
-      <div className="total-line"><span>Entrega</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
-      <div className="grand-total"><span>TOTAL</span><span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
-      <div className="info">Pagamento: {order.payment_method.toUpperCase()}</div>
-
-      {order.observations && (
+      <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
+      <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
+      {paid && <div className="total-line"><span>TOTAL PAGO</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>}
+      {!paid && (
         <>
+          <div className="total-line"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+          {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+        </>
+      )}
+      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
+
+      <div className="separator" />
+      <div className="highlight-delivery">*** {deliveryLabel} ***</div>
+
+      {/* Campos extras na comanda de entrega */}
+      {!isCozinha && (
+        <>
+          <div className="info">ENTREGADOR: ___________________</div>
+          <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
           <div className="separator" />
-          <div className="info">OBS: {order.observations}</div>
         </>
       )}
 
-      <div className="separator" />
-      <div className="footer">Obrigado pela preferencia!</div>
+      {order.observations && (
+        <>
+          <div className="info">OBS: {order.observations}</div>
+          <div className="separator" />
+        </>
+      )}
+
+      <div className="footer">Agradecemos a preferência!</div>
     </>
   );
 };
