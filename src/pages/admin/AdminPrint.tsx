@@ -93,7 +93,7 @@ const AdminPrint = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 12px;
+      font-size: 10px;
       font-weight: 900;
       width: 72mm;
       padding: 2mm;
@@ -103,12 +103,12 @@ const AdminPrint = () => {
     }
     .center { text-align: center; }
     .separator { border-top: 1px dashed #000; margin: 3px 0; }
-    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
-    .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
-    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
-    .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
-    .info { font-size: 11px; margin: 0; font-weight: 900; }
-    .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
+    .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
+    .addon { font-size: 9px; padding-left: 10px; font-weight: 900; }
+    .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
+    .grand-total { font-size: 12px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
+    .info { font-size: 10px; margin: 0; font-weight: 900; }
+    .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
     .tipo-label {
       font-size: 22px; font-weight: 900; text-align: center;
       letter-spacing: 2px; margin: 2px 0; padding: 3px 0; border: 2px solid #000;
@@ -118,15 +118,21 @@ const AdminPrint = () => {
       letter-spacing: 3px; margin: 3px 0; padding: 6px 0; border: 3px solid #000;
       text-transform: uppercase;
     }
-    .store-name { font-size: 11px; font-weight: 900; text-align: center; margin: 1px 0; }
+    .store-name { font-size: 10px; font-weight: 900; text-align: center; margin: 1px 0; }
     .highlight-delivery {
-      font-size: 14px; font-weight: 900; text-align: center;
+      font-size: 12px; font-weight: 900; text-align: center;
       margin: 3px 0; padding: 2px 0; border: 1px solid #000; letter-spacing: 1px;
     }
-    .address-big { font-size: 14px; font-weight: 900; margin: 2px 0; background: #000; color: #fff; padding: 4px 3px; }
-    .total-receber-highlight { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; background: #000; color: #fff; padding: 4px 3px; }
+    .box-highlight {
+      font-size: 16px; font-weight: 900; margin: 3px 0; padding: 4px 3px;
+      border: 2px solid #000;
+    }
+    .box-highlight-flex {
+      font-size: 16px; font-weight: 900; display: flex; justify-content: space-between;
+      margin: 3px 0; padding: 4px 3px; border: 2px solid #000;
+    }
     .pedido-destaque { font-size: 20px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
-    .msg-carinho { font-size: 11px; font-weight: 900; text-align: center; margin: 2px 0; font-style: italic; }
+    .msg-carinho { font-size: 10px; font-weight: 900; text-align: center; margin: 2px 0; font-style: italic; }
   `;
 
   // Totais section (reused)
@@ -138,7 +144,7 @@ const AdminPrint = () => {
         <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
       )}
       <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className={showHighlightReceber ? "total-receber-highlight" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+      <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
     </>
@@ -208,7 +214,7 @@ const AdminPrint = () => {
       <div className="separator" />
       <div className="info">Cliente: {clienteName}</div>
       <div className="info">Telefone: {profile?.phone || ""}</div>
-      <div className="address-big">Endereço: {address}</div>
+      <div className="box-highlight">Endereço: {address}</div>
       <div className="separator" />
       {totaisSection(true)}
       {order.observations && (
