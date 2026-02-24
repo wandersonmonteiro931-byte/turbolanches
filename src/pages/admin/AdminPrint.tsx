@@ -112,18 +112,24 @@ const AdminPrint = () => {
       font-size: 22px; font-weight: 900; text-align: center;
       letter-spacing: 2px; margin: 2px 0; padding: 3px 0; border: 2px solid #000;
     }
+    .tipo-label-big {
+      font-size: 28px; font-weight: 900; text-align: center;
+      letter-spacing: 3px; margin: 3px 0; padding: 6px 0; border: 3px solid #000;
+      text-transform: uppercase;
+    }
     .store-name { font-size: 11px; font-weight: 900; text-align: center; margin: 1px 0; }
     .highlight-delivery {
       font-size: 14px; font-weight: 900; text-align: center;
       margin: 3px 0; padding: 2px 0; border: 1px solid #000; letter-spacing: 1px;
     }
-    .address-big { font-size: 14px; font-weight: 900; margin: 2px 0; }
-    .pedido-destaque { font-size: 16px; font-weight: 900; text-align: center; margin: 2px 0; }
+    .address-big { font-size: 14px; font-weight: 900; margin: 2px 0; background: #000; color: #fff; padding: 4px 3px; }
+    .total-receber-highlight { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; background: #000; color: #fff; padding: 4px 3px; }
+    .pedido-destaque { font-size: 20px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
     .msg-carinho { font-size: 11px; font-weight: 900; text-align: center; margin: 2px 0; font-style: italic; }
   `;
 
   // Totais section (reused)
-  const totaisSection = (
+  const totaisSection = (showHighlightReceber = false) => (
     <>
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
@@ -131,7 +137,7 @@ const AdminPrint = () => {
         <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
       )}
       <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className="total-line"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+      <div className={showHighlightReceber ? "total-receber-highlight" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
     </>
@@ -176,7 +182,7 @@ const AdminPrint = () => {
       <div className="info">Endereço: {address}</div>
       <div className="separator" />
       {itensSection}
-      {totaisSection}
+      {totaisSection(false)}
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
       {order.observations && (
@@ -186,7 +192,6 @@ const AdminPrint = () => {
         </>
       )}
       <div className="separator" />
-      <div className="footer">Agradecemos a preferência!</div>
     </div>
   );
 
@@ -204,7 +209,7 @@ const AdminPrint = () => {
       <div className="info">Telefone: {profile?.phone || ""}</div>
       <div className="address-big">Endereço: {address}</div>
       <div className="separator" />
-      {totaisSection}
+      {totaisSection(true)}
       {order.observations && (
         <>
           <div className="separator" />
@@ -215,7 +220,6 @@ const AdminPrint = () => {
       <div className="info">ENTREGADOR: ___________________</div>
       <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
       <div className="separator" />
-      <div className="footer">Agradecemos a preferência!</div>
     </div>
   );
 
@@ -223,14 +227,14 @@ const AdminPrint = () => {
   const comandaCliente = (
     <div>
       <div className="store-name">TURBO DELIVERY LANCHES</div>
-      <div className="tipo-label">OBRIGADO!</div>
+      <div className="tipo-label-big">OBRIGADO!</div>
       <div className="separator" />
       <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')}</div>
       <div className="separator" />
-      <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho!</div>
+      <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho e higiene!</div>
       <div className="separator" />
       {itensSection}
-      {totaisSection}
+      {totaisSection(false)}
       <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
     </div>
