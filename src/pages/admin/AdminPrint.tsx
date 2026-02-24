@@ -78,7 +78,7 @@ const AdminPrint = () => {
           font-size: 12px;
           font-weight: 900;
           width: 72mm;
-          padding: 0;
+          padding: 0 1mm;
           margin: 0;
           color: #000;
           background: #fff;
