@@ -7,6 +7,7 @@ import BottomNav from "@/components/BottomNav";
 
 interface Order {
   id: string;
+  order_number: number;
   status: string;
   total: number;
   payment_method: string;
@@ -39,7 +40,7 @@ const Orders = () => {
     const fetchOrders = async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, status, total, payment_method, created_at")
+        .select("id, order_number, status, total, payment_method, created_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (data) setOrders(data);
@@ -120,7 +121,7 @@ const Orders = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-foreground">#{order.id.slice(0, 6)}</span>
+                      <span className="text-sm font-bold text-foreground">#{String(order.order_number).padStart(5, '0')}</span>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
                         {status.label}
                       </span>
