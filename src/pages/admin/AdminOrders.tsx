@@ -116,7 +116,7 @@ const AdminOrders = () => {
         .eq("user_id", order.user_id)
         .single();
 
-      const printed = await printOrder({
+      const printed = printOrder({
         orderId: order.id,
         customerName: profile?.full_name || "Cliente",
         customerPhone: profile?.phone || "",
@@ -168,19 +168,6 @@ const AdminOrders = () => {
 
   return (
     <div className="space-y-3">
-      {isPrinterSupported() && (
-        <button
-          onClick={handleConnectPrinter}
-          className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-            printerReady
-              ? "bg-green-100 text-green-800"
-              : "bg-muted text-muted-foreground hover:bg-accent"
-          }`}
-        >
-          <Printer size={14} />
-          {printerReady ? "Impressora conectada" : "Conectar impressora USB"}
-        </button>
-      )}
       <div className="flex flex-wrap gap-2 mb-4">
         {Object.entries(statusConfig).map(([key, val]) => {
           const count = orders.filter((o) => o.status === key).length;
