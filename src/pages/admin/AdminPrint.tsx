@@ -67,22 +67,28 @@ const AdminPrint = () => {
   const complemento = order.address_complement || profile?.complement || "";
   const quadra = profile?.quadra || "";
   const lote = profile?.lote || "";
-  const addressParts = [
-    order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : null,
-    complemento ? `Compl: ${complemento}` : null,
-    quadra ? `Qd: ${quadra}` : null,
-    lote ? `Lt: ${lote}` : null,
-    order.address_neighborhood || null,
-  ].filter(Boolean).join(" - ");
-  const address = addressParts || "Retirada no local";
+  // Formato: RUA/AV X, QUADRA X LOTE X (OU AP, BLOCO, NÚMERO), BAIRRO/SETOR
+  const addressLine1 = order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "";
+  const addressLine2 = [
+    quadra ? `QUADRA ${quadra}` : null,
+    lote ? `LOTE ${lote}` : null,
+    complemento || null,
+  ].filter(Boolean).join(" ");
+  const addressLine3 = order.address_neighborhood || "";
+  const addressFull = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(", ");
+  const address = addressFull || "Retirada no local";
 
   const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
   const total = Number(order.total);
-  const paid = order.payment_method === "pix" || order.payment_method === "cartao" || order.payment_method === "credito" || order.payment_method === "debito";
+  const isPaidOnline = order.payment_method === "pix" || order.payment_method === "credito" || order.payment_method === "debito";
+  const isPaidAtDelivery = order.payment_method === "dinheiro" || order.payment_method === "cartao";
+  const discount = Number(order.discount) || 0;
   const changeFor = order.change_for ? Number(order.change_for) : 0;
-  const totalReceber = paid ? 0 : (changeFor > 0 ? changeFor : total);
-  const troco = changeFor > total ? changeFor - total : 0;
+  // Se pago online (pix/crédito/débito) ou tem desconto total, não precisa receber na entrega
+  const totalReceber = isPaidOnline ? 0 : total;
+  const troco = isPaidAtDelivery && changeFor > total ? changeFor - total : 0;
+  const paymentLabel = isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
 
   const clienteName = profile?.full_name || "Cliente";
 
@@ -161,13 +167,13 @@ const AdminPrint = () => {
     <>
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      {Number(order.discount) > 0 && (
-        <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
+      {discount > 0 && (
+        <div className="total-line"><span>DESCONTO</span><span>R$ {discount.toFixed(2).replace(".", ",")}</span></div>
       )}
-      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+      <div className="total-line"><span>{paymentLabel}</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
       <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
+      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
     </>
   );
 
@@ -253,18 +259,18 @@ const AdminPrint = () => {
       <div className="separator" />
       <div className="info">Cliente: {clienteName}</div>
       <div className="info">Telefone: {profile?.phone || ""}</div>
-      <div className="box-highlight">Endereço: {address}</div>
+      <div className="box-highlight">{address}</div>
       {order.observations && <div className="info">OBS: {order.observations}</div>}
       <div className="separator" />
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      {Number(order.discount) > 0 && (
-        <div className="total-line"><span>DESCONTO</span><span>R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>
+      {discount > 0 && (
+        <div className="total-line"><span>DESCONTO</span><span>R$ {discount.toFixed(2).replace(".", ",")}</span></div>
       )}
-      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {paid ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+      <div className="total-line"><span>{paymentLabel}</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
       <div className="box-highlight-flex"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
+      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
       <div className="separator" />
       <div className="info">ENTREGADOR: ___________________</div>
       <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
