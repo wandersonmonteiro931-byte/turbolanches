@@ -41,9 +41,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 
 const nextStatus: Record<string, string> = {
   pending: "accepted",
-  accepted: "preparing",
-  preparing: "ready",
-  ready: "delivering",
+  accepted: "delivering",
   delivering: "delivered",
 };
 
