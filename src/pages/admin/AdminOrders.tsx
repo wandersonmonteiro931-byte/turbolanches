@@ -247,11 +247,10 @@ const AdminOrders = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {order.payment_method === "pix" && !order.payment_confirmed && order.status !== "cancelled" && (
+                  {order.status === "awaiting_payment" && (
                     <button
                       onClick={async () => {
-                        const updateData: any = { payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() };
-                        await supabase.from("orders").update(updateData).eq("id", order.id);
+                        await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
                         toast({ title: "✅ PIX confirmado! Pedido em preparo." });
                         await fetchOrders();
                         printReceipt(order.id, "cozinha");
