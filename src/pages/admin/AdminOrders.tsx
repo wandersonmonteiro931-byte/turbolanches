@@ -50,6 +50,7 @@ const nextStatus: Record<string, string> = {
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
+  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -61,7 +62,21 @@ const AdminOrders = () => {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
-    if (data) setOrders(data);
+    if (data) {
+      setOrders(data);
+      const userIds = [...new Set(data.map(o => o.user_id))];
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, customer_code, full_name")
+          .in("user_id", userIds);
+        if (profilesData) {
+          const map: Record<string, { customer_code: number; full_name: string }> = {};
+          profilesData.forEach(p => { map[p.user_id] = p; });
+          setProfiles(map);
+        }
+      }
+    }
   };
 
   const fetchItems = async (orderId: string) => {
@@ -182,14 +197,24 @@ const AdminOrders = () => {
                 <StatusIcon size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-foreground">#{String((order as any).order_number).padStart(5, '0')}</span>
+                  {(() => {
+                    const profile = profiles[order.user_id];
+                    const code = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
+                    return code ? (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                        CLIENTE: {code}
+                      </span>
+                    ) : null;
+                  })()}
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
                     {status.label}
                   </span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {formatTime(order.created_at)} · {order.delivery_type === "delivery" ? "Entrega" : "Retirada"} · {order.payment_method.toUpperCase()}
+                  {profiles[order.user_id]?.full_name ? ` · ${profiles[order.user_id].full_name}` : ""}
                 </p>
               </div>
               <span className="text-sm font-bold text-foreground">R$ {Number(order.total).toFixed(2)}</span>
