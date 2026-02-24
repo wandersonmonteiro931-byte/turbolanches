@@ -8,8 +8,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import Search from "./pages/Search";
 import Orders from "./pages/Orders";
+import OrderTracking from "./pages/OrderTracking";
 import Profile from "./pages/Profile";
 import Auth from "./pages/Auth";
 import CompleteProfile from "./pages/CompleteProfile";
@@ -34,8 +36,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/produto/:id" element={<ProductDetail />} />
               <Route path="/carrinho" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/busca" element={<Search />} />
               <Route path="/pedidos" element={<Orders />} />
+              <Route path="/pedido/:id" element={<OrderTracking />} />
               <Route path="/perfil" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/completar-perfil" element={<CompleteProfile />} />
