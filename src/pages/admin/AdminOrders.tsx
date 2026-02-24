@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from "react";
-import { Check, X, Truck, Clock, ChefHat, Package, Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, X, Truck, Clock, ChefHat, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { printOrder, connectPrinter, isPrinterSupported } from "@/lib/thermalPrinter";
 
 interface Order {
   id: string;
@@ -51,8 +51,8 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [printerReady, setPrinterReady] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchOrders = async () => {
@@ -101,45 +101,7 @@ const AdminOrders = () => {
 
     // Auto-print when accepting order
     if (newStatus === "accepted") {
-      const order = orders.find((o) => o.id === orderId);
-      if (!order) return;
-      // Fetch items if not loaded
-      let orderItems = items[orderId];
-      if (!orderItems) {
-        const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
-        orderItems = data || [];
-      }
-      // Fetch customer profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("user_id", order.user_id)
-        .single();
-
-      const printed = printOrder({
-        orderId: order.id,
-        customerName: profile?.full_name || "Cliente",
-        customerPhone: profile?.phone || "",
-        address: `${order.address_street || ""}, ${order.address_number || ""} - ${order.address_neighborhood || ""}`,
-        items: orderItems.map((i) => ({
-          name: i.product_name,
-          quantity: i.quantity,
-          unitPrice: Number(i.unit_price),
-          observations: i.observations,
-          addons: i.addons_json,
-        })),
-        total: Number(order.total),
-        deliveryFee: Number(order.delivery_fee),
-        paymentMethod: order.payment_method,
-        observations: order.observations,
-        createdAt: order.created_at,
-      });
-
-      if (printed) {
-        toast({ title: "🖨️ Pedido impresso!" });
-      } else {
-        toast({ title: "⚠️ Não foi possível imprimir", description: "Conecte a impressora primeiro." });
-      }
+      window.open(`/admin/imprimir/${orderId}`, "_blank");
     }
   };
 
@@ -154,16 +116,6 @@ const AdminOrders = () => {
 
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const handleConnectPrinter = async () => {
-    const device = await connectPrinter();
-    if (device) {
-      setPrinterReady(true);
-      toast({ title: "🖨️ Impressora conectada!" });
-    } else {
-      toast({ title: "Erro ao conectar impressora" });
-    }
   };
 
   return (
