@@ -81,11 +81,10 @@ const AdminPrint = () => {
   const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
   const total = Number(order.total);
-  const isPaidOnline = order.payment_method === "pix" || order.payment_method === "credito" || order.payment_method === "debito";
-  const isPaidAtDelivery = order.payment_method === "dinheiro" || order.payment_method === "cartao";
+  const isPaidOnline = order.payment_method === "pix";
+  const isPaidAtDelivery = !isPaidOnline; // dinheiro, cartao, credito, debito = pago na entrega
   const discount = Number(order.discount) || 0;
   const changeFor = order.change_for ? Number(order.change_for) : 0;
-  // Se pago online (pix/crédito/débito) ou tem desconto total, não precisa receber na entrega
   const totalReceber = isPaidOnline ? 0 : total;
   const troco = isPaidAtDelivery && changeFor > total ? changeFor - total : 0;
   const paymentLabel = isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
