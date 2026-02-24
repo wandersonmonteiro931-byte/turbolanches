@@ -15,7 +15,7 @@ const BottomNav = () => {
   const { totalItems } = useCart();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
       <div className="mx-auto flex max-w-md items-center justify-around py-2">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
