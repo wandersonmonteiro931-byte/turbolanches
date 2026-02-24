@@ -169,7 +169,7 @@ const AdminPrint = () => {
       {discount > 0 && (
         <div className="total-line"><span>DESCONTO</span><span>R$ {discount.toFixed(2).replace(".", ",")}</span></div>
       )}
-      <div className="total-line"><span>{paymentLabel}</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
       <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
@@ -266,7 +266,7 @@ const AdminPrint = () => {
       {discount > 0 && (
         <div className="total-line"><span>DESCONTO</span><span>R$ {discount.toFixed(2).replace(".", ",")}</span></div>
       )}
-      <div className="total-line"><span>{paymentLabel}</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
       <div className="box-highlight-flex"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
