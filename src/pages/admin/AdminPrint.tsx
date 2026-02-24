@@ -186,8 +186,9 @@ const AdminPrint = () => {
         const addons = item.addons_json as any[] | null;
         return (
           <div key={item.id}>
-            <div style={{ fontWeight: 900, fontSize: 14, margin: 0 }}>
-              {item.quantity}x {item.product_name}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 14, margin: 0 }}>
+              <span>{item.quantity}x {item.product_name}</span>
+              <span>R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}</span>
             </div>
             {addons && addons.length > 0 && addons.map((a: any, i: number) => (
               <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}</div>
