@@ -250,9 +250,11 @@ const AdminOrders = () => {
                   {order.payment_method === "pix" && !order.payment_confirmed && order.status !== "cancelled" && (
                     <button
                       onClick={async () => {
-                        await supabase.from("orders").update({ payment_confirmed: true }).eq("id", order.id);
-                        toast({ title: "✅ PIX confirmado!" });
-                        fetchOrders();
+                        const updateData: any = { payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() };
+                        await supabase.from("orders").update(updateData).eq("id", order.id);
+                        toast({ title: "✅ PIX confirmado! Pedido em preparo." });
+                        await fetchOrders();
+                        printReceipt(order.id, "cozinha");
                       }}
                       className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
                     >
