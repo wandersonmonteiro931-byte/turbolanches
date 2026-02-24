@@ -137,6 +137,11 @@ const AdminPrint = () => {
           border: 1px solid #000;
           letter-spacing: 1px;
         }
+        .address-big {
+          font-size: 14px;
+          font-weight: 900;
+          margin: 2px 0;
+        }
       `}</style>
 
       <div className="store-name">TURBO DELIVERY LANCHES</div>
@@ -153,27 +158,36 @@ const AdminPrint = () => {
 
       <div className="info">Cliente: {profile?.full_name || "Cliente"}</div>
       <div className="info">Telefone: {profile?.phone || ""}</div>
-      <div className="info">Endereço: {address}</div>
+      {isCozinha ? (
+        <div className="info">Endereço: {address}</div>
+      ) : (
+        <div className="address-big">Endereço: {address}</div>
+      )}
       <div className="separator" />
 
-      <div style={{ fontWeight: 900 }}>ITENS:</div>
-      {items.map((item) => {
-        const lineTotal = Number(item.unit_price) * item.quantity;
-        const addons = item.addons_json as any[] | null;
-        return (
-          <div key={item.id}>
-            <div className="item">
-              <span>{item.quantity}x {item.product_name}</span>
-              <span>R$ {lineTotal.toFixed(2).replace(".", ",")}</span>
-            </div>
-            {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-              <div key={i} className="addon">+ {a.name}</div>
-            ))}
-            {item.observations && <div className="addon">Obs: {item.observations}</div>}
-          </div>
-        );
-      })}
-      <div className="separator" />
+      {/* Itens só na comanda COZINHA */}
+      {isCozinha && (
+        <>
+          <div style={{ fontWeight: 900 }}>ITENS:</div>
+          {items.map((item) => {
+            const lineTotal = Number(item.unit_price) * item.quantity;
+            const addons = item.addons_json as any[] | null;
+            return (
+              <div key={item.id}>
+                <div className="item">
+                  <span>{item.quantity}x {item.product_name}</span>
+                  <span>R$ {lineTotal.toFixed(2).replace(".", ",")}</span>
+                </div>
+                {addons && addons.length > 0 && addons.map((a: any, i: number) => (
+                  <div key={i} className="addon">+ {a.name}</div>
+                ))}
+                {item.observations && <div className="addon">Obs: {item.observations}</div>}
+              </div>
+            );
+          })}
+          <div className="separator" />
+        </>
+      )}
 
       <div className="total-line"><span>ENTREGA</span><span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
@@ -185,25 +199,30 @@ const AdminPrint = () => {
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()}</div>
 
-      <div className="separator" />
-      <div className="highlight-delivery">*** {deliveryLabel} ***</div>
-
-      {/* Campos extras na comanda de entrega */}
-      {!isCozinha && (
+      {isCozinha && (
         <>
-          <div className="info">ENTREGADOR: ___________________</div>
-          <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
           <div className="separator" />
+          <div className="highlight-delivery">*** {deliveryLabel} ***</div>
         </>
       )}
 
       {order.observations && (
         <>
-          <div className="info">OBS: {order.observations}</div>
           <div className="separator" />
+          <div className="info">OBS: {order.observations}</div>
         </>
       )}
 
+      {/* Campos extras na comanda de entrega */}
+      {!isCozinha && (
+        <>
+          <div className="separator" />
+          <div className="info">ENTREGADOR: ___________________</div>
+          <div className="info">HORÁRIO DE SAÍDA: {horarioSaida}</div>
+        </>
+      )}
+
+      <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
     </>
   );
