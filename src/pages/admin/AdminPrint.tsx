@@ -65,32 +65,32 @@ const AdminPrint = () => {
       <style>{`
         @page {
           size: 72mm auto;
-          margin: 0;
+          margin: 0 0 0 0;
         }
         @media print {
-          body { margin: 0; padding: 0; }
+          html, body { margin: 0 !important; padding: 0 !important; height: auto !important; }
           .no-print { display: none !important; }
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
           font-family: 'Courier New', monospace;
           font-size: 12px;
+          font-weight: 900;
           width: 72mm;
-          padding: 4mm;
+          padding: 2mm 3mm 0mm 3mm;
           color: #000;
           background: #fff;
         }
         .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .title { font-size: 18px; font-weight: bold; }
-        .subtitle { font-size: 11px; margin-bottom: 4px; }
-        .separator { border-top: 1px dashed #000; margin: 6px 0; }
-        .item { display: flex; justify-content: space-between; margin: 2px 0; }
-        .addon { font-size: 10px; padding-left: 12px; color: #333; }
-        .total-line { display: flex; justify-content: space-between; margin: 2px 0; }
-        .grand-total { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; margin: 4px 0; }
-        .info { font-size: 11px; margin: 1px 0; }
-        .footer { font-size: 10px; text-align: center; margin-top: 8px; }
+        .title { font-size: 16px; font-weight: 900; }
+        .subtitle { font-size: 10px; font-weight: 900; }
+        .separator { border-top: 1px dashed #000; margin: 3px 0; }
+        .item { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
+        .addon { font-size: 10px; padding-left: 10px; font-weight: 900; }
+        .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; }
+        .grand-total { font-size: 14px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
+        .info { font-size: 11px; margin: 0; font-weight: 900; }
+        .footer { font-size: 10px; text-align: center; margin-top: 4px; font-weight: 900; padding-bottom: 2mm; }
       `}</style>
 
       <div className="center">
