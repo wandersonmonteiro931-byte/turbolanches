@@ -108,7 +108,7 @@ const AdminOrders = () => {
     } else if (newStatus === "delivering") {
       // Duas impressões separadas: entrega + cliente (com delay para corte)
       printReceipt(orderId, "entrega");
-      setTimeout(() => printReceipt(orderId, "cliente"), 3000);
+      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
     }
   };
 
