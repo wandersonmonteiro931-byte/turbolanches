@@ -42,15 +42,16 @@ const CompleteProfile = () => {
       const data = await res.json();
       if (data.erro) {
         toast.error("CEP não encontrado");
+        setCepLoading(false);
         return;
       }
-      setForm((f) => ({
-        ...f,
-        street: data.logradouro || f.street,
-        neighborhood: data.bairro || f.neighborhood,
-        city: data.localidade || f.city,
-        state: data.uf || f.state,
-        complement: data.complemento || f.complement,
+      setForm((prev) => ({
+        ...prev,
+        zip_code: cep,
+        street: data.logradouro || prev.street,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: data.uf || prev.state,
       }));
     } catch {
       toast.error("Erro ao buscar CEP");
@@ -109,8 +110,14 @@ const CompleteProfile = () => {
                 type="text"
                 value={(form as any)[f.key]}
                 onChange={(e) => {
-                  update(f.key, e.target.value);
-                  if (f.key === "zip_code") fetchCep(e.target.value);
+                  const val = e.target.value;
+                  update(f.key, val);
+                  if (f.key === "zip_code" && val.replace(/\D/g, "").length === 8) {
+                    fetchCep(val);
+                  }
+                }}
+                onBlur={() => {
+                  if (f.key === "zip_code") fetchCep((form as any)[f.key]);
                 }}
                 placeholder={f.label + (f.key === "zip_code" && cepLoading ? " (buscando...)" : "")}
                 required={f.required}
