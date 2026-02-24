@@ -12,7 +12,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <button
       onClick={() => navigate(`/produto/${product.id}`)}
-      className="flex w-full gap-3 rounded-lg bg-card p-3 text-left transition-all active:scale-[0.98]"
+      className="flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-all active:scale-[0.98]"
     >
       <div className="flex flex-1 flex-col justify-between">
         <div>
