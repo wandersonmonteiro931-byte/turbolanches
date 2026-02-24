@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 interface OrderData {
   id: string;
+  order_number: number;
   status: string;
   total: number;
   subtotal: number;
@@ -111,7 +112,7 @@ const OrderTracking = () => {
         <button onClick={() => navigate("/pedidos")}>
           <ArrowLeft size={22} className="text-foreground" />
         </button>
-        <h1 className="text-2xl text-fire-gradient">PEDIDO #{order.id.slice(0, 6)}</h1>
+        <h1 className="text-2xl text-fire-gradient">PEDIDO #{String(order.order_number).padStart(5, '0')}</h1>
       </header>
 
       <div className="mx-auto max-w-md px-4 space-y-4">
