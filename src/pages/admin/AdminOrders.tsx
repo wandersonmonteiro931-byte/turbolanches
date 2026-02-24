@@ -93,8 +93,13 @@ const AdminOrders = () => {
   }, []);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
-    fetchOrders();
+    const { error: updateErr } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId);
+    if (updateErr) {
+      toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
+      return;
+    }
+    await fetchOrders();
+    setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     // Silent print via hidden iframe
