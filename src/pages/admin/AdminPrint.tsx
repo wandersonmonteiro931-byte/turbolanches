@@ -96,7 +96,7 @@ const AdminPrint = () => {
           font-size: 12px;
           font-weight: 900;
           width: 72mm;
-          padding: 0 1mm;
+          padding: 2mm;
           margin: 0;
           color: #000;
           background: #fff;
@@ -114,7 +114,7 @@ const AdminPrint = () => {
       `}</style>
 
       <div className="center">
-        {logoBase64 && <img src={logoBase64} alt="Turbo Lanches" style={{ width: '55mm', margin: '0 auto', display: 'block' }} />}
+        {logoBase64 && <img src={logoBase64} alt="Turbo Lanches" style={{ width: '25mm', margin: '0 auto', display: 'block' }} />}
       </div>
       <div className="separator" />
 
