@@ -96,8 +96,7 @@ const AdminPrint = () => {
       `}</style>
 
       <div className="center">
-        <div className="title">TURBO DELIVERY</div>
-        <div className="subtitle">LANCHES</div>
+        <img src="/logo-print.jpeg" alt="Turbo Lanches" style={{ width: '55mm', margin: '0 auto', display: 'block' }} />
       </div>
       <div className="separator" />
 
