@@ -6,7 +6,6 @@ const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega" | "cliente"
-  const delayMs = Math.max(0, Number(searchParams.get("delay") || "0"));
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,54 +16,23 @@ const AdminPrint = () => {
   useEffect(() => {
     if (!id) return;
 
-    let cancelled = false;
-
-    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
     const load = async () => {
-      setError(null);
-      setReady(false);
+      const { data: orderData, error: orderErr } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-      // Retry: popup may load before auth/session is fully available.
-      let orderData: any = null;
-      for (let attempt = 0; attempt < 6; attempt++) {
-        const { data, error: orderErr } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("id", id)
-          .maybeSingle();
-
-        if (data) {
-          orderData = data;
-          break;
-        }
-
-        // If it's the last attempt, keep the most user-friendly message.
-        if (attempt < 5) await sleep(250);
-        if (orderErr && attempt === 5) {
-          console.warn("AdminPrint: erro ao carregar pedido", orderErr);
-        }
-      }
-
-      if (cancelled) return;
-
-      if (!orderData) {
+      if (orderErr || !orderData) {
         setError("Pedido não encontrado");
         return;
       }
-
       setOrder(orderData);
 
       const [itemsRes, profileRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase
-          .from("profiles")
-          .select("full_name, phone, complement, quadra, lote, customer_code")
-          .eq("user_id", orderData.user_id)
-          .maybeSingle(),
+        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
       ]);
-
-      if (cancelled) return;
 
       setItems(itemsRes.data || []);
       setProfile(profileRes.data);
@@ -72,23 +40,16 @@ const AdminPrint = () => {
     };
 
     load();
-
-    return () => {
-      cancelled = true;
-    };
   }, [id]);
 
   useEffect(() => {
     if (!ready) return;
-    const totalDelay = 600 + delayMs;
     const timer = setTimeout(() => {
       window.print();
-      setTimeout(() => {
-        window.close();
-      }, 1000);
-    }, totalDelay);
+      setTimeout(() => { window.close(); }, 1000);
+    }, 600);
     return () => clearTimeout(timer);
-  }, [ready, delayMs]);
+  }, [ready]);
 
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
   if (!ready || !order) return <div style={{ padding: 20, fontFamily: "monospace" }}>Carregando...</div>;
