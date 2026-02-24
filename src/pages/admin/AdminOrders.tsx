@@ -11,6 +11,7 @@ interface Order {
   total: number;
   delivery_fee: number;
   payment_method: string;
+  payment_confirmed: boolean;
   delivery_type: string;
   address_street: string | null;
   address_number: string | null;
@@ -243,6 +244,33 @@ const AdminOrders = () => {
                   >
                     <Printer size={14} /> Cliente
                   </button>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {order.payment_method === "pix" && !order.payment_confirmed && order.status !== "cancelled" && (
+                    <button
+                      onClick={async () => {
+                        await supabase.from("orders").update({ payment_confirmed: true }).eq("id", order.id);
+                        toast({ title: "✅ PIX confirmado!" });
+                        fetchOrders();
+                      }}
+                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
+                    >
+                      ✅ Confirmar PIX
+                    </button>
+                  )}
+                  {order.payment_method !== "fiado" && order.status !== "cancelled" && (
+                    <button
+                      onClick={async () => {
+                        await supabase.from("orders").update({ payment_method: "fiado", payment_confirmed: true }).eq("id", order.id);
+                        toast({ title: "📝 Pedido marcado como Fiado" });
+                        fetchOrders();
+                      }}
+                      className="rounded-lg border border-amber-500 px-4 py-2 text-sm font-bold text-amber-600"
+                    >
+                      📝 Marcar Fiado
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
