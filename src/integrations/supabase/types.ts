@@ -83,6 +83,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_reports: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          opened_at: string | null
+          report_date: string
+          total_bruto: number
+          total_delivery_fees: number
+          total_gastos: number
+          total_liquido: number
+          total_orders: number
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          report_date: string
+          total_bruto?: number
+          total_delivery_fees?: number
+          total_gastos?: number
+          total_liquido?: number
+          total_orders?: number
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          opened_at?: string | null
+          report_date?: string
+          total_bruto?: number
+          total_delivery_fees?: number
+          total_gastos?: number
+          total_liquido?: number
+          total_orders?: number
+        }
+        Relationships: []
+      }
       delivery_zones: {
         Row: {
           active: boolean
@@ -413,6 +452,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      store_settings: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          is_open: boolean
+          opened_at: string | null
+          scheduled_close: string | null
+          scheduled_open: string | null
+          updated_at: string
+          use_schedule: boolean
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          opened_at?: string | null
+          scheduled_close?: string | null
+          scheduled_open?: string | null
+          updated_at?: string
+          use_schedule?: boolean
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_open?: boolean
+          opened_at?: string | null
+          scheduled_close?: string | null
+          scheduled_open?: string | null
+          updated_at?: string
+          use_schedule?: boolean
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

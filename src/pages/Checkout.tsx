@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useStoreStatus } from "@/hooks/useStoreStatus";
 
 interface Profile {
   full_name: string;
@@ -31,6 +32,7 @@ const paymentMethods = [
 const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isOpen: storeIsOpen } = useStoreStatus();
   const { items, totalPrice, clearCart } = useCart();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
@@ -81,6 +83,10 @@ const Checkout = () => {
 
   const handlePlaceOrder = async () => {
     if (!user || !profile) return;
+    if (!storeIsOpen) {
+      toast.error("A loja está fechada no momento");
+      return;
+    }
     setLoading(true);
 
     try {
