@@ -217,6 +217,34 @@ const AdminDashboard = () => {
     setTimeout(() => { try { document.body.removeChild(iframe); } catch {} }, 10000);
   };
 
+  const acceptAllPending = async () => {
+    // Only truly pending orders (not awaiting_payment)
+    const toAccept = orders.filter(o => o.status === "pending");
+    if (toAccept.length === 0) {
+      toast({ title: "Nenhum pedido pendente para aceitar." });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("orders")
+      .update({ status: "preparing", preparing_at: now })
+      .in("id", toAccept.map(o => o.id));
+
+    if (error) {
+      toast({ title: "Erro ao aceitar pedidos", variant: "destructive" });
+      return;
+    }
+
+    // Print kitchen receipts sequentially with delay
+    toAccept.forEach((order, i) => {
+      setTimeout(() => printReceipt(order.id, "cozinha"), i * 2000);
+    });
+
+    toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
+    fetchOrders();
+  };
+
   const handleCloseDay = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -341,6 +369,15 @@ const AdminDashboard = () => {
         >
           <Settings size={16} />
           Horários
+        </button>
+
+        <button
+          onClick={acceptAllPending}
+          disabled={orders.filter(o => o.status === "pending").length === 0}
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
+        >
+          <CheckCircle size={16} />
+          Aceitar Todos ({orders.filter(o => o.status === "pending").length})
         </button>
 
         <button
