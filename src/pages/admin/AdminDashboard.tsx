@@ -3,10 +3,16 @@ import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power, Settings,
-  FileText, AlertTriangle, Plus
+  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
 
 interface Order {
   id: string;
@@ -78,20 +84,29 @@ const AdminDashboard = () => {
   const [scheduleClose, setScheduleClose] = useState("");
   const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingOrder, setEditingOrder] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Partial<Order>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
   const fetchOrders = useCallback(async () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
     const { data } = await supabase
       .from("orders")
       .select("*")
-      .gte("created_at", today.toISOString())
+      .gte("created_at", dayStart.toISOString())
+      .lte("created_at", dayEnd.toISOString())
       .order("created_at", { ascending: false });
     if (data) {
       setOrders(data as Order[]);
-      // Fetch profiles for customer codes
       const userIds = [...new Set(data.map(o => o.user_id))];
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
@@ -105,7 +120,7 @@ const AdminDashboard = () => {
         }
       }
     }
-  }, []);
+  }, [selectedDate]);
 
   const fetchStoreSettings = useCallback(async () => {
     const { data } = await supabase.from("store_settings").select("*").limit(1).single();
@@ -129,14 +144,14 @@ const AdminDashboard = () => {
     const ordersChannel = supabase
       .channel("admin-dashboard-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        if (payload.eventType === "INSERT") {
+        if (payload.eventType === "INSERT" && isToday) {
           try {
             const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==");
             audio.play().catch(() => {});
           } catch {}
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
         }
-        fetchOrders();
+        if (isToday) fetchOrders();
       })
       .subscribe();
 
@@ -154,7 +169,7 @@ const AdminDashboard = () => {
       supabase.removeChannel(storeChannel);
       clearInterval(timer);
     };
-  }, [fetchOrders, fetchStoreSettings]);
+  }, [fetchOrders, fetchStoreSettings, isToday]);
 
   const toggleStore = async () => {
     if (!storeSettings) return;
@@ -218,17 +233,16 @@ const AdminDashboard = () => {
   };
 
   const acceptAllPending = async () => {
-    // Only truly pending orders (not awaiting_payment)
     const toAccept = orders.filter(o => o.status === "pending");
     if (toAccept.length === 0) {
       toast({ title: "Nenhum pedido pendente para aceitar." });
       return;
     }
 
-    const now = new Date().toISOString();
+    const nowISO = new Date().toISOString();
     const { error } = await supabase
       .from("orders")
-      .update({ status: "preparing", preparing_at: now })
+      .update({ status: "preparing", preparing_at: nowISO })
       .in("id", toAccept.map(o => o.id));
 
     if (error) {
@@ -236,13 +250,74 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Print kitchen receipts sequentially with delay
     toAccept.forEach((order, i) => {
       setTimeout(() => printReceipt(order.id, "cozinha"), i * 2000);
     });
 
     toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
     fetchOrders();
+  };
+
+  // Edit order
+  const startEdit = (order: Order) => {
+    setEditingOrder(order.id);
+    setEditData({
+      observations: order.observations || "",
+      address_street: order.address_street || "",
+      address_number: order.address_number || "",
+      address_complement: order.address_complement || "",
+      address_neighborhood: order.address_neighborhood || "",
+      delivery_type: order.delivery_type,
+      payment_method: order.payment_method,
+      discount: order.discount,
+    });
+  };
+
+  const saveEdit = async (orderId: string) => {
+    const newTotal = (Number(orders.find(o => o.id === orderId)?.subtotal || 0)) +
+      (Number(orders.find(o => o.id === orderId)?.delivery_fee || 0)) -
+      (Number(editData.discount || 0));
+
+    const { error } = await supabase.from("orders").update({
+      ...editData,
+      total: newTotal,
+    }).eq("id", orderId);
+
+    if (error) {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+      return;
+    }
+    setEditingOrder(null);
+    toast({ title: "✅ Pedido atualizado!" });
+    fetchOrders();
+  };
+
+  // Reprint daily report for any date
+  const reprintDailyReport = async () => {
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const { data: report } = await supabase
+      .from("daily_reports")
+      .select("*")
+      .eq("report_date", dateStr)
+      .single();
+
+    if (!report) {
+      // Generate from orders
+      const deliveredOrders = orders.filter(o => o.status === "delivered");
+      const bruto = deliveredOrders.reduce((s, o) => s + Number(o.total), 0);
+      const delivery = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
+      printDailyReport(deliveredOrders, bruto, delivery, delivery, bruto - delivery);
+      return;
+    }
+
+    const deliveredOrders = orders.filter(o => o.status === "delivered");
+    printDailyReport(
+      deliveredOrders,
+      Number(report.total_bruto),
+      Number(report.total_delivery_fees),
+      Number(report.total_gastos),
+      Number(report.total_liquido)
+    );
   };
 
   const handleCloseDay = async () => {
@@ -252,7 +327,7 @@ const AdminDashboard = () => {
     const todayOrders = orders.filter(o => o.status === "delivered");
     const totalBruto = todayOrders.reduce((s, o) => s + Number(o.total), 0);
     const totalDelivery = todayOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const totalGastos = totalDelivery; // Can be extended
+    const totalGastos = totalDelivery;
     const totalLiquido = totalBruto - totalGastos;
 
     await supabase.from("daily_reports").upsert({
@@ -266,7 +341,6 @@ const AdminDashboard = () => {
       closed_at: new Date().toISOString(),
     }, { onConflict: "report_date" });
 
-    // Close store
     if (storeSettings) {
       await supabase.from("store_settings").update({
         is_open: false,
@@ -274,9 +348,7 @@ const AdminDashboard = () => {
       }).eq("id", storeSettings.id);
     }
 
-    // Print report
     printDailyReport(todayOrders, totalBruto, totalDelivery, totalGastos, totalLiquido);
-
     setShowCloseDay(false);
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
@@ -284,7 +356,7 @@ const AdminDashboard = () => {
   const printDailyReport = (todayOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number) => {
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
-    const date = new Date().toLocaleDateString("pt-BR");
+    const date = format(selectedDate, "dd/MM/yyyy");
     w.document.write(`
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -317,8 +389,24 @@ const AdminDashboard = () => {
     setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
 
+  // Filter orders by search
   const activeTabConfig = tabs.find(t => t.key === activeTab);
-  const filteredOrders = orders.filter(o => activeTabConfig?.statuses.includes(o.status));
+  const filteredOrders = orders
+    .filter(o => activeTabConfig?.statuses.includes(o.status))
+    .filter(o => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const profile = profiles[o.user_id];
+      const code = profile?.customer_code ? `t${String(profile.customer_code).padStart(5, '0')}` : "";
+      return (
+        String(o.order_number).includes(q) ||
+        code.includes(q) ||
+        (profile?.full_name || "").toLowerCase().includes(q) ||
+        (profile?.phone || "").includes(q) ||
+        (o.address_street || "").toLowerCase().includes(q) ||
+        (o.address_neighborhood || "").toLowerCase().includes(q)
+      );
+    });
 
   const getElapsed = (preparingAt: string | null) => {
     if (!preparingAt) return null;
@@ -391,12 +479,61 @@ const AdminDashboard = () => {
 
         <div className="ml-auto flex items-center gap-4 text-sm">
           <div className="text-muted-foreground">
-            <span className="font-bold text-foreground">{orders.length}</span> pedidos hoje
+            <span className="font-bold text-foreground">{orders.length}</span> pedidos
           </div>
           <div className="text-muted-foreground">
             Faturamento: <span className="font-bold text-green-600">R$ {todayRevenue.toFixed(2).replace(".",",")}</span>
           </div>
         </div>
+      </div>
+
+      {/* Date Picker + Search + Reprint Report */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("w-[200px] justify-start text-left font-medium", !selectedDate && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {format(selectedDate, "dd/MM/yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && setSelectedDate(d)}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        {!isToday && (
+          <button
+            onClick={() => setSelectedDate(new Date())}
+            className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90"
+          >
+            Voltar para Hoje
+          </button>
+        )}
+
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nº pedido, nome, telefone, endereço..."
+            className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
+        <button
+          onClick={reprintDailyReport}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Printer size={16} />
+          Reimprimir Relatório
+        </button>
       </div>
 
       {/* Schedule Modal */}
@@ -486,7 +623,7 @@ const AdminDashboard = () => {
       {filteredOrders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Package size={40} className="mb-3 opacity-40" />
-          <p className="text-sm">Nenhum pedido nesta categoria</p>
+          <p className="text-sm">{searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -495,6 +632,7 @@ const AdminDashboard = () => {
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
             const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
+            const isEditing = editingOrder === order.id;
 
             return (
               <div key={order.id} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -548,15 +686,95 @@ const AdminDashboard = () => {
 
                 {expandedOrder === order.id && (
                   <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
-                    {order.address_street && (
-                      <p className="text-xs text-muted-foreground">
-                        📍 {order.address_street}, {order.address_number}
-                        {order.address_complement ? ` - ${order.address_complement}` : ""}
-                        {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
-                      </p>
-                    )}
-                    {order.observations && (
-                      <p className="text-xs text-amber-600 font-medium">💬 {order.observations}</p>
+                    {/* Edit mode */}
+                    {isEditing ? (
+                      <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                        <h4 className="text-xs font-bold text-foreground">✏️ Editando Pedido</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Tipo</label>
+                            <select value={editData.delivery_type} onChange={e => setEditData(d => ({ ...d, delivery_type: e.target.value }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground">
+                              <option value="delivery">Delivery</option>
+                              <option value="pickup">Retirada</option>
+                              <option value="mesa">Mesa</option>
+                              <option value="viagem">Viagem</option>
+                              <option value="consumo">Consumo</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Pagamento</label>
+                            <select value={editData.payment_method} onChange={e => setEditData(d => ({ ...d, payment_method: e.target.value }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground">
+                              <option value="pix">PIX</option>
+                              <option value="dinheiro">Dinheiro</option>
+                              <option value="cartao">Cartão</option>
+                              <option value="fiado">Fiado</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Desconto (R$)</label>
+                            <input type="number" step="0.01" value={editData.discount || 0}
+                              onChange={e => setEditData(d => ({ ...d, discount: Number(e.target.value) }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Bairro</label>
+                            <input type="text" value={editData.address_neighborhood || ""}
+                              onChange={e => setEditData(d => ({ ...d, address_neighborhood: e.target.value }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Rua</label>
+                          <input type="text" value={editData.address_street || ""}
+                            onChange={e => setEditData(d => ({ ...d, address_street: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Número</label>
+                            <input type="text" value={editData.address_number || ""}
+                              onChange={e => setEditData(d => ({ ...d, address_number: e.target.value }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Complemento</label>
+                            <input type="text" value={editData.address_complement || ""}
+                              onChange={e => setEditData(d => ({ ...d, address_complement: e.target.value }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Observações</label>
+                          <textarea value={editData.observations || ""}
+                            onChange={e => setEditData(d => ({ ...d, observations: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" rows={2} />
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => saveEdit(order.id)}
+                            className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
+                            <Save size={14} /> Salvar
+                          </button>
+                          <button onClick={() => setEditingOrder(null)}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground">
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {order.address_street && (
+                          <p className="text-xs text-muted-foreground">
+                            📍 {order.address_street}, {order.address_number}
+                            {order.address_complement ? ` - ${order.address_complement}` : ""}
+                            {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
+                          </p>
+                        )}
+                        {order.observations && (
+                          <p className="text-xs text-amber-600 font-medium">💬 {order.observations}</p>
+                        )}
+                      </>
                     )}
 
                     <div className="space-y-1">
@@ -577,6 +795,12 @@ const AdminDashboard = () => {
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Entrega+Cliente
                       </button>
+                      {!isEditing && (
+                        <button onClick={() => startEdit(order)}
+                          className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
+                          <Edit2 size={14} /> Editar
+                        </button>
+                      )}
                     </div>
 
                     {/* Payment actions */}
