@@ -301,6 +301,7 @@ const AdminPrint = () => {
       {totaisSection(false)}
       <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
+      <div className="separator" />
       <div className="print-end">&nbsp;</div>
     </div>
   );
