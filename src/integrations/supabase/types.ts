@@ -83,6 +83,60 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_addresses: {
+        Row: {
+          city: string
+          complement: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string
+          lote: string
+          neighborhood: string
+          number: string
+          quadra: string
+          state: string
+          street: string
+          updated_at: string
+          user_id: string
+          zip_code: string
+        }
+        Insert: {
+          city?: string
+          complement?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          lote?: string
+          neighborhood?: string
+          number?: string
+          quadra?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id: string
+          zip_code?: string
+        }
+        Update: {
+          city?: string
+          complement?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          lote?: string
+          neighborhood?: string
+          number?: string
+          quadra?: string
+          state?: string
+          street?: string
+          updated_at?: string
+          user_id?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
       daily_reports: {
         Row: {
           closed_at: string | null
