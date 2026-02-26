@@ -249,6 +249,7 @@ const AdminPrint = () => {
         </>
       )}
       <div className="separator" />
+      <div style={{ paddingBottom: '10mm' }} />
     </div>
   );
 
@@ -281,6 +282,7 @@ const AdminPrint = () => {
       <div className="info">ENTREGADOR: ___________________</div>
       <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
       <div className="separator" />
+      <div style={{ paddingBottom: '10mm' }} />
     </div>
   );
 
