@@ -8,16 +8,36 @@ interface ScheduleDay {
   is_closed: boolean;
 }
 
+/** Get current Brasília time parts */
+const getBrasiliaTime = () => {
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(now);
+  const h = parts.find((p) => p.type === "hour")!.value;
+  const m = parts.find((p) => p.type === "minute")!.value;
+  const hhmm = `${h}:${m}`;
+
+  // Day of week in Brasília
+  const brDate = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
+  );
+  return { hhmm, dayOfWeek: brDate.getDay() };
+};
+
 export const useStoreStatus = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const checkStatus = async () => {
-    // Fetch store_settings and schedule in parallel
     const [settingsRes, scheduleRes] = await Promise.all([
       supabase
         .from("store_settings")
-        .select("is_open, use_schedule, scheduled_open, scheduled_close")
+        .select("is_open, use_schedule, closed_at, opened_at")
         .limit(1)
         .single(),
       supabase
@@ -34,54 +54,56 @@ export const useStoreStatus = () => {
       return;
     }
 
-    // Manual override always takes priority:
-    // If admin manually closed (is_open=false), store is closed regardless of schedule
-    // If admin manually opened (is_open=true), check schedule to see if we're in hours
-    // Force Brasília timezone (America/Sao_Paulo)
-    const now = new Date();
-    const brFormatter = new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      weekday: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    const parts = brFormatter.formatToParts(now);
-    const brHour = parts.find((p) => p.type === "hour")!.value;
-    const brMinute = parts.find((p) => p.type === "minute")!.value;
-    const hhmm = `${brHour}:${brMinute}`;
-
-    // Get Brasília day of week
-    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    const dayOfWeek = brDate.getDay(); // 0=Sunday
-
+    const { hhmm, dayOfWeek } = getBrasiliaTime();
     const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
 
+    // Helper: did admin explicitly close/open recently (within last 12h)?
+    const wasExplicitlyClosed = (): boolean => {
+      if (!settings.closed_at) return false;
+      const closedAt = new Date(settings.closed_at as string).getTime();
+      const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+      return closedAt > twelveHoursAgo && settings.is_open === false;
+    };
+
+    const wasExplicitlyOpened = (): boolean => {
+      if (!settings.opened_at) return false;
+      const openedAt = new Date(settings.opened_at as string).getTime();
+      const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+      return openedAt > twelveHoursAgo && settings.is_open === true;
+    };
+
     if (todaySchedule) {
-      // If today is marked as closed day
+      // Day marked as closed
       if (todaySchedule.is_closed) {
-        // Admin can still override to open
-        setIsOpen(settings.is_open === true);
+        // Admin can explicitly open even on closed days
+        setIsOpen(wasExplicitlyOpened());
         setLoading(false);
         return;
       }
 
-      // Check time window
-      const inTimeWindow =
-        todaySchedule.open_time &&
-        todaySchedule.close_time &&
-        hhmm >= todaySchedule.open_time.slice(0, 5) &&
-        hhmm <= todaySchedule.close_time.slice(0, 5);
+      // Check if current time is within schedule window
+      const openT = todaySchedule.open_time?.slice(0, 5);
+      const closeT = todaySchedule.close_time?.slice(0, 5);
+
+      let inTimeWindow = false;
+      if (openT && closeT) {
+        if (closeT <= openT) {
+          // Crosses midnight (e.g., 18:00 - 00:00)
+          inTimeWindow = hhmm >= openT || hhmm <= closeT;
+        } else {
+          inTimeWindow = hhmm >= openT && hhmm <= closeT;
+        }
+      }
 
       if (inTimeWindow) {
-        // Within schedule hours: admin can close early (is_open=false overrides)
-        setIsOpen(settings.is_open !== false);
+        // Within schedule: OPEN by default, unless admin explicitly closed
+        setIsOpen(!wasExplicitlyClosed());
       } else {
-        // Outside schedule hours: admin can open early (is_open=true overrides)
-        setIsOpen(settings.is_open === true);
+        // Outside schedule: CLOSED by default, unless admin explicitly opened
+        setIsOpen(wasExplicitlyOpened());
       }
     } else {
-      // No schedule found, use manual toggle
+      // No schedule entry, fall back to manual toggle
       setIsOpen(settings.is_open);
     }
 
@@ -91,7 +113,6 @@ export const useStoreStatus = () => {
   useEffect(() => {
     checkStatus();
 
-    // Re-check every minute for time-based changes
     const interval = setInterval(checkStatus, 60_000);
 
     const channel1 = supabase
