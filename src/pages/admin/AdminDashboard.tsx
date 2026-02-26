@@ -203,6 +203,7 @@ const AdminDashboard = () => {
       return;
     }
     toast({ title: `Pedido atualizado!` });
+    await fetchOrders();
 
     if (newStatus === "preparing") {
       printReceipt(orderId, "cozinha");
@@ -301,38 +302,28 @@ const AdminDashboard = () => {
       .eq("report_date", dateStr)
       .single();
 
-    if (!report) {
-      // Generate from orders
-      const deliveredOrders = orders.filter(o => o.status === "delivered");
-      const bruto = deliveredOrders.reduce((s, o) => s + Number(o.total), 0);
-      const delivery = deliveredOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-      printDailyReport(deliveredOrders, bruto, delivery, delivery, bruto - delivery);
-      return;
-    }
+    const allOrders = orders.filter(o => o.status !== "cancelled");
+    const bruto = report ? Number(report.total_bruto) : allOrders.reduce((s, o) => s + Number(o.total), 0);
+    const delivery = report ? Number(report.total_delivery_fees) : allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
+    const gastos = report ? Number(report.total_gastos) : delivery;
+    const liquido = report ? Number(report.total_liquido) : bruto - delivery;
 
-    const deliveredOrders = orders.filter(o => o.status === "delivered");
-    printDailyReport(
-      deliveredOrders,
-      Number(report.total_bruto),
-      Number(report.total_delivery_fees),
-      Number(report.total_gastos),
-      Number(report.total_liquido)
-    );
+    printDailyReport(orders, bruto, delivery, gastos, liquido);
   };
 
   const handleCloseDay = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayOrders = orders.filter(o => o.status === "delivered");
-    const totalBruto = todayOrders.reduce((s, o) => s + Number(o.total), 0);
-    const totalDelivery = todayOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
+    const allOrders = orders.filter(o => o.status !== "cancelled");
+    const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
+    const totalDelivery = allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
     const totalGastos = totalDelivery;
     const totalLiquido = totalBruto - totalGastos;
 
     await supabase.from("daily_reports").upsert({
       report_date: today.toISOString().split("T")[0],
-      total_orders: todayOrders.length,
+      total_orders: allOrders.length,
       total_bruto: totalBruto,
       total_delivery_fees: totalDelivery,
       total_gastos: totalGastos,
@@ -348,15 +339,41 @@ const AdminDashboard = () => {
       }).eq("id", storeSettings.id);
     }
 
-    printDailyReport(todayOrders, totalBruto, totalDelivery, totalGastos, totalLiquido);
+    printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido);
     setShowCloseDay(false);
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
 
-  const printDailyReport = (todayOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number) => {
+  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number) => {
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     const date = format(selectedDate, "dd/MM/yyyy");
+
+    const statusCounts = {
+      pending: allOrders.filter(o => o.status === "pending").length,
+      awaiting_payment: allOrders.filter(o => o.status === "awaiting_payment").length,
+      preparing: allOrders.filter(o => o.status === "preparing").length,
+      ready: allOrders.filter(o => o.status === "ready").length,
+      delivering: allOrders.filter(o => o.status === "delivering").length,
+      delivered: allOrders.filter(o => o.status === "delivered").length,
+      cancelled: allOrders.filter(o => o.status === "cancelled").length,
+    };
+
+    const statusLabels: Record<string, string> = {
+      pending: "Pendentes",
+      awaiting_payment: "Ag. Pagamento",
+      preparing: "Em Preparo",
+      ready: "Pronto",
+      delivering: "Entregando",
+      delivered: "Entregues",
+      cancelled: "Cancelados",
+    };
+
+    const statusRows = Object.entries(statusCounts)
+      .filter(([, count]) => count > 0)
+      .map(([key, count]) => `<div class="row"><span>${statusLabels[key]}:</span><span>${count}</span></div>`)
+      .join("");
+
     w.document.write(`
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -374,7 +391,8 @@ const AdminDashboard = () => {
         <h2>RELATÓRIO DIÁRIO</h2>
         <div class="center">${date}</div>
         <div class="sep"></div>
-        <div class="row"><span>Total de Pedidos:</span><span>${todayOrders.length}</span></div>
+        <div class="row"><span>Total de Pedidos:</span><span>${allOrders.length}</span></div>
+        ${statusRows}
         <div class="sep"></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
         <div class="row"><span>Total Entregadores:</span><span>R$ ${delivery.toFixed(2).replace(".",",")}</span></div>
