@@ -1,20 +1,31 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Minus, Plus } from "lucide-react";
-import { products } from "@/data/menu";
+import { useProducts } from "@/hooks/useMenu";
 import type { ProductAddon } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
+import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { toast } from "sonner";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { products, loading } = useProducts();
+  const { isOpen: storeIsOpen } = useStoreStatus();
   const product = products.find((p) => p.id === id);
 
   const [quantity, setQuantity] = useState(1);
   const [selectedAddons, setSelectedAddons] = useState<ProductAddon[]>([]);
   const [observations, setObservations] = useState("");
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -36,6 +47,10 @@ const ProductDetail = () => {
   const itemTotal = (product.price + addonsTotal) * quantity;
 
   const handleAdd = () => {
+    if (!storeIsOpen) {
+      toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
+      return;
+    }
     addItem(product, quantity, selectedAddons, observations);
     toast.success(`${product.name} adicionado ao carrinho!`);
     navigate(-1);
@@ -43,6 +58,13 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      {/* Store closed banner */}
+      {!storeIsOpen && (
+        <div className="bg-red-600 px-4 py-2 text-center">
+          <p className="text-xs font-bold text-white">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+        </div>
+      )}
+
       {/* Image */}
       <div className="relative">
         <img src={product.image} alt={product.name} className="h-64 w-full object-cover" />
@@ -128,9 +150,16 @@ const ProductDetail = () => {
           </div>
           <button
             onClick={handleAdd}
-            className="flex-1 rounded-xl bg-fire-gradient py-3 text-center font-bold text-primary-foreground shadow-fire transition-all active:scale-[0.98]"
+            disabled={!storeIsOpen}
+            className={`flex-1 rounded-xl py-3 text-center font-bold shadow-fire transition-all active:scale-[0.98] ${
+              storeIsOpen
+                ? "bg-fire-gradient text-primary-foreground"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
+            }`}
           >
-            Adicionar R$ {itemTotal.toFixed(2).replace(".", ",")}
+            {storeIsOpen
+              ? `Adicionar R$ ${itemTotal.toFixed(2).replace(".", ",")}`
+              : "🔴 Loja Fechada"}
           </button>
         </div>
       </div>

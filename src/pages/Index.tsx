@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import { ChevronDown, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "@/assets/logo-turbo.jpeg";
 import heroBanner from "@/assets/hero-banner.jpg";
-import { categories, products } from "@/data/menu";
+import { useCategories, useProducts } from "@/hooks/useMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductCard from "@/components/ProductCard";
 import CartFloatingButton from "@/components/CartFloatingButton";
@@ -29,6 +28,8 @@ const Index = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { isOpen: storeIsOpen } = useStoreStatus();
+  const { categories, loading: catLoading } = useCategories();
+  const { products, loading: prodLoading } = useProducts();
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
@@ -51,23 +52,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-32">
-      {/* Store Closed Banner */}
-      <AnimatePresence>
-        {!storeIsOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-red-600 px-4 py-3 text-center overflow-hidden"
-          >
-            <p className="text-sm font-bold text-white">🔴 LOJA FECHADA NO MOMENTO</p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <p className="text-xs text-white/80">Volte em breve!</p>
-              <StoreHours />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Store Status Banner */}
+      {!storeIsOpen ? (
+        <div className="bg-red-600 px-4 py-3 text-center">
+          <p className="text-sm font-bold text-white">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <StoreHours />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-green-600 px-4 py-2 text-center">
+          <p className="text-sm font-bold text-white flex items-center justify-center gap-2">
+            🟢 Estamos abertos
+            <StoreHours />
+          </p>
+        </div>
+      )}
 
       {/* Hero Banner */}
       <motion.div
@@ -147,7 +147,6 @@ const Index = () => {
               Olá{userName ? `, ${userName}` : ""}
             </p>
             <div className="flex items-center gap-2">
-              {storeIsOpen && <StoreHours />}
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -159,35 +158,37 @@ const Index = () => {
           </motion.div>
 
           {/* Category Grid */}
-          <motion.div
-            variants={stagger}
-            initial="hidden"
-            animate="visible"
-            className="mt-5 grid grid-cols-4 gap-2.5"
-          >
-            {categories.map((cat, i) => (
-              <motion.button
-                key={cat.id}
-                variants={fadeUp}
-                custom={i}
-                whileHover={{ scale: 1.08, y: -4 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => scrollToCategory(cat.id)}
-                className="flex flex-col items-center gap-2 rounded-2xl bg-background p-3 shadow-sm"
-              >
-                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-                <span className="text-[11px] font-semibold text-foreground leading-tight text-center">
-                  {cat.name}
-                </span>
-              </motion.button>
-            ))}
-          </motion.div>
+          {!catLoading && categories.length > 0 && (
+            <motion.div
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+              className="mt-5 grid grid-cols-4 gap-2.5"
+            >
+              {categories.map((cat, i) => (
+                <motion.button
+                  key={cat.id}
+                  variants={fadeUp}
+                  custom={i}
+                  whileHover={{ scale: 1.08, y: -4 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => scrollToCategory(cat.id)}
+                  className="flex flex-col items-center gap-2 rounded-2xl bg-background p-3 shadow-sm"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[11px] font-semibold text-foreground leading-tight text-center">
+                    {cat.name}
+                  </span>
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
 
           {/* Promo Banner */}
           <motion.div
@@ -231,31 +232,37 @@ const Index = () => {
           </div>
 
           {/* Menu Sections */}
-          <div ref={menuRef} className="mt-7 space-y-7">
-            {categories.map((cat) => {
-              const catProducts = products.filter((p) => p.category === cat.id);
-              if (catProducts.length === 0) return null;
-              return (
-                <motion.section
-                  key={cat.id}
-                  id={`cat-${cat.id}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <h2 className="text-xl font-extrabold text-foreground">
-                    {cat.icon} {cat.name}
-                  </h2>
-                  <div className="mt-3 space-y-2.5">
-                    {catProducts.map((product, i) => (
-                      <ProductCard key={product.id} product={product} index={i} />
-                    ))}
-                  </div>
-                </motion.section>
-              );
-            })}
-          </div>
+          {prodLoading ? (
+            <div className="mt-7 flex justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+          ) : (
+            <div ref={menuRef} className="mt-7 space-y-7">
+              {categories.map((cat) => {
+                const catProducts = products.filter((p) => p.category === cat.id);
+                if (catProducts.length === 0) return null;
+                return (
+                  <motion.section
+                    key={cat.id}
+                    id={`cat-${cat.id}`}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <h2 className="text-xl font-extrabold text-foreground">
+                      {cat.icon} {cat.name}
+                    </h2>
+                    <div className="mt-3 space-y-2.5">
+                      {catProducts.map((product, i) => (
+                        <ProductCard key={product.id} product={product} index={i} storeIsOpen={storeIsOpen} />
+                      ))}
+                    </div>
+                  </motion.section>
+                );
+              })}
+            </div>
+          )}
         </div>
       </motion.div>
 

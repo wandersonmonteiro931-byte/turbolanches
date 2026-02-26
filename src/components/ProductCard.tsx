@@ -1,14 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import type { Product } from "@/data/menu";
 
 interface ProductCardProps {
   product: Product;
   index?: number;
+  storeIsOpen?: boolean;
 }
 
-const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
+const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProps) => {
   const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (!storeIsOpen) {
+      toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
+      return;
+    }
+    navigate(`/produto/${product.id}`);
+  };
 
   return (
     <motion.button
@@ -17,8 +27,8 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       transition={{ duration: 0.35, delay: index * 0.06, ease: "easeOut" }}
       whileHover={{ scale: 1.02, boxShadow: "0 8px 24px -8px hsl(355 85% 52% / 0.18)" }}
       whileTap={{ scale: 0.97 }}
-      onClick={() => navigate(`/produto/${product.id}`)}
-      className="flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors"
+      onClick={handleClick}
+      className={`flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors ${!storeIsOpen ? "opacity-60" : ""}`}
     >
       <div className="flex flex-1 flex-col justify-between">
         <div>

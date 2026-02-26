@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { products } from "@/data/menu";
+import { useProducts } from "@/hooks/useMenu";
+import { useStoreStatus } from "@/hooks/useStoreStatus";
 import ProductCard from "@/components/ProductCard";
 import BottomNav from "@/components/BottomNav";
 import CartFloatingButton from "@/components/CartFloatingButton";
 
 const Search = () => {
   const [query, setQuery] = useState("");
+  const { products } = useProducts();
+  const { isOpen: storeIsOpen } = useStoreStatus();
 
   const filtered = query.length >= 2
     ? products.filter(
@@ -54,7 +57,7 @@ const Search = () => {
           )}
         </AnimatePresence>
         {filtered.map((product, i) => (
-          <ProductCard key={product.id} product={product} index={i} />
+          <ProductCard key={product.id} product={product} index={i} storeIsOpen={storeIsOpen} />
         ))}
       </div>
 
