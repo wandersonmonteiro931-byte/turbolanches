@@ -308,12 +308,12 @@ const AdminOrders = () => {
                       {next === "preparing" ? "✅ Aceitar" : `Avançar → ${statusConfig[next]?.label}`}
                     </button>
                   )}
-                  {order.status === "pending" && (
+                  {order.status !== "cancelled" && (
                     <button
                       onClick={() => updateStatus(order.id, "cancelled")}
                       className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
                     >
-                      Recusar
+                      Cancelar
                     </button>
                   )}
                 </div>

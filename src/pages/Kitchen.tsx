@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logoTurbo from "@/assets/logo-turbo.jpeg";
 
@@ -20,10 +20,17 @@ interface KitchenItem {
   addons_json: any;
 }
 
+interface CancelledAlert {
+  order: KitchenOrder;
+  cancelledAt: number;
+}
+
 const Kitchen = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
   const [now, setNow] = useState(Date.now());
+  const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
+  const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
@@ -58,12 +65,22 @@ const Kitchen = () => {
 
     const channel = supabase
       .channel("kitchen-orders")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+        // Detect cancellations: order was in our list and now is cancelled
+        if (payload.eventType === "UPDATE" && (payload.new as any).status === "cancelled") {
+          const cancelledId = (payload.new as any).id;
+          const wasInKitchen = prevOrdersRef.current.find(o => o.id === cancelledId);
+          if (wasInKitchen) {
+            setCancelledAlerts(prev => [...prev, {
+              order: wasInKitchen,
+              cancelledAt: Date.now(),
+            }]);
+          }
+        }
         fetchOrders();
       })
       .subscribe();
 
-    // Tick every second for accurate timer
     const timer = setInterval(() => setNow(Date.now()), 1000);
 
     return () => {
@@ -71,6 +88,19 @@ const Kitchen = () => {
       clearInterval(timer);
     };
   }, [fetchOrders]);
+
+  // Keep ref in sync
+  useEffect(() => {
+    prevOrdersRef.current = orders;
+  }, [orders]);
+
+  // Remove cancelled alerts after 2 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCancelledAlerts(prev => prev.filter(a => Date.now() - a.cancelledAt < 120000));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Play sound on new order
   useEffect(() => {
@@ -132,6 +162,26 @@ const Kitchen = () => {
         }
         .kds-card-late { border-color: #dc3545; }
         .kds-card-warning { border-color: #ffc107; }
+
+        .kds-card-cancelled {
+          border-color: #dc3545 !important;
+          background: #1a0000 !important;
+          animation: kds-cancelled-blink 0.6s ease-in-out infinite;
+        }
+        @keyframes kds-cancelled-blink {
+          0%, 100% { background: #1a0000; border-color: #dc3545; }
+          50% { background: #3a0000; border-color: #ff4444; }
+        }
+        .kds-cancelled-banner {
+          background: #dc3545; color: white; text-align: center;
+          font-size: 28px; font-weight: 900; padding: 16px;
+          letter-spacing: 4px; text-transform: uppercase;
+          animation: kds-cancelled-text 0.6s ease-in-out infinite;
+        }
+        @keyframes kds-cancelled-text {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
 
         .kds-card-head {
           display: flex; justify-content: space-between; align-items: center;
@@ -196,13 +246,33 @@ const Kitchen = () => {
         <div className="kds-count">{orders.length} pedido{orders.length !== 1 ? "s" : ""}</div>
       </div>
 
-      {orders.length === 0 ? (
+      {orders.length === 0 && cancelledAlerts.length === 0 ? (
         <div className="kds-empty">
           <span>✅</span>
           Nenhum pedido em preparo
         </div>
       ) : (
         <div className="kds-grid">
+          {/* Cancelled alerts - flash for 2 minutes */}
+          {cancelledAlerts.map((alert) => (
+            <div key={`cancelled-${alert.order.id}`} className="kds-card kds-card-cancelled">
+              <div className="kds-cancelled-banner">❌ CANCELADO ❌</div>
+              <div className="kds-card-head">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span className="kds-order-num" style={{ color: "#ff6666" }}>
+                    #{String(alert.order.order_number).padStart(5, "0")}
+                  </span>
+                  <span className="kds-badge" style={{ background: "#991b1b", color: "#fca5a5" }}>
+                    {alert.order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
+                  </span>
+                </div>
+              </div>
+              {alert.order.observations && (
+                <div className="kds-order-obs">📝 {alert.order.observations}</div>
+              )}
+            </div>
+          ))}
+
           {orders.map((order) => {
             const { minutes, seconds } = getElapsed(order);
             const timerClass = getTimerClass(minutes);
