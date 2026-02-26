@@ -30,7 +30,7 @@ const StoreHours = () => {
       });
   }, []);
 
-  const today = new Date().getDay();
+  const today = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getDay();
 
   if (schedule.length === 0) return null;
 

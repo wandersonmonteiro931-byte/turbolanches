@@ -37,9 +37,23 @@ export const useStoreStatus = () => {
     // Manual override always takes priority:
     // If admin manually closed (is_open=false), store is closed regardless of schedule
     // If admin manually opened (is_open=true), check schedule to see if we're in hours
+    // Force Brasília timezone (America/Sao_Paulo)
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0=Sunday
-    const hhmm = now.toTimeString().slice(0, 5);
+    const brFormatter = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = brFormatter.formatToParts(now);
+    const brHour = parts.find((p) => p.type === "hour")!.value;
+    const brMinute = parts.find((p) => p.type === "minute")!.value;
+    const hhmm = `${brHour}:${brMinute}`;
+
+    // Get Brasília day of week
+    const brDate = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const dayOfWeek = brDate.getDay(); // 0=Sunday
 
     const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
 
