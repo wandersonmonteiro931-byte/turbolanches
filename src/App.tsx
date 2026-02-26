@@ -2,9 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -24,9 +24,24 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPrint from "./pages/admin/AdminPrint";
 import AdminDeliveryZones from "./pages/admin/AdminDeliveryZones";
 import AdminManualOrder from "./pages/admin/AdminManualOrder";
+import AdminSchedule from "./pages/admin/AdminSchedule";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
+
+// Protected route - requires authentication
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -37,22 +52,28 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public routes - accessible without login */}
               <Route path="/" element={<Index />} />
               <Route path="/produto/:id" element={<ProductDetail />} />
-              <Route path="/carrinho" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/busca" element={<Search />} />
-              <Route path="/pedidos" element={<Orders />} />
-              <Route path="/pedido/:id" element={<OrderTracking />} />
-              <Route path="/perfil" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/completar-perfil" element={<CompleteProfile />} />
+
+              {/* Protected routes - require authentication */}
+              <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/busca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+              <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+              <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+              <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
+
+              {/* Admin routes */}
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="pedidos" element={<AdminOrders />} />
                 <Route path="produtos" element={<AdminProducts />} />
                 <Route path="categorias" element={<AdminCategories />} />
                 <Route path="entregas" element={<AdminDeliveryZones />} />
+                <Route path="horarios" element={<AdminSchedule />} />
               </Route>
               <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
               <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
