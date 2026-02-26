@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProductCard from "@/components/ProductCard";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import BottomNav from "@/components/BottomNav";
+import StoreHours from "@/components/StoreHours";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 
@@ -40,7 +41,10 @@ const Index = () => {
       {!storeIsOpen && (
         <div className="bg-red-600 px-4 py-3 text-center">
           <p className="text-sm font-bold text-white">🔴 LOJA FECHADA NO MOMENTO</p>
-          <p className="text-xs text-white/80">Volte em breve!</p>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <p className="text-xs text-white/80">Volte em breve!</p>
+            <StoreHours />
+          </div>
         </div>
       )}
 
@@ -86,9 +90,12 @@ const Index = () => {
             <p className="text-base font-bold text-foreground">
               Olá{userName ? `, ${userName}` : ""}
             </p>
-            <button className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5">
-              <span className="text-xs font-bold text-primary">💜 Cupons até R$ 10</span>
-            </button>
+            <div className="flex items-center gap-2">
+              {storeIsOpen && <StoreHours />}
+              <button className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5">
+                <span className="text-xs font-bold text-primary">💜 Cupons até R$ 10</span>
+              </button>
+            </div>
           </div>
 
           {/* Category Grid */}
