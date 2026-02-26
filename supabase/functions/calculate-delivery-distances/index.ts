@@ -18,50 +18,72 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-async function geocode(query: string): Promise<{ lat: number; lng: number } | null> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+type GeocodeResult =
+  | { status: "ok"; coords: { lat: number; lng: number } }
+  | { status: "not_found" }
+  | { status: "retry" };
+
+async function geocode(query: string): Promise<GeocodeResult> {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": "TurboLanches/1.0" },
     });
+
+    if (res.status === 429 || res.status >= 500) {
+      console.warn(`Geocode temporary HTTP error ${res.status} for: ${query}`);
+      return { status: "retry" };
+    }
+
     if (!res.ok) {
       console.error(`Geocode HTTP error ${res.status} for: ${query}`);
-      return null;
+      return { status: "not_found" };
     }
+
     const data = await res.json();
     if (data && data.length > 0) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      return { status: "ok", coords: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } };
     }
+
+    return { status: "not_found" };
   } catch (e) {
-    console.error("Geocode error:", query, e);
+    console.error("Geocode network error:", query, e);
+    return { status: "retry" };
   }
-  return null;
 }
 
-async function geocodeWithFallbacks(neighborhood: string): Promise<{ lat: number; lng: number } | null> {
-  // Try multiple query variations
+async function geocodeWithFallbacks(neighborhood: string): Promise<GeocodeResult> {
+  const normalized = neighborhood.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
   const queries = [
     `${neighborhood}, Anápolis, Goiás, Brasil`,
     `${neighborhood}, Anápolis, GO`,
-    `Bairro ${neighborhood}, Anápolis, GO, Brasil`,
-    `${neighborhood}, Anápolis`,
+    `${normalized}, Anápolis, Goiás, Brasil`,
+    `Bairro ${normalized}, Anápolis, GO, Brasil`,
+    `${normalized}, Anápolis`,
   ];
+
+  let hadRetry = false;
 
   for (const query of queries) {
     console.log(`Geocoding: ${query}`);
-    const coords = await geocode(query);
-    if (coords) {
-      // Validate coords are roughly in Anápolis area (-16.3 lat, -48.9 lng, ~30km radius)
-      const distFromCenter = haversineKm(-16.3281, -48.9535, coords.lat, coords.lng);
-      if (distFromCenter < 40) {
-        return coords;
+    const result = await geocode(query);
+
+    if (result.status === "ok") {
+      const distFromCenter = haversineKm(-16.3281, -48.9535, result.coords.lat, result.coords.lng);
+      if (distFromCenter < 80) {
+        return result;
       }
       console.log(`Coords for "${neighborhood}" too far from Anápolis (${distFromCenter.toFixed(1)}km), trying next...`);
     }
-    await sleep(1100); // Nominatim rate limit
+
+    if (result.status === "retry") {
+      hadRetry = true;
+    }
+
+    await sleep(1100);
   }
 
-  return null;
+  return hadRetry ? { status: "retry" } : { status: "not_found" };
 }
 
 function sleep(ms: number) {
@@ -99,21 +121,28 @@ Deno.serve(async (req) => {
     if (!storeLat || !storeLng) {
       const storeQuery = `${settings.store_address}, ${settings.store_neighborhood}, Anápolis, GO, Brasil`;
       console.log("Geocoding store:", storeQuery);
-      const storeCoords = await geocode(storeQuery);
-      if (!storeCoords) {
+      const storeResult = await geocode(storeQuery);
+
+      if (storeResult.status === "ok") {
+        storeLat = storeResult.coords.lat;
+        storeLng = storeResult.coords.lng;
+      } else {
         const simpleQuery = `${settings.store_neighborhood}, Anápolis, GO, Brasil`;
         const fallback = await geocode(simpleQuery);
-        if (!fallback) {
+
+        if (fallback.status !== "ok") {
+          const storeError = fallback.status === "retry"
+            ? "Serviço de geocodificação temporariamente indisponível. Tente novamente em instantes."
+            : "Não foi possível localizar o endereço da hamburgueria.";
+
           return new Response(
-            JSON.stringify({ success: false, error: "Não foi possível localizar o endereço da hamburgueria." }),
+            JSON.stringify({ success: false, error: storeError }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        storeLat = fallback.lat;
-        storeLng = fallback.lng;
-      } else {
-        storeLat = storeCoords.lat;
-        storeLng = storeCoords.lng;
+
+        storeLat = fallback.coords.lat;
+        storeLng = fallback.coords.lng;
       }
 
       await supabase
@@ -172,12 +201,13 @@ Deno.serve(async (req) => {
 
     let processed = 0;
     let failed = 0;
+    let deferred = 0;
 
     for (const zone of zones) {
-      const coords = await geocodeWithFallbacks(zone.neighborhood);
+      const result = await geocodeWithFallbacks(zone.neighborhood);
 
-      if (coords) {
-        const distance = Math.round(haversineKm(storeLat!, storeLng!, coords.lat, coords.lng) * 10) / 10;
+      if (result.status === "ok") {
+        const distance = Math.round(haversineKm(storeLat!, storeLng!, result.coords.lat, result.coords.lng) * 10) / 10;
         const rawFee = distance * pricePerKm;
         const fee = Math.round(rawFee);
 
@@ -187,13 +217,16 @@ Deno.serve(async (req) => {
           .eq("id", zone.id);
 
         processed++;
-      } else {
-        // Mark as failed with -1
+      } else if (result.status === "not_found") {
+        // Only mark as failed when we are sure it's not found
         await supabase
           .from("delivery_zones")
           .update({ distance_km: -1 })
           .eq("id", zone.id);
         failed++;
+      } else {
+        // Transient error/rate limit: keep null so it can retry in next invocation
+        deferred++;
       }
     }
 
@@ -214,8 +247,9 @@ Deno.serve(async (req) => {
         processed,
         remaining: count || 0,
         failed: totalFailed || 0,
-        message: count 
-          ? `${processed} processados, ${count} restantes...` 
+        deferred,
+        message: count
+          ? `${processed} processados, ${count} restantes...`
           : "Todos os bairros processados!",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

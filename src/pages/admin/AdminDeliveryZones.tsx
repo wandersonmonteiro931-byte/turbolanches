@@ -144,11 +144,12 @@ const AdminDeliveryZones = () => {
         totalProcessed += data.processed;
         remaining = data.remaining;
         totalFailed = data.failed || 0;
-        
+
         const failedMsg = totalFailed > 0 ? ` (${totalFailed} não encontrados)` : "";
+        const deferredMsg = data.deferred > 0 ? ` (${data.deferred} para tentar de novo)` : "";
         setCalcProgress(
           remaining > 0
-            ? `${totalProcessed} processados, ${remaining} restantes...${failedMsg}`
+            ? `${totalProcessed} processados, ${remaining} restantes...${failedMsg}${deferredMsg}`
             : `✅ ${totalProcessed} bairros calculados!${failedMsg}`
         );
 
