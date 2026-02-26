@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, MapPin, Phone, ChevronRight, LogOut, FileText } from "lucide-react";
+import { User, MapPin, Phone, ChevronRight, LogOut, FileText, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import AddressSelector from "@/components/AddressSelector";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
+  const [addrOpen, setAddrOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -79,9 +81,9 @@ const Profile = () => {
             <span className="flex-1 text-sm text-foreground">Meus dados</span>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>
-          <button onClick={() => navigate("/completar-perfil")} className="flex w-full items-center gap-3 p-4 text-left">
+          <button onClick={() => setAddrOpen(true)} className="flex w-full items-center gap-3 p-4 text-left">
             <MapPin size={18} className="text-primary" />
-            <span className="flex-1 text-sm text-foreground">Meu endereço</span>
+            <span className="flex-1 text-sm text-foreground">Meus endereços</span>
             <ChevronRight size={16} className="text-muted-foreground" />
           </button>
           <button onClick={() => navigate("/pedidos")} className="flex w-full items-center gap-3 p-4 text-left">
@@ -96,6 +98,7 @@ const Profile = () => {
         </div>
       </div>
 
+      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} />
       <BottomNav />
     </div>
   );

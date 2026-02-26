@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import { ChevronDown, Bell } from "lucide-react";
+import { ChevronDown, Bell, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import heroBanner from "@/assets/hero-banner.jpg";
 import { useCategories, useProducts } from "@/hooks/useMenu";
@@ -8,8 +8,10 @@ import ProductCard from "@/components/ProductCard";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import BottomNav from "@/components/BottomNav";
 import StoreHours from "@/components/StoreHours";
+import AddressSelector from "@/components/AddressSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
+import { useAddresses } from "@/hooks/useAddresses";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -31,6 +33,9 @@ const Index = () => {
   const { categories, loading: catLoading } = useCategories();
   const { products, loading: prodLoading } = useProducts();
   const [userName, setUserName] = useState("");
+  const { defaultAddress, loading: addrLoading } = useAddresses();
+  const [addrSelectorOpen, setAddrSelectorOpen] = useState(false);
+  const [geoAddress, setGeoAddress] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -44,6 +49,30 @@ const Index = () => {
         });
     }
   }, [user]);
+
+  // Geolocation fallback when no saved address
+  useEffect(() => {
+    if (!addrLoading && !defaultAddress && !geoAddress && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&addressdetails=1`
+            );
+            const data = await res.json();
+            const addr = data.address;
+            const parts = [addr.road, addr.house_number].filter(Boolean);
+            setGeoAddress(parts.join(", ") || "Sua localização");
+          } catch {
+            setGeoAddress("Sua localização");
+          }
+        },
+        () => {
+          // permission denied or error - do nothing
+        }
+      );
+    }
+  }, [addrLoading, defaultAddress, geoAddress]);
 
   const scrollToCategory = (categoryId: string) => {
     const el = document.getElementById(`cat-${categoryId}`);
@@ -115,9 +144,14 @@ const Index = () => {
             transition={{ delay: 0.3 }}
             className="flex items-center justify-between"
           >
-            <button className="flex items-center gap-1">
-              <span className="text-sm font-semibold text-foreground">R. Example, 123</span>
-              <ChevronDown size={16} className="text-muted-foreground" />
+            <button onClick={() => setAddrSelectorOpen(true)} className="flex items-center gap-1.5 min-w-0">
+              <MapPin size={14} className="text-primary shrink-0" />
+              <span className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+                {defaultAddress
+                  ? `${defaultAddress.street}${defaultAddress.number ? `, ${defaultAddress.number}` : ""}`
+                  : geoAddress || "Adicionar endereço"}
+              </span>
+              <ChevronDown size={16} className="text-muted-foreground shrink-0" />
             </button>
             <motion.button
               whileTap={{ scale: 0.9 }}
@@ -264,6 +298,7 @@ const Index = () => {
         </div>
       </motion.div>
 
+      <AddressSelector open={addrSelectorOpen} onClose={() => setAddrSelectorOpen(false)} />
       <CartFloatingButton />
       <BottomNav />
     </div>
