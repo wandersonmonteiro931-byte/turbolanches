@@ -318,9 +318,9 @@ Deno.serve(async (req) => {
       : (await supabase
           .from("delivery_zones")
           .select("id, neighborhood, distance_km")
-          .or("distance_km.is.null,distance_km.lt.0")
-          .order("neighborhood")
-          .limit(10)).data;
+      .is("distance_km", null)
+      .order("neighborhood")
+      .limit(10)).data;
 
     if (!zones || zones.length === 0) {
       // Tudo processado — recalcular taxas
@@ -387,7 +387,7 @@ Deno.serve(async (req) => {
       // Guarda de segurança
       if (distance > MAX_ROAD_DISTANCE_KM) {
         console.warn(`Discarding ${zone.neighborhood}: ${distance}km (too far)`);
-        await supabase.from("delivery_zones").update({ distance_km: null }).eq("id", zone.id);
+        await supabase.from("delivery_zones").update({ distance_km: -1 }).eq("id", zone.id);
         deferred++;
         await sleep(500);
         continue;
@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
     const { count } = await supabase
       .from("delivery_zones")
       .select("id", { count: "exact", head: true })
-      .or(`distance_km.is.null,distance_km.gt.${MAX_ROAD_DISTANCE_KM}`);
+      .is("distance_km", null);
 
     const { count: totalFailed } = await supabase
       .from("delivery_zones")
