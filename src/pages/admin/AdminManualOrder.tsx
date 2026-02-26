@@ -174,6 +174,11 @@ const AdminManualOrder = () => {
       if (itemsError) throw itemsError;
 
       toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+
+      // Impressão automática da comanda de cozinha
+      const printUrl = `/admin/imprimir/${order.id}?tipo=cozinha`;
+      window.open(printUrl, "_blank", "width=300,height=600");
+
       navigate("/admin");
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar pedido");
