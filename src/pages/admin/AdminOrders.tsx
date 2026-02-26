@@ -134,18 +134,7 @@ const AdminOrders = () => {
   };
 
   const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente") => {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.top = "-10000px";
-    iframe.style.left = "-10000px";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    iframe.src = `/admin/imprimir/${orderId}?tipo=${tipo}`;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch {}
-    }, 10000);
+    window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, "_blank", "width=300,height=600");
   };
 
   const toggleExpand = (orderId: string) => {
