@@ -89,18 +89,19 @@ const AdminDeliveryZones = () => {
     setCalcProgress("Iniciando cálculo...");
 
     try {
-      // If recalculating all, reset distances first
+      // If recalculating all, reset distances and fees first
       if (recalcAll) {
         // Reset lat/lng to force re-geocode
         await supabase
           .from("store_settings")
           .update({ store_lat: null, store_lng: null } as any)
           .not("id", "is", null);
-        // Reset all distances
+        // Reset all distances and fees
         await supabase
           .from("delivery_zones")
-          .update({ distance_km: null } as any)
+          .update({ distance_km: null, delivery_fee: 0 } as any)
           .not("id", "is", null);
+        await fetchZones();
       }
 
       // Loop calling the edge function until all are processed
