@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Edit2, Save, X, MapPin, Store, DollarSign, Search } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, MapPin, Store, DollarSign, Search, RefreshCw, Navigation } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -8,6 +8,7 @@ interface DeliveryZone {
   neighborhood: string;
   delivery_fee: number;
   active: boolean;
+  distance_km: number | null;
 }
 
 interface StoreConfig {
@@ -26,7 +27,8 @@ const AdminDeliveryZones = () => {
   const [storeConfig, setStoreConfig] = useState<StoreConfig>({ store_address: "", store_neighborhood: "", price_per_km: 2 });
   const [editingStore, setEditingStore] = useState(false);
   const [storeForm, setStoreForm] = useState<StoreConfig>({ store_address: "", store_neighborhood: "", price_per_km: 2 });
-  const [applyingPerKm, setApplyingPerKm] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [calcProgress, setCalcProgress] = useState("");
   const { toast } = useToast();
 
   const fetchZones = async () => {
@@ -34,7 +36,7 @@ const AdminDeliveryZones = () => {
       .from("delivery_zones")
       .select("*")
       .order("neighborhood");
-    if (data) setZones(data);
+    if (data) setZones(data as DeliveryZone[]);
   };
 
   const fetchStoreConfig = async () => {
@@ -63,6 +65,9 @@ const AdminDeliveryZones = () => {
         store_address: storeForm.store_address,
         store_neighborhood: storeForm.store_neighborhood,
         price_per_km: storeForm.price_per_km,
+        // Reset lat/lng so it re-geocodes on next calculation
+        store_lat: null,
+        store_lng: null,
       } as any)
       .not("id", "is", null);
     if (error) {
@@ -74,19 +79,74 @@ const AdminDeliveryZones = () => {
     toast({ title: "✅ Endereço da hamburgueria salvo!" });
   };
 
-  const applyPricePerKm = async () => {
-    if (!storeConfig.price_per_km || storeConfig.price_per_km <= 0) {
-      toast({ title: "Defina o valor por km primeiro", variant: "destructive" });
+  const calculateDistances = async (recalcAll = false) => {
+    if (!storeConfig.store_address && !storeConfig.store_neighborhood) {
+      toast({ title: "Configure o endereço da hamburgueria primeiro!", variant: "destructive" });
       return;
     }
-    setApplyingPerKm(true);
-    // Aplica uma taxa estimada baseada na distância (simulação por posição alfabética como proxy)
-    // Na prática, seria necessário usar geocoding. Aqui aplicamos o valor por km como taxa base.
-    toast({ 
-      title: "ℹ️ Valor por km configurado", 
-      description: `R$ ${storeConfig.price_per_km.toFixed(2).replace(".", ",")} por km. Edite manualmente cada bairro para ajustar a taxa com base na distância real.` 
-    });
-    setApplyingPerKm(false);
+
+    setCalculating(true);
+    setCalcProgress("Iniciando cálculo...");
+
+    try {
+      // If recalculating all, reset distances first
+      if (recalcAll) {
+        // Reset lat/lng to force re-geocode
+        await supabase
+          .from("store_settings")
+          .update({ store_lat: null, store_lng: null } as any)
+          .not("id", "is", null);
+        // Reset all distances
+        await supabase
+          .from("delivery_zones")
+          .update({ distance_km: null } as any)
+          .not("id", "is", null);
+      }
+
+      // Loop calling the edge function until all are processed
+      let remaining = 999;
+      let totalProcessed = 0;
+
+      while (remaining > 0) {
+        const { data, error } = await supabase.functions.invoke("calculate-delivery-distances");
+
+        if (error) {
+          console.error("Edge function error:", error);
+          toast({ title: "Erro ao calcular distâncias", description: error.message, variant: "destructive" });
+          break;
+        }
+
+        if (!data.success) {
+          toast({ title: "Erro", description: data.error, variant: "destructive" });
+          break;
+        }
+
+        totalProcessed += data.processed;
+        remaining = data.remaining;
+        setCalcProgress(
+          remaining > 0
+            ? `${totalProcessed} bairros processados, ${remaining} restantes...`
+            : `✅ ${totalProcessed} bairros calculados!`
+        );
+
+        // Refresh zones list
+        await fetchZones();
+
+        if (remaining === 0 && data.processed === 0) {
+          // All done, fees recalculated
+          break;
+        }
+      }
+
+      toast({ title: "✅ Distâncias calculadas e taxas atualizadas!" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro inesperado ao calcular", variant: "destructive" });
+    } finally {
+      setCalculating(false);
+      setCalcProgress("");
+      fetchZones();
+    }
   };
 
   const addZone = async () => {
@@ -136,6 +196,8 @@ const AdminDeliveryZones = () => {
     z.neighborhood.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const zonesWithoutDistance = zones.filter(z => z.distance_km === null).length;
+
   return (
     <div className="space-y-4">
       {/* Store Address Config */}
@@ -171,18 +233,21 @@ const AdminDeliveryZones = () => {
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <DollarSign size={14} className="text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Valor por km:</span>
-                <input
-                  type="number"
-                  step="0.10"
-                  min="0"
-                  value={storeForm.price_per_km}
-                  onChange={e => setStoreForm(f => ({ ...f, price_per_km: Number(e.target.value) }))}
-                  className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
-                />
+                <div className="flex items-center">
+                  <span className="text-sm text-muted-foreground mr-1">R$</span>
+                  <input
+                    type="number"
+                    step="0.10"
+                    min="0"
+                    value={storeForm.price_per_km}
+                    onChange={e => setStoreForm(f => ({ ...f, price_per_km: Number(e.target.value) }))}
+                    className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                  />
+                </div>
               </div>
               <div className="flex gap-2 ml-auto">
                 <button onClick={saveStoreConfig} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
@@ -208,18 +273,66 @@ const AdminDeliveryZones = () => {
         )}
       </div>
 
+      {/* Calculate Distances Button */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Navigation size={16} className="text-primary" />
+              Cálculo Automático de Distâncias
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Calcula a distância em km de cada bairro até a hamburgueria e aplica a taxa automaticamente.
+              {zonesWithoutDistance > 0 && (
+                <span className="text-amber-600 font-medium"> ({zonesWithoutDistance} bairros sem distância calculada)</span>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => calculateDistances(false)}
+              disabled={calculating}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={calculating ? "animate-spin" : ""} />
+              {calculating ? "Calculando..." : "Calcular Distâncias"}
+            </button>
+            <button
+              onClick={() => calculateDistances(true)}
+              disabled={calculating}
+              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+            >
+              Recalcular Tudo
+            </button>
+          </div>
+        </div>
+        {calcProgress && (
+          <div className="mt-3 rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary">
+            {calcProgress}
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground">Regiões de Entrega</h2>
-          <p className="text-xs text-muted-foreground">{zones.length} bairros cadastrados. Edite a taxa de cada um manualmente.</p>
+          <p className="text-xs text-muted-foreground">{zones.length} bairros cadastrados. Edite a taxa de cada um manualmente se desejar.</p>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus size={16} /> Nova Região
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={fetchZones}
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
+          >
+            <RefreshCw size={14} /> Atualizar
+          </button>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus size={16} /> Nova Região
+          </button>
+        </div>
       </div>
 
       {/* Add Form */}
@@ -309,6 +422,17 @@ const AdminDeliveryZones = () => {
                     <span className={`flex-1 text-sm font-medium ${zone.active ? "text-foreground" : "text-muted-foreground line-through"}`}>
                       {zone.neighborhood}
                     </span>
+                    {/* Distance badge */}
+                    {zone.distance_km !== null && zone.distance_km >= 0 && (
+                      <span className="rounded-full bg-blue-100 text-blue-700 px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap">
+                        {zone.distance_km.toFixed(1)} km
+                      </span>
+                    )}
+                    {zone.distance_km !== null && zone.distance_km < 0 && (
+                      <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">
+                        N/A
+                      </span>
+                    )}
                     <span className={`text-sm font-bold ${zone.delivery_fee === 0 ? "text-green-600" : "text-foreground"}`}>
                       {zone.delivery_fee === 0 ? "GRÁTIS" : `R$ ${zone.delivery_fee.toFixed(2).replace(".", ",")}`}
                     </span>
