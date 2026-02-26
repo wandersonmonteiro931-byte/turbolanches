@@ -1,12 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Singleton background worker for delivery distance calculation.
  * Persists across route changes — once started, keeps running until done or cancelled.
  */
-
-type Listener = (state: CalcState) => void;
 
 interface CalcState {
   running: boolean;
@@ -17,17 +15,28 @@ interface CalcState {
 }
 
 let globalState: CalcState = { running: false, processed: 0, remaining: 0, failed: 0, message: "" };
-let listeners = new Set<Listener>();
+let listeners: Array<() => void> = [];
 let abortFlag = false;
 let isRunning = false;
 
-function notify() {
-  listeners.forEach((fn) => fn({ ...globalState }));
+function emitChange() {
+  for (const l of listeners) l();
 }
 
 function setState(partial: Partial<CalcState>) {
   globalState = { ...globalState, ...partial };
-  notify();
+  emitChange();
+}
+
+function subscribe(cb: () => void) {
+  listeners = [...listeners, cb];
+  return () => {
+    listeners = listeners.filter((l) => l !== cb);
+  };
+}
+
+function getSnapshot(): CalcState {
+  return globalState;
 }
 
 async function runLoop(recalcAll: boolean) {
@@ -101,23 +110,15 @@ async function runLoop(recalcAll: boolean) {
 }
 
 export function useDeliveryCalculation() {
-  const [state, setLocalState] = useState<CalcState>(globalState);
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  useEffect(() => {
-    const listener: Listener = (s) => setLocalState(s);
-    listeners.add(listener);
-    // Sync current state on mount
-    setLocalState({ ...globalState });
-    return () => { listeners.delete(listener); };
+  const start = useCallback((recalcAll = false) => {
+    runLoop(recalcAll);
   }, []);
 
-  const start = (recalcAll = false) => {
-    runLoop(recalcAll);
-  };
-
-  const cancel = () => {
+  const cancel = useCallback(() => {
     abortFlag = true;
-  };
+  }, []);
 
   return { state, start, cancel };
 }
