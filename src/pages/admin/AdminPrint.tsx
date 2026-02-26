@@ -133,7 +133,7 @@ const AdminPrint = () => {
     .grand-total { font-size: 12px; font-weight: 900; display: flex; justify-content: space-between; margin: 2px 0; }
     .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; line-height: 1.4; }
-    .print-end { height: 10mm; min-height: 10mm; }
+    .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; content: ''; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }
     .tipo-label {
       font-size: 24px; font-weight: 900; text-align: center;
       letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
@@ -250,7 +250,7 @@ const AdminPrint = () => {
         </>
       )}
       <div className="separator" />
-      <div className="print-end" />
+      <div className="print-end">&nbsp;</div>
     </div>
   );
 
@@ -283,7 +283,7 @@ const AdminPrint = () => {
       <div className="info">ENTREGADOR: ___________________</div>
       <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
       <div className="separator" />
-      <div className="print-end" />
+      <div className="print-end">&nbsp;</div>
     </div>
   );
 
@@ -301,7 +301,7 @@ const AdminPrint = () => {
       {totaisSection(false)}
       <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
-      <div className="print-end" />
+      <div className="print-end">&nbsp;</div>
     </div>
   );
 
