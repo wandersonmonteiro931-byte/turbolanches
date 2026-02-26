@@ -54,18 +54,16 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-32">
       {/* Store Status Banner */}
       {!storeIsOpen ? (
-        <div className="bg-red-600 px-4 py-3 text-center">
-          <p className="text-sm font-bold text-white">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+        <div className="bg-destructive px-4 py-3 text-center">
+          <p className="text-sm font-bold text-destructive-foreground">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
           <div className="flex items-center justify-center gap-2 mt-1">
             <StoreHours />
           </div>
         </div>
       ) : (
-        <div className="bg-green-600 px-4 py-2 text-center">
-          <p className="text-sm font-bold text-white flex items-center justify-center gap-2">
-            🟢 Estamos abertos
-            <StoreHours />
-          </p>
+        <div className="flex items-center justify-center gap-2 bg-card border-b border-border px-4 py-1.5">
+          <span className="text-[11px] text-muted-foreground">🟢 Aberto agora</span>
+          <StoreHours />
         </div>
       )}
 
