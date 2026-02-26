@@ -79,8 +79,11 @@ async function getRoadDistanceKm(
 type NominatimPlace = {
   lat?: string;
   lon?: string;
+  name?: string;
+  display_name?: string;
   address?: {
     city?: string; town?: string; municipality?: string; county?: string;
+    state?: string; state_district?: string;
     suburb?: string; neighbourhood?: string; city_district?: string; quarter?: string;
   };
 };
@@ -90,18 +93,63 @@ type GeocodeResult =
   | { status: "retry" }
   | { status: "not_found" };
 
-function isInsideAnapolis(place: NominatimPlace, lat: number, lng: number): boolean {
-  const addr = place.address;
-  const cityBlob = [addr?.city, addr?.town, addr?.municipality, addr?.county]
-    .filter(Boolean).join(" ");
-  const normalizedCity = normalizeText(cityBlob);
-  const fromCenter = haversineKm(ANAPOLIS_CENTER.lat, ANAPOLIS_CENTER.lng, lat, lng);
-  if (normalizedCity.includes("anapolis") && fromCenter <= 40) return true;
-  return fromCenter <= 15;
+function tokenize(value: string): string[] {
+  return normalizeText(value).split(/\s+/).filter((t) => t.length > 2);
 }
 
-async function geocode(query: string): Promise<GeocodeResult> {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=pt-BR&countrycodes=br&limit=5&dedupe=1&bounded=1&viewbox=-49.18,-16.20,-48.78,-16.56&q=${encodeURIComponent(query)}`;
+function overlapScore(expected: string, candidate: string): number {
+  const expNorm = normalizeText(expected);
+  const candNorm = normalizeText(candidate);
+  if (!expNorm || !candNorm) return 0;
+
+  if (candNorm === expNorm) return 1;
+  if (candNorm.includes(expNorm) || expNorm.includes(candNorm)) return 0.9;
+
+  const expTokens = tokenize(expNorm);
+  const candTokens = new Set(tokenize(candNorm));
+  if (expTokens.length === 0) return 0;
+
+  let hit = 0;
+  for (const token of expTokens) {
+    if (candTokens.has(token)) hit++;
+  }
+
+  return hit / expTokens.length;
+}
+
+function isInsideAnapolis(place: NominatimPlace, lat: number, lng: number): boolean {
+  const addr = place.address;
+  const cityBlob = [addr?.city, addr?.town, addr?.municipality, addr?.county, addr?.state_district]
+    .filter(Boolean)
+    .join(" ");
+  const stateBlob = [addr?.state].filter(Boolean).join(" ");
+
+  const normalizedCity = normalizeText(cityBlob);
+  const normalizedState = normalizeText(stateBlob);
+
+  const hasAnapolis = normalizedCity.includes("anapolis");
+  const hasGoias = !normalizedState || normalizedState.includes("goias");
+  const fromCenter = haversineKm(ANAPOLIS_CENTER.lat, ANAPOLIS_CENTER.lng, lat, lng);
+
+  return hasAnapolis && hasGoias && fromCenter <= 45;
+}
+
+function extractCandidateText(place: NominatimPlace): string {
+  const addr = place.address;
+  return [
+    place.name,
+    addr?.neighbourhood,
+    addr?.suburb,
+    addr?.quarter,
+    addr?.city_district,
+    place.display_name,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+async function geocode(query: string, expectedNeighborhood: string): Promise<GeocodeResult> {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=pt-BR&countrycodes=br&limit=8&dedupe=1&bounded=1&viewbox=-49.18,-16.20,-48.78,-16.56&q=${encodeURIComponent(query)}`;
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -113,19 +161,42 @@ async function geocode(query: string): Promise<GeocodeResult> {
       if (!res.ok) return { status: "not_found" };
 
       const data = (await res.json()) as NominatimPlace[];
+      let best:
+        | { score: number; lat: number; lng: number; resolvedNeighborhood?: string; label: string }
+        | null = null;
+
       for (const place of data || []) {
         const lat = Number(place.lat);
         const lng = Number(place.lon);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
         if (!isInsideAnapolis(place, lat, lng)) continue;
+
+        const candidateText = extractCandidateText(place);
+        const score = overlapScore(expectedNeighborhood, candidateText);
+        if (score < 0.45) continue;
+
+        if (!best || score > best.score) {
+          best = {
+            score,
+            lat,
+            lng,
+            resolvedNeighborhood: place.address?.neighbourhood || place.address?.suburb || place.address?.quarter || undefined,
+            label: candidateText,
+          };
+        }
+      }
+
+      if (best) {
+        console.log(`Geocode escolhido: ${expectedNeighborhood} -> ${best.label} (score ${best.score.toFixed(2)})`);
         return {
           status: "ok",
-          coords: { lat, lng },
-          resolvedNeighborhood: place.address?.neighbourhood || place.address?.suburb || undefined,
+          coords: { lat: best.lat, lng: best.lng },
+          resolvedNeighborhood: best.resolvedNeighborhood,
         };
       }
+
       return { status: "not_found" };
-    } catch (e) {
+    } catch (_e) {
       await sleep(1500 * attempt);
     }
   }
@@ -167,23 +238,14 @@ async function geocodeNeighborhood(neighborhood: string): Promise<GeocodeResult>
   let hadRetry = false;
 
   for (const query of queries) {
-    // Pula o fallback "Centro" a menos que nada funcione
-    if (query.startsWith("Centro,") && queries.indexOf(query) < queries.length - 1) {
-      // Só usa Centro como último recurso, não pula
-    }
     console.log(`Geocoding: ${query}`);
-    const result = await geocode(query);
+    const result = await geocode(query, neighborhood);
     if (result.status === "ok") return result;
     if (result.status === "retry") hadRetry = true;
     await sleep(1100);
   }
 
-  // Último fallback absoluto: centro geográfico de Anápolis
-  return {
-    status: "ok",
-    coords: { lat: ANAPOLIS_CENTER.lat, lng: ANAPOLIS_CENTER.lng },
-    resolvedNeighborhood: "Centro",
-  };
+  return hadRetry ? { status: "retry" } : { status: "not_found" };
 }
 
 // ── Handler principal ──────────────────────────────────────────────
@@ -217,13 +279,13 @@ Deno.serve(async (req) => {
     if (!storeLat || !storeLng) {
       const storeQuery = `${settings.store_address}, ${settings.store_neighborhood}, Anápolis, GO, Brasil`;
       console.log("Geocoding store:", storeQuery);
-      const storeResult = await geocode(storeQuery);
+      const storeResult = await geocode(storeQuery, settings.store_neighborhood || settings.store_address || "loja");
 
       if (storeResult.status === "ok") {
         storeLat = storeResult.coords.lat;
         storeLng = storeResult.coords.lng;
       } else {
-        const fallback = await geocode(`${settings.store_neighborhood}, Anápolis, GO, Brasil`);
+        const fallback = await geocode(`${settings.store_neighborhood}, Anápolis, GO, Brasil`, settings.store_neighborhood || "loja");
         if (fallback.status !== "ok") {
           return new Response(
             JSON.stringify({ success: false, error: "Não foi possível localizar o endereço da loja." }),
