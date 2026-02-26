@@ -29,6 +29,7 @@ const AdminDeliveryZones = () => {
   const [storeForm, setStoreForm] = useState<StoreConfig>({ store_address: "", store_neighborhood: "", price_per_km: 2 });
   const [calculating, setCalculating] = useState(false);
   const [calcProgress, setCalcProgress] = useState("");
+  const [cancelCalcRef] = useState<{ current: boolean }>({ current: false });
   const { toast } = useToast();
 
   const fetchZones = async () => {
@@ -87,16 +88,14 @@ const AdminDeliveryZones = () => {
 
     setCalculating(true);
     setCalcProgress("Iniciando cálculo...");
+    cancelCalcRef.current = false;
 
     try {
-      // If recalculating all, reset distances and fees first
       if (recalcAll) {
-        // Reset lat/lng to force re-geocode
         await supabase
           .from("store_settings")
           .update({ store_lat: null, store_lng: null } as any)
           .not("id", "is", null);
-        // Reset all distances and fees
         await supabase
           .from("delivery_zones")
           .update({ distance_km: null, delivery_fee: 0 } as any)
@@ -104,15 +103,23 @@ const AdminDeliveryZones = () => {
         await fetchZones();
       }
 
-      // Loop calling the edge function until all are processed
       let remaining = 999;
       let totalProcessed = 0;
 
       while (remaining > 0) {
+        if (cancelCalcRef.current) {
+          toast({ title: "⏹️ Cálculo cancelado" });
+          break;
+        }
+
         const { data, error } = await supabase.functions.invoke("calculate-delivery-distances");
 
+        if (cancelCalcRef.current) {
+          toast({ title: "⏹️ Cálculo cancelado" });
+          break;
+        }
+
         if (error) {
-          console.error("Edge function error:", error);
           toast({ title: "Erro ao calcular distâncias", description: error.message, variant: "destructive" });
           break;
         }
@@ -130,16 +137,14 @@ const AdminDeliveryZones = () => {
             : `✅ ${totalProcessed} bairros calculados!`
         );
 
-        // Refresh zones list
         await fetchZones();
 
-        if (remaining === 0 && data.processed === 0) {
-          // All done, fees recalculated
-          break;
-        }
+        if (remaining === 0 && data.processed === 0) break;
       }
 
-      toast({ title: "✅ Distâncias calculadas e taxas atualizadas!" });
+      if (!cancelCalcRef.current) {
+        toast({ title: "✅ Distâncias calculadas e taxas atualizadas!" });
+      }
     } catch (err) {
       console.error(err);
       toast({ title: "Erro inesperado ao calcular", variant: "destructive" });
@@ -290,26 +295,37 @@ const AdminDeliveryZones = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={() => calculateDistances(false)}
-              disabled={calculating}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={calculating ? "animate-spin" : ""} />
-              {calculating ? "Calculando..." : "Calcular Distâncias"}
-            </button>
-            <button
-              onClick={() => calculateDistances(true)}
-              disabled={calculating}
-              className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
-            >
-              Recalcular Tudo
-            </button>
+            {calculating ? (
+              <button
+                onClick={() => { cancelCalcRef.current = true; }}
+                className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-bold text-destructive-foreground hover:bg-destructive/90"
+              >
+                <X size={14} />
+                Cancelar
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => calculateDistances(false)}
+                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                >
+                  <RefreshCw size={14} />
+                  Calcular Distâncias
+                </button>
+                <button
+                  onClick={() => calculateDistances(true)}
+                  className="flex items-center gap-2 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted"
+                >
+                  Recalcular Tudo
+                </button>
+              </>
+            )}
           </div>
         </div>
         {calcProgress && (
-          <div className="mt-3 rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary">
-            {calcProgress}
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary">
+            <span>{calcProgress}</span>
+            {calculating && <RefreshCw size={14} className="animate-spin" />}
           </div>
         )}
       </div>
