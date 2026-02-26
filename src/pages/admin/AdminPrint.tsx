@@ -90,8 +90,13 @@ const AdminPrint = () => {
   const troco = isPaidAtDelivery && changeFor > total ? changeFor - total : 0;
   const paymentLabel = isFiado ? "FIADO" : isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
 
-  const clienteName = profile?.full_name || "Cliente";
+  // Parse customer name/phone from observations for manual orders (format: "Cliente: X | Tel: Y | ...")
+  const obsText = order.observations || "";
+  const manualClienteMatch = obsText.match(/Cliente:\s*([^|]+)/);
+  const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
+  const clienteName = manualClienteMatch ? manualClienteMatch[1].trim() : (profile?.full_name || "Cliente");
   const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
+  const clientePhone = manualTelMatch ? manualTelMatch[1].trim() : (profile?.phone || "");
 
   const isCozinha = tipo === "cozinha";
   const isEntrega = tipo === "entrega";
@@ -243,6 +248,10 @@ const AdminPrint = () => {
       <div className="separator" />
       {itensCozinha}
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
+      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
+      <div className="separator" />
+      <div className="info">CLIENTE: {clienteName}{clientePhone ? ` | TEL: ${clientePhone}` : ""}</div>
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
       {order.observations && (
@@ -267,7 +276,7 @@ const AdminPrint = () => {
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
       <div className="info">Cliente: {clienteName}</div>
-      <div className="info">Telefone: {profile?.phone || ""}</div>
+      <div className="info">Telefone: {clientePhone}</div>
       <div className="box-highlight">{address}</div>
       {order.observations && <div className="info">OBS: {order.observations}</div>}
       <div className="separator" />

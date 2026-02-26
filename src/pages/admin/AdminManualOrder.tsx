@@ -123,6 +123,14 @@ const AdminManualOrder = () => {
       toast.error("Você precisa estar logado");
       return;
     }
+    if (!customerName.trim()) {
+      toast.error("Informe o nome do cliente");
+      return;
+    }
+    if (!customerPhone.trim()) {
+      toast.error("Informe o telefone do cliente");
+      return;
+    }
     if (deliveryType === "delivery" && (!addressStreet || !addressNeighborhood)) {
       toast.error("Preencha o endereço para delivery");
       return;
