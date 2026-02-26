@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
 
 interface DeliveryZone {
   id: string;
@@ -294,9 +295,7 @@ const AdminDeliveryZones = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE);
-  const [calculating, setCalculating] = useState(false);
-  const [calcProgress, setCalcProgress] = useState("");
-  const [cancelCalcRef] = useState<{ current: boolean }>({ current: false });
+  const { state: calcState, start: startCalc, cancel: cancelCalc } = useDeliveryCalculation();
 
   // Filters
   const [filterKmMin, setFilterKmMin] = useState("");
@@ -333,36 +332,22 @@ const AdminDeliveryZones = () => {
 
   useEffect(() => { fetchZones(); fetchStoreConfig(); }, []);
 
-  const calculateDistances = async (recalcAll = false) => {
+  // Auto-refresh zones while calculation is running
+  useEffect(() => {
+    if (!calcState.running) {
+      fetchZones();
+      return;
+    }
+    const interval = setInterval(fetchZones, 4000);
+    return () => clearInterval(interval);
+  }, [calcState.running, calcState.processed]);
+
+  const calculateDistances = (recalcAll = false) => {
     if (!storeConfig.store_address && !storeConfig.store_neighborhood) {
       toast({ title: "Configure o endereço primeiro!", variant: "destructive" });
       return;
     }
-    setCalculating(true); setCalcProgress("Iniciando..."); cancelCalcRef.current = false;
-    try {
-      if (recalcAll) {
-        await supabase.from("store_settings").update({ store_lat: null, store_lng: null } as any).not("id", "is", null);
-        await supabase.from("delivery_zones").update({ distance_km: null, delivery_fee: 0 } as any).not("id", "is", null);
-        await fetchZones();
-      }
-      let remaining = 999, totalProcessed = 0, totalFailed = 0;
-      while (remaining > 0) {
-        if (cancelCalcRef.current) { toast({ title: "⏹️ Cancelado" }); break; }
-        let data: any, error: any;
-        try {
-          const r = await supabase.functions.invoke("calculate-delivery-distances");
-          data = r.data; error = r.error;
-        } catch { await new Promise(r => setTimeout(r, 3000)); continue; }
-        if (cancelCalcRef.current) break;
-        if (error || !data?.success) { toast({ title: "Erro", variant: "destructive" }); break; }
-        totalProcessed += data.processed; remaining = data.remaining; totalFailed = data.failed || 0;
-        const fMsg = totalFailed > 0 ? ` (${totalFailed} N/A)` : "";
-        setCalcProgress(remaining > 0 ? `${totalProcessed} processados, ${remaining} restantes...${fMsg}` : `✅ ${totalProcessed} calculados!${fMsg}`);
-        await fetchZones();
-        if (remaining === 0 && data.processed === 0) break;
-      }
-      if (!cancelCalcRef.current) toast({ title: "✅ Distâncias calculadas!" });
-    } catch { toast({ title: "Erro inesperado", variant: "destructive" }); } finally { setCalculating(false); fetchZones(); }
+    startCalc(recalcAll);
   };
 
   const addZone = async () => {
@@ -445,8 +430,8 @@ const AdminDeliveryZones = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            {calculating ? (
-              <button onClick={() => { cancelCalcRef.current = true; }} className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-bold text-destructive-foreground">
+            {calcState.running ? (
+              <button onClick={cancelCalc} className="flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-bold text-destructive-foreground">
                 <X size={14} /> Cancelar
               </button>
             ) : (
@@ -461,10 +446,10 @@ const AdminDeliveryZones = () => {
             )}
           </div>
         </div>
-        {calcProgress && (
+        {calcState.message && (
           <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary">
-            <span>{calcProgress}</span>
-            {calculating && <RefreshCw size={14} className="animate-spin" />}
+            <span>{calcState.message}</span>
+            {calcState.running && <RefreshCw size={14} className="animate-spin" />}
           </div>
         )}
       </div>
