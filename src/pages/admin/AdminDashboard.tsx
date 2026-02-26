@@ -208,7 +208,7 @@ const AdminDashboard = () => {
     if (newStatus === "preparing") {
       printReceipt(orderId, "cozinha");
     } else if (newStatus === "delivering") {
-      printReceipt(orderId, "entrega");
+      printEntregaCliente(orderId);
     }
   };
 
@@ -224,10 +224,25 @@ const AdminDashboard = () => {
     fetchOrders();
   };
 
-  const printReceipt = (orderId: string, tipo: string) => {
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, "_blank", "width=300,height=600");
+  const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
+    const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
+    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, "_blank", "width=300,height=600");
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
+  };
+
+  const printEntregaCliente = (orderId: string) => {
+    // Abre as duas janelas no mesmo gesto de usuário para evitar bloqueio de popup
+    const entrega = window.open(`/admin/imprimir/${orderId}?tipo=entrega`, "_blank", "width=300,height=600");
+    const cliente = window.open(`/admin/imprimir/${orderId}?tipo=cliente&delay_ms=2600`, "_blank", "width=300,height=600");
+
+    if (!entrega || !cliente) {
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Permita pop-ups para imprimir entrega e cliente automaticamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const acceptAllPending = async () => {
@@ -815,7 +830,7 @@ const AdminDashboard = () => {
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Cozinha
                       </button>
-                      <button onClick={() => printReceipt(order.id, "entrega")}
+                      <button onClick={() => printEntregaCliente(order.id)}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Entrega+Cliente
                       </button>

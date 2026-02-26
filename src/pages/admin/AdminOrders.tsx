@@ -123,16 +123,31 @@ const AdminOrders = () => {
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Silent print via hidden iframe(s)
+    // Impressão automática por status
     if (newStatus === "preparing") {
       printReceipt(orderId, "cozinha");
     } else if (newStatus === "delivering") {
-      printReceipt(orderId, "entrega");
+      printEntregaCliente(orderId);
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente") => {
-    window.open(`/admin/imprimir/${orderId}?tipo=${tipo}`, "_blank", "width=300,height=600");
+  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente", delayMs?: number) => {
+    const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
+    window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, "_blank", "width=300,height=600");
+  };
+
+  const printEntregaCliente = (orderId: string) => {
+    // Abre as duas janelas no mesmo gesto de usuário para evitar bloqueio de popup
+    const entrega = window.open(`/admin/imprimir/${orderId}?tipo=entrega`, "_blank", "width=300,height=600");
+    const cliente = window.open(`/admin/imprimir/${orderId}?tipo=cliente&delay_ms=2600`, "_blank", "width=300,height=600");
+
+    if (!entrega || !cliente) {
+      toast({
+        title: "Pop-up bloqueado",
+        description: "Permita pop-ups para imprimir entrega e cliente automaticamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const toggleExpand = (orderId: string) => {
@@ -239,7 +254,7 @@ const AdminOrders = () => {
                     <Printer size={14} /> Cozinha
                   </button>
                   <button
-                    onClick={() => printReceipt(order.id, "entrega")}
+                    onClick={() => printEntregaCliente(order.id)}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
                   >
                     <Printer size={14} /> Entrega+Cliente
