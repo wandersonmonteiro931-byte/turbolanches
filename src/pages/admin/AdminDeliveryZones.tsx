@@ -105,6 +105,7 @@ const AdminDeliveryZones = () => {
 
       let remaining = 999;
       let totalProcessed = 0;
+      let totalFailed = 0;
 
       while (remaining > 0) {
         if (cancelCalcRef.current) {
@@ -112,7 +113,18 @@ const AdminDeliveryZones = () => {
           break;
         }
 
-        const { data, error } = await supabase.functions.invoke("calculate-delivery-distances");
+        let data: any;
+        let error: any;
+        try {
+          const result = await supabase.functions.invoke("calculate-delivery-distances");
+          data = result.data;
+          error = result.error;
+        } catch (e) {
+          console.error("Function invoke error:", e);
+          toast({ title: "Erro de conexão, tentando novamente...", variant: "destructive" });
+          await new Promise(r => setTimeout(r, 3000));
+          continue;
+        }
 
         if (cancelCalcRef.current) {
           toast({ title: "⏹️ Cálculo cancelado" });
@@ -124,17 +136,20 @@ const AdminDeliveryZones = () => {
           break;
         }
 
-        if (!data.success) {
-          toast({ title: "Erro", description: data.error, variant: "destructive" });
+        if (!data?.success) {
+          toast({ title: "Erro", description: data?.error || "Erro desconhecido", variant: "destructive" });
           break;
         }
 
         totalProcessed += data.processed;
         remaining = data.remaining;
+        totalFailed = data.failed || 0;
+        
+        const failedMsg = totalFailed > 0 ? ` (${totalFailed} não encontrados)` : "";
         setCalcProgress(
           remaining > 0
-            ? `${totalProcessed} bairros processados, ${remaining} restantes...`
-            : `✅ ${totalProcessed} bairros calculados!`
+            ? `${totalProcessed} processados, ${remaining} restantes...${failedMsg}`
+            : `✅ ${totalProcessed} bairros calculados!${failedMsg}`
         );
 
         await fetchZones();
@@ -143,14 +158,14 @@ const AdminDeliveryZones = () => {
       }
 
       if (!cancelCalcRef.current) {
-        toast({ title: "✅ Distâncias calculadas e taxas atualizadas!" });
+        const failedMsg = totalFailed > 0 ? ` (${totalFailed} bairros não localizados)` : "";
+        toast({ title: `✅ Distâncias calculadas!${failedMsg}` });
       }
     } catch (err) {
       console.error(err);
       toast({ title: "Erro inesperado ao calcular", variant: "destructive" });
     } finally {
       setCalculating(false);
-      setCalcProgress("");
       fetchZones();
     }
   };
@@ -203,6 +218,7 @@ const AdminDeliveryZones = () => {
   );
 
   const zonesWithoutDistance = zones.filter(z => z.distance_km === null).length;
+  const zonesFailedGeocode = zones.filter(z => z.distance_km !== null && z.distance_km < 0).length;
 
   return (
     <div className="space-y-4">
