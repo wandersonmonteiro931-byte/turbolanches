@@ -242,7 +242,7 @@ async function geocodeNeighborhood(neighborhood: string): Promise<GeocodeResult>
     const result = await geocode(query, neighborhood);
     if (result.status === "ok") return result;
     if (result.status === "retry") hadRetry = true;
-    await sleep(1100);
+    await sleep(550);
   }
 
   return hadRetry ? { status: "retry" } : { status: "not_found" };
@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
       await supabase.from("store_settings")
         .update({ store_lat: storeLat, store_lng: storeLng })
         .not("id", "is", null);
-      await sleep(1100);
+      await sleep(550);
     }
 
     const pricePerKm = settings.price_per_km || 2;
@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
       .select("id, neighborhood, distance_km")
       .gt("distance_km", MAX_ROAD_DISTANCE_KM)
       .order("distance_km", { ascending: false })
-      .limit(3);
+      .limit(10);
 
     const zones = (outlierZones && outlierZones.length > 0)
       ? outlierZones
@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
           .select("id, neighborhood, distance_km")
           .or("distance_km.is.null,distance_km.lt.0")
           .order("neighborhood")
-          .limit(3)).data;
+          .limit(10)).data;
 
     if (!zones || zones.length === 0) {
       // Tudo processado — recalcular taxas
@@ -401,7 +401,7 @@ Deno.serve(async (req) => {
       processed++;
       console.log(`✅ ${zone.neighborhood}: ${distance}km → R$${fee}`);
 
-      await sleep(1200);
+      await sleep(400);
     }
 
     // Contar restantes
