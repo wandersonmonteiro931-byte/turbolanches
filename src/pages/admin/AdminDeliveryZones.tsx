@@ -447,9 +447,23 @@ const AdminDeliveryZones = () => {
           </div>
         </div>
         {calcState.message && (
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary">
-            <span>{calcState.message}</span>
-            {calcState.running && <RefreshCw size={14} className="animate-spin" />}
+          <div className={`mt-3 rounded-lg px-4 py-2.5 text-sm font-medium ${
+            calcState.message.includes("❌") 
+              ? "bg-destructive/10 text-destructive" 
+              : "bg-primary/10 text-primary"
+          }`}>
+            <div className="flex items-center justify-between">
+              <span>{calcState.message}</span>
+              {calcState.running && <RefreshCw size={14} className="animate-spin" />}
+            </div>
+            {calcState.message.includes("❌") && zonesWithoutDistance > 0 && (
+              <button
+                onClick={() => calculateDistances(false)}
+                className="mt-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+              >
+                <RefreshCw size={14} /> Recalcular Pendentes ({zonesWithoutDistance})
+              </button>
+            )}
           </div>
         )}
       </div>
