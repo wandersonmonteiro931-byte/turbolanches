@@ -57,12 +57,23 @@ export const useStoreStatus = () => {
     const { hhmm, dayOfWeek } = getBrasiliaTime();
     const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
 
-    // Helper: did admin explicitly close/open recently (within last 12h)?
-    const wasExplicitlyClosed = (): boolean => {
-      if (!settings.closed_at) return false;
-      const closedAt = new Date(settings.closed_at as string).getTime();
+    // Helper: did admin explicitly close DURING current schedule window?
+    const wasExplicitlyClosedDuringWindow = (openTime: string): boolean => {
+      if (!settings.closed_at || settings.is_open !== false) return false;
+      const closedAt = new Date(settings.closed_at as string);
+      // Convert closed_at to Brasília HH:MM
+      const closedFmt = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const closedParts = closedFmt.formatToParts(closedAt);
+      const closedHHMM = `${closedParts.find((p) => p.type === "hour")!.value}:${closedParts.find((p) => p.type === "minute")!.value}`;
+      // Only count as explicit close if it happened AFTER today's open time
+      // and within last 12 hours
       const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
-      return closedAt > twelveHoursAgo && settings.is_open === false;
+      return closedAt.getTime() > twelveHoursAgo && closedHHMM >= openTime;
     };
 
     const wasExplicitlyOpened = (): boolean => {
@@ -97,7 +108,7 @@ export const useStoreStatus = () => {
 
       if (inTimeWindow) {
         // Within schedule: OPEN by default, unless admin explicitly closed
-        setIsOpen(!wasExplicitlyClosed());
+        setIsOpen(!wasExplicitlyClosedDuringWindow(openT!));
       } else {
         // Outside schedule: CLOSED by default, unless admin explicitly opened
         setIsOpen(wasExplicitlyOpened());
