@@ -300,6 +300,7 @@ const AdminPrint = () => {
       {totaisSection(false)}
       <div className="separator" />
       <div className="footer">Agradecemos a preferência!</div>
+      <div style={{ height: '4mm' }} />
     </div>
   );
 
