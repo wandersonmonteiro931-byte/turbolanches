@@ -103,6 +103,8 @@ const AdminPrint = () => {
       html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }
       .page-break { page-break-before: always; }
+      iframe, [data-lovable], a[href*="lovable"] { display: none !important; }
+      body > *:not(#root):not(style) { display: none !important; }
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
