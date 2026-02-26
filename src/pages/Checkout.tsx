@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, QrCode, MessageSquare } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, QrCode, MessageSquare, Truck } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,16 @@ interface Profile {
 interface DeliveryZone {
   neighborhood: string;
   delivery_fee: number;
+  distance_km: number | null;
+  temp_free_delivery: boolean;
+}
+
+interface DeliveryConfig {
+  free_delivery_min_order: number;
+  free_delivery_max_km: number;
+  temp_free_delivery_all: boolean;
+  max_serving_km: number | null;
+  max_serving_km_active: boolean;
 }
 
 const paymentMethods = [
@@ -36,6 +46,7 @@ const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
+  const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
@@ -47,11 +58,12 @@ const Checkout = () => {
       navigate("/auth", { state: { from: "/checkout" } });
       return;
     }
-    // Fetch profile and delivery zones in parallel
+    // Fetch profile, delivery zones, and delivery config in parallel
     Promise.all([
       supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, city, state").eq("user_id", user.id).single(),
-      supabase.from("delivery_zones").select("neighborhood, delivery_fee"),
-    ]).then(([profileRes, zonesRes]) => {
+      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
+      supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active").limit(1).single(),
+    ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
         const p = profileRes.data;
         if (!p.full_name || !p.phone || !p.street || !p.neighborhood) {
@@ -65,7 +77,17 @@ const Checkout = () => {
         navigate("/completar-perfil");
         return;
       }
-      if (zonesRes.data) setDeliveryZones(zonesRes.data);
+      if (zonesRes.data) setDeliveryZones(zonesRes.data as DeliveryZone[]);
+      if (configRes.data) {
+        const d = configRes.data as any;
+        setDeliveryConfig({
+          free_delivery_min_order: d.free_delivery_min_order || 0,
+          free_delivery_max_km: d.free_delivery_max_km || 0,
+          temp_free_delivery_all: d.temp_free_delivery_all || false,
+          max_serving_km: d.max_serving_km ?? null,
+          max_serving_km_active: d.max_serving_km_active || false,
+        });
+      }
       setProfileLoading(false);
     });
   }, [user]);
@@ -78,7 +100,24 @@ const Checkout = () => {
   const matchedZone = deliveryZones.find(
     (z) => z.neighborhood.toLowerCase() === profile?.neighborhood?.toLowerCase()
   );
-  const deliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
+
+  // Check if neighborhood is blocked (max serving km)
+  const isNeighborhoodBlocked = deliveryConfig?.max_serving_km_active &&
+    matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined &&
+    matchedZone.distance_km >= 0 &&
+    deliveryConfig.max_serving_km !== null &&
+    matchedZone.distance_km > deliveryConfig.max_serving_km;
+
+  // Calculate delivery fee considering free delivery rules
+  const rawFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
+  const isTempFree = matchedZone?.temp_free_delivery || deliveryConfig?.temp_free_delivery_all;
+  const isAutoFree = deliveryConfig &&
+    deliveryConfig.free_delivery_min_order > 0 &&
+    totalPrice >= deliveryConfig.free_delivery_min_order &&
+    (deliveryConfig.free_delivery_max_km === 0 ||
+      (matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined && matchedZone.distance_km <= deliveryConfig.free_delivery_max_km));
+
+  const deliveryFee = (isTempFree || isAutoFree) ? 0 : rawFee;
   const grandTotal = totalPrice + deliveryFee;
 
   const handlePlaceOrder = async () => {
@@ -181,6 +220,20 @@ const Checkout = () => {
       </header>
 
       <div className="mx-auto max-w-md px-4 space-y-4">
+        {/* Blocked Neighborhood Warning */}
+        {isNeighborhoodBlocked && (
+          <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-5 text-center space-y-2">
+            <Truck size={32} className="mx-auto text-destructive" />
+            <h2 className="text-base font-bold text-destructive">Região fora da área de entrega</h2>
+            <p className="text-sm text-muted-foreground">
+              Infelizmente hoje não estamos fazendo entrega na sua região. Obrigado pela preferência! 🙏
+            </p>
+            <button onClick={() => navigate("/completar-perfil")} className="mt-2 text-sm font-semibold text-primary underline">
+              Alterar endereço
+            </button>
+          </div>
+        )}
+
         {/* Delivery Address */}
         <div className="rounded-xl bg-card p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -200,107 +253,129 @@ const Checkout = () => {
           </button>
         </div>
 
-        {/* Order Items */}
-        <div className="rounded-xl bg-card p-4">
-          <h2 className="font-bold text-foreground text-sm mb-2">Itens do pedido</h2>
-          <div className="space-y-2">
-            {items.map((item, index) => {
-              const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price, 0);
-              const lineTotal = (item.product.price + addonsTotal) * item.quantity;
-              return (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-foreground">
-                    {item.quantity}x {item.product.name}
-                  </span>
-                  <span className="text-muted-foreground">
-                    R$ {lineTotal.toFixed(2).replace(".", ",")}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {!isNeighborhoodBlocked && (
+          <>
+            {/* Order Items */}
+            <div className="rounded-xl bg-card p-4">
+              <h2 className="font-bold text-foreground text-sm mb-2">Itens do pedido</h2>
+              <div className="space-y-2">
+                {items.map((item, index) => {
+                  const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price, 0);
+                  const lineTotal = (item.product.price + addonsTotal) * item.quantity;
+                  return (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span className="text-foreground">
+                        {item.quantity}x {item.product.name}
+                      </span>
+                      <span className="text-muted-foreground">
+                        R$ {lineTotal.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
-        {/* Payment Method */}
-        <div className="rounded-xl bg-card p-4">
-          <h2 className="font-bold text-foreground text-sm mb-3">Forma de pagamento</h2>
-          <div className="space-y-2">
-            {paymentMethods.map((pm) => (
-              <button
-                key={pm.id}
-                onClick={() => setPaymentMethod(pm.id)}
-                className={`flex w-full items-center gap-3 rounded-lg p-3 transition-all ${
-                  paymentMethod === pm.id
-                    ? "bg-fire-gradient-soft border border-primary/30"
-                    : "bg-background"
-                }`}
-              >
-                <pm.icon size={20} className={paymentMethod === pm.id ? "text-primary" : "text-muted-foreground"} />
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">{pm.label}</p>
-                  <p className="text-xs text-muted-foreground">{pm.description}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+            {/* Payment Method */}
+            <div className="rounded-xl bg-card p-4">
+              <h2 className="font-bold text-foreground text-sm mb-3">Forma de pagamento</h2>
+              <div className="space-y-2">
+                {paymentMethods.map((pm) => (
+                  <button
+                    key={pm.id}
+                    onClick={() => setPaymentMethod(pm.id)}
+                    className={`flex w-full items-center gap-3 rounded-lg p-3 transition-all ${
+                      paymentMethod === pm.id
+                        ? "bg-fire-gradient-soft border border-primary/30"
+                        : "bg-background"
+                    }`}
+                  >
+                    <pm.icon size={20} className={paymentMethod === pm.id ? "text-primary" : "text-muted-foreground"} />
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-foreground">{pm.label}</p>
+                      <p className="text-xs text-muted-foreground">{pm.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
 
-          {paymentMethod === "dinheiro" && (
-            <div className="mt-3">
-              <label className="text-xs text-muted-foreground">Troco para quanto?</label>
-              <input
-                type="number"
-                value={changeFor}
-                onChange={(e) => setChangeFor(e.target.value)}
-                placeholder="Ex: 100"
-                className="mt-1 w-full rounded-lg bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              {paymentMethod === "dinheiro" && (
+                <div className="mt-3">
+                  <label className="text-xs text-muted-foreground">Troco para quanto?</label>
+                  <input
+                    type="number"
+                    value={changeFor}
+                    onChange={(e) => setChangeFor(e.target.value)}
+                    placeholder="Ex: 100"
+                    className="mt-1 w-full rounded-lg bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Observations */}
+            <div className="rounded-xl bg-card p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare size={16} className="text-primary" />
+                <h2 className="font-bold text-foreground text-sm">Observações</h2>
+              </div>
+              <textarea
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                placeholder="Ex: portão azul, interfone 302..."
+                maxLength={200}
+                className="w-full rounded-lg bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+                rows={2}
               />
             </div>
-          )}
-        </div>
 
-        {/* Observations */}
-        <div className="rounded-xl bg-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageSquare size={16} className="text-primary" />
-            <h2 className="font-bold text-foreground text-sm">Observações</h2>
-          </div>
-          <textarea
-            value={observations}
-            onChange={(e) => setObservations(e.target.value)}
-            placeholder="Ex: portão azul, interfone 302..."
-            maxLength={200}
-            className="w-full rounded-lg bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
-            rows={2}
-          />
-        </div>
-
-        {/* Summary */}
-        <div className="rounded-xl bg-card p-4 space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>Subtotal</span>
-            <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Taxa de entrega ({profile?.neighborhood})</span>
-            <span className="text-muted-foreground">R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
-          </div>
-          <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
-            <span className="text-foreground">Total</span>
-            <span className="text-primary">R$ {grandTotal.toFixed(2).replace(".", ",")}</span>
-          </div>
-        </div>
+            {/* Summary */}
+            <div className="rounded-xl bg-card p-4 space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Subtotal</span>
+                <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Taxa de entrega ({profile?.neighborhood})</span>
+                {deliveryFee === 0 ? (
+                  <span className="text-green-600 font-bold">GRÁTIS 🎉</span>
+                ) : (
+                  <span className="text-muted-foreground">R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
+                )}
+              </div>
+              {(isTempFree || isAutoFree) && rawFee > 0 && (
+                <p className="text-[11px] text-green-600 font-medium">
+                  {isTempFree ? "🎁 Frete grátis temporário ativo!" : `🎉 Frete grátis em pedidos acima de R$ ${deliveryConfig?.free_delivery_min_order}`}
+                </p>
+              )}
+              <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
+                <span className="text-foreground">Total</span>
+                <span className="text-primary">R$ {grandTotal.toFixed(2).replace(".", ",")}</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom button */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card p-4 safe-bottom">
         <div className="mx-auto max-w-md">
-          <button
-            onClick={handlePlaceOrder}
-            disabled={loading}
-            className="w-full rounded-xl bg-fire-gradient py-4 text-center font-bold text-primary-foreground shadow-fire-lg transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {loading ? "Enviando..." : `Fazer Pedido • R$ ${grandTotal.toFixed(2).replace(".", ",")}`}
-          </button>
+          {isNeighborhoodBlocked ? (
+            <button
+              onClick={() => navigate("/")}
+              className="w-full rounded-xl bg-muted py-4 text-center font-bold text-muted-foreground"
+            >
+              Voltar ao Cardápio
+            </button>
+          ) : (
+            <button
+              onClick={handlePlaceOrder}
+              disabled={loading}
+              className="w-full rounded-xl bg-fire-gradient py-4 text-center font-bold text-primary-foreground shadow-fire-lg transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              {loading ? "Enviando..." : `Fazer Pedido • R$ ${grandTotal.toFixed(2).replace(".", ",")}`}
+            </button>
+          )}
         </div>
       </div>
     </div>

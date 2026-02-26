@@ -130,6 +130,7 @@ export type Database = {
           distance_km: number | null
           id: string
           neighborhood: string
+          temp_free_delivery: boolean
         }
         Insert: {
           active?: boolean
@@ -138,6 +139,7 @@ export type Database = {
           distance_km?: number | null
           id?: string
           neighborhood: string
+          temp_free_delivery?: boolean
         }
         Update: {
           active?: boolean
@@ -146,6 +148,7 @@ export type Database = {
           distance_km?: number | null
           id?: string
           neighborhood?: string
+          temp_free_delivery?: boolean
         }
         Relationships: []
       }
@@ -496,8 +499,12 @@ export type Database = {
         Row: {
           closed_at: string | null
           created_at: string
+          free_delivery_max_km: number
+          free_delivery_min_order: number
           id: string
           is_open: boolean
+          max_serving_km: number | null
+          max_serving_km_active: boolean
           opened_at: string | null
           price_per_km: number
           scheduled_close: string | null
@@ -506,14 +513,19 @@ export type Database = {
           store_lat: number | null
           store_lng: number | null
           store_neighborhood: string
+          temp_free_delivery_all: boolean
           updated_at: string
           use_schedule: boolean
         }
         Insert: {
           closed_at?: string | null
           created_at?: string
+          free_delivery_max_km?: number
+          free_delivery_min_order?: number
           id?: string
           is_open?: boolean
+          max_serving_km?: number | null
+          max_serving_km_active?: boolean
           opened_at?: string | null
           price_per_km?: number
           scheduled_close?: string | null
@@ -522,14 +534,19 @@ export type Database = {
           store_lat?: number | null
           store_lng?: number | null
           store_neighborhood?: string
+          temp_free_delivery_all?: boolean
           updated_at?: string
           use_schedule?: boolean
         }
         Update: {
           closed_at?: string | null
           created_at?: string
+          free_delivery_max_km?: number
+          free_delivery_min_order?: number
           id?: string
           is_open?: boolean
+          max_serving_km?: number | null
+          max_serving_km_active?: boolean
           opened_at?: string | null
           price_per_km?: number
           scheduled_close?: string | null
@@ -538,6 +555,7 @@ export type Database = {
           store_lat?: number | null
           store_lng?: number | null
           store_neighborhood?: string
+          temp_free_delivery_all?: boolean
           updated_at?: string
           use_schedule?: boolean
         }
