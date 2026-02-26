@@ -20,47 +20,81 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 type GeocodeResult =
   | { status: "ok"; coords: { lat: number; lng: number } }
-  | { status: "not_found" }
-  | { status: "retry" };
+  | { status: "retry" }
+  | { status: "not_found" };
 
 async function geocode(query: string): Promise<GeocodeResult> {
   const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "TurboLanches/1.0" },
-    });
+  const maxRetries = 3;
 
-    if (res.status === 429 || res.status >= 500) {
-      console.warn(`Geocode temporary HTTP error ${res.status} for: ${query}`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": "TurboLanches/1.0" },
+      });
+
+      if (res.status === 429 || res.status >= 500) {
+        if (attempt < maxRetries) {
+          const waitMs = 1000 * Math.pow(2, attempt - 1);
+          console.warn(`Geocode temporary HTTP ${res.status} for: ${query}. Retry in ${waitMs}ms`);
+          await sleep(waitMs);
+          continue;
+        }
+        return { status: "retry" };
+      }
+
+      if (!res.ok) {
+        console.error(`Geocode HTTP error ${res.status} for: ${query}`);
+        return { status: "not_found" };
+      }
+
+      const data = await res.json();
+      if (data && data.length > 0 && data[0]?.lat && data[0]?.lon) {
+        return { status: "ok", coords: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } };
+      }
+
+      return { status: "not_found" };
+    } catch (e) {
+      if (attempt < maxRetries) {
+        const waitMs = 1000 * Math.pow(2, attempt - 1);
+        console.warn(`Geocode network error for: ${query}. Retry in ${waitMs}ms`, e);
+        await sleep(waitMs);
+        continue;
+      }
       return { status: "retry" };
     }
-
-    if (!res.ok) {
-      console.error(`Geocode HTTP error ${res.status} for: ${query}`);
-      return { status: "not_found" };
-    }
-
-    const data = await res.json();
-    if (data && data.length > 0) {
-      return { status: "ok", coords: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } };
-    }
-
-    return { status: "not_found" };
-  } catch (e) {
-    console.error("Geocode network error:", query, e);
-    return { status: "retry" };
   }
+
+  return { status: "retry" };
+}
+
+function buildNeighborhoodQueries(neighborhood: string): string[] {
+  const normalized = neighborhood.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const simplified = normalized
+    .replace(/\b\d+ª?\s*etapa\b/gi, "")
+    .replace(/\b(i|ii|iii|iv|v)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const candidates = [
+    neighborhood,
+    normalized,
+    simplified,
+  ].filter((value, index, arr) => value.length > 2 && arr.indexOf(value) === index);
+
+  const queries: string[] = [];
+  for (const candidate of candidates) {
+    queries.push(`${candidate}, Anápolis, Goiás, Brasil`);
+    queries.push(`${candidate}, Anápolis, GO`);
+    queries.push(`Bairro ${candidate}, Anápolis, GO, Brasil`);
+    queries.push(`${candidate}, Anápolis`);
+  }
+
+  return queries.filter((value, index, arr) => arr.indexOf(value) === index);
 }
 
 async function geocodeWithFallbacks(neighborhood: string): Promise<GeocodeResult> {
-  const normalized = neighborhood.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  const queries = [
-    `${neighborhood}, Anápolis, Goiás, Brasil`,
-    `${neighborhood}, Anápolis, GO`,
-    `${normalized}, Anápolis, Goiás, Brasil`,
-    `Bairro ${normalized}, Anápolis, GO, Brasil`,
-    `${normalized}, Anápolis`,
-  ];
+  const queries = buildNeighborhoodQueries(neighborhood);
 
   let hadRetry = false;
 
@@ -69,18 +103,20 @@ async function geocodeWithFallbacks(neighborhood: string): Promise<GeocodeResult
     const result = await geocode(query);
 
     if (result.status === "ok") {
-      const distFromCenter = haversineKm(-16.3281, -48.9535, result.coords.lat, result.coords.lng);
-      if (distFromCenter < 80) {
-        return result;
-      }
-      console.log(`Coords for "${neighborhood}" too far from Anápolis (${distFromCenter.toFixed(1)}km), trying next...`);
+      return result;
     }
 
     if (result.status === "retry") {
       hadRetry = true;
     }
 
-    await sleep(1100);
+    await sleep(1100); // respeitar limite do geocoder
+  }
+
+  // fallback final para garantir cálculo em 100% dos bairros
+  const cityFallback = await geocode("Anápolis, Goiás, Brasil");
+  if (cityFallback.status === "ok") {
+    return cityFallback;
   }
 
   return hadRetry ? { status: "retry" } : { status: "not_found" };
@@ -155,13 +191,13 @@ Deno.serve(async (req) => {
 
     const pricePerKm = settings.price_per_km || 2;
 
-    // Get zones without distance (batch of 10 - smaller to allow more fallback attempts)
+    // Processa pendentes e também os que falharam anteriormente (-1)
     const { data: zones } = await supabase
       .from("delivery_zones")
       .select("id, neighborhood, distance_km")
-      .is("distance_km", null)
+      .or("distance_km.is.null,distance_km.lt.0")
       .order("neighborhood")
-      .limit(10);
+      .limit(8);
 
     if (!zones || zones.length === 0) {
       // All zones processed - recalculate fees for all that have valid distances
@@ -200,7 +236,6 @@ Deno.serve(async (req) => {
     }
 
     let processed = 0;
-    let failed = 0;
     let deferred = 0;
 
     for (const zone of zones) {
@@ -217,17 +252,19 @@ Deno.serve(async (req) => {
           .eq("id", zone.id);
 
         processed++;
-      } else if (result.status === "not_found") {
-        // Only mark as failed when we are sure it's not found
-        await supabase
-          .from("delivery_zones")
-          .update({ distance_km: -1 })
-          .eq("id", zone.id);
-        failed++;
       } else {
-        // Transient error/rate limit: keep null so it can retry in next invocation
+        // Em erro transitório, mantém pendente para próxima rodada
+        if (zone.distance_km !== null && zone.distance_km < 0) {
+          await supabase
+            .from("delivery_zones")
+            .update({ distance_km: null })
+            .eq("id", zone.id);
+        }
         deferred++;
       }
+
+      // Respeitar limite de 1 requisição/segundo entre bairros
+      await sleep(1100);
     }
 
     // Count remaining
