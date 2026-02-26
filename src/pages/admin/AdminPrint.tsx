@@ -317,12 +317,26 @@ const AdminPrint = () => {
     </div>
   );
 
-  // Tipo "entrega" imprime entrega + cliente juntos
+  const isEntregaCliente = tipo === "entrega_cliente";
+
   const renderContent = () => {
     if (isCozinha) return comandaCozinha;
     if (isCliente) return comandaCliente;
-    // "entrega" agora imprime só a comanda do entregador
-    return comandaEntrega;
+    if (isEntregaCliente) return (
+      <>
+        {comandaEntrega}
+        <div style={{ pageBreakBefore: "always" }} />
+        {comandaCliente}
+      </>
+    );
+    // "entrega" alone also prints both
+    return (
+      <>
+        {comandaEntrega}
+        <div style={{ pageBreakBefore: "always" }} />
+        {comandaCliente}
+      </>
+    );
   };
 
   return (

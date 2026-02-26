@@ -209,7 +209,6 @@ const AdminDashboard = () => {
       printReceipt(orderId, "cozinha");
     } else if (newStatus === "delivering") {
       printReceipt(orderId, "entrega");
-      setTimeout(() => printReceipt(orderId, "cliente"), 2000);
     }
   };
 
@@ -816,7 +815,7 @@ const AdminDashboard = () => {
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Cozinha
                       </button>
-                      <button onClick={() => { printReceipt(order.id, "entrega"); setTimeout(() => printReceipt(order.id, "cliente"), 2000); }}
+                      <button onClick={() => printReceipt(order.id, "entrega")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Entrega+Cliente
                       </button>
