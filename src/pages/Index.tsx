@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { ChevronDown, Bell } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo-turbo.jpeg";
 import heroBanner from "@/assets/hero-banner.jpg";
 import { categories, products } from "@/data/menu";
@@ -10,6 +11,19 @@ import BottomNav from "@/components/BottomNav";
 import StoreHours from "@/components/StoreHours";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.05, duration: 0.4, ease: "easeOut" as const },
+  }),
+};
+
+const stagger = {
+  visible: { transition: { staggerChildren: 0.06 } },
+};
 
 const Index = () => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -38,18 +52,30 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Store Closed Banner */}
-      {!storeIsOpen && (
-        <div className="bg-red-600 px-4 py-3 text-center">
-          <p className="text-sm font-bold text-white">🔴 LOJA FECHADA NO MOMENTO</p>
-          <div className="flex items-center justify-center gap-2 mt-1">
-            <p className="text-xs text-white/80">Volte em breve!</p>
-            <StoreHours />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {!storeIsOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-red-600 px-4 py-3 text-center overflow-hidden"
+          >
+            <p className="text-sm font-bold text-white">🔴 LOJA FECHADA NO MOMENTO</p>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <p className="text-xs text-white/80">Volte em breve!</p>
+              <StoreHours />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Hero Banner */}
-      <div className="relative w-full">
+      <motion.div
+        initial={{ opacity: 0, scale: 1.05 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative w-full"
+      >
         <div className="relative h-48 w-full overflow-hidden bg-primary">
           <img
             src={heroBanner}
@@ -57,54 +83,97 @@ const Index = () => {
             className="h-full w-full object-cover opacity-90"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
-          <div className="absolute bottom-6 left-4 right-4">
-            <span className="rounded-full bg-card px-3 py-1 text-xs font-bold text-primary shadow-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="absolute bottom-6 left-4 right-4"
+          >
+            <motion.span
+              whileHover={{ scale: 1.05 }}
+              className="inline-block rounded-full bg-card px-3 py-1 text-xs font-bold text-primary shadow-sm"
+            >
               🔥 PROMOÇÃO DO DIA
-            </span>
+            </motion.span>
             <p className="mt-2 text-sm font-bold text-primary-foreground drop-shadow-md">
               Turbo Smash por R$ 32,90
             </p>
-          </div>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Content area */}
-      <div className="relative -mt-5 rounded-t-3xl bg-card pt-5 shadow-sm">
+      <motion.div
+        initial={{ y: 30, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.15 }}
+        className="relative -mt-5 rounded-t-3xl bg-card pt-5 shadow-sm"
+      >
         <div className="mx-auto max-w-md px-4">
           {/* Address + Bell */}
-          <div className="flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center justify-between"
+          >
             <button className="flex items-center gap-1">
               <span className="text-sm font-semibold text-foreground">R. Example, 123</span>
               <ChevronDown size={16} className="text-muted-foreground" />
             </button>
-            <button className="relative p-2">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              className="relative p-2"
+            >
               <Bell size={22} className="text-foreground" />
-              <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
+              <motion.span
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground"
+              >
                 5
-              </span>
-            </button>
-          </div>
+              </motion.span>
+            </motion.button>
+          </motion.div>
 
           {/* Greeting + Coupons */}
-          <div className="mt-3 flex items-center justify-between">
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+            className="mt-3 flex items-center justify-between"
+          >
             <p className="text-base font-bold text-foreground">
               Olá{userName ? `, ${userName}` : ""}
             </p>
             <div className="flex items-center gap-2">
               {storeIsOpen && <StoreHours />}
-              <button className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5"
+              >
                 <span className="text-xs font-bold text-primary">💜 Cupons até R$ 10</span>
-              </button>
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
 
           {/* Category Grid */}
-          <div className="mt-5 grid grid-cols-4 gap-2.5">
-            {categories.map((cat) => (
-              <button
+          <motion.div
+            variants={stagger}
+            initial="hidden"
+            animate="visible"
+            className="mt-5 grid grid-cols-4 gap-2.5"
+          >
+            {categories.map((cat, i) => (
+              <motion.button
                 key={cat.id}
+                variants={fadeUp}
+                custom={i}
+                whileHover={{ scale: 1.08, y: -4 }}
+                whileTap={{ scale: 0.92 }}
                 onClick={() => scrollToCategory(cat.id)}
-                className="flex flex-col items-center gap-2 rounded-2xl bg-background p-3 shadow-sm transition-all active:scale-95"
+                className="flex flex-col items-center gap-2 rounded-2xl bg-background p-3 shadow-sm"
               >
                 <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
                   <img
@@ -116,12 +185,18 @@ const Index = () => {
                 <span className="text-[11px] font-semibold text-foreground leading-tight text-center">
                   {cat.name}
                 </span>
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
           {/* Promo Banner */}
-          <div className="mt-5 overflow-hidden rounded-2xl shadow-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
+            whileHover={{ scale: 1.02 }}
+            className="mt-5 overflow-hidden rounded-2xl shadow-sm cursor-pointer"
+          >
             <div className="relative h-40">
               <img
                 src={heroBanner}
@@ -142,11 +217,15 @@ const Index = () => {
                 </p>
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Dots */}
           <div className="mt-2.5 flex items-center justify-center gap-1.5">
-            <div className="h-1.5 w-6 rounded-full bg-primary" />
+            <motion.div
+              animate={{ width: [24, 16, 24] }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="h-1.5 rounded-full bg-primary"
+            />
             <div className="h-1.5 w-1.5 rounded-full bg-border" />
             <div className="h-1.5 w-1.5 rounded-full bg-border" />
           </div>
@@ -157,21 +236,28 @@ const Index = () => {
               const catProducts = products.filter((p) => p.category === cat.id);
               if (catProducts.length === 0) return null;
               return (
-                <section key={cat.id} id={`cat-${cat.id}`}>
+                <motion.section
+                  key={cat.id}
+                  id={`cat-${cat.id}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.5 }}
+                >
                   <h2 className="text-xl font-extrabold text-foreground">
                     {cat.icon} {cat.name}
                   </h2>
                   <div className="mt-3 space-y-2.5">
-                    {catProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                    {catProducts.map((product, i) => (
+                      <ProductCard key={product.id} product={product} index={i} />
                     ))}
                   </div>
-                </section>
+                </motion.section>
               );
             })}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <CartFloatingButton />
       <BottomNav />

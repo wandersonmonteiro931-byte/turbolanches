@@ -1,5 +1,6 @@
 import { Home, Search, FileText, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useCart } from "@/contexts/CartContext";
 
 const tabs = [
@@ -20,8 +21,9 @@ const BottomNav = () => {
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           return (
-            <button
+            <motion.button
               key={tab.path}
+              whileTap={{ scale: 0.85 }}
               onClick={() => navigate(tab.path)}
               className={`relative flex flex-col items-center gap-0.5 px-4 py-1 text-xs transition-colors ${
                 isActive ? "text-primary" : "text-muted-foreground"
@@ -29,12 +31,23 @@ const BottomNav = () => {
             >
               <tab.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
               <span className="font-medium">{tab.label}</span>
-              {tab.label === "Pedidos" && totalItems > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {totalItems}
-                </span>
+              {isActive && (
+                <motion.div
+                  layoutId="bottomNavIndicator"
+                  className="absolute -top-[1px] left-2 right-2 h-[2px] rounded-full bg-primary"
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
               )}
-            </button>
+              {tab.label === "Pedidos" && totalItems > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+                >
+                  {totalItems}
+                </motion.span>
+              )}
+            </motion.button>
           );
         })}
       </div>

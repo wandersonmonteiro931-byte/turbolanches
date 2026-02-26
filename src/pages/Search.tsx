@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { products } from "@/data/menu";
 import ProductCard from "@/components/ProductCard";
 import BottomNav from "@/components/BottomNav";
@@ -20,7 +21,11 @@ const Search = () => {
     <div className="min-h-screen bg-background pb-36">
       <header className="sticky top-0 z-30 bg-background/90 px-4 py-4 backdrop-blur-md">
         <div className="mx-auto max-w-md">
-          <div className="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5">
+          <motion.div
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5"
+          >
             <SearchIcon size={18} className="text-muted-foreground" />
             <input
               type="text"
@@ -30,16 +35,26 @@ const Search = () => {
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               autoFocus
             />
-          </div>
+          </motion.div>
         </div>
       </header>
 
       <div className="mx-auto max-w-md px-4 mt-4 space-y-3">
-        {query.length >= 2 && filtered.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-12">Nenhum resultado para "{query}"</p>
-        )}
-        {filtered.map((product) => (
-          <ProductCard key={product.id} product={product} />
+        <AnimatePresence mode="wait">
+          {query.length >= 2 && filtered.length === 0 && (
+            <motion.p
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center text-sm text-muted-foreground py-12"
+            >
+              Nenhum resultado para "{query}"
+            </motion.p>
+          )}
+        </AnimatePresence>
+        {filtered.map((product, i) => (
+          <ProductCard key={product.id} product={product} index={i} />
         ))}
       </div>
 

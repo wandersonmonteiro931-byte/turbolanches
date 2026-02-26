@@ -1,26 +1,37 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import type { Product } from "@/data/menu";
 
 interface ProductCardProps {
   product: Product;
+  index?: number;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const navigate = useNavigate();
 
   return (
-    <button
+    <motion.button
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: index * 0.06, ease: "easeOut" }}
+      whileHover={{ scale: 1.02, boxShadow: "0 8px 24px -8px hsl(355 85% 52% / 0.18)" }}
+      whileTap={{ scale: 0.97 }}
       onClick={() => navigate(`/produto/${product.id}`)}
-      className="flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-all active:scale-[0.98]"
+      className="flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors"
     >
       <div className="flex flex-1 flex-col justify-between">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-foreground leading-tight">{product.name}</h3>
             {product.popular && (
-              <span className="rounded-full bg-fire-gradient px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
+              <motion.span
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="rounded-full bg-fire-gradient px-2 py-0.5 text-[10px] font-bold text-primary-foreground"
+              >
                 🔥 TOP
-              </span>
+              </motion.span>
             )}
           </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
@@ -36,13 +47,15 @@ const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
       </div>
-      <img
+      <motion.img
+        whileHover={{ scale: 1.08 }}
+        transition={{ duration: 0.3 }}
         src={product.image}
         alt={product.name}
         className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
         loading="lazy"
       />
-    </button>
+    </motion.button>
   );
 };
 
