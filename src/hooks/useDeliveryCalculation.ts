@@ -55,6 +55,8 @@ async function runLoop(recalcAll: boolean) {
     let remaining = 999;
     let totalProcessed = 0;
     let totalFailed = 0;
+    let consecutiveErrors = 0;
+    const MAX_CONSECUTIVE_ERRORS = 8;
 
     while (remaining > 0) {
       if (abortFlag) {
@@ -68,9 +70,15 @@ async function runLoop(recalcAll: boolean) {
         const r = await supabase.functions.invoke("calculate-delivery-distances");
         data = r.data;
         error = r.error;
-      } catch {
-        setState({ message: `${totalProcessed} processados — reconectando...` });
-        await new Promise((r) => setTimeout(r, 2000));
+      } catch (e) {
+        consecutiveErrors++;
+        const waitMs = Math.min(2000 * consecutiveErrors, 10000);
+        setState({ message: `${totalProcessed} processados — reconectando (${consecutiveErrors})...` });
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          setState({ running: false, message: `❌ Muitos erros seguidos (${consecutiveErrors}). Tente novamente.` });
+          break;
+        }
+        await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
 
@@ -79,11 +87,28 @@ async function runLoop(recalcAll: boolean) {
         break;
       }
 
+      // Handle error/timeout: retry instead of breaking
       if (error || !data?.success) {
-        setState({ running: false, message: "❌ Erro no cálculo" });
-        break;
+        consecutiveErrors++;
+        const waitMs = Math.min(2000 * consecutiveErrors, 10000);
+        const errMsg = data?.error || "timeout/erro";
+        console.warn(`Edge function error (${consecutiveErrors}):`, errMsg);
+        setState({
+          processed: totalProcessed,
+          remaining,
+          failed: totalFailed,
+          message: `${totalProcessed} processados — retentando após erro... (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})`,
+        });
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          setState({ running: false, message: `❌ Muitos erros seguidos. Tente novamente.` });
+          break;
+        }
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
       }
 
+      // Success — reset error counter
+      consecutiveErrors = 0;
       totalProcessed += data.processed;
       remaining = data.remaining;
       totalFailed = data.failed || 0;
