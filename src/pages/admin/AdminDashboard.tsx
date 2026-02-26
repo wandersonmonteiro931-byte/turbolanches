@@ -269,16 +269,19 @@ const AdminDashboard = () => {
       delivery_type: order.delivery_type,
       payment_method: order.payment_method,
       discount: order.discount,
+      delivery_fee: order.delivery_fee,
     });
   };
 
   const saveEdit = async (orderId: string) => {
-    const newTotal = (Number(orders.find(o => o.id === orderId)?.subtotal || 0)) +
-      (Number(orders.find(o => o.id === orderId)?.delivery_fee || 0)) -
-      (Number(editData.discount || 0));
+    const order = orders.find(o => o.id === orderId);
+    const newDeliveryFee = Number(editData.delivery_fee ?? order?.delivery_fee ?? 0);
+    const newDiscount = Number(editData.discount || 0);
+    const newTotal = Number(order?.subtotal || 0) + newDeliveryFee - newDiscount;
 
     const { error } = await supabase.from("orders").update({
       ...editData,
+      delivery_fee: newDeliveryFee,
       total: newTotal,
     }).eq("id", orderId);
 
@@ -732,6 +735,12 @@ const AdminDashboard = () => {
                             <label className="text-[10px] text-muted-foreground">Desconto (R$)</label>
                             <input type="number" step="0.01" value={editData.discount || 0}
                               onChange={e => setEditData(d => ({ ...d, discount: Number(e.target.value) }))}
+                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-muted-foreground">Taxa Entrega (R$)</label>
+                            <input type="number" step="0.01" value={editData.delivery_fee ?? 0}
+                              onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) }))}
                               className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
                           </div>
                           <div>
