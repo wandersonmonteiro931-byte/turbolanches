@@ -18,13 +18,79 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const ANAPOLIS_CENTER = { lat: -16.3281, lng: -48.9534 };
+const MAX_DISTANCE_FROM_CITY_CENTER_KM = 40;
+const MAX_DISTANCE_FROM_STORE_KM = 40;
+
+type NominatimAddress = {
+  city?: string;
+  town?: string;
+  municipality?: string;
+  county?: string;
+  state?: string;
+  suburb?: string;
+  neighbourhood?: string;
+  city_district?: string;
+  quarter?: string;
+};
+
+type NominatimPlace = {
+  lat?: string;
+  lon?: string;
+  address?: NominatimAddress;
+};
+
 type GeocodeResult =
-  | { status: "ok"; coords: { lat: number; lng: number } }
+  | { status: "ok"; coords: { lat: number; lng: number }; resolvedNeighborhood?: string }
   | { status: "retry" }
   | { status: "not_found" };
 
+function normalizeText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isCondominiumLike(name: string): boolean {
+  return /\b(condominio|condomínio)\b/i.test(name);
+}
+
+function stripCondominiumWords(name: string): string {
+  return name.replace(/\b(condominio|condomínio|residencial)\b/gi, "").replace(/\s+/g, " ").trim();
+}
+
+function resolveNeighborhood(address?: NominatimAddress): string | undefined {
+  if (!address) return undefined;
+  return (
+    address.neighbourhood ||
+    address.suburb ||
+    address.city_district ||
+    address.quarter ||
+    undefined
+  );
+}
+
+function isInsideAnapolis(place: NominatimPlace, lat: number, lng: number): boolean {
+  const address = place.address;
+  const cityBlob = [address?.city, address?.town, address?.municipality, address?.county]
+    .filter(Boolean)
+    .join(" ");
+  const normalizedCity = normalizeText(cityBlob);
+  const fromCenter = haversineKm(ANAPOLIS_CENTER.lat, ANAPOLIS_CENTER.lng, lat, lng);
+
+  // Regra principal: resultado explicitamente em Anápolis e dentro do raio urbano
+  if (normalizedCity.includes("anapolis") && fromCenter <= MAX_DISTANCE_FROM_CITY_CENTER_KM) {
+    return true;
+  }
+
+  // Fallback: alguns resultados não trazem city/county, mas ficam no centro urbano
+  return fromCenter <= 12;
+}
+
 async function geocode(query: string): Promise<GeocodeResult> {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=pt-BR&countrycodes=br&limit=5&dedupe=1&bounded=1&viewbox=-49.18,-16.20,-48.78,-16.56&q=${encodeURIComponent(query)}`;
   const maxRetries = 3;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -48,9 +114,18 @@ async function geocode(query: string): Promise<GeocodeResult> {
         return { status: "not_found" };
       }
 
-      const data = await res.json();
-      if (data && data.length > 0 && data[0]?.lat && data[0]?.lon) {
-        return { status: "ok", coords: { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } };
+      const data = (await res.json()) as NominatimPlace[];
+      for (const place of data || []) {
+        const lat = Number(place.lat);
+        const lng = Number(place.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+        if (!isInsideAnapolis(place, lat, lng)) continue;
+
+        return {
+          status: "ok",
+          coords: { lat, lng },
+          resolvedNeighborhood: resolveNeighborhood(place.address),
+        };
       }
 
       return { status: "not_found" };
@@ -69,33 +144,53 @@ async function geocode(query: string): Promise<GeocodeResult> {
 }
 
 function buildNeighborhoodQueries(neighborhood: string): string[] {
-  const normalized = neighborhood.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  const simplified = normalized
-    .replace(/\b\d+ª?\s*etapa\b/gi, "")
-    .replace(/\b(i|ii|iii|iv|v)\b/gi, "")
+  const original = neighborhood.replace(/\s+/g, " ").trim();
+  const withoutPrefix = original.replace(/^(bairro|setor)\s+/i, "").trim();
+  const withoutStage = withoutPrefix
+    .replace(/\b\d+\s*(?:ª|a)?\s*etapa\b/gi, "")
+    .replace(/\b(i|ii|iii|iv|v)\s*etapa\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  const candidates = [
-    neighborhood,
-    normalized,
-    simplified,
-  ].filter((value, index, arr) => value.length > 2 && arr.indexOf(value) === index);
+  const noAccentOriginal = original.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const noAccentWithoutStage = withoutStage.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const aliasOriginal = original
+    .replace(/elisios/gi, "eliseos")
+    .replace(/eliseos/gi, "elisios")
+    .trim();
+
+  const candidates = Array.from(
+    new Set([
+      original,
+      withoutPrefix,
+      withoutStage,
+      noAccentOriginal,
+      noAccentWithoutStage,
+      aliasOriginal,
+    ].filter((v) => v.length > 2))
+  );
 
   const queries: string[] = [];
   for (const candidate of candidates) {
     queries.push(`${candidate}, Anápolis, Goiás, Brasil`);
-    queries.push(`${candidate}, Anápolis, GO`);
-    queries.push(`Bairro ${candidate}, Anápolis, GO, Brasil`);
-    queries.push(`${candidate}, Anápolis`);
+    queries.push(`Bairro ${candidate}, Anápolis, Goiás, Brasil`);
+    queries.push(`${candidate}, Anápolis, GO, Brasil`);
+
+    if (isCondominiumLike(candidate)) {
+      const stripped = stripCondominiumWords(candidate);
+      if (stripped.length > 2) {
+        queries.push(`Bairro ${stripped}, Anápolis, Goiás, Brasil`);
+        queries.push(`${stripped}, Anápolis, GO, Brasil`);
+      }
+    }
   }
 
-  return queries.filter((value, index, arr) => arr.indexOf(value) === index);
+  return Array.from(new Set(queries)).slice(0, 12);
 }
 
 async function geocodeWithFallbacks(neighborhood: string): Promise<GeocodeResult> {
-  const queries = buildNeighborhoodQueries(neighborhood);
-
+  const queries = buildNeighborhoodQueries(neighborhood).slice(0, 8);
   let hadRetry = false;
 
   for (const query of queries) {
@@ -110,13 +205,7 @@ async function geocodeWithFallbacks(neighborhood: string): Promise<GeocodeResult
       hadRetry = true;
     }
 
-    await sleep(1100); // respeitar limite do geocoder
-  }
-
-  // fallback final para garantir cálculo em 100% dos bairros
-  const cityFallback = await geocode("Anápolis, Goiás, Brasil");
-  if (cityFallback.status === "ok") {
-    return cityFallback;
+    await sleep(1100);
   }
 
   return hadRetry ? { status: "retry" } : { status: "not_found" };
@@ -191,20 +280,30 @@ Deno.serve(async (req) => {
 
     const pricePerKm = settings.price_per_km || 2;
 
-    // Processa pendentes e também os que falharam anteriormente (-1)
-    const { data: zones } = await supabase
+    // Primeiro corrige outliers; depois processa pendentes
+    const { data: outlierZones } = await supabase
       .from("delivery_zones")
       .select("id, neighborhood, distance_km")
-      .or("distance_km.is.null,distance_km.lt.0")
-      .order("neighborhood")
-      .limit(8);
+      .gt("distance_km", 40)
+      .order("distance_km", { ascending: false })
+      .limit(4);
+
+    const zones = (outlierZones && outlierZones.length > 0)
+      ? outlierZones
+      : (await supabase
+          .from("delivery_zones")
+          .select("id, neighborhood, distance_km")
+          .or("distance_km.is.null,distance_km.lt.0")
+          .order("neighborhood")
+          .limit(4)).data;
 
     if (!zones || zones.length === 0) {
       // All zones processed - recalculate fees for all that have valid distances
       const { data: allZones } = await supabase
         .from("delivery_zones")
         .select("id, distance_km")
-        .gt("distance_km", 0);
+        .gt("distance_km", 0)
+        .lte("distance_km", MAX_DISTANCE_FROM_STORE_KM);
 
       if (allZones) {
         for (const z of allZones) {
@@ -239,10 +338,37 @@ Deno.serve(async (req) => {
     let deferred = 0;
 
     for (const zone of zones) {
-      const result = await geocodeWithFallbacks(zone.neighborhood);
+      const firstResult = await geocodeWithFallbacks(zone.neighborhood);
 
-      if (result.status === "ok") {
-        const distance = Math.round(haversineKm(storeLat!, storeLng!, result.coords.lat, result.coords.lng) * 10) / 10;
+      if (firstResult.status === "ok") {
+        let targetCoords = firstResult.coords;
+
+        // Condomínios: usar coordenada do bairro de localização quando disponível
+        if (isCondominiumLike(zone.neighborhood) && firstResult.resolvedNeighborhood) {
+          const resolved = firstResult.resolvedNeighborhood;
+          if (normalizeText(resolved) !== normalizeText(zone.neighborhood)) {
+            const neighborhoodResult = await geocodeWithFallbacks(resolved);
+            if (neighborhoodResult.status === "ok") {
+              targetCoords = neighborhoodResult.coords;
+            }
+          }
+        }
+
+        let distance = Math.round(haversineKm(storeLat!, storeLng!, targetCoords.lat, targetCoords.lng) * 10) / 10;
+
+        // Guarda de segurança: ignora resultados fora da cidade
+        if (distance > MAX_DISTANCE_FROM_STORE_KM) {
+          console.warn(`Discarding outlier distance for ${zone.neighborhood}: ${distance}km`);
+          await supabase
+            .from("delivery_zones")
+            .update({ distance_km: null })
+            .eq("id", zone.id);
+
+          deferred++;
+          await sleep(1100);
+          continue;
+        }
+
         const rawFee = distance * pricePerKm;
         const fee = Math.round(rawFee);
 
@@ -253,13 +379,12 @@ Deno.serve(async (req) => {
 
         processed++;
       } else {
-        // Em erro transitório, mantém pendente para próxima rodada
-        if (zone.distance_km !== null && zone.distance_km < 0) {
-          await supabase
-            .from("delivery_zones")
-            .update({ distance_km: null })
-            .eq("id", zone.id);
-        }
+        // Mantém pendente para próxima rodada (retry/not_found)
+        await supabase
+          .from("delivery_zones")
+          .update({ distance_km: null })
+          .eq("id", zone.id);
+
         deferred++;
       }
 
@@ -271,7 +396,7 @@ Deno.serve(async (req) => {
     const { count } = await supabase
       .from("delivery_zones")
       .select("id", { count: "exact", head: true })
-      .is("distance_km", null);
+      .or("distance_km.is.null,distance_km.gt.40");
 
     const { count: totalFailed } = await supabase
       .from("delivery_zones")
