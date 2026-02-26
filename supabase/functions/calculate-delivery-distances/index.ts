@@ -115,7 +115,8 @@ Deno.serve(async (req) => {
 
       if (allZones) {
         for (const z of allZones) {
-          const fee = Math.round((z.distance_km! * pricePerKm) * 100) / 100;
+          const rawFee = z.distance_km! * pricePerKm;
+          const fee = Math.round(rawFee); // <4 arredonda pra menos, >=5 pra mais
           await supabase
             .from("delivery_zones")
             .update({ delivery_fee: fee })
@@ -138,7 +139,8 @@ Deno.serve(async (req) => {
 
       if (coords) {
         const distance = Math.round(haversineKm(storeLat!, storeLng!, coords.lat, coords.lng) * 10) / 10;
-        const fee = Math.round((distance * pricePerKm) * 100) / 100;
+        const rawFee = distance * pricePerKm;
+        const fee = Math.round(rawFee); // <4 arredonda pra menos, >=5 pra mais
 
         await supabase
           .from("delivery_zones")
