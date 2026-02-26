@@ -466,8 +466,11 @@ export type Database = {
           id: string
           is_open: boolean
           opened_at: string | null
+          price_per_km: number
           scheduled_close: string | null
           scheduled_open: string | null
+          store_address: string
+          store_neighborhood: string
           updated_at: string
           use_schedule: boolean
         }
@@ -477,8 +480,11 @@ export type Database = {
           id?: string
           is_open?: boolean
           opened_at?: string | null
+          price_per_km?: number
           scheduled_close?: string | null
           scheduled_open?: string | null
+          store_address?: string
+          store_neighborhood?: string
           updated_at?: string
           use_schedule?: boolean
         }
@@ -488,8 +494,11 @@ export type Database = {
           id?: string
           is_open?: boolean
           opened_at?: string | null
+          price_per_km?: number
           scheduled_close?: string | null
           scheduled_open?: string | null
+          store_address?: string
+          store_neighborhood?: string
           updated_at?: string
           use_schedule?: boolean
         }
