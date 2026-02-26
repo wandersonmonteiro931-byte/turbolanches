@@ -42,17 +42,30 @@ const AdminPrint = () => {
     load();
   }, [id]);
 
-  const printDelayMsRaw = Number(searchParams.get("delay_ms") || "600");
-  const printDelayMs = Number.isFinite(printDelayMsRaw) && printDelayMsRaw >= 0 ? printDelayMsRaw : 600;
+  const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "600") || 600);
 
   useEffect(() => {
     if (!ready) return;
+
+    // Se tipo=entrega_cliente: imprime entrega, depois redireciona para cliente
+    if (tipo === "entrega_cliente") {
+      const timer = setTimeout(() => {
+        window.print();
+        // Após imprimir entrega, redireciona para a via do cliente
+        setTimeout(() => {
+          window.location.href = `/admin/imprimir/${id}?tipo=cliente&delay_ms=600`;
+        }, 1500);
+      }, printDelayMs);
+      return () => clearTimeout(timer);
+    }
+
+    // Impressão normal (cozinha, entrega, cliente)
     const timer = setTimeout(() => {
       window.print();
       setTimeout(() => { window.close(); }, 1000);
     }, printDelayMs);
     return () => clearTimeout(timer);
-  }, [ready, printDelayMs]);
+  }, [ready, printDelayMs, tipo, id]);
 
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
   if (!ready || !order) return <div style={{ padding: 20, fontFamily: "monospace" }}>Carregando...</div>;
@@ -325,14 +338,9 @@ const AdminPrint = () => {
   const renderContent = () => {
     if (isCozinha) return comandaCozinha;
     if (isCliente) return comandaCliente;
-    if (isEntregaCliente) return (
-      <>
-        {comandaEntrega}
-        <div style={{ pageBreakBefore: "always" }} />
-        {comandaCliente}
-      </>
-    );
-    // "entrega" imprime apenas a via do entregador
+    // entrega_cliente: primeiro renderiza entrega, depois redireciona (via useEffect)
+    if (isEntregaCliente) return comandaEntrega;
+    // entrega sozinho
     return comandaEntrega;
   };
 

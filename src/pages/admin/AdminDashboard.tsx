@@ -232,17 +232,8 @@ const AdminDashboard = () => {
   };
 
   const printEntregaCliente = (orderId: string) => {
-    // Abre as duas janelas no mesmo gesto de usuário para evitar bloqueio de popup
-    const entrega = window.open(`/admin/imprimir/${orderId}?tipo=entrega`, "_blank", "width=300,height=600");
-    const cliente = window.open(`/admin/imprimir/${orderId}?tipo=cliente&delay_ms=2600`, "_blank", "width=300,height=600");
-
-    if (!entrega || !cliente) {
-      toast({
-        title: "Pop-up bloqueado",
-        description: "Permita pop-ups para imprimir entrega e cliente automaticamente.",
-        variant: "destructive",
-      });
-    }
+    // Uma única janela: imprime entrega, depois redireciona para cliente automaticamente
+    window.open(`/admin/imprimir/${orderId}?tipo=entrega_cliente`, "_blank", "width=300,height=600");
   };
 
   const acceptAllPending = async () => {
