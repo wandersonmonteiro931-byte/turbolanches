@@ -127,6 +127,7 @@ export type Database = {
           active: boolean
           created_at: string
           delivery_fee: number
+          distance_km: number | null
           id: string
           neighborhood: string
         }
@@ -134,6 +135,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           delivery_fee?: number
+          distance_km?: number | null
           id?: string
           neighborhood: string
         }
@@ -141,6 +143,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           delivery_fee?: number
+          distance_km?: number | null
           id?: string
           neighborhood?: string
         }
@@ -470,6 +473,8 @@ export type Database = {
           scheduled_close: string | null
           scheduled_open: string | null
           store_address: string
+          store_lat: number | null
+          store_lng: number | null
           store_neighborhood: string
           updated_at: string
           use_schedule: boolean
@@ -484,6 +489,8 @@ export type Database = {
           scheduled_close?: string | null
           scheduled_open?: string | null
           store_address?: string
+          store_lat?: number | null
+          store_lng?: number | null
           store_neighborhood?: string
           updated_at?: string
           use_schedule?: boolean
@@ -498,6 +505,8 @@ export type Database = {
           scheduled_close?: string | null
           scheduled_open?: string | null
           store_address?: string
+          store_lat?: number | null
+          store_lng?: number | null
           store_neighborhood?: string
           updated_at?: string
           use_schedule?: boolean
