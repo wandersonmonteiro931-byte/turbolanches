@@ -73,15 +73,21 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
-  // Check PIX payment every 1s while awaiting_payment and confirm automatically
+  // Check PIX payment automatically while awaiting_payment
   useEffect(() => {
     if (!order || order.status !== "awaiting_payment") return;
 
+    let checking = false;
+
     const interval = setInterval(async () => {
+      if (checking) return;
+      checking = true;
+
       const { data, error } = await supabase.functions.invoke("check-pix-payment", {
         body: { order_id: id },
       });
 
+      checking = false;
       if (error || !data) return;
 
       if (data.status && data.status !== "awaiting_payment") {
@@ -98,7 +104,7 @@ const OrderTracking = () => {
 
         clearInterval(interval);
       }
-    }, 1000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [order?.status, id]);
