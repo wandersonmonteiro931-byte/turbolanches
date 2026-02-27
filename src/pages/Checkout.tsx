@@ -92,8 +92,13 @@ const Checkout = () => {
     });
   }, [user]);
 
-  if (!user || items.length === 0) {
-    navigate(items.length === 0 ? "/carrinho" : "/auth");
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
+  if (items.length === 0 && !loading) {
+    navigate("/carrinho");
     return null;
   }
 
@@ -165,8 +170,6 @@ const Checkout = () => {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      clearCart();
-
       if (paymentMethod === "pix") {
         // Create PIX charge via EFI
         toast.info("Gerando cobrança PIX...");
@@ -181,10 +184,11 @@ const Checkout = () => {
         } catch (pixErr) {
           console.error("PIX invoke error:", pixErr);
         }
+        clearCart();
         navigate(`/pedido/${order.id}`);
       } else {
+        clearCart();
         toast.success("Pedido enviado com sucesso! 🔥");
-        // Send WhatsApp notification
         sendWhatsAppNotification(order.id, profile, grandTotal, paymentMethod);
         navigate(`/pedido/${order.id}`);
       }
