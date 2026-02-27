@@ -12,6 +12,18 @@ function getSecret(name: string): string {
   return v;
 }
 
+// Normaliza PEM: converte \\n literal em quebra de linha real
+function normalizePem(pem: string): string {
+  return pem.replace(/\\n/g, "\n").trim();
+}
+
+function getPemPair(): { cert: string; key: string } {
+  return {
+    cert: normalizePem(getSecret("EFI_CERT_PEM")),
+    key: normalizePem(getSecret("EFI_KEY_PEM")),
+  };
+}
+
 function tlv(id: string, value: string): string {
   const len = value.length.toString().padStart(2, "0");
   return `${id}${len}${value}`;
@@ -63,10 +75,13 @@ async function generateQrCodeDataUrl(data: string): Promise<string | null> {
 async function getEfiToken(): Promise<string> {
   const clientId = getSecret("EFI_CLIENT_ID");
   const clientSecret = getSecret("EFI_CLIENT_SECRET");
-  const cert = getSecret("EFI_CERT_PEM");
-  const key = getSecret("EFI_KEY_PEM");
+  const { cert, key } = getPemPair();
+
+  console.log(`mTLS cert starts: ${cert.substring(0, 40)}...`);
+  console.log(`mTLS key starts: ${key.substring(0, 40)}...`);
 
   const client = (Deno as any).createHttpClient({ certChain: cert, privateKey: key });
+  const auth = btoa(`${clientId}:${clientSecret}`);
   const auth = btoa(`${clientId}:${clientSecret}`);
 
   const res = await fetch("https://pix.api.efipay.com.br/oauth/token", {
@@ -92,8 +107,7 @@ async function getEfiToken(): Promise<string> {
 
 // ── Chamada genérica à API Efí com mTLS ──
 async function efiRequest(method: string, path: string, token: string, body?: any) {
-  const cert = getSecret("EFI_CERT_PEM");
-  const key = getSecret("EFI_KEY_PEM");
+  const { cert, key } = getPemPair();
   const client = (Deno as any).createHttpClient({ certChain: cert, privateKey: key });
 
   const res = await fetch(`https://pix.api.efipay.com.br${path}`, {
