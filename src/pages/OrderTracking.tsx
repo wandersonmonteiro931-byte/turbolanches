@@ -73,22 +73,28 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
-  // Check PIX payment: polls DB directly every 2s (fast, no external API)
-  // Webhook or admin confirmation updates the DB, and this catches it
+  // Check PIX payment automatically via EFI API while awaiting_payment
   useEffect(() => {
     if (!order || order.status !== "awaiting_payment") return;
 
-    const interval = setInterval(async () => {
-      const { data, error } = await supabase
-        .from("orders")
-        .select("status, payment_confirmed")
-        .eq("id", id)
-        .single();
+    let checking = false;
 
+    const interval = setInterval(async () => {
+      if (checking) return;
+      checking = true;
+
+      const { data, error } = await supabase.functions.invoke("check-pix-payment", {
+        body: { order_id: id },
+      });
+
+      checking = false;
       if (error || !data) return;
 
-      if (data.status !== "awaiting_payment") {
-        setOrder((prev) => prev ? { ...prev, status: data.status, payment_confirmed: data.payment_confirmed } : null);
+      if (data.status && data.status !== "awaiting_payment") {
+        setOrder((prev) => prev ? {
+          ...prev,
+          status: data.status,
+        } : null);
 
         if (data.status === "pending" || data.status === "preparing") {
           toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
@@ -98,7 +104,7 @@ const OrderTracking = () => {
 
         clearInterval(interval);
       }
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [order?.status, id]);
