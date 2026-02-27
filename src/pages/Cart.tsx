@@ -1,13 +1,59 @@
+import { useEffect, useState } from "react";
 import { ArrowLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 const Cart = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
+  const [deliveryFee, setDeliveryFee] = useState(5.99);
+  const [freeDeliveryMin, setFreeDeliveryMin] = useState(60);
+  const [feeLoaded, setFeeLoaded] = useState(false);
 
-  const deliveryFee = totalPrice >= 60 ? 0 : 5.99;
+  useEffect(() => {
+    const fetchDeliveryInfo = async () => {
+      // Fetch store config for free delivery threshold
+      const { data: config } = await supabase
+        .from("store_settings")
+        .select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all")
+        .limit(1)
+        .single();
+
+      if (config) {
+        setFreeDeliveryMin(config.free_delivery_min_order || 60);
+      }
+
+      // If user is logged in, try to match their neighborhood
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("neighborhood")
+          .eq("user_id", user.id)
+          .single();
+
+        if (profile?.neighborhood) {
+          const { data: zone } = await supabase
+            .from("delivery_zones")
+            .select("delivery_fee, temp_free_delivery")
+            .ilike("neighborhood", profile.neighborhood)
+            .single();
+
+          if (zone) {
+            const isTempFree = zone.temp_free_delivery || config?.temp_free_delivery_all;
+            const isAutoFree = config && config.free_delivery_min_order > 0 && totalPrice >= config.free_delivery_min_order;
+            setDeliveryFee((isTempFree || isAutoFree) ? 0 : Number(zone.delivery_fee));
+          }
+        }
+      }
+      setFeeLoaded(true);
+    };
+    fetchDeliveryInfo();
+  }, [user, totalPrice]);
+
   const grandTotal = totalPrice + deliveryFee;
 
   if (items.length === 0) {
@@ -93,9 +139,9 @@ const Cart = () => {
               {deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`}
             </span>
           </div>
-          {deliveryFee > 0 && (
+          {deliveryFee > 0 && freeDeliveryMin > 0 && totalPrice < freeDeliveryMin && (
             <p className="text-xs text-primary">
-              🔥 Frete grátis acima de R$ 60,00! Faltam R$ {(60 - totalPrice).toFixed(2).replace(".", ",")}
+              🔥 Frete grátis acima de R$ {freeDeliveryMin.toFixed(2).replace(".", ",")}! Faltam R$ {(freeDeliveryMin - totalPrice).toFixed(2).replace(".", ",")}
             </p>
           )}
           <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
