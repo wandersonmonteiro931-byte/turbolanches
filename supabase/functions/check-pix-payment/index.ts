@@ -26,12 +26,63 @@ function getEfiCertChain(): string {
   return normalizePem(atob(base64));
 }
 
+const PAYMENT_TIMEOUT_MS = 15000;
+const MAX_RETRIES = 3;
+
+const isRetriableStatus = (status: number) => status >= 500 || status === 429;
+
+const isRetriableNetworkError = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    message.includes("tls") ||
+    message.includes("sendrequest") ||
+    message.includes("unexpected-eof") ||
+    message.includes("connection error") ||
+    message.includes("timed out")
+  );
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function efiFetchWithRetry(url: string, options: RequestInit & { client: Deno.HttpClient }) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout(PAYMENT_TIMEOUT_MS),
+      });
+
+      if (response.ok) return response;
+
+      if (!isRetriableStatus(response.status)) {
+        const body = await response.text();
+        throw new Error(`EFI non-retriable error ${response.status}: ${body}`);
+      }
+
+      lastError = new Error(`EFI retriable status ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (!isRetriableNetworkError(error) && !(error instanceof Error && error.message.includes("retriable status"))) {
+        throw error;
+      }
+    }
+
+    if (attempt < MAX_RETRIES) {
+      await sleep(300 * Math.pow(2, attempt - 1));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("EFI request failed");
+}
+
 async function getEfiAccessToken(httpClient: Deno.HttpClient): Promise<string> {
   const clientId = getRequiredSecret("EFI_CLIENT_ID");
   const clientSecret = getRequiredSecret("EFI_CLIENT_SECRET");
   const credentials = btoa(`${clientId}:${clientSecret}`);
 
-  const response = await fetch("https://pix.api.efipay.com.br/oauth/token", {
+  const response = await efiFetchWithRetry("https://pix.api.efipay.com.br/oauth/token", {
     method: "POST",
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -40,11 +91,6 @@ async function getEfiAccessToken(httpClient: Deno.HttpClient): Promise<string> {
     body: JSON.stringify({ grant_type: "client_credentials" }),
     client: httpClient,
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`EFI token error (${response.status}): ${text}`);
-  }
 
   const data = await response.json();
   if (!data?.access_token) throw new Error("EFI access token missing");
@@ -57,7 +103,7 @@ async function isPixPaid(txid: string, accessToken: string, httpClient: Deno.Htt
   const fim = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
 
   const query = new URLSearchParams({ inicio, fim, txid }).toString();
-  const response = await fetch(`https://pix.api.efipay.com.br/v2/pix?${query}`, {
+  const response = await efiFetchWithRetry(`https://pix.api.efipay.com.br/v2/pix?${query}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -65,12 +111,6 @@ async function isPixPaid(txid: string, accessToken: string, httpClient: Deno.Htt
     },
     client: httpClient,
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    console.error(`EFI pix query error (${response.status}):`, text);
-    return false;
-  }
 
   const data = await response.json();
   return Array.isArray(data?.pix) && data.pix.some((item: { txid?: string }) => item?.txid === txid);
@@ -154,10 +194,16 @@ Deno.serve(async (req) => {
     try {
       const accessToken = await getEfiAccessToken(httpClient);
       paid = await isPixPaid(order.pix_txid, accessToken, httpClient);
-    } catch {
-      return new Response(JSON.stringify({ status: "awaiting_payment", payment_confirmed: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    } catch (error) {
+      console.error("EFI lookup failed, keeping order awaiting_payment:", error);
+      return new Response(
+        JSON.stringify({
+          status: "awaiting_payment",
+          payment_confirmed: false,
+          check_error: "efi_unreachable",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     if (!paid) {
