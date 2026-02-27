@@ -73,27 +73,32 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
-  // Poll every 3s while awaiting_payment to detect PIX confirmation by admin
+  // Check PIX payment every 1s while awaiting_payment and confirm automatically
   useEffect(() => {
     if (!order || order.status !== "awaiting_payment") return;
 
     const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("status, payment_confirmed")
-        .eq("id", id!)
-        .single();
+      const { data, error } = await supabase.functions.invoke("check-pix-payment", {
+        body: { order_id: id },
+      });
 
-      if (data && data.status !== "awaiting_payment") {
-        setOrder((prev) => prev ? { ...prev, status: data.status, payment_confirmed: data.payment_confirmed } : null);
+      if (error || !data) return;
+
+      if (data.status && data.status !== "awaiting_payment") {
+        setOrder((prev) => prev ? {
+          ...prev,
+          status: data.status,
+        } : null);
+
         if (data.status === "pending" || data.status === "preparing") {
           toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
         } else if (data.status === "cancelled") {
           toast.error("❌ Pedido cancelado.");
         }
+
         clearInterval(interval);
       }
-    }, 3000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [order?.status, id]);
