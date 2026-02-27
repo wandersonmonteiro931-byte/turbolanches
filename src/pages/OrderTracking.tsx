@@ -73,6 +73,31 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
+  // Poll every second while awaiting_payment to detect PIX confirmation
+  useEffect(() => {
+    if (!order || order.status !== "awaiting_payment") return;
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("orders")
+        .select("status, payment_confirmed")
+        .eq("id", id!)
+        .single();
+
+      if (data && data.status !== "awaiting_payment") {
+        setOrder((prev) => prev ? { ...prev, status: data.status, payment_confirmed: data.payment_confirmed } : null);
+        if (data.status === "pending") {
+          toast.success("✅ Pagamento PIX confirmado! Aguardando a loja aceitar seu pedido...");
+        } else if (data.status === "cancelled") {
+          toast.error("❌ Pedido cancelado.");
+        }
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [order?.status, id]);
+
   useEffect(() => {
     fetchOrder();
 
@@ -89,9 +114,11 @@ const OrderTracking = () => {
           return prev ? { ...prev, ...payload.new } : null;
         });
         const newStatus = (payload.new as any).status;
+        if (newStatus === "pending") toast.success("✅ Pagamento confirmado! Aguardando a loja...");
         if (newStatus === "preparing") toast.info("🍳 Seu pedido está sendo preparado!");
         if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
         if (newStatus === "delivered") toast.success("✅ Pedido entregue! Bom apetite!");
+        if (newStatus === "cancelled") toast.error("❌ Pedido cancelado.");
       })
       .subscribe();
 
