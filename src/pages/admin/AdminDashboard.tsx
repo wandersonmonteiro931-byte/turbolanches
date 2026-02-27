@@ -57,7 +57,7 @@ interface StoreSettings {
 }
 
 const tabs = [
-  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending", "awaiting_payment"] },
+  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending"] },
   { key: "preparing", label: "Em Preparo", icon: ChefHat, color: "bg-purple-500", statuses: ["preparing"] },
   { key: "ready", label: "Aguardando", icon: Package, color: "bg-emerald-500", statuses: ["ready"] },
   { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
@@ -357,7 +357,7 @@ const AdminDashboard = () => {
 
     const statusCounts = {
       pending: allOrders.filter(o => o.status === "pending").length,
-      awaiting_payment: allOrders.filter(o => o.status === "awaiting_payment").length,
+      
       preparing: allOrders.filter(o => o.status === "preparing").length,
       ready: allOrders.filter(o => o.status === "ready").length,
       delivering: allOrders.filter(o => o.status === "delivering").length,
@@ -680,11 +680,6 @@ const AdminDashboard = () => {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
                       </span>
-                      {order.status === "awaiting_payment" && (
-                        <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-800">
-                          AG. PIX
-                        </span>
-                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -835,17 +830,6 @@ const AdminDashboard = () => {
 
                     {/* Payment actions */}
                     <div className="flex flex-wrap gap-2">
-                      {order.status === "awaiting_payment" && (
-                        <button onClick={async () => {
-                          await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
-                          toast({ title: "✅ PIX confirmado! Pedido em preparo." });
-                          await fetchOrders();
-                          printReceipt(order.id, "cozinha");
-                        }}
-                          className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white">
-                          <DollarSign size={14} /> Confirmar PIX
-                        </button>
-                      )}
                       {order.payment_method !== "fiado" && order.status !== "cancelled" && (
                         <button onClick={() => markAsFiado(order.id)}
                           className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white">

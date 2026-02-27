@@ -138,7 +138,7 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
-      const isPaidOnline = paymentMethod === "pix";
+      const isPaidOnline = false; // No online payment methods currently
       const isFiado = paymentMethod === "fiado";
 
       const { data: order, error: orderError } = await supabase

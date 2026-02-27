@@ -15,7 +15,6 @@ interface Order {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  awaiting_payment: { label: "Aguardando Pagamento", color: "bg-amber-100 text-amber-800", icon: Clock },
   pending: { label: "Confirmado", color: "bg-blue-100 text-blue-800", icon: Check },
   accepted: { label: "Aceito", color: "bg-blue-100 text-blue-800", icon: Check },
   preparing: { label: "Em Preparo", color: "bg-purple-100 text-purple-800", icon: ChefHat },
