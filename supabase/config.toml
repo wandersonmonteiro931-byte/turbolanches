@@ -1,1 +1,7 @@
 project_id = "kyoyfsxgqmlxwtnmtbuh"
+
+[functions.create-pix-charge]
+verify_jwt = false
+
+[functions.pix-webhook]
+verify_jwt = false

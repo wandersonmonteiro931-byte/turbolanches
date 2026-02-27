@@ -271,6 +271,12 @@ export type Database = {
           order_number: number
           payment_confirmed: boolean
           payment_method: string
+          pix_copia_cola: string | null
+          pix_expiration: string | null
+          pix_loc_id: number | null
+          pix_qrcode: string | null
+          pix_qrcode_image: string | null
+          pix_txid: string | null
           preparing_at: string | null
           ready_at: string | null
           status: string
@@ -295,6 +301,12 @@ export type Database = {
           order_number?: number
           payment_confirmed?: boolean
           payment_method?: string
+          pix_copia_cola?: string | null
+          pix_expiration?: string | null
+          pix_loc_id?: number | null
+          pix_qrcode?: string | null
+          pix_qrcode_image?: string | null
+          pix_txid?: string | null
           preparing_at?: string | null
           ready_at?: string | null
           status?: string
@@ -319,6 +331,12 @@ export type Database = {
           order_number?: number
           payment_confirmed?: boolean
           payment_method?: string
+          pix_copia_cola?: string | null
+          pix_expiration?: string | null
+          pix_loc_id?: number | null
+          pix_qrcode?: string | null
+          pix_qrcode_image?: string | null
+          pix_txid?: string | null
           preparing_at?: string | null
           ready_at?: string | null
           status?: string
