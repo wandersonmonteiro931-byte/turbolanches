@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, QrCode } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, QrCode, Copy, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +19,10 @@ interface OrderData {
   address_neighborhood: string | null;
   created_at: string;
   observations: string | null;
+  pix_copia_cola: string | null;
+  pix_qrcode_image: string | null;
+  pix_expiration: string | null;
+  pix_txid: string | null;
 }
 
 interface OrderItemData {
@@ -203,18 +207,76 @@ const OrderTracking = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl bg-card p-6 text-center space-y-3 shadow-sm"
+            className="rounded-2xl bg-card p-6 text-center space-y-4 shadow-sm"
           >
-            <QrCode size={48} className="mx-auto text-primary" />
-            <p className="text-sm text-muted-foreground">
-              Quando a integração PIX estiver configurada, o QR Code aparecerá aqui.
-            </p>
+            {order.pix_qrcode_image ? (
+              <img
+                src={order.pix_qrcode_image}
+                alt="QR Code PIX"
+                className="mx-auto w-56 h-56 rounded-xl"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <QrCode size={48} className="text-primary" />
+                <button
+                  onClick={async () => {
+                    toast.info("Gerando QR Code PIX...");
+                    const { data, error } = await supabase.functions.invoke("create-pix-charge", {
+                      body: { order_id: order.id },
+                    });
+                    if (error) {
+                      toast.error("Erro ao gerar PIX. Tente novamente.");
+                    } else if (data) {
+                      setOrder((prev) => prev ? {
+                        ...prev,
+                        pix_copia_cola: data.qrcode,
+                        pix_qrcode_image: data.qrcode_image,
+                        pix_txid: data.txid,
+                      } : null);
+                      toast.success("QR Code gerado!");
+                    }
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+                >
+                  <RefreshCw size={16} /> Gerar QR Code
+                </button>
+              </div>
+            )}
+
             <div className="rounded-xl bg-background p-4">
               <p className="text-xs text-muted-foreground mb-1">Valor a pagar:</p>
               <p className="text-3xl font-extrabold text-primary">
                 R$ {Number(order.total).toFixed(2).replace(".", ",")}
               </p>
             </div>
+
+            {order.pix_copia_cola && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">PIX Copia e Cola:</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={order.pix_copia_cola}
+                    className="flex-1 rounded-lg bg-background px-3 py-2 text-xs text-foreground truncate"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(order.pix_copia_cola!);
+                      toast.success("Código PIX copiado!");
+                    }}
+                    className="flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
+                  >
+                    <Copy size={14} /> Copiar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {order.pix_expiration && (
+              <p className="text-xs text-muted-foreground">
+                Expira em: {new Date(order.pix_expiration).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
           </motion.div>
         )}
 

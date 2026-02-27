@@ -168,8 +168,19 @@ const Checkout = () => {
       clearCart();
 
       if (paymentMethod === "pix") {
-        // For now, navigate to order tracking (PIX integration coming later)
-        toast.success("Pedido criado! Aguardando pagamento PIX");
+        // Create PIX charge via EFI
+        toast.info("Gerando cobrança PIX...");
+        try {
+          const { data: pixData, error: pixError } = await supabase.functions.invoke("create-pix-charge", {
+            body: { order_id: order.id },
+          });
+          if (pixError) {
+            console.error("PIX charge error:", pixError);
+            toast.error("Erro ao gerar PIX, mas seu pedido foi criado. Tente novamente na tela do pedido.");
+          }
+        } catch (pixErr) {
+          console.error("PIX invoke error:", pixErr);
+        }
         navigate(`/pedido/${order.id}`);
       } else {
         toast.success("Pedido enviado com sucesso! 🔥");
