@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.refund-pix]
 verify_jwt = false
+
+[functions.pix-efi]
+verify_jwt = false

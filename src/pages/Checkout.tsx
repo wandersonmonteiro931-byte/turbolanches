@@ -171,11 +171,11 @@ const Checkout = () => {
       if (itemsError) throw itemsError;
 
       if (paymentMethod === "pix") {
-        // Create PIX charge via EFI
+        // Create PIX charge via EFI (mTLS direto)
         toast.info("Gerando cobrança PIX...");
         try {
-          const { data: pixData, error: pixError } = await supabase.functions.invoke("create-pix-charge", {
-            body: { order_id: order.id },
+          const { data: pixData, error: pixError } = await supabase.functions.invoke("pix-efi", {
+            body: { action: "create-charge", order_id: order.id },
           });
           if (pixError) {
             console.error("PIX charge error:", pixError);

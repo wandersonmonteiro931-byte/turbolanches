@@ -107,13 +107,13 @@ const OrderTracking = () => {
       }
     }, 2000);
 
-    // MECHANISM 2: Try EFI API every 3s (fallback)
+    // MECHANISM 2: Try EFI API every 3s (mTLS direto)
     const efiInterval = setInterval(async () => {
       if (cancelled || efiChecking) return;
       efiChecking = true;
       try {
-        const { data, error } = await supabase.functions.invoke("check-pix-payment", {
-          body: { order_id: id },
+        const { data, error } = await supabase.functions.invoke("pix-efi", {
+          body: { action: "check-status", order_id: id },
         });
         if (!error && data?.status && data.status !== "awaiting_payment") {
           handleConfirmation(data.status);
@@ -283,8 +283,8 @@ const OrderTracking = () => {
                 <button
                   onClick={async () => {
                     toast.info("Gerando QR Code PIX...");
-                    const { data, error } = await supabase.functions.invoke("create-pix-charge", {
-                      body: { order_id: order.id },
+                    const { data, error } = await supabase.functions.invoke("pix-efi", {
+                      body: { action: "create-charge", order_id: order.id },
                     });
                     if (error) {
                       toast.error("Erro ao gerar PIX. Tente novamente.");
