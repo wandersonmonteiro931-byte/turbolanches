@@ -291,7 +291,24 @@ const AdminOrders = () => {
                   )}
                   {order.status !== "cancelled" && (
                     <button
-                      onClick={() => updateStatus(order.id, "cancelled")}
+                      onClick={async () => {
+                        // If PIX was paid, trigger refund
+                        if (order.payment_method === "pix" && order.payment_confirmed) {
+                          try {
+                            const { error: refundError } = await supabase.functions.invoke("refund-pix", {
+                              body: { order_id: order.id },
+                            });
+                            if (refundError) {
+                              toast({ title: "⚠️ Erro ao reembolsar PIX", description: "Cancele manualmente.", variant: "destructive" });
+                            } else {
+                              toast({ title: "💸 Reembolso PIX iniciado" });
+                            }
+                          } catch (e) {
+                            console.error("Refund error:", e);
+                          }
+                        }
+                        await updateStatus(order.id, "cancelled");
+                      }}
                       className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
                     >
                       Cancelar

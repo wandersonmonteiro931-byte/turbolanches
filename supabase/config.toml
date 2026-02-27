@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.pix-webhook]
 verify_jwt = false
+
+[functions.refund-pix]
+verify_jwt = false

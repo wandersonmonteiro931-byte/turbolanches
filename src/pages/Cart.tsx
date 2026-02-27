@@ -11,7 +11,7 @@ const Cart = () => {
   const { user } = useAuth();
   const { items, updateQuantity, removeItem, clearCart, totalPrice } = useCart();
   const [deliveryFee, setDeliveryFee] = useState(5.99);
-  const [freeDeliveryMin, setFreeDeliveryMin] = useState(60);
+  const [freeDeliveryMin, setFreeDeliveryMin] = useState(0);
   const [feeLoaded, setFeeLoaded] = useState(false);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ const Cart = () => {
         .single();
 
       if (config) {
-        setFreeDeliveryMin(config.free_delivery_min_order || 60);
+        setFreeDeliveryMin(config.free_delivery_min_order || 0);
       }
 
       // If user is logged in, try to match their neighborhood
@@ -139,11 +139,7 @@ const Cart = () => {
               {deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`}
             </span>
           </div>
-          {deliveryFee > 0 && freeDeliveryMin > 0 && totalPrice < freeDeliveryMin && (
-            <p className="text-xs text-primary">
-              🔥 Frete grátis acima de R$ {freeDeliveryMin.toFixed(2).replace(".", ",")}! Faltam R$ {(freeDeliveryMin - totalPrice).toFixed(2).replace(".", ",")}
-            </p>
-          )}
+          {/* Message only shows if admin configured free_delivery_min_order > 0 in store_settings */}
           <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
             <span className="text-foreground">Total</span>
             <span className="text-primary">R$ {grandTotal.toFixed(2).replace(".", ",")}</span>
