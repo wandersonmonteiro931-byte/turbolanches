@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       // Buscar pedido
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .select("id, total, user_id, status, pix_txid, pix_copia_cola, pix_qrcode_image")
+        .select("id, total, user_id, status, pix_txid, pix_copia_cola, pix_qrcode_image, pix_loc_id")
         .eq("id", order_id)
         .single();
 
@@ -166,8 +166,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Se PIX já foi gerado, retornar existente
-      if (order.pix_txid && order.pix_copia_cola) {
+      // Se PIX já foi gerado COM loc_id (cobrança real na EFI), retornar existente
+      // Se pix_loc_id é null, foi fallback estático — permitir regenerar
+      if (order.pix_txid && order.pix_copia_cola && order.pix_loc_id) {
         return new Response(
           JSON.stringify({
             txid: order.pix_txid,
@@ -176,6 +177,11 @@ Deno.serve(async (req) => {
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
+      }
+
+      // Se teve fallback anterior, limpar dados antigos para regenerar
+      if (order.pix_txid && !order.pix_loc_id) {
+        console.log(`Order ${order_id} had static fallback PIX, regenerating real charge...`);
       }
 
       const txid = generateTxid();

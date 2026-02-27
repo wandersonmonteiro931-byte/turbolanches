@@ -272,11 +272,35 @@ const OrderTracking = () => {
             className="rounded-2xl bg-card p-6 text-center space-y-4 shadow-sm"
           >
             {order.pix_qrcode_image ? (
-              <img
-                src={order.pix_qrcode_image}
-                alt="QR Code PIX"
-                className="mx-auto w-56 h-56 rounded-xl"
-              />
+              <div className="flex flex-col items-center gap-3">
+                <img
+                  src={order.pix_qrcode_image}
+                  alt="QR Code PIX"
+                  className="mx-auto w-56 h-56 rounded-xl"
+                />
+                <button
+                  onClick={async () => {
+                    toast.info("Regenerando cobrança PIX...");
+                    const { data, error } = await supabase.functions.invoke("pix-efi", {
+                      body: { action: "create-charge", order_id: order.id },
+                    });
+                    if (error) {
+                      toast.error("Erro ao regenerar PIX. Tente novamente.");
+                    } else if (data) {
+                      setOrder((prev) => prev ? {
+                        ...prev,
+                        pix_copia_cola: data.qrcode,
+                        pix_qrcode_image: data.qrcode_image,
+                        pix_txid: data.txid,
+                      } : null);
+                      toast.success("QR Code atualizado!");
+                    }
+                  }}
+                  className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground"
+                >
+                  <RefreshCw size={14} /> Regenerar QR Code
+                </button>
+              </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <QrCode size={48} className="text-primary" />
