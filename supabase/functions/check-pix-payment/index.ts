@@ -7,12 +7,11 @@ const corsHeaders = {
 };
 
 /**
- * check-pix-payment — DB-first strategy
+ * check-pix-payment — DB-first + Proxy fallback
  * 
  * 1. Check DB status first (fast, no external call)
- * 2. If still awaiting_payment AND has txid, try EFI API as fallback
- * 3. If EFI fails (mTLS issue), return DB status gracefully
- * 4. If EFI confirms payment, atomic update (WHERE status = 'awaiting_payment')
+ * 2. If still awaiting_payment AND has txid, try proxy to check EFI
+ * 3. If proxy confirms payment, atomic update
  */
 
 function getRequiredSecret(name: string): string {
@@ -21,64 +20,28 @@ function getRequiredSecret(name: string): string {
   return value;
 }
 
-function normalizePem(value: string): string {
-  return value.replace(/\\n/g, "\n").trim();
-}
-
-function getEfiCertChain(): string {
-  const pem = Deno.env.get("EFI_CERT_PEM");
-  if (pem?.trim()) return normalizePem(pem);
-  const base64 = Deno.env.get("EFI_CERTIFICATE_BASE64");
-  if (!base64) throw new Error("EFI certificate is not configured");
-  return normalizePem(atob(base64));
-}
-
-const EFI_TIMEOUT_MS = 10000;
-
-async function tryEfiCheck(txid: string): Promise<boolean | null> {
+async function checkViaProxy(proxyUrl: string, proxySecret: string, txid: string): Promise<boolean | null> {
   try {
-    const certChain = getEfiCertChain();
-    const privateKey = normalizePem(getRequiredSecret("EFI_KEY_PEM"));
-    const httpClient = Deno.createHttpClient({ certChain, privateKey });
-
-    const clientId = getRequiredSecret("EFI_CLIENT_ID");
-    const clientSecret = getRequiredSecret("EFI_CLIENT_SECRET");
-    const credentials = btoa(`${clientId}:${clientSecret}`);
-
-    const tokenRes = await fetch("https://pix.api.efipay.com.br/oauth/token", {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ grant_type: "client_credentials" }),
-      client: httpClient,
-      signal: AbortSignal.timeout(EFI_TIMEOUT_MS),
-    } as any);
-
-    if (!tokenRes.ok) return null;
-    const tokenData = await tokenRes.json();
-    if (!tokenData?.access_token) return null;
-
-    // Check COB status directly
-    const cobRes = await fetch(`https://pix.api.efipay.com.br/v2/cob/${txid}`, {
+    const res = await fetch(`${proxyUrl}/check/${txid}`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-        "Content-Type": "application/json",
+        "x-proxy-secret": proxySecret,
       },
-      client: httpClient,
-      signal: AbortSignal.timeout(EFI_TIMEOUT_MS),
-    } as any);
+      signal: AbortSignal.timeout(10000),
+    });
 
-    if (!cobRes.ok) return null;
-    const cobData = await cobRes.json();
-    
-    // EFI status "CONCLUIDA" means paid
-    return cobData?.status === "CONCLUIDA";
-  } catch (error) {
-    console.error("EFI check failed (expected in this environment):", error instanceof Error ? error.message : error);
-    return null; // null = couldn't determine, not false
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Proxy check failed:", res.status, errText);
+      return null;
+    }
+
+    const data = await res.json();
+    console.log(`Proxy check result for ${txid}:`, data.status, "paid:", data.paid);
+    return data.paid === true;
+  } catch (err) {
+    console.error("Proxy check error:", err instanceof Error ? err.message : err);
+    return null;
   }
 }
 
@@ -111,7 +74,7 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // MECHANISM 3: Check DB first (fast path)
+    // Step 1: Check DB first (fast path)
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("id, status, payment_method, payment_confirmed, pix_txid")
@@ -125,7 +88,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If already confirmed (by webhook or admin), return immediately
+    // Already confirmed (by webhook or admin)
     if (order.status !== "awaiting_payment") {
       return new Response(
         JSON.stringify({ status: order.status, payment_confirmed: order.payment_confirmed, confirmed: true }),
@@ -140,31 +103,40 @@ Deno.serve(async (req) => {
       );
     }
 
-    // MECHANISM 1: Try EFI API as fallback (may fail due to mTLS)
-    const efiResult = await tryEfiCheck(order.pix_txid);
+    // Step 2: Try proxy to check EFI status
+    const proxyUrl = Deno.env.get("EFI_PROXY_URL");
+    const proxySecret = Deno.env.get("EFI_PROXY_SECRET") || "";
 
-    if (efiResult === null) {
-      // EFI unreachable — return DB status, webhook/admin will handle confirmation
+    if (!proxyUrl) {
+      return new Response(
+        JSON.stringify({ status: "awaiting_payment", payment_confirmed: false, efi_status: "no_proxy" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const paid = await checkViaProxy(proxyUrl, proxySecret, order.pix_txid);
+
+    if (paid === null) {
       return new Response(
         JSON.stringify({ status: "awaiting_payment", payment_confirmed: false, efi_status: "unreachable" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    if (!efiResult) {
+    if (!paid) {
       return new Response(
         JSON.stringify({ status: "awaiting_payment", payment_confirmed: false, efi_status: "not_paid" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // PIX confirmed by EFI! Atomic update (prevent duplicates)
+    // Step 3: PIX confirmed! Atomic update
     const supabaseService = createClient(supabaseUrl, getRequiredSecret("SUPABASE_SERVICE_ROLE_KEY"));
     const { data: updated, error: updateError } = await supabaseService
       .from("orders")
       .update({ status: "pending", payment_confirmed: true })
       .eq("id", order.id)
-      .eq("status", "awaiting_payment") // Atomic lock
+      .eq("status", "awaiting_payment")
       .select("status, payment_confirmed")
       .maybeSingle();
 

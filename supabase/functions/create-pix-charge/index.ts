@@ -12,9 +12,7 @@ function getRequiredSecret(name: string): string {
   return value;
 }
 
-// ── BRCode / EMV PIX QR Code generation ──────────────────────────────
-// Reference: https://www.bcb.gov.br/content/estabilidadefinanceira/pix/Regulamento_Pix/II_ManualdePadroesparaIniciacaodoPix.pdf
-
+// ── BRCode / EMV PIX QR Code generation (fallback when proxy not available) ──
 function tlv(id: string, value: string): string {
   const len = value.length.toString().padStart(2, "0");
   return `${id}${len}${value}`;
@@ -44,53 +42,26 @@ function generatePixPayload(
   txid: string,
   description?: string,
 ): string {
-  // ID 00 - Payload Format Indicator
   let payload = tlv("00", "01");
-
-  // ID 26 - Merchant Account Information (PIX)
-  let mai = tlv("00", "br.gov.bcb.pix"); // GUI
-  mai += tlv("01", pixKey); // Chave PIX
-  if (description) {
-    mai += tlv("02", description.substring(0, 72));
-  }
+  let mai = tlv("00", "br.gov.bcb.pix");
+  mai += tlv("01", pixKey);
+  if (description) mai += tlv("02", description.substring(0, 72));
   payload += tlv("26", mai);
-
-  // ID 52 - Merchant Category Code
   payload += tlv("52", "0000");
-
-  // ID 53 - Transaction Currency (986 = BRL)
   payload += tlv("53", "986");
-
-  // ID 54 - Transaction Amount
-  if (amount && parseFloat(amount) > 0) {
-    payload += tlv("54", amount);
-  }
-
-  // ID 58 - Country Code
+  if (amount && parseFloat(amount) > 0) payload += tlv("54", amount);
   payload += tlv("58", "BR");
-
-  // ID 59 - Merchant Name
   payload += tlv("59", merchantName.substring(0, 25));
-
-  // ID 60 - Merchant City
   payload += tlv("60", merchantCity.substring(0, 15));
-
-  // ID 62 - Additional Data Field Template
-  const additionalData = tlv("05", txid.substring(0, 25)); // Reference Label (txid)
+  const additionalData = tlv("05", txid.substring(0, 25));
   payload += tlv("62", additionalData);
-
-  // ID 63 - CRC16 (placeholder, then calculate)
   payload += "6304";
   const crc = crc16ccitt(payload);
   payload += crc;
-
   return payload;
 }
 
-// Generate a simple QR code SVG using a basic QR code library approach
-// We'll return the payload string and let the frontend generate the QR code image
 async function generateQrCodeDataUrl(data: string): Promise<string> {
-  // Use a public QR code API to generate the image
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`;
   try {
     const response = await fetch(qrApiUrl);
@@ -103,6 +74,44 @@ async function generateQrCodeDataUrl(data: string): Promise<string> {
     console.error("QR code generation failed:", e);
   }
   return "";
+}
+
+// ── Create COB via proxy (real EFI integration) ──
+async function createCobViaProxy(
+  proxyUrl: string,
+  proxySecret: string,
+  txid: string,
+  amount: string,
+  description: string,
+): Promise<{ txid: string; qrcode: string; qrcode_image: string | null } | null> {
+  try {
+    const res = await fetch(`${proxyUrl}/create-cob`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-proxy-secret": proxySecret,
+      },
+      body: JSON.stringify({ txid, amount, description }),
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Proxy create-cob failed:", res.status, errText);
+      return null;
+    }
+
+    const data = await res.json();
+    console.log("✅ COB created via proxy:", data.txid);
+    return {
+      txid: data.txid,
+      qrcode: data.qrcode,
+      qrcode_image: data.qrcode_image,
+    };
+  } catch (err) {
+    console.error("Proxy create-cob error:", err instanceof Error ? err.message : err);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -144,12 +153,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch order
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select(
-        "id, total, user_id, status, pix_txid, pix_copia_cola, pix_qrcode_image",
-      )
+      .select("id, total, user_id, status, pix_txid, pix_copia_cola, pix_qrcode_image")
       .eq("id", order_id)
       .single();
 
@@ -172,52 +178,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    const pixKey = getRequiredSecret("EFI_PIX_KEY");
-
-    // Generate txid (alphanumeric, max 25 chars for BRCode)
     const txid = `TB${order_id.replace(/-/g, "").substring(0, 23)}`;
-
-    // Generate PIX BRCode payload
     const amount = Number(order.total).toFixed(2);
-    const pixPayload = generatePixPayload(
-      pixKey,
-      "TURBO LANCHES",
-      "ANAPOLIS",
-      amount,
-      txid,
-      `Pedido ${order_id.substring(0, 6)}`,
-    );
+    const description = `Pedido ${order_id.substring(0, 6)}`;
 
-    console.log("Generated PIX payload:", pixPayload);
-    console.log("Amount:", amount, "TxID:", txid);
+    // Try proxy first (real EFI COB with webhook support)
+    const proxyUrl = Deno.env.get("EFI_PROXY_URL");
+    const proxySecret = Deno.env.get("EFI_PROXY_SECRET") || "";
 
-    // Generate QR Code image
-    const qrCodeImage = await generateQrCodeDataUrl(pixPayload);
+    let pixResult: { txid: string; qrcode: string; qrcode_image: string | null } | null = null;
+
+    if (proxyUrl) {
+      console.log("Attempting COB creation via proxy...");
+      pixResult = await createCobViaProxy(proxyUrl, proxySecret, txid, amount, description);
+    }
+
+    // Fallback: generate static BRCode locally (no webhook, only polling works)
+    if (!pixResult) {
+      console.log("Using static BRCode fallback (no proxy)");
+      const pixKey = getRequiredSecret("EFI_PIX_KEY");
+      const pixPayload = generatePixPayload(pixKey, "TURBO LANCHES", "ANAPOLIS", amount, txid, description);
+      const qrCodeImage = await generateQrCodeDataUrl(pixPayload);
+      pixResult = { txid, qrcode: pixPayload, qrcode_image: qrCodeImage || null };
+    }
 
     // Update order with PIX data
-    const supabaseService = createClient(
-      supabaseUrl,
-      getRequiredSecret("SUPABASE_SERVICE_ROLE_KEY"),
-    );
-
+    const supabaseService = createClient(supabaseUrl, getRequiredSecret("SUPABASE_SERVICE_ROLE_KEY"));
     const expirationDate = new Date();
     expirationDate.setSeconds(expirationDate.getSeconds() + 3600);
 
-    await supabaseService
-      .from("orders")
-      .update({
-        pix_txid: txid,
-        pix_copia_cola: pixPayload,
-        pix_qrcode_image: qrCodeImage || null,
-        pix_expiration: expirationDate.toISOString(),
-      })
-      .eq("id", order_id);
+    await supabaseService.from("orders").update({
+      pix_txid: pixResult.txid,
+      pix_copia_cola: pixResult.qrcode,
+      pix_qrcode_image: pixResult.qrcode_image,
+      pix_expiration: expirationDate.toISOString(),
+    }).eq("id", order_id);
 
     return new Response(
       JSON.stringify({
-        txid,
-        qrcode: pixPayload,
-        qrcode_image: qrCodeImage || null,
+        txid: pixResult.txid,
+        qrcode: pixResult.qrcode,
+        qrcode_image: pixResult.qrcode_image,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
