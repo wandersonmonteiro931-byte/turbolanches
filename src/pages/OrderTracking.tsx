@@ -73,7 +73,7 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
-  // Poll every second while awaiting_payment to detect PIX confirmation
+  // Poll every 3s while awaiting_payment to detect PIX confirmation by admin
   useEffect(() => {
     if (!order || order.status !== "awaiting_payment") return;
 
@@ -86,14 +86,14 @@ const OrderTracking = () => {
 
       if (data && data.status !== "awaiting_payment") {
         setOrder((prev) => prev ? { ...prev, status: data.status, payment_confirmed: data.payment_confirmed } : null);
-        if (data.status === "pending") {
-          toast.success("✅ Pagamento PIX confirmado! Aguardando a loja aceitar seu pedido...");
+        if (data.status === "pending" || data.status === "preparing") {
+          toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
         } else if (data.status === "cancelled") {
           toast.error("❌ Pedido cancelado.");
         }
         clearInterval(interval);
       }
-    }, 1000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [order?.status, id]);
@@ -304,6 +304,26 @@ const OrderTracking = () => {
                 Expira em: {new Date(order.pix_expiration).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </p>
             )}
+
+            {/* Post-payment helper */}
+            <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-2">
+              <p className="text-sm font-semibold text-foreground">Já realizou o pagamento?</p>
+              <p className="text-xs text-muted-foreground">
+                Após o pagamento, aguarde a confirmação. A loja verificará o recebimento e seu pedido será aceito automaticamente.
+              </p>
+              <motion.div
+                className="flex items-center justify-center gap-2 pt-1"
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+              >
+                <motion.div
+                  className="h-2 w-2 rounded-full bg-primary"
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                />
+                <span className="text-xs font-medium text-primary">Verificando pagamento...</span>
+              </motion.div>
+            </div>
           </motion.div>
         )}
 
