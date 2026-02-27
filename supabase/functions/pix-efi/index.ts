@@ -82,7 +82,6 @@ async function getEfiToken(): Promise<string> {
 
   const client = (Deno as any).createHttpClient({ certChain: cert, privateKey: key });
   const auth = btoa(`${clientId}:${clientSecret}`);
-  const auth = btoa(`${clientId}:${clientSecret}`);
 
   const res = await fetch("https://pix.api.efipay.com.br/oauth/token", {
     method: "POST",
