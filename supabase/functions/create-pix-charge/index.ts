@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import forge from "npm:node-forge@1.3.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,67 +9,82 @@ const corsHeaders = {
 
 const EFI_API_URL = "https://pix.api.efipay.com.br";
 
-async function getEfiToken(): Promise<string> {
-  const clientId = Deno.env.get("EFI_CLIENT_ID")!;
-  const clientSecret = Deno.env.get("EFI_CLIENT_SECRET")!;
-  const certBase64 = Deno.env.get("EFI_CERTIFICATE_BASE64")!;
-
-  // Decode the P12 certificate
-  const certBytes = Uint8Array.from(atob(certBase64), (c) => c.charCodeAt(0));
-
-  const credentials = btoa(`${clientId}:${clientSecret}`);
-
-  const response = await fetch(`${EFI_API_URL}/oauth/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ grant_type: "client_credentials" }),
-    // @ts-ignore - Deno supports client certificates
-    client: {
-      certChain: undefined,
-      privateKey: undefined,
-    },
-  });
-
-  // For EFI mTLS, we use the certificate in a different way for Deno
-  // Actually, Deno's fetch with mTLS requires using Deno.createHttpClient
-  // Let's use a workaround approach
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`EFI Auth failed: ${response.status} - ${err}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
+function getRequiredSecret(name: string): string {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`${name} is not configured`);
+  return value;
 }
 
-async function getEfiAccessToken(): Promise<string> {
-  const clientId = Deno.env.get("EFI_CLIENT_ID")!;
-  const clientSecret = Deno.env.get("EFI_CLIENT_SECRET")!;
-  const certBase64 = Deno.env.get("EFI_CERTIFICATE_BASE64")!;
+function decodeBase64ToBinary(base64: string): string {
+  return atob(base64.replace(/\s/g, ""));
+}
 
-  const certBytes = Uint8Array.from(atob(certBase64), (c) => c.charCodeAt(0));
+function createMtlsClientFromP12() {
+  const p12Base64 = getRequiredSecret("EFI_CERTIFICATE_BASE64");
+  const p12Password = Deno.env.get("EFI_CERTIFICATE_PASSWORD") ?? "";
+
+  let certPem = "";
+  let keyPem = "";
+
+  try {
+    const p12Binary = decodeBase64ToBinary(p12Base64);
+    const p12Asn1 = forge.asn1.fromDer(p12Binary);
+    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, p12Password);
+
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[
+      forge.pki.oids.certBag
+    ];
+    const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[
+      forge.pki.oids.pkcs8ShroudedKeyBag
+    ];
+
+    if (!certBags?.length || !keyBags?.length) {
+      throw new Error("Could not extract certificate/private key from P12");
+    }
+
+    certPem = forge.pki.certificateToPem(certBags[0].cert);
+    keyPem = forge.pki.privateKeyToPem(keyBags[0].key);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Unknown error";
+    throw new Error(
+      `Failed to parse EFI_CERTIFICATE_BASE64. If your P12 has password, set EFI_CERTIFICATE_PASSWORD. Details: ${msg}`
+    );
+  }
+
+  return Deno.createHttpClient({
+    certChain: certPem,
+    privateKey: keyPem,
+  });
+}
+
+async function efiFetch(
+  path: string,
+  init: RequestInit,
+  client: Deno.HttpClient,
+): Promise<Response> {
+  return fetch(`${EFI_API_URL}${path}`, {
+    ...init,
+    client,
+  });
+}
+
+async function getEfiAccessToken(client: Deno.HttpClient): Promise<string> {
+  const clientId = getRequiredSecret("EFI_CLIENT_ID");
+  const clientSecret = getRequiredSecret("EFI_CLIENT_SECRET");
   const credentials = btoa(`${clientId}:${clientSecret}`);
 
-  // Create HTTP client with mTLS certificate
-  const httpClient = Deno.createHttpClient({
-    caCerts: [],
-    certChain: undefined,
-    privateKey: undefined,
-  });
-
-  // EFI requires mTLS with P12 certificate
-  // In Deno edge functions, we'll use the direct approach
-  const response = await fetch(`${EFI_API_URL}/oauth/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/json",
+  const response = await efiFetch(
+    "/oauth/token",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ grant_type: "client_credentials" }),
     },
-    body: JSON.stringify({ grant_type: "client_credentials" }),
-  });
+    client,
+  );
 
   if (!response.ok) {
     const errText = await response.text();
@@ -84,8 +100,9 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let mtlsClient: Deno.HttpClient | null = null;
+
   try {
-    // Validate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -94,8 +111,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseUrl = getRequiredSecret("SUPABASE_URL");
+    const supabaseAnonKey = getRequiredSecret("SUPABASE_ANON_KEY");
+
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -117,7 +135,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("id, total, user_id, status, pix_txid, pix_copia_cola, pix_qrcode_image")
@@ -131,7 +148,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If PIX already created, return existing data
     if (order.pix_txid && order.pix_copia_cola) {
       return new Response(
         JSON.stringify({
@@ -139,37 +155,35 @@ Deno.serve(async (req) => {
           qrcode: order.pix_copia_cola,
           qrcode_image: order.pix_qrcode_image,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Get EFI access token
-    const accessToken = await getEfiAccessToken();
-    const pixKey = Deno.env.get("EFI_PIX_KEY")!;
+    mtlsClient = createMtlsClientFromP12();
+    const accessToken = await getEfiAccessToken(mtlsClient);
+    const pixKey = getRequiredSecret("EFI_PIX_KEY");
 
-    // Generate unique txid (alphanumeric, 26-35 chars)
     const txid = `turbo${order_id.replace(/-/g, "").substring(0, 30)}`;
 
-    // Create immediate charge (cobrança imediata)
-    const chargeResponse = await fetch(`${EFI_API_URL}/v2/cob/${txid}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        calendario: { expiracao: 3600 }, // 1 hour expiration
-        devedor: {},
-        valor: {
-          original: Number(order.total).toFixed(2),
+    const chargeResponse = await efiFetch(
+      `/v2/cob/${txid}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
-        chave: pixKey,
-        solicitacaoPagador: `Pedido Turbo Lanches`,
-        infoAdicionais: [
-          { nome: "Pedido", valor: order_id.substring(0, 6) },
-        ],
-      }),
-    });
+        body: JSON.stringify({
+          calendario: { expiracao: 3600 },
+          devedor: {},
+          valor: { original: Number(order.total).toFixed(2) },
+          chave: pixKey,
+          solicitacaoPagador: "Pedido Turbo Lanches",
+          infoAdicionais: [{ nome: "Pedido", valor: order_id.substring(0, 6) }],
+        }),
+      },
+      mtlsClient,
+    );
 
     if (!chargeResponse.ok) {
       const errText = await chargeResponse.text();
@@ -177,40 +191,42 @@ Deno.serve(async (req) => {
     }
 
     const chargeData = await chargeResponse.json();
-
-    // Generate QR Code for the charge
     const locId = chargeData.loc?.id;
     let qrCodeData = { qrcode: "", imagemQrcode: "" };
 
     if (locId) {
-      const qrResponse = await fetch(`${EFI_API_URL}/v2/loc/${locId}/qrcode`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const qrResponse = await efiFetch(
+        `/v2/loc/${locId}/qrcode`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${accessToken}` },
         },
-      });
+        mtlsClient,
+      );
 
       if (qrResponse.ok) {
         qrCodeData = await qrResponse.json();
       }
     }
 
-    // Update order with PIX data using service role
     const supabaseService = createClient(
       supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      getRequiredSecret("SUPABASE_SERVICE_ROLE_KEY"),
     );
 
     const expirationDate = new Date();
     expirationDate.setSeconds(expirationDate.getSeconds() + 3600);
 
-    await supabaseService.from("orders").update({
-      pix_txid: txid,
-      pix_copia_cola: qrCodeData.qrcode || chargeData.pixCopiaECola,
-      pix_qrcode_image: qrCodeData.imagemQrcode || null,
-      pix_loc_id: locId || null,
-      pix_expiration: expirationDate.toISOString(),
-    }).eq("id", order_id);
+    await supabaseService
+      .from("orders")
+      .update({
+        pix_txid: txid,
+        pix_copia_cola: qrCodeData.qrcode || chargeData.pixCopiaECola,
+        pix_qrcode_image: qrCodeData.imagemQrcode || null,
+        pix_loc_id: locId || null,
+        pix_expiration: expirationDate.toISOString(),
+      })
+      .eq("id", order_id);
 
     return new Response(
       JSON.stringify({
@@ -218,7 +234,7 @@ Deno.serve(async (req) => {
         qrcode: qrCodeData.qrcode || chargeData.pixCopiaECola,
         qrcode_image: qrCodeData.imagemQrcode || null,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
     console.error("Error creating PIX charge:", error);
@@ -227,5 +243,9 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } finally {
+    if (mtlsClient) {
+      mtlsClient.close();
+    }
   }
 });
