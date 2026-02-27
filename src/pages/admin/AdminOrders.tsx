@@ -30,7 +30,6 @@ interface OrderItem {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  awaiting_payment: { label: "Aguardando Pgto", color: "bg-yellow-100 text-yellow-800", icon: Clock },
   pending: { label: "Novo", color: "bg-amber-100 text-amber-800", icon: Clock },
   accepted: { label: "Aceito", color: "bg-blue-100 text-blue-800", icon: Check },
   preparing: { label: "Preparando", color: "bg-purple-100 text-purple-800", icon: ChefHat },
@@ -253,19 +252,6 @@ const AdminOrders = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {order.status === "awaiting_payment" && (
-                    <button
-                      onClick={async () => {
-                        await supabase.from("orders").update({ payment_confirmed: true, status: "preparing", preparing_at: new Date().toISOString() }).eq("id", order.id);
-                        toast({ title: "✅ PIX confirmado! Pedido em preparo." });
-                        await fetchOrders();
-                        printReceipt(order.id, "cozinha");
-                      }}
-                      className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white"
-                    >
-                      ✅ Confirmar PIX
-                    </button>
-                  )}
                   {order.payment_method !== "fiado" && order.status !== "cancelled" && (
                     <button
                       onClick={async () => {
@@ -291,24 +277,7 @@ const AdminOrders = () => {
                   )}
                   {order.status !== "cancelled" && (
                     <button
-                      onClick={async () => {
-                        // If PIX was paid, trigger refund
-                        if (order.payment_method === "pix" && order.payment_confirmed) {
-                          try {
-                            const { error: refundError } = await supabase.functions.invoke("refund-pix", {
-                              body: { order_id: order.id },
-                            });
-                            if (refundError) {
-                              toast({ title: "⚠️ Erro ao reembolsar PIX", description: "Cancele manualmente.", variant: "destructive" });
-                            } else {
-                              toast({ title: "💸 Reembolso PIX iniciado" });
-                            }
-                          } catch (e) {
-                            console.error("Refund error:", e);
-                          }
-                        }
-                        await updateStatus(order.id, "cancelled");
-                      }}
+                      onClick={() => updateStatus(order.id, "cancelled")}
                       className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
                     >
                       Cancelar

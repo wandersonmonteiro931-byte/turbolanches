@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, QrCode, Copy, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface OrderData {
   id: string;
@@ -19,10 +19,6 @@ interface OrderData {
   address_neighborhood: string | null;
   created_at: string;
   observations: string | null;
-  pix_copia_cola: string | null;
-  pix_qrcode_image: string | null;
-  pix_expiration: string | null;
-  pix_txid: string | null;
 }
 
 interface OrderItemData {
@@ -42,7 +38,7 @@ const statusSteps = [
   { key: "delivered", label: "Entregue", icon: Check, emoji: "🎉" },
 ];
 
-const statusOrder = ["awaiting_payment", "pending", "preparing", "ready", "delivering", "delivered"];
+const statusOrder = ["pending", "preparing", "ready", "delivering", "delivered"];
 
 const statusMessages: Record<string, { title: string; subtitle: string; animation: string }> = {
   pending: { title: "Recebemos seu pedido!", subtitle: "Estamos confirmando com a cozinha...", animation: "🔔" },
@@ -50,7 +46,6 @@ const statusMessages: Record<string, { title: string; subtitle: string; animatio
   ready: { title: "Tudo pronto!", subtitle: "Seu pedido está prontinho e quentinho!", animation: "✨" },
   delivering: { title: "A caminho!", subtitle: "Nosso entregador já saiu com seu pedido!", animation: "🏍️" },
   delivered: { title: "Bom apetite!", subtitle: "Esperamos que goste! Obrigado pela preferência ❤️", animation: "🎉" },
-  awaiting_payment: { title: "Aguardando pagamento", subtitle: "Complete o pagamento para confirmar", animation: "💳" },
   cancelled: { title: "Pedido cancelado", subtitle: "Este pedido foi cancelado", animation: "❌" },
 };
 
@@ -73,66 +68,6 @@ const OrderTracking = () => {
     setLoading(false);
   };
 
-  // Check PIX payment automatically via EFI API while awaiting_payment
-  // Dual mechanism: DB polling (primary) + EFI API (secondary, may fail mTLS)
-  useEffect(() => {
-    if (!order || order.status !== "awaiting_payment") return;
-
-    let cancelled = false;
-    let efiChecking = false;
-
-    const handleConfirmation = (newStatus: string) => {
-      if (cancelled) return;
-      cancelled = true;
-      setOrder((prev) => prev ? { ...prev, status: newStatus } : null);
-      if (newStatus === "pending" || newStatus === "preparing") {
-        toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
-      } else if (newStatus === "cancelled") {
-        toast.error("❌ Pedido cancelado.");
-      }
-    };
-
-    // MECHANISM 1: Poll DB every 2s (catches webhook/admin confirmations)
-    const dbInterval = setInterval(async () => {
-      if (cancelled) return;
-      const { data } = await supabase
-        .from("orders")
-        .select("status")
-        .eq("id", id)
-        .single();
-      if (data && data.status !== "awaiting_payment") {
-        handleConfirmation(data.status);
-        clearInterval(dbInterval);
-        clearInterval(efiInterval);
-      }
-    }, 2000);
-
-    // MECHANISM 2: Try EFI API every 3s (mTLS direto)
-    const efiInterval = setInterval(async () => {
-      if (cancelled || efiChecking) return;
-      efiChecking = true;
-      try {
-        const { data, error } = await supabase.functions.invoke("pix-efi", {
-          body: { action: "check-status", order_id: id },
-        });
-        if (!error && data?.status && data.status !== "awaiting_payment") {
-          handleConfirmation(data.status);
-          clearInterval(dbInterval);
-          clearInterval(efiInterval);
-        }
-      } catch {
-        // EFI unreachable — DB polling handles it
-      }
-      efiChecking = false;
-    }, 3000);
-
-    return () => {
-      cancelled = true;
-      clearInterval(dbInterval);
-      clearInterval(efiInterval);
-    };
-  }, [order?.status, id]);
-
   useEffect(() => {
     fetchOrder();
 
@@ -149,7 +84,7 @@ const OrderTracking = () => {
           return prev ? { ...prev, ...payload.new } : null;
         });
         const newStatus = (payload.new as any).status;
-        if (newStatus === "pending") toast.success("✅ Pagamento confirmado! Aguardando a loja...");
+        if (newStatus === "pending") toast.success("✅ Pedido confirmado! Aguardando a loja...");
         if (newStatus === "preparing") toast.info("🍳 Seu pedido está sendo preparado!");
         if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
         if (newStatus === "delivered") toast.success("✅ Pedido entregue! Bom apetite!");
@@ -195,7 +130,6 @@ const OrderTracking = () => {
   }
 
   const currentStepIndex = statusOrder.indexOf(order.status);
-  const isAwaitingPayment = order.status === "awaiting_payment";
   const isCancelled = order.status === "cancelled";
   const msg = statusMessages[order.status] || statusMessages.pending;
 
@@ -264,130 +198,8 @@ const OrderTracking = () => {
           )}
         </motion.div>
 
-        {/* Awaiting Payment */}
-        {isAwaitingPayment && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl bg-card p-6 text-center space-y-4 shadow-sm"
-          >
-            {order.pix_qrcode_image ? (
-              <div className="flex flex-col items-center gap-3">
-                <img
-                  src={order.pix_qrcode_image}
-                  alt="QR Code PIX"
-                  className="mx-auto w-56 h-56 rounded-xl"
-                />
-                <button
-                  onClick={async () => {
-                    toast.info("Regenerando cobrança PIX...");
-                    const { data, error } = await supabase.functions.invoke("pix-efi", {
-                      body: { action: "create-charge", order_id: order.id },
-                    });
-                    if (error) {
-                      toast.error("Erro ao regenerar PIX. Tente novamente.");
-                    } else if (data) {
-                      setOrder((prev) => prev ? {
-                        ...prev,
-                        pix_copia_cola: data.qrcode,
-                        pix_qrcode_image: data.qrcode_image,
-                        pix_txid: data.txid,
-                      } : null);
-                      toast.success("QR Code atualizado!");
-                    }
-                  }}
-                  className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground"
-                >
-                  <RefreshCw size={14} /> Regenerar QR Code
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <QrCode size={48} className="text-primary" />
-                <button
-                  onClick={async () => {
-                    toast.info("Gerando QR Code PIX...");
-                    const { data, error } = await supabase.functions.invoke("pix-efi", {
-                      body: { action: "create-charge", order_id: order.id },
-                    });
-                    if (error) {
-                      toast.error("Erro ao gerar PIX. Tente novamente.");
-                    } else if (data) {
-                      setOrder((prev) => prev ? {
-                        ...prev,
-                        pix_copia_cola: data.qrcode,
-                        pix_qrcode_image: data.qrcode_image,
-                        pix_txid: data.txid,
-                      } : null);
-                      toast.success("QR Code gerado!");
-                    }
-                  }}
-                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
-                >
-                  <RefreshCw size={16} /> Gerar QR Code
-                </button>
-              </div>
-            )}
-
-            <div className="rounded-xl bg-background p-4">
-              <p className="text-xs text-muted-foreground mb-1">Valor a pagar:</p>
-              <p className="text-3xl font-extrabold text-primary">
-                R$ {Number(order.total).toFixed(2).replace(".", ",")}
-              </p>
-            </div>
-
-            {order.pix_copia_cola && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground">PIX Copia e Cola:</p>
-                <div className="flex items-center gap-2">
-                  <input
-                    readOnly
-                    value={order.pix_copia_cola}
-                    className="flex-1 rounded-lg bg-background px-3 py-2 text-xs text-foreground truncate"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(order.pix_copia_cola!);
-                      toast.success("Código PIX copiado!");
-                    }}
-                    className="flex items-center gap-1 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
-                  >
-                    <Copy size={14} /> Copiar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {order.pix_expiration && (
-              <p className="text-xs text-muted-foreground">
-                Expira em: {new Date(order.pix_expiration).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            )}
-
-            {/* Post-payment helper */}
-            <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-2">
-              <p className="text-sm font-semibold text-foreground">Já realizou o pagamento?</p>
-              <p className="text-xs text-muted-foreground">
-                Após o pagamento, aguarde a confirmação. A loja verificará o recebimento e seu pedido será aceito automaticamente.
-              </p>
-              <motion.div
-                className="flex items-center justify-center gap-2 pt-1"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                <motion.div
-                  className="h-2 w-2 rounded-full bg-primary"
-                  animate={{ scale: [1, 1.3, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                />
-                <span className="text-xs font-medium text-primary">Verificando pagamento...</span>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
-
         {/* Progress Steps */}
-        {!isAwaitingPayment && !isCancelled && (
+        {!isCancelled && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -460,50 +272,55 @@ const OrderTracking = () => {
             className="rounded-2xl bg-destructive/10 p-6 text-center"
           >
             <span className="text-5xl">❌</span>
-            <h2 className="mt-2 text-lg font-bold text-destructive">Pedido Cancelado</h2>
+            <p className="mt-2 text-sm text-destructive font-bold">Este pedido foi cancelado</p>
           </motion.div>
         )}
 
-        {/* Order Items */}
+        {/* Order Details */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="rounded-2xl bg-card p-5 shadow-sm"
+          className="rounded-2xl bg-card p-5 shadow-sm space-y-3"
         >
-          <h2 className="font-bold text-foreground text-sm mb-3">🛒 Itens do pedido</h2>
+          <h2 className="font-bold text-foreground text-sm">📋 Itens do pedido</h2>
           <div className="space-y-2">
-            {items.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.05 }}
-                className="flex justify-between text-sm py-1"
-              >
-                <span className="text-foreground">
-                  <span className="font-semibold text-primary">{item.quantity}x</span> {item.product_name}
-                </span>
-                <span className="text-muted-foreground font-medium">
+            {items.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <div className="flex-1">
+                  <span className="text-foreground">{item.quantity}x {item.product_name}</span>
+                  {item.addons_json && Array.isArray(item.addons_json) && item.addons_json.length > 0 && (
+                    <div className="ml-4">
+                      {item.addons_json.map((addon: any, i: number) => (
+                        <p key={i} className="text-[11px] text-muted-foreground">+ {addon.name}</p>
+                      ))}
+                    </div>
+                  )}
+                  {item.observations && (
+                    <p className="text-[11px] text-amber-600 ml-4">📝 {item.observations}</p>
+                  )}
+                </div>
+                <span className="text-muted-foreground whitespace-nowrap">
                   R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
                 </span>
-              </motion.div>
+              </div>
             ))}
           </div>
-          <div className="mt-3 border-t border-border pt-3 space-y-1.5">
+
+          <div className="border-t border-border pt-2 space-y-1">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span>
               <span>R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span>
             </div>
             {Number(order.delivery_fee) > 0 && (
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Taxa de entrega</span>
+                <span>Entrega</span>
                 <span>R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span>
               </div>
             )}
-            <div className="flex justify-between font-extrabold text-foreground pt-1">
+            <div className="flex justify-between text-base font-bold text-foreground pt-1">
               <span>Total</span>
-              <span className="text-primary text-lg">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+              <span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
             </div>
           </div>
         </motion.div>
@@ -516,34 +333,40 @@ const OrderTracking = () => {
             transition={{ delay: 0.5 }}
             className="rounded-2xl bg-card p-5 shadow-sm"
           >
-            <h2 className="font-bold text-foreground text-sm mb-1">📍 Entrega</h2>
-            <p className="text-sm text-muted-foreground">
-              {order.address_street}, {order.address_number} - {order.address_neighborhood}
+            <h2 className="font-bold text-foreground text-sm mb-2">📍 Endereço de entrega</h2>
+            <p className="text-sm text-foreground">
+              {order.address_street}, {order.address_number}
             </p>
+            <p className="text-xs text-muted-foreground">{order.address_neighborhood}</p>
           </motion.div>
         )}
 
-        {/* Payment Method */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55 }}
-          className="rounded-2xl bg-card p-5 shadow-sm"
-        >
-          <h2 className="font-bold text-foreground text-sm mb-1">💰 Pagamento</h2>
-          <p className="text-sm text-muted-foreground capitalize">
-            {order.payment_method === "pix" ? "PIX" : order.payment_method === "credit_card" ? "Cartão de Crédito" : order.payment_method === "debit_card" ? "Cartão de Débito" : order.payment_method === "cash" ? "Dinheiro" : order.payment_method}
-          </p>
-        </motion.div>
+        {/* Observations */}
+        {order.observations && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="rounded-2xl bg-card p-5 shadow-sm"
+          >
+            <h2 className="font-bold text-foreground text-sm mb-2">💬 Observações</h2>
+            <p className="text-sm text-muted-foreground">{order.observations}</p>
+          </motion.div>
+        )}
 
-        {/* Order time */}
+        {/* Back to menu */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="text-center text-xs text-muted-foreground pb-4"
+          transition={{ delay: 0.7 }}
+          className="text-center pt-2 pb-4"
         >
-          Pedido realizado em {new Date(order.created_at).toLocaleDateString("pt-BR")} às {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl bg-secondary px-6 py-3 text-sm font-bold text-foreground"
+          >
+            Voltar ao cardápio
+          </button>
         </motion.div>
       </div>
     </div>

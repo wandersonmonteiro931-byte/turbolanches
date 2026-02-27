@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, QrCode, MessageSquare, Truck } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,7 +34,6 @@ interface DeliveryConfig {
 }
 
 const paymentMethods = [
-  { id: "pix", label: "PIX", icon: QrCode, description: "Pagamento instantâneo" },
   { id: "dinheiro", label: "Dinheiro", icon: Banknote, description: "Pague na entrega" },
   { id: "cartao", label: "Cartão", icon: CreditCard, description: "Débito/Crédito na entrega" },
 ];
@@ -47,7 +46,7 @@ const Checkout = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentMethod, setPaymentMethod] = useState("dinheiro");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
   const [loading, setLoading] = useState(false);
@@ -142,7 +141,7 @@ const Checkout = () => {
           subtotal: totalPrice,
           delivery_fee: deliveryFee,
           total: grandTotal,
-          status: paymentMethod === "pix" ? "awaiting_payment" : "pending",
+          status: "pending",
           delivery_type: "delivery",
           payment_method: paymentMethod,
           address_street: profile.street,
@@ -170,28 +169,10 @@ const Checkout = () => {
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
       if (itemsError) throw itemsError;
 
-      if (paymentMethod === "pix") {
-        // Create PIX charge via EFI (mTLS direto)
-        toast.info("Gerando cobrança PIX...");
-        try {
-          const { data: pixData, error: pixError } = await supabase.functions.invoke("pix-efi", {
-            body: { action: "create-charge", order_id: order.id },
-          });
-          if (pixError) {
-            console.error("PIX charge error:", pixError);
-            toast.error("Erro ao gerar PIX, mas seu pedido foi criado. Tente novamente na tela do pedido.");
-          }
-        } catch (pixErr) {
-          console.error("PIX invoke error:", pixErr);
-        }
-        clearCart();
-        navigate(`/pedido/${order.id}`);
-      } else {
-        clearCart();
-        toast.success("Pedido enviado com sucesso! 🔥");
-        sendWhatsAppNotification(order.id, profile, grandTotal, paymentMethod);
-        navigate(`/pedido/${order.id}`);
-      }
+      clearCart();
+      toast.success("Pedido enviado com sucesso! 🔥");
+      sendWhatsAppNotification(order.id, profile, grandTotal, paymentMethod);
+      navigate(`/pedido/${order.id}`);
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar pedido");
     } finally {
