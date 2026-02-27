@@ -6,13 +6,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * pix-webhook — Receives PIX payment notifications
+ * 
+ * Can be called by:
+ * - EFI directly (webhook registration)
+ * - External proxy that handles mTLS and forwards here
+ * 
+ * Uses ATOMIC LOCK: UPDATE ... WHERE status = 'awaiting_payment'
+ * to prevent duplicate processing.
+ */
+
 Deno.serve(async (req) => {
-  // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Handle webhook configuration check (EFI sends GET to validate)
+  // EFI sends GET to validate webhook URL
   if (req.method === "GET") {
     return new Response(JSON.stringify({ status: "ok" }), {
       status: 200,
@@ -44,33 +54,28 @@ Deno.serve(async (req) => {
 
       console.log(`Processing PIX payment for txid: ${txid}`);
 
-      // Find the order by txid
-      const { data: order, error } = await supabase
+      // ATOMIC LOCK: Only update if still awaiting_payment
+      // If another process already confirmed, this returns 0 rows (no-op)
+      const { data: updated, error: updateError } = await supabase
         .from("orders")
-        .select("id, status")
+        .update({
+          status: "pending",
+          payment_confirmed: true,
+        })
         .eq("pix_txid", txid)
-        .single();
+        .eq("status", "awaiting_payment") // Atomic lock - prevents duplicates
+        .select("id, status")
+        .maybeSingle();
 
-      if (error || !order) {
-        console.log(`Order not found for txid: ${txid}`);
+      if (updateError) {
+        console.error(`Error updating order for txid ${txid}:`, updateError);
         continue;
       }
 
-      // Only update if still awaiting payment
-      if (order.status === "awaiting_payment") {
-        const { error: updateError } = await supabase
-          .from("orders")
-          .update({
-            status: "pending",
-            payment_confirmed: true,
-          })
-          .eq("id", order.id);
-
-        if (updateError) {
-          console.error(`Error updating order ${order.id}:`, updateError);
-        } else {
-          console.log(`Order ${order.id} confirmed via PIX payment`);
-        }
+      if (updated) {
+        console.log(`✅ Order ${updated.id} confirmed via PIX webhook (txid: ${txid})`);
+      } else {
+        console.log(`Order for txid ${txid} already processed or not found`);
       }
     }
 
