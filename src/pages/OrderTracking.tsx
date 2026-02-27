@@ -74,39 +74,63 @@ const OrderTracking = () => {
   };
 
   // Check PIX payment automatically via EFI API while awaiting_payment
+  // Dual mechanism: DB polling (primary) + EFI API (secondary, may fail mTLS)
   useEffect(() => {
     if (!order || order.status !== "awaiting_payment") return;
 
-    let checking = false;
+    let cancelled = false;
+    let efiChecking = false;
 
-    const interval = setInterval(async () => {
-      if (checking) return;
-      checking = true;
-
-      const { data, error } = await supabase.functions.invoke("check-pix-payment", {
-        body: { order_id: id },
-      });
-
-      checking = false;
-      if (error || !data) return;
-
-      if (data.status && data.status !== "awaiting_payment") {
-        setOrder((prev) => prev ? {
-          ...prev,
-          status: data.status,
-        } : null);
-
-        if (data.status === "pending" || data.status === "preparing") {
-          toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
-        } else if (data.status === "cancelled") {
-          toast.error("❌ Pedido cancelado.");
-        }
-
-        clearInterval(interval);
+    const handleConfirmation = (newStatus: string) => {
+      if (cancelled) return;
+      cancelled = true;
+      setOrder((prev) => prev ? { ...prev, status: newStatus } : null);
+      if (newStatus === "pending" || newStatus === "preparing") {
+        toast.success("✅ Pagamento confirmado! Seu pedido foi recebido pela loja!");
+      } else if (newStatus === "cancelled") {
+        toast.error("❌ Pedido cancelado.");
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    // MECHANISM 1: Poll DB every 2s (catches webhook/admin confirmations)
+    const dbInterval = setInterval(async () => {
+      if (cancelled) return;
+      const { data } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", id)
+        .single();
+      if (data && data.status !== "awaiting_payment") {
+        handleConfirmation(data.status);
+        clearInterval(dbInterval);
+        clearInterval(efiInterval);
+      }
+    }, 2000);
+
+    // MECHANISM 2: Try EFI API every 3s (fallback)
+    const efiInterval = setInterval(async () => {
+      if (cancelled || efiChecking) return;
+      efiChecking = true;
+      try {
+        const { data, error } = await supabase.functions.invoke("check-pix-payment", {
+          body: { order_id: id },
+        });
+        if (!error && data?.status && data.status !== "awaiting_payment") {
+          handleConfirmation(data.status);
+          clearInterval(dbInterval);
+          clearInterval(efiInterval);
+        }
+      } catch {
+        // EFI unreachable — DB polling handles it
+      }
+      efiChecking = false;
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(dbInterval);
+      clearInterval(efiInterval);
+    };
   }, [order?.status, id]);
 
   useEffect(() => {
