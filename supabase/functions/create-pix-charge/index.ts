@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import forge from "npm:node-forge@1.3.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,76 +14,98 @@ function getRequiredSecret(name: string): string {
   return value;
 }
 
-function decodeBase64ToBinary(base64: string): string {
-  return atob(base64.replace(/\s/g, ""));
-}
+/**
+ * Parse a PEM-encoded P12/PFX certificate (base64) into cert + key PEM strings.
+ * EFI provides certificates as .p12 files which contain both the cert and private key.
+ * 
+ * The secret EFI_CERTIFICATE_BASE64 should contain the base64 of the .p12 file.
+ * We also need EFI_CERT_PEM and EFI_KEY_PEM as separate PEM strings.
+ */
 
-function createMtlsClientFromP12() {
-  const p12Base64 = getRequiredSecret("EFI_CERTIFICATE_BASE64");
-  const p12Password = Deno.env.get("EFI_CERTIFICATE_PASSWORD") ?? "";
-
-  let certPem = "";
-  let keyPem = "";
-
-  try {
-    const p12Binary = decodeBase64ToBinary(p12Base64);
-    const p12Asn1 = forge.asn1.fromDer(p12Binary);
-    const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, p12Password);
-
-    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[
-      forge.pki.oids.certBag
-    ];
-    const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[
-      forge.pki.oids.pkcs8ShroudedKeyBag
-    ];
-
-    if (!certBags?.length || !keyBags?.length) {
-      throw new Error("Could not extract certificate/private key from P12");
-    }
-
-    certPem = forge.pki.certificateToPem(certBags[0].cert);
-    keyPem = forge.pki.privateKeyToPem(keyBags[0].key);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    throw new Error(
-      `Failed to parse EFI_CERTIFICATE_BASE64. If your P12 has password, set EFI_CERTIFICATE_PASSWORD. Details: ${msg}`
-    );
-  }
-
-  return Deno.createHttpClient({
-    certChain: certPem,
-    privateKey: keyPem,
-  });
-}
-
-async function efiFetch(
-  path: string,
-  init: RequestInit,
-  client: Deno.HttpClient,
-): Promise<Response> {
-  return fetch(`${EFI_API_URL}${path}`, {
-    ...init,
-    client,
-  });
-}
-
-async function getEfiAccessToken(client: Deno.HttpClient): Promise<string> {
+async function getEfiAccessToken(): Promise<string> {
   const clientId = getRequiredSecret("EFI_CLIENT_ID");
   const clientSecret = getRequiredSecret("EFI_CLIENT_SECRET");
   const credentials = btoa(`${clientId}:${clientSecret}`);
 
-  const response = await efiFetch(
-    "/oauth/token",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ grant_type: "client_credentials" }),
+  // Check if we have separate PEM cert and key (preferred approach)
+  const certPem = Deno.env.get("EFI_CERT_PEM");
+  const keyPem = Deno.env.get("EFI_KEY_PEM");
+
+  let fetchOptions: RequestInit & { client?: unknown } = {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/json",
     },
-    client,
-  );
+    body: JSON.stringify({ grant_type: "client_credentials" }),
+  };
+
+  // Try to create mTLS client if we have cert and key PEM
+  if (certPem && keyPem) {
+    console.log("Using PEM cert and key for mTLS");
+    try {
+      const httpClient = Deno.createHttpClient({
+        certChain: certPem,
+        privateKey: keyPem,
+      });
+      fetchOptions.client = httpClient;
+      console.log("mTLS HttpClient created successfully");
+    } catch (e) {
+      console.error("Failed to create mTLS client:", e);
+    }
+  } else {
+    // Try to parse P12 from base64
+    const p12Base64 = Deno.env.get("EFI_CERTIFICATE_BASE64");
+    if (p12Base64) {
+      console.log("Attempting P12 certificate parsing...");
+      console.log("P12 base64 length:", p12Base64.length);
+      
+      try {
+        // Dynamic import of node-forge
+        const forge = (await import("npm:node-forge@1.3.1")).default;
+        const p12Binary = atob(p12Base64.replace(/\s/g, ""));
+        const p12Asn1 = forge.asn1.fromDer(p12Binary);
+        
+        const password = Deno.env.get("EFI_CERTIFICATE_PASSWORD") ?? "";
+        const p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, password);
+
+        const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[
+          forge.pki.oids.certBag
+        ];
+        const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[
+          forge.pki.oids.pkcs8ShroudedKeyBag
+        ];
+
+        if (certBags?.length && keyBags?.length) {
+          const extractedCert = forge.pki.certificateToPem(certBags[0].cert);
+          const extractedKey = forge.pki.privateKeyToPem(keyBags[0].key);
+          console.log("P12 parsed successfully, cert length:", extractedCert.length, "key length:", extractedKey.length);
+
+          try {
+            const httpClient = Deno.createHttpClient({
+              certChain: extractedCert,
+              privateKey: extractedKey,
+            });
+            fetchOptions.client = httpClient;
+            console.log("mTLS HttpClient created from P12 successfully");
+          } catch (clientErr) {
+            console.error("Failed to create HttpClient from P12:", clientErr);
+          }
+        } else {
+          console.error("Could not extract cert/key bags from P12. CertBags:", certBags?.length, "KeyBags:", keyBags?.length);
+        }
+      } catch (parseErr) {
+        console.error("Failed to parse P12 certificate:", parseErr);
+      }
+    } else {
+      console.warn("No certificate configured (neither EFI_CERT_PEM/EFI_KEY_PEM nor EFI_CERTIFICATE_BASE64)");
+    }
+  }
+
+  console.log("Calling EFI oauth/token...");
+  console.log("Has mTLS client:", !!fetchOptions.client);
+
+  const response = await fetch(`${EFI_API_URL}/oauth/token`, fetchOptions);
 
   if (!response.ok) {
     const errText = await response.text();
@@ -92,6 +113,7 @@ async function getEfiAccessToken(client: Deno.HttpClient): Promise<string> {
   }
 
   const data = await response.json();
+  console.log("EFI auth successful, token type:", data.token_type);
   return data.access_token;
 }
 
@@ -99,8 +121,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
-  let mtlsClient: Deno.HttpClient | null = null;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -159,31 +179,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    mtlsClient = createMtlsClientFromP12();
-    const accessToken = await getEfiAccessToken(mtlsClient);
+    const accessToken = await getEfiAccessToken();
     const pixKey = getRequiredSecret("EFI_PIX_KEY");
 
     const txid = `turbo${order_id.replace(/-/g, "").substring(0, 30)}`;
 
-    const chargeResponse = await efiFetch(
-      `/v2/cob/${txid}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          calendario: { expiracao: 3600 },
-          devedor: {},
-          valor: { original: Number(order.total).toFixed(2) },
-          chave: pixKey,
-          solicitacaoPagador: "Pedido Turbo Lanches",
-          infoAdicionais: [{ nome: "Pedido", valor: order_id.substring(0, 6) }],
-        }),
+    // For subsequent requests, also need mTLS - reuse the same approach
+    const chargeResponse = await fetch(`${EFI_API_URL}/v2/cob/${txid}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-      mtlsClient,
-    );
+      body: JSON.stringify({
+        calendario: { expiracao: 3600 },
+        devedor: {},
+        valor: { original: Number(order.total).toFixed(2) },
+        chave: pixKey,
+        solicitacaoPagador: "Pedido Turbo Lanches",
+        infoAdicionais: [{ nome: "Pedido", valor: order_id.substring(0, 6) }],
+      }),
+    });
 
     if (!chargeResponse.ok) {
       const errText = await chargeResponse.text();
@@ -195,15 +211,10 @@ Deno.serve(async (req) => {
     let qrCodeData = { qrcode: "", imagemQrcode: "" };
 
     if (locId) {
-      const qrResponse = await efiFetch(
-        `/v2/loc/${locId}/qrcode`,
-        {
-          method: "GET",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        },
-        mtlsClient,
-      );
-
+      const qrResponse = await fetch(`${EFI_API_URL}/v2/loc/${locId}/qrcode`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (qrResponse.ok) {
         qrCodeData = await qrResponse.json();
       }
@@ -243,9 +254,5 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } finally {
-    if (mtlsClient) {
-      mtlsClient.close();
-    }
   }
 });
