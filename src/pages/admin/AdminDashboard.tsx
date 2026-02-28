@@ -89,6 +89,8 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -891,10 +893,10 @@ const AdminDashboard = () => {
                       )}
                       {order.status !== "cancelled" && (
                         <button
-                          onClick={() => updateStatus(order.id, "cancelled")}
+                          onClick={() => { setCancellingOrderId(order.id); setCancellationReason(""); }}
                           className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
                         >
-                          Cancelar
+                          Recusar
                         </button>
                       )}
                     </div>
@@ -903,6 +905,43 @@ const AdminDashboard = () => {
               </div>
             );
           })}
+        </div>
+      )}
+      {/* Cancel Reason Modal */}
+      {cancellingOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+            <h3 className="text-lg font-bold text-foreground">❌ Recusar Pedido</h3>
+            <p className="text-sm text-muted-foreground">Informe o motivo da recusa para o cliente:</p>
+            <textarea
+              value={cancellationReason}
+              onChange={e => setCancellationReason(e.target.value)}
+              placeholder="Ex: Ingrediente em falta, fora da área de entrega..."
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+              rows={3}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setCancellingOrderId(null)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+                Voltar
+              </button>
+              <button
+                disabled={!cancellationReason.trim()}
+                onClick={async () => {
+                  await supabase.from("orders").update({
+                    status: "cancelled",
+                    cancellation_reason: cancellationReason.trim(),
+                  }).eq("id", cancellingOrderId);
+                  toast({ title: "Pedido recusado." });
+                  setCancellingOrderId(null);
+                  fetchOrders();
+                }}
+                className="flex-1 rounded-lg bg-destructive py-2.5 text-sm font-bold text-destructive-foreground disabled:opacity-40"
+              >
+                Confirmar Recusa
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
