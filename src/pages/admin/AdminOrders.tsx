@@ -33,6 +33,7 @@ interface OrderItem {
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: "Novo", color: "bg-amber-100 text-amber-800", icon: Clock },
+  paid: { label: "Novo (Pago)", color: "bg-green-100 text-green-800", icon: Check },
   accepted: { label: "Aceito", color: "bg-blue-100 text-blue-800", icon: Check },
   preparing: { label: "Preparando", color: "bg-purple-100 text-purple-800", icon: ChefHat },
   ready: { label: "Pronto", color: "bg-emerald-100 text-emerald-800", icon: Package },
@@ -43,6 +44,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
 
 const nextStatus: Record<string, string> = {
   pending: "preparing",
+  paid: "preparing",
   preparing: "ready",
   ready: "delivering",
   delivering: "delivered",
@@ -58,7 +60,7 @@ const AdminOrders = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Alarm: plays while there are pending orders
-  const hasPendingOrders = orders.some((o) => o.status === "pending");
+  const hasPendingOrders = orders.some((o) => o.status === "pending" || o.status === "paid");
   useAlarmSound(hasPendingOrders);
 
   const fetchOrders = async () => {

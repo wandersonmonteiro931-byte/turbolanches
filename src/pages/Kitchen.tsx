@@ -70,7 +70,7 @@ const Kitchen = () => {
     const { count } = await supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("status", "pending");
+      .in("status", ["pending", "paid"]);
     setPendingCount(count || 0);
   }, []);
 
