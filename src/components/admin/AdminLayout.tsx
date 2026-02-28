@@ -27,6 +27,17 @@ const AdminLayout = () => {
     }
   }, [isAdmin, loading, navigate]);
 
+  // Auto-open kitchen on second screen
+  useEffect(() => {
+    if (!loading && isAdmin) {
+      const alreadyOpened = sessionStorage.getItem("kitchen_opened");
+      if (!alreadyOpened) {
+        sessionStorage.setItem("kitchen_opened", "true");
+        window.open("/cozinha", "kitchen_screen", "popup");
+      }
+    }
+  }, [loading, isAdmin]);
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
