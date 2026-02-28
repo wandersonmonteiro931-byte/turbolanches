@@ -19,6 +19,7 @@ interface OrderData {
   address_neighborhood: string | null;
   created_at: string;
   observations: string | null;
+  cancellation_reason: string | null;
   paid_at: string | null;
   preparing_at: string | null;
   ready_at: string | null;
@@ -355,7 +356,13 @@ const OrderTracking = () => {
                 </div>
                 <div className="pt-1.5">
                   <p className="text-sm font-semibold text-destructive">Pedido Recusado</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">A loja não pôde aceitar este pedido</p>
+                   <p className="text-xs text-muted-foreground mt-0.5">A loja não pôde aceitar este pedido</p>
+                   {order.cancellation_reason && (
+                     <div className="mt-2 rounded-lg bg-destructive/10 p-2">
+                       <p className="text-xs font-semibold text-destructive">Motivo:</p>
+                       <p className="text-xs text-foreground">{order.cancellation_reason}</p>
+                     </div>
+                   )}
                 </div>
               </div>
             </div>

@@ -260,6 +260,7 @@ export type Database = {
           address_neighborhood: string | null
           address_number: string | null
           address_street: string | null
+          cancellation_reason: string | null
           change_for: number | null
           coupon_code: string | null
           created_at: string
@@ -294,6 +295,7 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_street?: string | null
+          cancellation_reason?: string | null
           change_for?: number | null
           coupon_code?: string | null
           created_at?: string
@@ -328,6 +330,7 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_street?: string | null
+          cancellation_reason?: string | null
           change_for?: number | null
           coupon_code?: string | null
           created_at?: string
