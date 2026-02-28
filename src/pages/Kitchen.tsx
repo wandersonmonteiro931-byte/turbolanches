@@ -173,7 +173,7 @@ const Kitchen = () => {
         .kds-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 16px; padding: 16px; height: calc(100vh - 80px); overflow-y: auto;
-          align-content: start;
+          align-content: start; grid-auto-rows: min-content;
           scrollbar-width: none; -ms-overflow-style: none;
         }
         .kds-grid::-webkit-scrollbar { display: none; }
