@@ -137,6 +137,15 @@ const AdminDashboard = () => {
     if (data) setItems((prev) => ({ ...prev, [orderId]: data }));
   };
 
+  // Auto-launch kitchen window once per session
+  useEffect(() => {
+    const key = "kitchen-auto-launched";
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, "1");
+      window.open("/cozinha", "turbo-kitchen", "width=1024,height=768");
+    }
+  }, []);
+
   useEffect(() => {
     fetchOrders();
     fetchStoreSettings();
