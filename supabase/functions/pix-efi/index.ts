@@ -210,13 +210,19 @@ serve(async (req) => {
     // Authenticated endpoints
     const auth = req.headers.get("Authorization");
     if (!auth?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-    const { data: { user }, error } = await userSupa(auth).auth.getUser();
-    if (error || !user) return json({ error: "Unauthorized" }, 401);
+    
+    const token = auth.replace("Bearer ", "");
+    const supaUser = createClient(getEnv("SUPABASE_URL"), getEnv("SUPABASE_ANON_KEY"), {
+      global: { headers: { Authorization: auth } },
+    });
+    const { data, error } = await supaUser.auth.getClaims(token);
+    if (error || !data?.claims?.sub) return json({ error: "Unauthorized" }, 401);
+    const userId = data.claims.sub as string;
 
     const body = await req.json();
 
-    if (path === "create-charge") return await handleCreateCharge(user.id, body);
-    if (path === "check-status") return await handleCheckStatus(user.id, body);
+    if (path === "create-charge") return await handleCreateCharge(userId, body);
+    if (path === "check-status") return await handleCheckStatus(userId, body);
 
     return json({ error: "Unknown action" }, 400);
   } catch (err: any) {
