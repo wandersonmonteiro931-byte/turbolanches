@@ -156,7 +156,7 @@ const Kitchen = () => {
         .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #000; }
         .kds-subtitle { font-size: 13px; font-weight: 900; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
         .kds-count { font-size: 16px; color: #000; font-weight: 900; }
-        .kds-clock { font-size: 28px; font-weight: 900; color: #000; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+        .kds-clock { font-size: 44px; font-weight: 900; color: #000; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
         .kds-clock-label { font-size: 10px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         .kds-deadline { font-size: 13px; font-weight: 900; color: #000; background: #e0f2fe; padding: 4px 12px; border-radius: 6px; margin-top: 4px; display: inline-block; }
 
