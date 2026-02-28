@@ -30,10 +30,10 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
       onClick={handleClick}
       className={`flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors ${!storeIsOpen ? "opacity-60" : ""}`}
     >
-      <div className="flex flex-1 flex-col justify-between">
+      <div className="flex flex-1 flex-col justify-between min-w-0">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-foreground leading-tight">{product.name}</h3>
+            <h3 className="font-semibold text-foreground leading-tight line-clamp-2">{product.name}</h3>
             {product.popular && (
               <motion.span
                 animate={{ scale: [1, 1.1, 1] }}

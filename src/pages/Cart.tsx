@@ -89,9 +89,9 @@ const Cart = () => {
           return (
             <div key={index} className="rounded-xl bg-card p-4">
               <div className="flex gap-3">
-                <img src={item.product.image} alt={item.product.name} className="h-16 w-16 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <h3 className="font-semibold text-foreground text-sm">{item.product.name}</h3>
+                <img src={item.product.image} alt={item.product.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-foreground text-sm truncate">{item.product.name}</h3>
                   {item.selectedAddons.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-0.5">
                       + {item.selectedAddons.map((a) => a.name).join(", ")}

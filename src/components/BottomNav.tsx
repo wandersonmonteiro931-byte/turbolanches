@@ -1,7 +1,6 @@
 import { Home, Search, FileText, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useCart } from "@/contexts/CartContext";
 
 const tabs = [
   { path: "/", icon: Home, label: "Início" },
@@ -13,7 +12,6 @@ const tabs = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { totalItems } = useCart();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-bottom">
@@ -38,15 +36,7 @@ const BottomNav = () => {
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-              {tab.label === "Pedidos" && totalItems > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-                >
-                  {totalItems}
-                </motion.span>
-              )}
+              
             </motion.button>
           );
         })}

@@ -402,11 +402,11 @@ const Checkout = () => {
                   const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price, 0);
                   const lineTotal = (item.product.price + addonsTotal) * item.quantity;
                   return (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-foreground">
+                    <div key={index} className="flex justify-between gap-2 text-sm">
+                      <span className="text-foreground min-w-0 truncate flex-1">
                         {item.quantity}x {item.product.name}
                       </span>
-                      <span className="text-muted-foreground">
+                      <span className="text-muted-foreground whitespace-nowrap shrink-0">
                         R$ {lineTotal.toFixed(2).replace(".", ",")}
                       </span>
                     </div>
@@ -476,8 +476,8 @@ const Checkout = () => {
               </div>
               {deliveryType === "delivery" && (
                 <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taxa de entrega ({profile?.neighborhood})</span>
+                  <div className="flex justify-between gap-2 text-sm">
+                    <span className="text-muted-foreground truncate min-w-0">Taxa de entrega ({profile?.neighborhood})</span>
                     {deliveryFee === 0 ? (
                       <span className="text-green-600 font-bold">GRÁTIS 🎉</span>
                     ) : (
