@@ -112,15 +112,17 @@ const Checkout = () => {
 
   const handlePixConfirmed = useCallback(() => {
     toast.success("Pagamento PIX confirmado! 🎉");
-  }, []);
-
-  const handlePixModalClose = useCallback(() => {
-    setShowPixModal(false);
+    clearCart();
     if (pixData) {
-      clearCart();
-      navigate(`/pedido/${pixData.orderId}`);
+      setTimeout(() => navigate(`/pedido/${pixData.orderId}`), 2000);
     }
   }, [pixData, clearCart, navigate]);
+
+  const handlePixCancelled = useCallback(() => {
+    setShowPixModal(false);
+    setPixData(null);
+    // Cart stays intact - user goes back to checkout
+  }, []);
 
   if (!user) {
     navigate("/auth");
@@ -253,8 +255,8 @@ const Checkout = () => {
         setShowPixModal(true);
       } else {
         // Non-PIX: complete immediately
-        clearCart();
         toast.success("Pedido enviado com sucesso! 🔥");
+        clearCart();
         sendWhatsAppNotification(order.id, profile!, grandTotal, paymentMethod);
         navigate(`/pedido/${order.id}`);
       }
@@ -535,7 +537,7 @@ const Checkout = () => {
           total={grandTotal}
           expiracao={pixData.expiracao}
           onConfirmed={handlePixConfirmed}
-          onClose={handlePixModalClose}
+          onCancelled={handlePixCancelled}
         />
       )}
     </div>
