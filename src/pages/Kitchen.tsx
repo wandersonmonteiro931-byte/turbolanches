@@ -132,7 +132,7 @@ const Kitchen = () => {
     <>
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #f5f5f5; color: #1a1a1a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
+        html, body, #root { height: 100%; background: #f5f5f5; color: #000; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
 
         .kds-header {
           background: #ffffff;
@@ -141,9 +141,9 @@ const Kitchen = () => {
         }
         .kds-header-left { display: flex; align-items: center; gap: 14px; }
         .kds-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
-        .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #1a1a1a; }
-        .kds-subtitle { font-size: 13px; font-weight: 600; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
-        .kds-count { font-size: 16px; color: #666; font-weight: 700; }
+        .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #000; }
+        .kds-subtitle { font-size: 13px; font-weight: 900; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
+        .kds-count { font-size: 16px; color: #000; font-weight: 900; }
 
         .kds-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -185,32 +185,32 @@ const Kitchen = () => {
           display: flex; justify-content: space-between; align-items: center;
           padding: 16px 20px; border-bottom: 1px solid #eee;
         }
-        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; color: #1a1a1a; }
+        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; color: #000; }
         .kds-badge {
           font-size: 10px; padding: 3px 10px; border-radius: 6px;
-          background: #f0f0f0; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+          background: #f0f0f0; color: #000; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .kds-timer {
           font-size: 24px; padding: 6px 16px; border-radius: 10px; font-weight: 900;
           min-width: 100px; text-align: center; font-variant-numeric: tabular-nums;
         }
-        .kds-timer-normal { background: #dcfce7; color: #166534; }
-        .kds-timer-warning { background: #fef3c7; color: #92400e; animation: kds-pulse 2s ease-in-out infinite; }
-        .kds-timer-late { background: #fee2e2; color: #991b1b; animation: kds-blink 0.8s ease-in-out infinite; }
+        .kds-timer-normal { background: #dcfce7; color: #000; }
+        .kds-timer-warning { background: #fef3c7; color: #000; animation: kds-pulse 2s ease-in-out infinite; }
+        .kds-timer-late { background: #fee2e2; color: #000; animation: kds-blink 0.8s ease-in-out infinite; }
 
         @keyframes kds-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes kds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
         .kds-items { padding: 12px 20px; flex: 1; }
         .kds-item {
-          font-size: 20px; font-weight: 700; padding: 6px 0;
-          border-bottom: 1px solid #f0f0f0; letter-spacing: 0.3px; color: #1a1a1a;
+          font-size: 20px; font-weight: 900; padding: 6px 0;
+          border-bottom: 1px solid #f0f0f0; letter-spacing: 0.3px; color: #000;
         }
         .kds-item:last-child { border-bottom: none; }
-        .kds-addon { font-size: 15px; color: #888; padding-left: 20px; font-weight: 500; }
-        .kds-item-obs { font-size: 15px; color: #d97706; padding-left: 20px; font-weight: 600; }
+        .kds-addon { font-size: 15px; color: #000; padding-left: 20px; font-weight: 900; }
+        .kds-item-obs { font-size: 15px; color: #000; padding-left: 20px; font-weight: 900; background: #fef3c7; margin: 2px 0; padding: 4px 20px; border-radius: 4px; }
         .kds-order-obs {
-          padding: 10px 20px; font-size: 15px; color: #d97706; font-weight: 700;
+          padding: 10px 20px; font-size: 15px; color: #000; font-weight: 900;
           border-top: 1px dashed #e5e5e5; background: #fffbeb;
         }
 
@@ -227,7 +227,7 @@ const Kitchen = () => {
 
         .kds-empty {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          height: calc(100vh - 76px); color: #aaa; font-size: 28px; font-weight: 700;
+          height: calc(100vh - 76px); color: #000; font-size: 28px; font-weight: 900;
           letter-spacing: 1px;
         }
         .kds-empty span { font-size: 72px; margin-bottom: 20px; }
