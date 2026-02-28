@@ -10,6 +10,7 @@ interface KitchenOrder {
   observations: string | null;
   delivery_type: string;
   created_at: string;
+  priority: boolean;
 }
 
 interface KitchenItem {
@@ -36,11 +37,11 @@ const Kitchen = () => {
   const fetchOrders = useCallback(async () => {
     const { data } = await supabase
       .from("orders")
-      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at")
+      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
     if (data) {
-      setOrders(data);
+      setOrders(data as KitchenOrder[]);
       const ids = data.map((o) => o.id);
       if (ids.length > 0) {
         const { data: itemsData } = await supabase
@@ -140,41 +141,57 @@ const Kitchen = () => {
     return deadline.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
   };
 
+  // Sort: priority first, then most delayed (oldest preparing_at)
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (a.priority && !b.priority) return -1;
+    if (!a.priority && b.priority) return 1;
+    const refA = a.preparing_at || a.created_at;
+    const refB = b.preparing_at || b.created_at;
+    return new Date(refA).getTime() - new Date(refB).getTime();
+  });
+
   return (
     <>
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #f5f5f5; color: #000; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+        html, body, #root { height: 100%; background: #e8e8e8; color: #000; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
 
         .kds-header {
           background: #ffffff;
           padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
-          border-bottom: 2px solid #e5e5e5; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+          border-bottom: 3px solid #000; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
         .kds-header-left { display: flex; align-items: center; gap: 14px; }
         .kds-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
         .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #000; }
         .kds-subtitle { font-size: 13px; font-weight: 900; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
-        .kds-count { font-size: 16px; color: #000; font-weight: 900; }
+        .kds-count { font-size: 18px; color: #000; font-weight: 900; }
         .kds-clock { font-size: 44px; font-weight: 900; color: #000; font-variant-numeric: tabular-nums; letter-spacing: 2px; }
         .kds-clock-label { font-size: 10px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 1px; }
         .kds-deadline { font-size: 13px; font-weight: 900; color: #000; background: #e0f2fe; padding: 4px 12px; border-radius: 6px; margin-top: 4px; display: inline-block; }
 
         .kds-grid {
-          display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-          gap: 20px; padding: 20px; height: calc(100vh - 76px); overflow-y: auto;
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 16px; padding: 16px; height: calc(100vh - 80px); overflow-y: auto;
           align-content: start;
           scrollbar-width: none; -ms-overflow-style: none;
         }
         .kds-grid::-webkit-scrollbar { display: none; }
 
         .kds-card {
-          background: #ffffff; border-radius: 16px; border: 2px solid #e5e5e5;
+          background: #ffffff; border-radius: 14px; border: 3px solid #000;
           overflow: hidden; display: flex; flex-direction: column;
-          transition: border-color 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          transition: border-color 0.3s; box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
-        .kds-card-late { border-color: #dc3545; }
-        .kds-card-warning { border-color: #f59e0b; }
+        .kds-card-priority { border-color: #7c3aed !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.3), 0 3px 10px rgba(0,0,0,0.1); }
+        .kds-card-late { border-color: #dc3545 !important; }
+        .kds-card-warning { border-color: #f59e0b !important; }
+
+        .kds-priority-banner {
+          background: #7c3aed; color: white; text-align: center;
+          font-size: 14px; font-weight: 900; padding: 6px;
+          letter-spacing: 3px; text-transform: uppercase;
+        }
 
         .kds-card-cancelled {
           border-color: #dc3545 !important;
@@ -198,16 +215,16 @@ const Kitchen = () => {
 
         .kds-card-head {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 16px 20px; border-bottom: 1px solid #eee;
+          padding: 14px 18px; border-bottom: 2px solid #e5e5e5;
         }
-        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; color: #000; }
+        .kds-order-num { font-size: 24px; font-weight: 900; letter-spacing: 1px; color: #000; }
         .kds-badge {
           font-size: 10px; padding: 3px 10px; border-radius: 6px;
           background: #f0f0f0; color: #000; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .kds-timer {
-          font-size: 24px; padding: 6px 16px; border-radius: 10px; font-weight: 900;
-          min-width: 100px; text-align: center; font-variant-numeric: tabular-nums;
+          font-size: 22px; padding: 5px 14px; border-radius: 8px; font-weight: 900;
+          min-width: 90px; text-align: center; font-variant-numeric: tabular-nums;
         }
         .kds-timer-normal { background: #dcfce7; color: #000; }
         .kds-timer-warning { background: #fef3c7; color: #000; animation: kds-pulse 2s ease-in-out infinite; }
@@ -216,24 +233,24 @@ const Kitchen = () => {
         @keyframes kds-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes kds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-        .kds-items { padding: 12px 20px; flex: 1; }
+        .kds-items { padding: 10px 18px; flex: 1; }
         .kds-item {
-          font-size: 20px; font-weight: 900; padding: 6px 0;
+          font-size: 18px; font-weight: 900; padding: 5px 0;
           border-bottom: 1px solid #f0f0f0; letter-spacing: 0.3px; color: #000;
         }
         .kds-item:last-child { border-bottom: none; }
-        .kds-addon { font-size: 15px; color: #000; padding-left: 20px; font-weight: 900; }
-        .kds-item-obs { font-size: 15px; color: #000; padding-left: 20px; font-weight: 900; background: #fef3c7; margin: 2px 0; padding: 4px 20px; border-radius: 4px; }
+        .kds-addon { font-size: 14px; color: #000; padding-left: 18px; font-weight: 900; }
+        .kds-item-obs { font-size: 14px; color: #000; padding-left: 18px; font-weight: 900; background: #fef3c7; margin: 2px 0; padding: 4px 18px; border-radius: 4px; }
         .kds-order-obs {
-          padding: 10px 20px; font-size: 15px; color: #000; font-weight: 900;
-          border-top: 1px dashed #e5e5e5; background: #fffbeb;
+          padding: 8px 18px; font-size: 14px; color: #000; font-weight: 900;
+          border-top: 2px dashed #e5e5e5; background: #fffbeb;
         }
 
-        .kds-footer { padding: 14px 20px; }
+        .kds-footer { padding: 12px 18px; }
         .kds-btn {
-          width: 100%; padding: 16px; border: none; border-radius: 12px;
+          width: 100%; padding: 14px; border: none; border-radius: 10px;
           background: #EA1D2C; color: #fff;
-          font-size: 18px; font-weight: 900; cursor: pointer;
+          font-size: 16px; font-weight: 900; cursor: pointer;
           text-transform: uppercase; letter-spacing: 2px;
           transition: all 0.15s; font-family: 'Inter', sans-serif;
         }
@@ -242,7 +259,7 @@ const Kitchen = () => {
 
         .kds-empty {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          height: calc(100vh - 76px); color: #000; font-size: 28px; font-weight: 900;
+          height: calc(100vh - 80px); color: #000; font-size: 28px; font-weight: 900;
           letter-spacing: 1px;
         }
         .kds-empty span { font-size: 72px; margin-bottom: 20px; }
@@ -289,26 +306,31 @@ const Kitchen = () => {
             </div>
           ))}
 
-          {orders.map((order) => {
+          {sortedOrders.map((order) => {
             const { minutes, seconds } = getElapsed(order);
             const timerClass = getTimerClass(minutes);
-            const cardBorder = minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
+            const cardClass = order.priority
+              ? " kds-card-priority"
+              : minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
             const orderItems = items[order.id] || [];
 
             return (
-              <div key={order.id} className={`kds-card${cardBorder}`}>
+              <div key={order.id} className={`kds-card${cardClass}`}>
+                {order.priority && (
+                  <div className="kds-priority-banner">⚡ PRIORIDADE ⚡</div>
+                )}
                 <div className="kds-card-head">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span className="kds-order-num">#{String(order.order_number).padStart(5, "0")}</span>
                     <span className="kds-badge">
-                      {order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
+                      {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type.toUpperCase()}
                     </span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                     <div className={`kds-timer ${timerClass}`}>
                       {minutes}:{String(seconds).padStart(2, "0")}
                     </div>
-                    <span className="kds-deadline">🕐 Entregar até {getDeadline(order)}</span>
+                    <span className="kds-deadline">🕐 Até {getDeadline(order)}</span>
                   </div>
                 </div>
 

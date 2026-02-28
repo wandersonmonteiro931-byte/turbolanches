@@ -18,6 +18,7 @@ interface Order {
   address_neighborhood: string | null;
   created_at: string;
   observations: string | null;
+  priority: boolean;
 }
 
 interface OrderItem {
@@ -252,6 +253,22 @@ const AdminOrders = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-2">
+                  {order.status === "preparing" && (
+                    <button
+                      onClick={async () => {
+                        await supabase.from("orders").update({ priority: !order.priority }).eq("id", order.id);
+                        toast({ title: order.priority ? "Prioridade removida" : "⚡ Pedido marcado como PRIORIDADE" });
+                        fetchOrders();
+                      }}
+                      className={`rounded-lg border px-4 py-2 text-sm font-bold ${
+                        order.priority
+                          ? "border-purple-500 bg-purple-50 text-purple-700"
+                          : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      ⚡ {order.priority ? "Remover Prioridade" : "Marcar Prioridade"}
+                    </button>
+                  )}
                   {order.payment_method !== "fiado" && order.status !== "cancelled" && (
                     <button
                       onClick={async () => {
