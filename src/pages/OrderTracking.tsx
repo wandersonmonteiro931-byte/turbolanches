@@ -19,6 +19,18 @@ interface OrderData {
   address_neighborhood: string | null;
   created_at: string;
   observations: string | null;
+  paid_at: string | null;
+  preparing_at: string | null;
+  ready_at: string | null;
+  delivering_at: string | null;
+  delivered_at: string | null;
+  updated_at: string;
+}
+
+function formatTime(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 interface OrderItemData {
@@ -246,6 +258,19 @@ const OrderTracking = () => {
                   (step.key === "delivered" && currentVisualIndex === 5);
                 const StepIcon = step.icon;
 
+                // Get timestamp for this step
+                const stepTime = (() => {
+                  switch (step.key) {
+                    case "received": return formatTime(order.created_at);
+                    case "accepted": return formatTime(order.preparing_at);
+                    case "preparing": return formatTime(order.preparing_at);
+                    case "ready": return formatTime(order.ready_at);
+                    case "delivering": return formatTime(order.delivering_at);
+                    case "delivered": return formatTime(order.delivered_at);
+                    default: return null;
+                  }
+                })();
+
                 return (
                   <motion.div
                     key={step.key}
@@ -279,7 +304,12 @@ const OrderTracking = () => {
                       <p className={`text-sm font-semibold ${isCompleted ? "text-foreground" : "text-muted-foreground"}`}>
                         {step.label}
                       </p>
-                      {isCurrent && (
+                      {isCompleted && stepTime && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {stepTime}
+                        </p>
+                      )}
+                      {isCurrent && !stepTime && (
                         <motion.p
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}

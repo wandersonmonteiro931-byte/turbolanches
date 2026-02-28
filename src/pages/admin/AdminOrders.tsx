@@ -111,8 +111,11 @@ const AdminOrders = () => {
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
-    if (newStatus === "preparing") updateData.preparing_at = new Date().toISOString();
-    if (newStatus === "ready") updateData.ready_at = new Date().toISOString();
+    const now = new Date().toISOString();
+    if (newStatus === "preparing") updateData.preparing_at = now;
+    if (newStatus === "ready") updateData.ready_at = now;
+    if (newStatus === "delivering") updateData.delivering_at = now;
+    if (newStatus === "delivered") updateData.delivered_at = now;
     
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
