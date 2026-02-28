@@ -185,7 +185,7 @@ const Checkout = () => {
       .map((i) => `${i.quantity}x ${i.product.name}`)
       .join("\n");
     const message = encodeURIComponent(
-      `🍔 *NOVO PEDIDO - TURBO DELIVERY*\n\n` +
+      `🍔 *NOVO PEDIDO - TURBO LANCHES*\n\n` +
       `Pedido #${orderId.slice(0, 6)}\n` +
       `Cliente: ${profile.full_name}\n` +
       `Telefone: ${profile.phone}\n` +

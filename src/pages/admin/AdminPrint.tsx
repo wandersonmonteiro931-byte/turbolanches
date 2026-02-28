@@ -255,7 +255,7 @@ const AdminPrint = () => {
 
   const comandaCozinha = (
     <div>
-      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="store-name">TURBO LANCHES</div>
       <div className="tipo-label">COZINHA</div>
       <div className="separator" />
       <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
@@ -284,7 +284,7 @@ const AdminPrint = () => {
   // ===== COMANDA ENTREGA =====
   const comandaEntrega = (
     <div>
-      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="store-name">TURBO LANCHES</div>
       <div className="tipo-label">ENTREGA</div>
       <div className="separator" />
       <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
@@ -317,7 +317,7 @@ const AdminPrint = () => {
   // ===== COMANDA CLIENTE =====
   const comandaCliente = (
     <div>
-      <div className="store-name">TURBO DELIVERY LANCHES</div>
+      <div className="store-name">TURBO LANCHES</div>
       <div className="tipo-label-big">OBRIGADO!</div>
       <div className="separator" />
       <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>

@@ -59,7 +59,7 @@ const AdminLayout = () => {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
           <UtensilsCrossed size={16} className="text-primary-foreground" />
         </div>
-        <span className="text-lg font-bold text-foreground">Turbo Admin</span>
+        <span className="text-lg font-bold text-foreground">Turbo Lanches</span>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">

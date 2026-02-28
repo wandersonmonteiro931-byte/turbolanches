@@ -72,8 +72,7 @@ function buildReceiptHTML(order: PrintOrderData): string {
 </head>
 <body>
   <div class="center">
-    <div class="title">TURBO DELIVERY</div>
-    <div class="subtitle">LANCHES</div>
+    <div class="title">TURBO LANCHES</div>
   </div>
   <div class="separator"></div>
 
