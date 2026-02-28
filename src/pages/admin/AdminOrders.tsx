@@ -134,22 +134,34 @@ const AdminOrders = () => {
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Impressão automática por status
+    // Impressão automática por status — com retry garantido
     if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
+      safePrint(`/admin/imprimir/${orderId}?tipo=cozinha`);
     } else if (newStatus === "delivering") {
-      printEntregaCliente(orderId);
+      safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
+    }
+  };
+
+  // Abre janela de impressão com retry caso o navegador bloqueie o popup
+  const safePrint = (url: string, retries = 3) => {
+    const win = window.open(url, "_blank", "width=300,height=600");
+    if (!win || win.closed) {
+      if (retries > 0) {
+        toast({ title: "⚠️ Popup bloqueado, tentando novamente...", variant: "destructive" });
+        setTimeout(() => safePrint(url, retries - 1), 500);
+      } else {
+        toast({ title: "❌ Não foi possível imprimir. Clique manualmente no botão de impressão.", variant: "destructive" });
+      }
     }
   };
 
   const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
-    window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, "_blank", "width=300,height=600");
+    safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
 
   const printEntregaCliente = (orderId: string) => {
-    // Uma única janela: imprime entrega, depois redireciona para cliente automaticamente
-    window.open(`/admin/imprimir/${orderId}?tipo=entrega_cliente`, "_blank", "width=300,height=600");
+    safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
   };
 
   const toggleExpand = (orderId: string) => {
