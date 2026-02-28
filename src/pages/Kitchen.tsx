@@ -29,6 +29,7 @@ const Kitchen = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
   const [now, setNow] = useState(Date.now());
+  const [brasiliaTime, setBrasiliaTime] = useState("");
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
@@ -80,7 +81,11 @@ const Kitchen = () => {
       })
       .subscribe();
 
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      setBrasiliaTime(new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    }, 1000);
+    setBrasiliaTime(new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", second: "2-digit" }));
 
     return () => {
       supabase.removeChannel(channel);
@@ -128,6 +133,13 @@ const Kitchen = () => {
     return "kds-timer-normal";
   };
 
+  const getDeadline = (order: KitchenOrder) => {
+    const ref = order.preparing_at || order.created_at;
+    if (!ref) return "";
+    const deadline = new Date(new Date(ref).getTime() + 30 * 60000);
+    return deadline.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+  };
+
   return (
     <>
       <style>{`
@@ -144,6 +156,9 @@ const Kitchen = () => {
         .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #000; }
         .kds-subtitle { font-size: 13px; font-weight: 900; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
         .kds-count { font-size: 16px; color: #000; font-weight: 900; }
+        .kds-clock { font-size: 28px; font-weight: 900; color: #000; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+        .kds-clock-label { font-size: 10px; font-weight: 900; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .kds-deadline { font-size: 13px; font-weight: 900; color: #000; background: #e0f2fe; padding: 4px 12px; border-radius: 6px; margin-top: 4px; display: inline-block; }
 
         .kds-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -241,6 +256,10 @@ const Kitchen = () => {
             <div className="kds-subtitle">EM PREPARO</div>
           </div>
         </div>
+        <div style={{ textAlign: "center" }}>
+          <div className="kds-clock">{brasiliaTime}</div>
+          <div className="kds-clock-label">Horário de Brasília</div>
+        </div>
         <div className="kds-count">{orders.length} pedido{orders.length !== 1 ? "s" : ""}</div>
       </div>
 
@@ -285,8 +304,11 @@ const Kitchen = () => {
                       {order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
                     </span>
                   </div>
-                  <div className={`kds-timer ${timerClass}`}>
-                    {minutes}:{String(seconds).padStart(2, "0")}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                    <div className={`kds-timer ${timerClass}`}>
+                      {minutes}:{String(seconds).padStart(2, "0")}
+                    </div>
+                    <span className="kds-deadline">🕐 Entregar até {getDeadline(order)}</span>
                   </div>
                 </div>
 
