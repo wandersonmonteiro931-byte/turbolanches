@@ -137,12 +137,23 @@ const AdminDashboard = () => {
     if (data) setItems((prev) => ({ ...prev, [orderId]: data }));
   };
 
+  const openKitchenWindow = () => {
+    // Open on the left monitor (negative X for extended display to the left)
+    const w = screen.availWidth;
+    const h = screen.availHeight;
+    window.open(
+      "/cozinha",
+      "turbo-kitchen",
+      `width=${w},height=${h},left=${-w},top=0,menubar=no,toolbar=no,location=no,status=no`
+    );
+  };
+
   // Auto-launch kitchen window once per session
   useEffect(() => {
     const key = "kitchen-auto-launched";
     if (!sessionStorage.getItem(key)) {
       sessionStorage.setItem(key, "1");
-      window.open("/cozinha", "turbo-kitchen", "width=1024,height=768");
+      openKitchenWindow();
     }
   }, []);
 
@@ -511,7 +522,7 @@ const AdminDashboard = () => {
         </button>
 
         <button
-          onClick={() => window.open("/cozinha", "_blank")}
+          onClick={openKitchenWindow}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >
           <ChefHat size={16} />
