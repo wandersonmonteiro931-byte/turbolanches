@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -30,23 +30,43 @@ interface OrderItemData {
   addons_json: any;
 }
 
+// Visual steps mapped to real statuses
 const statusSteps = [
-  { key: "pending", label: "Pedido confirmado", icon: Check, emoji: "✅" },
-  { key: "preparing", label: "Em preparo", icon: ChefHat, emoji: "👨‍🍳" },
+  { key: "received", label: "Pedido Recebido", icon: Inbox, emoji: "📩" },
+  { key: "accepted", label: "Pedido Aceito", icon: ThumbsUp, emoji: "✅" },
+  { key: "preparing", label: "Em Preparo", icon: ChefHat, emoji: "👨‍🍳" },
   { key: "ready", label: "Pronto", icon: Package, emoji: "📦" },
-  { key: "delivering", label: "Saiu para entrega", icon: Truck, emoji: "🏍️" },
+  { key: "delivering", label: "Saiu para Entrega", icon: Truck, emoji: "🏍️" },
   { key: "delivered", label: "Entregue", icon: Check, emoji: "🎉" },
 ];
 
-const statusOrder = ["pending", "preparing", "ready", "delivering", "delivered"];
+// Map real DB status to visual step index
+function getVisualStepIndex(status: string): number {
+  switch (status) {
+    case "pending":
+    case "paid":
+      return 0; // Pedido Recebido
+    case "preparing":
+      return 2; // Em Preparo (accepted is also completed)
+    case "ready":
+      return 3;
+    case "delivering":
+      return 4;
+    case "delivered":
+      return 5;
+    default:
+      return -1;
+  }
+}
 
 const statusMessages: Record<string, { title: string; subtitle: string; animation: string }> = {
-  pending: { title: "Recebemos seu pedido!", subtitle: "Estamos confirmando com a cozinha...", animation: "🔔" },
-  preparing: { title: "Mãos na massa!", subtitle: "Nossa equipe está preparando tudo com carinho 🔥", animation: "🍳" },
+  pending: { title: "Pedido Recebido!", subtitle: "Aguardando a loja aceitar seu pedido...", animation: "📩" },
+  paid: { title: "Pagamento Confirmado!", subtitle: "Aguardando a loja aceitar seu pedido...", animation: "💰" },
+  preparing: { title: "Mãos na massa!", subtitle: "A loja aceitou e está preparando tudo com carinho 🔥", animation: "🍳" },
   ready: { title: "Tudo pronto!", subtitle: "Seu pedido está prontinho e quentinho!", animation: "✨" },
   delivering: { title: "A caminho!", subtitle: "Nosso entregador já saiu com seu pedido!", animation: "🏍️" },
   delivered: { title: "Bom apetite!", subtitle: "Esperamos que goste! Obrigado pela preferência ❤️", animation: "🎉" },
-  cancelled: { title: "Pedido cancelado", subtitle: "Este pedido foi cancelado", animation: "❌" },
+  cancelled: { title: "Pedido Recusado", subtitle: "Infelizmente a loja não pôde aceitar seu pedido.", animation: "😔" },
 };
 
 const OrderTracking = () => {
@@ -55,7 +75,6 @@ const OrderTracking = () => {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [items, setItems] = useState<OrderItemData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [prevStatus, setPrevStatus] = useState<string>("");
 
   const fetchOrder = async () => {
     if (!id) return;
@@ -79,16 +98,13 @@ const OrderTracking = () => {
         table: "orders",
         filter: `id=eq.${id}`,
       }, (payload) => {
-        setOrder((prev) => {
-          if (prev) setPrevStatus(prev.status);
-          return prev ? { ...prev, ...payload.new } : null;
-        });
+        setOrder((prev) => prev ? { ...prev, ...payload.new } : null);
         const newStatus = (payload.new as any).status;
-        if (newStatus === "pending") toast.success("✅ Pedido confirmado! Aguardando a loja...");
-        if (newStatus === "preparing") toast.info("🍳 Seu pedido está sendo preparado!");
+        if (newStatus === "preparing") toast.info("✅ Pedido aceito! Estão preparando...");
+        if (newStatus === "ready") toast.info("📦 Seu pedido está pronto!");
         if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
-        if (newStatus === "delivered") toast.success("✅ Pedido entregue! Bom apetite!");
-        if (newStatus === "cancelled") toast.error("❌ Pedido cancelado.");
+        if (newStatus === "delivered") toast.success("🎉 Pedido entregue! Bom apetite!");
+        if (newStatus === "cancelled") toast.error("😔 Pedido recusado pela loja.");
       })
       .subscribe();
 
@@ -122,22 +138,28 @@ const OrderTracking = () => {
         </motion.span>
         <h2 className="mt-4 text-xl text-foreground font-bold">Pedido não encontrado</h2>
         <p className="text-sm text-muted-foreground mt-1">Verifique o link e tente novamente</p>
-        <button onClick={() => navigate("/")} className="mt-6 rounded-xl bg-fire-gradient px-6 py-3 font-bold text-primary-foreground shadow-fire">
+        <button onClick={() => navigate("/")} className="mt-6 rounded-xl bg-primary px-6 py-3 font-bold text-primary-foreground">
           Ir para o cardápio
         </button>
       </div>
     );
   }
 
-  const currentStepIndex = statusOrder.indexOf(order.status);
   const isCancelled = order.status === "cancelled";
+  const isDelivery = order.delivery_type === "delivery";
+  const currentVisualIndex = getVisualStepIndex(order.status);
   const msg = statusMessages[order.status] || statusMessages.pending;
+
+  // Filter steps: hide "Saiu para Entrega" for pickup orders
+  const visibleSteps = statusSteps.filter(
+    (step) => isDelivery || step.key !== "delivering"
+  );
 
   return (
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
       <header className="sticky top-0 z-30 flex items-center gap-3 bg-background/90 px-4 py-4 backdrop-blur-md border-b border-border">
-        <button onClick={() => navigate(-1)}>
+        <button onClick={() => navigate("/")}>
           <ArrowLeft size={22} className="text-foreground" />
         </button>
         <h1 className="text-lg font-extrabold text-foreground">
@@ -152,7 +174,9 @@ const OrderTracking = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", bounce: 0.4 }}
-          className="rounded-2xl bg-card p-6 text-center shadow-sm"
+          className={`rounded-2xl p-6 text-center shadow-sm ${
+            isCancelled ? "bg-destructive/10" : "bg-card"
+          }`}
         >
           <motion.div
             key={`emoji-${order.status}`}
@@ -167,7 +191,7 @@ const OrderTracking = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-xl font-extrabold text-foreground"
+            className={`text-xl font-extrabold ${isCancelled ? "text-destructive" : "text-foreground"}`}
           >
             {msg.title}
           </motion.h2>
@@ -208,10 +232,18 @@ const OrderTracking = () => {
           >
             <h2 className="font-bold text-foreground text-sm mb-4">Acompanhe seu pedido</h2>
             <div className="space-y-0">
-              {statusSteps.map((step, index) => {
-                const stepIndex = statusOrder.indexOf(step.key);
-                const isCompleted = currentStepIndex >= stepIndex;
-                const isCurrent = currentStepIndex === stepIndex;
+              {visibleSteps.map((step, index) => {
+                const stepVisualIndex = statusSteps.indexOf(step);
+                // "accepted" is completed when status >= preparing
+                const isCompleted = stepVisualIndex <= currentVisualIndex ||
+                  (step.key === "accepted" && currentVisualIndex >= 2);
+                const isCurrent =
+                  (step.key === "received" && currentVisualIndex === 0) ||
+                  (step.key === "accepted" && currentVisualIndex === 1) ||
+                  (step.key === "preparing" && currentVisualIndex === 2) ||
+                  (step.key === "ready" && currentVisualIndex === 3) ||
+                  (step.key === "delivering" && currentVisualIndex === 4) ||
+                  (step.key === "delivered" && currentVisualIndex === 5);
                 const StepIcon = step.icon;
 
                 return (
@@ -219,7 +251,7 @@ const OrderTracking = () => {
                     key={step.key}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + index * 0.1 }}
+                    transition={{ delay: 0.3 + index * 0.08 }}
                     className="flex gap-3"
                   >
                     <div className="flex flex-col items-center">
@@ -228,17 +260,17 @@ const OrderTracking = () => {
                         transition={isCurrent ? { repeat: Infinity, duration: 2 } : {}}
                         className={`flex h-9 w-9 items-center justify-center rounded-full transition-all ${
                           isCompleted
-                            ? "bg-primary text-primary-foreground shadow-fire"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-secondary text-muted-foreground"
                         } ${isCurrent ? "ring-3 ring-primary/20 ring-offset-2 ring-offset-card" : ""}`}
                       >
-                        <StepIcon size={16} />
+                        {isCompleted && !isCurrent ? <Check size={16} /> : <StepIcon size={16} />}
                       </motion.div>
-                      {index < statusSteps.length - 1 && (
+                      {index < visibleSteps.length - 1 && (
                         <motion.div
                           initial={{ scaleY: 0 }}
                           animate={{ scaleY: 1 }}
-                          transition={{ delay: 0.4 + index * 0.1 }}
+                          transition={{ delay: 0.4 + index * 0.08 }}
                           className={`h-8 w-0.5 origin-top ${isCompleted ? "bg-primary" : "bg-border"}`}
                         />
                       )}
@@ -264,15 +296,39 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
-        {/* Cancelled */}
+        {/* Cancelled / Refused */}
         {isCancelled && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-2xl bg-destructive/10 p-6 text-center"
+            className="rounded-2xl bg-card p-5 shadow-sm"
           >
-            <span className="text-5xl">❌</span>
-            <p className="mt-2 text-sm text-destructive font-bold">Este pedido foi cancelado</p>
+            <div className="space-y-0">
+              {/* Step 1: Received - always completed */}
+              <div className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check size={16} />
+                  </div>
+                  <div className="h-8 w-0.5 bg-primary" />
+                </div>
+                <div className="pt-1.5">
+                  <p className="text-sm font-semibold text-foreground">Pedido Recebido</p>
+                </div>
+              </div>
+              {/* Step 2: Refused */}
+              <div className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+                    <XCircle size={16} />
+                  </div>
+                </div>
+                <div className="pt-1.5">
+                  <p className="text-sm font-semibold text-destructive">Pedido Recusado</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">A loja não pôde aceitar este pedido</p>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
 
