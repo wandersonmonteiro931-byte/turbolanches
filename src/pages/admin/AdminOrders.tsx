@@ -142,16 +142,11 @@ const AdminOrders = () => {
     }
   };
 
-  // Abre janela de impressão com retry caso o navegador bloqueie o popup
-  const safePrint = (url: string, retries = 3) => {
+  // Abre janela de impressão — apenas 1 tentativa, avisa se bloqueado
+  const safePrint = (url: string) => {
     const win = window.open(url, "_blank", "width=300,height=600");
     if (!win || win.closed) {
-      if (retries > 0) {
-        toast({ title: "⚠️ Popup bloqueado, tentando novamente...", variant: "destructive" });
-        setTimeout(() => safePrint(url, retries - 1), 500);
-      } else {
-        toast({ title: "❌ Não foi possível imprimir. Clique manualmente no botão de impressão.", variant: "destructive" });
-      }
+      toast({ title: "❌ Popup bloqueado! Permita popups neste site para impressão automática.", variant: "destructive" });
     }
   };
 
