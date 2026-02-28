@@ -66,7 +66,6 @@ const Kitchen = () => {
     const channel = supabase
       .channel("kitchen-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        // Detect cancellations: order was in our list and now is cancelled
         if (payload.eventType === "UPDATE" && (payload.new as any).status === "cancelled") {
           const cancelledId = (payload.new as any).id;
           const wasInKitchen = prevOrdersRef.current.find(o => o.id === cancelledId);
@@ -89,12 +88,10 @@ const Kitchen = () => {
     };
   }, [fetchOrders]);
 
-  // Keep ref in sync
   useEffect(() => {
     prevOrdersRef.current = orders;
   }, [orders]);
 
-  // Remove cancelled alerts after 2 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       setCancelledAlerts(prev => prev.filter(a => Date.now() - a.cancelledAt < 120000));
@@ -102,7 +99,6 @@ const Kitchen = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Play sound on new order
   useEffect(() => {
     const prevCount = (window as any).__kitchenCount || 0;
     if (orders.length > prevCount && prevCount > 0) {
@@ -136,41 +132,43 @@ const Kitchen = () => {
     <>
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body, #root { height: 100%; background: #0a0a0a; color: #f0f0f0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+        html, body, #root { height: 100%; background: #f5f5f5; color: #1a1a1a; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
 
         .kds-header {
-          background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+          background: #ffffff;
           padding: 14px 28px; display: flex; justify-content: space-between; align-items: center;
-          border-bottom: 1px solid #222;
+          border-bottom: 2px solid #e5e5e5; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         }
         .kds-header-left { display: flex; align-items: center; gap: 14px; }
         .kds-logo { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; }
-        .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
-        .kds-subtitle { font-size: 13px; font-weight: 500; color: #4ade80; letter-spacing: 1px; text-transform: uppercase; }
-        .kds-count { font-size: 16px; color: #888; font-weight: 700; }
+        .kds-title { font-size: 22px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; color: #1a1a1a; }
+        .kds-subtitle { font-size: 13px; font-weight: 600; color: #EA1D2C; letter-spacing: 1px; text-transform: uppercase; }
+        .kds-count { font-size: 16px; color: #666; font-weight: 700; }
 
         .kds-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
           gap: 20px; padding: 20px; height: calc(100vh - 76px); overflow-y: auto;
           align-content: start;
+          scrollbar-width: none; -ms-overflow-style: none;
         }
+        .kds-grid::-webkit-scrollbar { display: none; }
 
         .kds-card {
-          background: #151515; border-radius: 16px; border: 1px solid #2a2a2a;
+          background: #ffffff; border-radius: 16px; border: 2px solid #e5e5e5;
           overflow: hidden; display: flex; flex-direction: column;
-          transition: border-color 0.3s;
+          transition: border-color 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         .kds-card-late { border-color: #dc3545; }
-        .kds-card-warning { border-color: #ffc107; }
+        .kds-card-warning { border-color: #f59e0b; }
 
         .kds-card-cancelled {
           border-color: #dc3545 !important;
-          background: #1a0000 !important;
+          background: #fff5f5 !important;
           animation: kds-cancelled-blink 0.6s ease-in-out infinite;
         }
         @keyframes kds-cancelled-blink {
-          0%, 100% { background: #1a0000; border-color: #dc3545; }
-          50% { background: #3a0000; border-color: #ff4444; }
+          0%, 100% { background: #fff5f5; border-color: #dc3545; }
+          50% { background: #ffe0e0; border-color: #ff4444; }
         }
         .kds-cancelled-banner {
           background: #dc3545; color: white; text-align: center;
@@ -185,20 +183,20 @@ const Kitchen = () => {
 
         .kds-card-head {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 16px 20px; border-bottom: 1px solid #222;
+          padding: 16px 20px; border-bottom: 1px solid #eee;
         }
-        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; }
+        .kds-order-num { font-size: 26px; font-weight: 900; letter-spacing: 1px; color: #1a1a1a; }
         .kds-badge {
           font-size: 10px; padding: 3px 10px; border-radius: 6px;
-          background: #222; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+          background: #f0f0f0; color: #666; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .kds-timer {
           font-size: 24px; padding: 6px 16px; border-radius: 10px; font-weight: 900;
           min-width: 100px; text-align: center; font-variant-numeric: tabular-nums;
         }
-        .kds-timer-normal { background: #166534; color: #4ade80; }
-        .kds-timer-warning { background: #854d0e; color: #fbbf24; animation: kds-pulse 2s ease-in-out infinite; }
-        .kds-timer-late { background: #991b1b; color: #fca5a5; animation: kds-blink 0.8s ease-in-out infinite; }
+        .kds-timer-normal { background: #dcfce7; color: #166534; }
+        .kds-timer-warning { background: #fef3c7; color: #92400e; animation: kds-pulse 2s ease-in-out infinite; }
+        .kds-timer-late { background: #fee2e2; color: #991b1b; animation: kds-blink 0.8s ease-in-out infinite; }
 
         @keyframes kds-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         @keyframes kds-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
@@ -206,30 +204,30 @@ const Kitchen = () => {
         .kds-items { padding: 12px 20px; flex: 1; }
         .kds-item {
           font-size: 20px; font-weight: 700; padding: 6px 0;
-          border-bottom: 1px solid #1e1e1e; letter-spacing: 0.3px;
+          border-bottom: 1px solid #f0f0f0; letter-spacing: 0.3px; color: #1a1a1a;
         }
         .kds-item:last-child { border-bottom: none; }
         .kds-addon { font-size: 15px; color: #888; padding-left: 20px; font-weight: 500; }
-        .kds-item-obs { font-size: 15px; color: #fbbf24; padding-left: 20px; font-weight: 600; }
+        .kds-item-obs { font-size: 15px; color: #d97706; padding-left: 20px; font-weight: 600; }
         .kds-order-obs {
-          padding: 10px 20px; font-size: 15px; color: #fbbf24; font-weight: 700;
-          border-top: 1px dashed #2a2a2a; background: #1a1500;
+          padding: 10px 20px; font-size: 15px; color: #d97706; font-weight: 700;
+          border-top: 1px dashed #e5e5e5; background: #fffbeb;
         }
 
         .kds-footer { padding: 14px 20px; }
         .kds-btn {
           width: 100%; padding: 16px; border: none; border-radius: 12px;
-          background: linear-gradient(135deg, #166534, #15803d); color: #fff;
+          background: #EA1D2C; color: #fff;
           font-size: 18px; font-weight: 900; cursor: pointer;
           text-transform: uppercase; letter-spacing: 2px;
           transition: all 0.15s; font-family: 'Inter', sans-serif;
         }
-        .kds-btn:hover { background: linear-gradient(135deg, #15803d, #22c55e); }
+        .kds-btn:hover { background: #c7101e; }
         .kds-btn:active { transform: scale(0.98); }
 
         .kds-empty {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
-          height: calc(100vh - 76px); color: #333; font-size: 28px; font-weight: 700;
+          height: calc(100vh - 76px); color: #aaa; font-size: 28px; font-weight: 700;
           letter-spacing: 1px;
         }
         .kds-empty span { font-size: 72px; margin-bottom: 20px; }
@@ -253,16 +251,15 @@ const Kitchen = () => {
         </div>
       ) : (
         <div className="kds-grid">
-          {/* Cancelled alerts - flash for 2 minutes */}
           {cancelledAlerts.map((alert) => (
             <div key={`cancelled-${alert.order.id}`} className="kds-card kds-card-cancelled">
               <div className="kds-cancelled-banner">❌ CANCELADO ❌</div>
               <div className="kds-card-head">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="kds-order-num" style={{ color: "#ff6666" }}>
+                  <span className="kds-order-num" style={{ color: "#dc3545" }}>
                     #{String(alert.order.order_number).padStart(5, "0")}
                   </span>
-                  <span className="kds-badge" style={{ background: "#991b1b", color: "#fca5a5" }}>
+                  <span className="kds-badge" style={{ background: "#fee2e2", color: "#991b1b" }}>
                     {alert.order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
                   </span>
                 </div>
