@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -53,6 +53,14 @@ const statusSteps = [
   { key: "delivered", label: "Entregue", icon: Check, emoji: "🎉" },
 ];
 
+const pickupStatusSteps = [
+  { key: "received", label: "Pedido Recebido", icon: Inbox, emoji: "📩" },
+  { key: "accepted", label: "Pedido Aceito", icon: ThumbsUp, emoji: "✅" },
+  { key: "preparing", label: "Em Preparo", icon: ChefHat, emoji: "👨‍🍳" },
+  { key: "ready", label: "Pronto para Retirada", icon: PartyPopper, emoji: "🎉" },
+  { key: "delivered", label: "Retirado", icon: Check, emoji: "✅" },
+];
+
 // Map real DB status to visual step index
 function getVisualStepIndex(status: string): number {
   switch (status) {
@@ -88,15 +96,18 @@ const OrderTracking = () => {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [items, setItems] = useState<OrderItemData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storeAddress, setStoreAddress] = useState("");
 
   const fetchOrder = async () => {
     if (!id) return;
-    const [orderRes, itemsRes] = await Promise.all([
+    const [orderRes, itemsRes, settingsRes] = await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id),
+      supabase.from("store_settings").select("store_address_full").limit(1).single(),
     ]);
     if (orderRes.data) setOrder(orderRes.data);
     if (itemsRes.data) setItems(itemsRes.data);
+    if (settingsRes.data) setStoreAddress(settingsRes.data.store_address_full || "");
     setLoading(false);
   };
 
@@ -160,13 +171,16 @@ const OrderTracking = () => {
 
   const isCancelled = order.status === "cancelled";
   const isDelivery = order.delivery_type === "delivery";
+  const isPickup = !isDelivery;
   const currentVisualIndex = getVisualStepIndex(order.status);
-  const msg = statusMessages[order.status] || statusMessages.pending;
+  
+  // For pickup, override "ready" status message
+  const pickupReadyMsg = isPickup && (order.status === "ready" || order.status === "delivering")
+    ? { title: "Prontinho! 🎉", subtitle: "Seu pedido está pronto pra ser retirado na nossa loja!", animation: "🥳" }
+    : null;
+  const msg = pickupReadyMsg || statusMessages[order.status] || statusMessages.pending;
 
-  // Filter steps: hide "Saiu para Entrega" for pickup orders
-  const visibleSteps = statusSteps.filter(
-    (step) => isDelivery || step.key !== "delivering"
-  );
+  const visibleSteps = isPickup ? pickupStatusSteps : statusSteps;
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -235,6 +249,31 @@ const OrderTracking = () => {
           )}
         </motion.div>
 
+        {/* Pickup Ready - Store Address + WhatsApp */}
+        {isPickup && (order.status === "ready" || order.status === "delivering") && storeAddress && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", bounce: 0.4, delay: 0.2 }}
+            className="rounded-2xl bg-card p-5 shadow-sm space-y-3"
+          >
+            <div className="flex items-center gap-2">
+              <PartyPopper size={18} className="text-primary" />
+              <h2 className="font-bold text-foreground text-sm">Retire na loja</h2>
+            </div>
+            <p className="text-sm text-foreground">{storeAddress}</p>
+            <a
+              href="https://wa.me/5562994753582"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition-all hover:bg-green-700"
+            >
+              <MessageCircle size={18} />
+              Falar com a loja no WhatsApp
+            </a>
+          </motion.div>
+        )}
+
         {/* Progress Steps */}
         {!isCancelled && (
           <motion.div
@@ -246,15 +285,18 @@ const OrderTracking = () => {
             <h2 className="font-bold text-foreground text-sm mb-4">Acompanhe seu pedido</h2>
             <div className="space-y-0">
               {visibleSteps.map((step, index) => {
-                const stepVisualIndex = statusSteps.indexOf(step);
-                // "accepted" is completed when status >= preparing
-                const isCompleted = stepVisualIndex <= currentVisualIndex ||
+                // Use key-based completion logic instead of index-based
+                const stepKeyOrder: Record<string, number> = {
+                  received: 0, accepted: 1, preparing: 2, ready: 3, delivering: 4, delivered: 5,
+                };
+                const stepOrder = stepKeyOrder[step.key] ?? 99;
+                const isCompleted = stepOrder <= currentVisualIndex ||
                   (step.key === "accepted" && currentVisualIndex >= 2);
                 const isCurrent =
                   (step.key === "received" && currentVisualIndex === 0) ||
                   (step.key === "accepted" && currentVisualIndex === 1) ||
                   (step.key === "preparing" && currentVisualIndex === 2) ||
-                  (step.key === "ready" && currentVisualIndex === 3) ||
+                  (step.key === "ready" && (currentVisualIndex === 3 || (isPickup && currentVisualIndex === 4))) ||
                   (step.key === "delivering" && currentVisualIndex === 4) ||
                   (step.key === "delivered" && currentVisualIndex === 5);
                 const StepIcon = step.icon;

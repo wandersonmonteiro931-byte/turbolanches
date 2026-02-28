@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, Copy, CheckCircle2, Loader2, QrCode } from "lucide-react";
+import { Copy, CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ interface PixPaymentModalProps {
   total: number;
   expiracao: number;
   onConfirmed: () => void;
-  onClose: () => void;
+  onCancelled: () => void;
 }
 
 const PixPaymentModal = ({
@@ -20,11 +20,12 @@ const PixPaymentModal = ({
   total,
   expiracao,
   onConfirmed,
-  onClose,
+  onCancelled,
 }: PixPaymentModalProps) => {
   const [confirmed, setConfirmed] = useState(false);
   const [timeLeft, setTimeLeft] = useState(expiracao);
   const [copied, setCopied] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 
@@ -69,12 +70,19 @@ const PixPaymentModal = ({
     return () => clearInterval(timer);
   }, [confirmed, timeLeft]);
 
-  const handleClose = useCallback(async () => {
-    if (!confirmed) {
+  const handleCancel = useCallback(async () => {
+    setCancelling(true);
+    try {
       await supabase.from("orders").delete().eq("id", orderId).eq("status", "pending");
+      await supabase.from("order_items").delete().eq("order_id", orderId);
+      toast.info("Pedido cancelado.");
+      onCancelled();
+    } catch {
+      toast.error("Erro ao cancelar pedido.");
+    } finally {
+      setCancelling(false);
     }
-    onClose();
-  }, [confirmed, orderId, onClose]);
+  }, [orderId, onCancelled]);
 
   const copyPix = () => {
     navigator.clipboard.writeText(qrcode);
@@ -95,12 +103,6 @@ const PixPaymentModal = ({
           <p className="text-sm text-muted-foreground">
             Seu pedido foi recebido e está sendo preparado.
           </p>
-          <button
-            onClick={onClose}
-            className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground"
-          >
-            Acompanhar Pedido
-          </button>
         </div>
       </div>
     );
@@ -110,14 +112,9 @@ const PixPaymentModal = ({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-card p-5 space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <QrCode size={20} className="text-primary" />
-            <h2 className="text-lg font-bold text-foreground">Pagamento PIX</h2>
-          </div>
-          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground">
-            <X size={20} />
-          </button>
+        <div className="flex items-center gap-2">
+          <QrCode size={20} className="text-primary" />
+          <h2 className="text-lg font-bold text-foreground">Pagamento PIX</h2>
         </div>
 
         {/* Total */}
@@ -168,7 +165,7 @@ const PixPaymentModal = ({
             </p>
           ) : (
             <p className="text-xs text-destructive font-medium">
-              QR Code expirado. Feche e tente novamente.
+              QR Code expirado. Cancele e tente novamente.
             </p>
           )}
         </div>
@@ -180,6 +177,15 @@ const PixPaymentModal = ({
           <p className="text-xs text-muted-foreground">2. Escaneie o QR Code ou cole o código</p>
           <p className="text-xs text-muted-foreground">3. Confirme o pagamento</p>
         </div>
+
+        {/* Cancel button */}
+        <button
+          onClick={handleCancel}
+          disabled={cancelling}
+          className="w-full rounded-xl border border-destructive/30 bg-destructive/10 py-3 font-semibold text-destructive transition-all hover:bg-destructive/20 disabled:opacity-50"
+        >
+          {cancelling ? "Cancelando..." : "Cancelar Pedido"}
+        </button>
       </div>
     </div>
   );
