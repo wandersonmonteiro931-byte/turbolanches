@@ -132,7 +132,7 @@ const PixPaymentModal = ({
         <div className="flex justify-center">
           {qrcodeImage ? (
             <img
-              src={`data:image/png;base64,${qrcodeImage}`}
+              src={qrcodeImage.startsWith("data:") ? qrcodeImage : `data:image/png;base64,${qrcodeImage}`}
               alt="QR Code PIX"
               className="w-48 h-48 rounded-lg"
             />
