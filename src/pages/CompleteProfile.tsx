@@ -86,7 +86,7 @@ const CompleteProfile = () => {
     { key: "zip_code", label: "CEP", icon: Hash, required: true },
     { key: "street", label: "Rua", icon: MapPin, required: true },
     { key: "number", label: "Número", icon: Hash, required: true },
-    { key: "complement", label: "Complemento", icon: Building, required: true },
+    { key: "complement", label: "Complemento", icon: Building, required: false },
     { key: "quadra", label: "Quadra", icon: Hash, required: false },
     { key: "lote", label: "Lote", icon: Hash, required: false },
     { key: "neighborhood", label: "Bairro", icon: Map, required: true },

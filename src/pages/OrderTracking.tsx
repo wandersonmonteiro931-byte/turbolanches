@@ -421,9 +421,9 @@ const OrderTracking = () => {
           <h2 className="font-bold text-foreground text-sm">📋 Itens do pedido</h2>
           <div className="space-y-2">
             {items.map((item) => (
-              <div key={item.id} className="flex justify-between text-sm">
-                <div className="flex-1">
-                  <span className="text-foreground">{item.quantity}x {item.product_name}</span>
+              <div key={item.id} className="flex justify-between gap-2 text-sm">
+                <div className="flex-1 min-w-0">
+                  <span className="text-foreground break-words">{item.quantity}x {item.product_name}</span>
                   {item.addons_json && Array.isArray(item.addons_json) && item.addons_json.length > 0 && (
                     <div className="ml-4">
                       {item.addons_json.map((addon: any, i: number) => (

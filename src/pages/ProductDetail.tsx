@@ -80,7 +80,7 @@ const ProductDetail = () => {
       <div className="mx-auto max-w-md px-4 -mt-8 relative z-10">
         {/* Info */}
         <div>
-          <h1 className="text-3xl text-fire-gradient">{product.name.toUpperCase()}</h1>
+          <h1 className="text-2xl text-fire-gradient break-words">{product.name.toUpperCase()}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{product.description}</p>
           <div className="mt-3 flex items-center gap-3">
             <span className="text-xl font-bold text-primary">
