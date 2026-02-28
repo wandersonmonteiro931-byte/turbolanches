@@ -574,6 +574,7 @@ export type Database = {
         Row: {
           closed_at: string | null
           created_at: string
+          delivery_time_minutes: number
           free_delivery_max_km: number
           free_delivery_min_order: number
           id: string
@@ -581,10 +582,13 @@ export type Database = {
           max_serving_km: number | null
           max_serving_km_active: boolean
           opened_at: string | null
+          pickup_time_minutes: number
+          prep_time_minutes: number
           price_per_km: number
           scheduled_close: string | null
           scheduled_open: string | null
           store_address: string
+          store_address_full: string
           store_lat: number | null
           store_lng: number | null
           store_neighborhood: string
@@ -595,6 +599,7 @@ export type Database = {
         Insert: {
           closed_at?: string | null
           created_at?: string
+          delivery_time_minutes?: number
           free_delivery_max_km?: number
           free_delivery_min_order?: number
           id?: string
@@ -602,10 +607,13 @@ export type Database = {
           max_serving_km?: number | null
           max_serving_km_active?: boolean
           opened_at?: string | null
+          pickup_time_minutes?: number
+          prep_time_minutes?: number
           price_per_km?: number
           scheduled_close?: string | null
           scheduled_open?: string | null
           store_address?: string
+          store_address_full?: string
           store_lat?: number | null
           store_lng?: number | null
           store_neighborhood?: string
@@ -616,6 +624,7 @@ export type Database = {
         Update: {
           closed_at?: string | null
           created_at?: string
+          delivery_time_minutes?: number
           free_delivery_max_km?: number
           free_delivery_min_order?: number
           id?: string
@@ -623,10 +632,13 @@ export type Database = {
           max_serving_km?: number | null
           max_serving_km_active?: boolean
           opened_at?: string | null
+          pickup_time_minutes?: number
+          prep_time_minutes?: number
           price_per_km?: number
           scheduled_close?: string | null
           scheduled_open?: string | null
           store_address?: string
+          store_address_full?: string
           store_lat?: number | null
           store_lng?: number | null
           store_neighborhood?: string
