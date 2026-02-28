@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Check, X, Truck, Clock, ChefHat, Package, Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAlarmSound } from "@/hooks/useAlarmSound";
 
 interface Order {
   id: string;
@@ -56,6 +57,10 @@ const AdminOrders = () => {
   const navigate = useNavigate();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Alarm: plays while there are pending orders
+  const hasPendingOrders = orders.some((o) => o.status === "pending");
+  useAlarmSound(hasPendingOrders);
+
   const fetchOrders = async () => {
     const { data } = await supabase
       .from("orders")
@@ -95,11 +100,6 @@ const AdminOrders = () => {
       .channel("admin-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
         if (payload.eventType === "INSERT") {
-          // Play notification sound
-          try {
-            const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==");
-            audio.play().catch(() => {});
-          } catch {}
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
         }
         fetchOrders();
