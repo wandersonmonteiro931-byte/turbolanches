@@ -57,7 +57,7 @@ interface StoreSettings {
 }
 
 const tabs = [
-  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending"] },
+  { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending", "paid"] },
   { key: "preparing", label: "Em Preparo", icon: ChefHat, color: "bg-purple-500", statuses: ["preparing"] },
   { key: "ready", label: "Aguardando", icon: Package, color: "bg-emerald-500", statuses: ["ready"] },
   { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
@@ -67,6 +67,7 @@ const tabs = [
 
 const nextStatus: Record<string, string> = {
   pending: "preparing",
+  paid: "preparing",
   preparing: "ready",
   ready: "delivering",
   delivering: "delivered",
@@ -260,7 +261,7 @@ const AdminDashboard = () => {
   };
 
   const acceptAllPending = async () => {
-    const toAccept = orders.filter(o => o.status === "pending");
+    const toAccept = orders.filter(o => o.status === "pending" || o.status === "paid");
     if (toAccept.length === 0) {
       toast({ title: "Nenhum pedido pendente para aceitar." });
       return;
@@ -379,7 +380,7 @@ const AdminDashboard = () => {
     const date = format(selectedDate, "dd/MM/yyyy");
 
     const statusCounts = {
-      pending: allOrders.filter(o => o.status === "pending").length,
+      pending: allOrders.filter(o => o.status === "pending" || o.status === "paid").length,
       
       preparing: allOrders.filter(o => o.status === "preparing").length,
       ready: allOrders.filter(o => o.status === "ready").length,
@@ -464,7 +465,7 @@ const AdminDashboard = () => {
   };
 
   const stats = {
-    pending: orders.filter(o => o.status === "pending" || o.status === "awaiting_payment").length,
+    pending: orders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
     preparing: orders.filter(o => o.status === "preparing").length,
     ready: orders.filter(o => o.status === "ready").length,
     delivering: orders.filter(o => o.status === "delivering").length,
@@ -508,11 +509,11 @@ const AdminDashboard = () => {
 
         <button
           onClick={acceptAllPending}
-          disabled={orders.filter(o => o.status === "pending").length === 0}
+          disabled={orders.filter(o => o.status === "pending" || o.status === "paid").length === 0}
           className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
         >
           <CheckCircle size={16} />
-          Aceitar Todos ({orders.filter(o => o.status === "pending").length})
+          Aceitar Todos ({orders.filter(o => o.status === "pending" || o.status === "paid").length})
         </button>
 
         <button
@@ -711,6 +712,11 @@ const AdminDashboard = () => {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
                       </span>
+                      {order.status === "paid" && (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
+                          💰 PAGO
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
