@@ -272,7 +272,7 @@ const AdminOrders = () => {
                   {order.payment_method !== "fiado" && order.status !== "cancelled" && (
                     <button
                       onClick={async () => {
-                        await supabase.from("orders").update({ payment_method: "fiado", payment_confirmed: true }).eq("id", order.id);
+                        await supabase.from("orders").update({ payment_method: "fiado", payment_confirmed: false }).eq("id", order.id);
                         toast({ title: "📝 Pedido marcado como Fiado" });
                         fetchOrders();
                       }}
