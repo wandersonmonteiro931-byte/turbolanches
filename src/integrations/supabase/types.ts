@@ -278,6 +278,7 @@ export type Database = {
           pix_qrcode_image: string | null
           pix_txid: string | null
           preparing_at: string | null
+          priority: boolean
           ready_at: string | null
           status: string
           subtotal: number
@@ -308,6 +309,7 @@ export type Database = {
           pix_qrcode_image?: string | null
           pix_txid?: string | null
           preparing_at?: string | null
+          priority?: boolean
           ready_at?: string | null
           status?: string
           subtotal: number
@@ -338,6 +340,7 @@ export type Database = {
           pix_qrcode_image?: string | null
           pix_txid?: string | null
           preparing_at?: string | null
+          priority?: boolean
           ready_at?: string | null
           status?: string
           subtotal?: number
