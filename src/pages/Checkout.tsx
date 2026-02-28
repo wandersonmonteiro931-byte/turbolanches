@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,11 +31,15 @@ interface DeliveryConfig {
   temp_free_delivery_all: boolean;
   max_serving_km: number | null;
   max_serving_km_active: boolean;
+  prep_time_minutes: number;
+  delivery_time_minutes: number;
+  pickup_time_minutes: number;
+  store_address_full: string;
 }
 
 const paymentMethods = [
-  { id: "dinheiro", label: "Dinheiro", icon: Banknote, description: "Pague na entrega" },
-  { id: "cartao", label: "Cartão", icon: CreditCard, description: "Débito/Crédito na entrega" },
+  { id: "dinheiro", label: "Dinheiro", icon: Banknote, description: "Pague na entrega/retirada" },
+  { id: "cartao", label: "Cartão", icon: CreditCard, description: "Débito/Crédito na entrega/retirada" },
 ];
 
 const Checkout = () => {
@@ -46,6 +50,7 @@ const Checkout = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
+  const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
   const [paymentMethod, setPaymentMethod] = useState("dinheiro");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
@@ -57,11 +62,10 @@ const Checkout = () => {
       navigate("/auth", { state: { from: "/checkout" } });
       return;
     }
-    // Fetch profile, delivery zones, and delivery config in parallel
     Promise.all([
       supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, city, state").eq("user_id", user.id).single(),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
-      supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active").limit(1).single(),
+      supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active, prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1).single(),
     ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
         const p = profileRes.data;
@@ -85,6 +89,10 @@ const Checkout = () => {
           temp_free_delivery_all: d.temp_free_delivery_all || false,
           max_serving_km: d.max_serving_km ?? null,
           max_serving_km_active: d.max_serving_km_active || false,
+          prep_time_minutes: d.prep_time_minutes || 25,
+          delivery_time_minutes: d.delivery_time_minutes || 30,
+          pickup_time_minutes: d.pickup_time_minutes || 20,
+          store_address_full: d.store_address_full || "",
         });
       }
       setProfileLoading(false);
@@ -105,14 +113,14 @@ const Checkout = () => {
     (z) => z.neighborhood.toLowerCase() === profile?.neighborhood?.toLowerCase()
   );
 
-  // Check if neighborhood is blocked (max serving km)
-  const isNeighborhoodBlocked = deliveryConfig?.max_serving_km_active &&
+  const isNeighborhoodBlocked = deliveryType === "delivery" &&
+    deliveryConfig?.max_serving_km_active &&
     matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined &&
     matchedZone.distance_km >= 0 &&
     deliveryConfig.max_serving_km !== null &&
     matchedZone.distance_km > deliveryConfig.max_serving_km;
 
-  // Calculate delivery fee considering free delivery rules
+  // Delivery fee only applies for delivery type
   const rawFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
   const isTempFree = matchedZone?.temp_free_delivery || deliveryConfig?.temp_free_delivery_all;
   const isAutoFree = deliveryConfig &&
@@ -121,8 +129,13 @@ const Checkout = () => {
     (deliveryConfig.free_delivery_max_km === 0 ||
       (matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined && matchedZone.distance_km <= deliveryConfig.free_delivery_max_km));
 
-  const deliveryFee = (isTempFree || isAutoFree) ? 0 : rawFee;
+  const deliveryFee = deliveryType === "pickup" ? 0 : ((isTempFree || isAutoFree) ? 0 : rawFee);
   const grandTotal = totalPrice + deliveryFee;
+
+  // Estimated time
+  const estimatedTime = deliveryType === "pickup"
+    ? (deliveryConfig?.pickup_time_minutes || 20)
+    : ((deliveryConfig?.prep_time_minutes || 25) + (deliveryConfig?.delivery_time_minutes || 30));
 
   const handlePlaceOrder = async () => {
     if (!user || !profile) return;
@@ -133,30 +146,33 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      // Create order
+      const orderData: any = {
+        user_id: user.id,
+        subtotal: totalPrice,
+        delivery_fee: deliveryFee,
+        total: grandTotal,
+        status: "pending",
+        delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
+        payment_method: paymentMethod,
+        observations: observations || null,
+        change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+      };
+
+      if (deliveryType === "delivery") {
+        orderData.address_street = profile.street;
+        orderData.address_number = profile.number;
+        orderData.address_complement = profile.complement;
+        orderData.address_neighborhood = profile.neighborhood;
+      }
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .insert({
-          user_id: user.id,
-          subtotal: totalPrice,
-          delivery_fee: deliveryFee,
-          total: grandTotal,
-          status: "pending",
-          delivery_type: "delivery",
-          payment_method: paymentMethod,
-          address_street: profile.street,
-          address_number: profile.number,
-          address_complement: profile.complement,
-          address_neighborhood: profile.neighborhood,
-          observations: observations || null,
-          change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-        })
+        .insert(orderData)
         .select("id")
         .single();
 
       if (orderError) throw orderError;
 
-      // Create order items
       const orderItems = items.map((item) => ({
         order_id: order.id,
         product_name: item.product.name,
@@ -184,17 +200,20 @@ const Checkout = () => {
     const itemsList = items
       .map((i) => `${i.quantity}x ${i.product.name}`)
       .join("\n");
+    const typeLabel = deliveryType === "pickup" ? "RETIRADA" : "ENTREGA";
     const message = encodeURIComponent(
       `🍔 *NOVO PEDIDO - TURBO LANCHES*\n\n` +
       `Pedido #${orderId.slice(0, 6)}\n` +
+      `Tipo: ${typeLabel}\n` +
       `Cliente: ${profile.full_name}\n` +
       `Telefone: ${profile.phone}\n` +
-      `Endereço: ${profile.street}, ${profile.number} - ${profile.neighborhood}\n\n` +
+      (deliveryType === "delivery"
+        ? `Endereço: ${profile.street}, ${profile.number} - ${profile.neighborhood}\n\n`
+        : `Retirada na loja\n\n`) +
       `${itemsList}\n\n` +
       `Total: R$ ${total.toFixed(2).replace(".", ",")}\n` +
       `Pagamento: ${payment.toUpperCase()}`
     );
-    // Open WhatsApp in new tab - store owner's number
     window.open(`https://wa.me/5500000000000?text=${message}`, "_blank");
   };
 
@@ -216,8 +235,39 @@ const Checkout = () => {
       </header>
 
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* Blocked Neighborhood Warning */}
-        {isNeighborhoodBlocked && (
+        {/* Delivery Type Toggle */}
+        <div className="rounded-xl bg-card p-4">
+          <h2 className="font-bold text-foreground text-sm mb-3">Como deseja receber?</h2>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => setDeliveryType("delivery")}
+              className={`flex flex-col items-center gap-2 rounded-lg p-3 transition-all ${
+                deliveryType === "delivery"
+                  ? "bg-fire-gradient-soft border border-primary/30"
+                  : "bg-background border border-transparent"
+              }`}
+            >
+              <Truck size={22} className={deliveryType === "delivery" ? "text-primary" : "text-muted-foreground"} />
+              <span className={`text-sm font-semibold ${deliveryType === "delivery" ? "text-primary" : "text-foreground"}`}>Entrega</span>
+              <span className="text-[11px] text-muted-foreground">~{(deliveryConfig?.prep_time_minutes || 25) + (deliveryConfig?.delivery_time_minutes || 30)} min</span>
+            </button>
+            <button
+              onClick={() => setDeliveryType("pickup")}
+              className={`flex flex-col items-center gap-2 rounded-lg p-3 transition-all ${
+                deliveryType === "pickup"
+                  ? "bg-fire-gradient-soft border border-primary/30"
+                  : "bg-background border border-transparent"
+              }`}
+            >
+              <Store size={22} className={deliveryType === "pickup" ? "text-primary" : "text-muted-foreground"} />
+              <span className={`text-sm font-semibold ${deliveryType === "pickup" ? "text-primary" : "text-foreground"}`}>Retirar na Loja</span>
+              <span className="text-[11px] text-muted-foreground">~{deliveryConfig?.pickup_time_minutes || 20} min</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Blocked Neighborhood Warning (delivery only) */}
+        {isNeighborhoodBlocked && deliveryType === "delivery" && (
           <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-5 text-center space-y-2">
             <Truck size={32} className="mx-auto text-destructive" />
             <h2 className="text-base font-bold text-destructive">Região fora da área de entrega</h2>
@@ -230,24 +280,45 @@ const Checkout = () => {
           </div>
         )}
 
-        {/* Delivery Address */}
-        <div className="rounded-xl bg-card p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin size={18} className="text-primary" />
-            <h2 className="font-bold text-foreground text-sm">Endereço de entrega</h2>
+        {/* Address / Store Info */}
+        {deliveryType === "delivery" ? (
+          <div className="rounded-xl bg-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin size={18} className="text-primary" />
+              <h2 className="font-bold text-foreground text-sm">Endereço de entrega</h2>
+            </div>
+            <p className="text-sm text-foreground">
+              {profile?.street}, {profile?.number}
+              {profile?.complement ? ` - ${profile.complement}` : ""}
+            </p>
+            <p className="text-xs text-muted-foreground">{profile?.neighborhood} - {profile?.city}/{profile?.state}</p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <Clock size={12} />
+              <span>Tempo estimado: ~{estimatedTime} min</span>
+            </div>
+            <button
+              onClick={() => navigate("/completar-perfil")}
+              className="mt-2 text-xs font-semibold text-primary"
+            >
+              Alterar endereço
+            </button>
           </div>
-          <p className="text-sm text-foreground">
-            {profile?.street}, {profile?.number}
-            {profile?.complement ? ` - ${profile.complement}` : ""}
-          </p>
-          <p className="text-xs text-muted-foreground">{profile?.neighborhood} - {profile?.city}/{profile?.state}</p>
-          <button
-            onClick={() => navigate("/completar-perfil")}
-            className="mt-2 text-xs font-semibold text-primary"
-          >
-            Alterar endereço
-          </button>
-        </div>
+        ) : (
+          <div className="rounded-xl bg-card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Store size={18} className="text-primary" />
+              <h2 className="font-bold text-foreground text-sm">Retirar na loja</h2>
+            </div>
+            <p className="text-sm text-foreground">
+              {deliveryConfig?.store_address_full || "Endereço da loja"}
+            </p>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <Clock size={12} />
+              <span>Pronto em ~{deliveryConfig?.pickup_time_minutes || 20} min</span>
+            </div>
+            <p className="mt-2 text-[11px] text-green-600 font-medium">🎉 Sem taxa de entrega!</p>
+          </div>
+        )}
 
         {!isNeighborhoodBlocked && (
           <>
@@ -318,7 +389,7 @@ const Checkout = () => {
               <textarea
                 value={observations}
                 onChange={(e) => setObservations(e.target.value)}
-                placeholder="Ex: portão azul, interfone 302..."
+                placeholder={deliveryType === "delivery" ? "Ex: portão azul, interfone 302..." : "Ex: sem cebola, bem passado..."}
                 maxLength={200}
                 className="w-full rounded-lg bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 rows={2}
@@ -331,18 +402,28 @@ const Checkout = () => {
                 <span>Subtotal</span>
                 <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Taxa de entrega ({profile?.neighborhood})</span>
-                {deliveryFee === 0 ? (
-                  <span className="text-green-600 font-bold">GRÁTIS 🎉</span>
-                ) : (
-                  <span className="text-muted-foreground">R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
-                )}
-              </div>
-              {(isTempFree || isAutoFree) && rawFee > 0 && (
-                <p className="text-[11px] text-green-600 font-medium">
-                  {isTempFree ? "🎁 Frete grátis temporário ativo!" : `🎉 Frete grátis em pedidos acima de R$ ${deliveryConfig?.free_delivery_min_order}`}
-                </p>
+              {deliveryType === "delivery" && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Taxa de entrega ({profile?.neighborhood})</span>
+                    {deliveryFee === 0 ? (
+                      <span className="text-green-600 font-bold">GRÁTIS 🎉</span>
+                    ) : (
+                      <span className="text-muted-foreground">R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
+                    )}
+                  </div>
+                  {(isTempFree || isAutoFree) && rawFee > 0 && (
+                    <p className="text-[11px] text-green-600 font-medium">
+                      {isTempFree ? "🎁 Frete grátis temporário ativo!" : `🎉 Frete grátis em pedidos acima de R$ ${deliveryConfig?.free_delivery_min_order}`}
+                    </p>
+                  )}
+                </>
+              )}
+              {deliveryType === "pickup" && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Taxa de entrega</span>
+                  <span className="text-green-600 font-bold">RETIRADA 🏪</span>
+                </div>
               )}
               <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
                 <span className="text-foreground">Total</span>
@@ -356,7 +437,7 @@ const Checkout = () => {
       {/* Bottom button */}
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card p-4 safe-bottom">
         <div className="mx-auto max-w-md">
-          {isNeighborhoodBlocked ? (
+          {(isNeighborhoodBlocked) ? (
             <button
               onClick={() => navigate("/")}
               className="w-full rounded-xl bg-muted py-4 text-center font-bold text-muted-foreground"
