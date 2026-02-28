@@ -111,9 +111,8 @@ const Checkout = () => {
   }, [user]);
 
   const handlePixConfirmed = useCallback(() => {
-    clearCart();
     toast.success("Pagamento PIX confirmado! 🎉");
-  }, [clearCart]);
+  }, []);
 
   const handlePixModalClose = useCallback(() => {
     setShowPixModal(false);
@@ -128,7 +127,7 @@ const Checkout = () => {
     return null;
   }
 
-  if (items.length === 0 && !loading) {
+  if (items.length === 0 && !loading && !showPixModal) {
     navigate("/carrinho");
     return null;
   }
