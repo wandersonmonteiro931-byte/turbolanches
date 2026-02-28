@@ -42,7 +42,7 @@ const AdminPrint = () => {
     load();
   }, [id]);
 
-  const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "600") || 600);
+  const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
 
   useEffect(() => {
     if (!ready) return;
@@ -53,8 +53,8 @@ const AdminPrint = () => {
         window.print();
         // Após imprimir entrega, redireciona para a via do cliente
         setTimeout(() => {
-          window.location.href = `/admin/imprimir/${id}?tipo=cliente&delay_ms=600`;
-        }, 1500);
+          window.location.href = `/admin/imprimir/${id}?tipo=cliente&delay_ms=100`;
+        }, 400);
       }, printDelayMs);
       return () => clearTimeout(timer);
     }
@@ -62,7 +62,7 @@ const AdminPrint = () => {
     // Impressão normal (cozinha, entrega, cliente)
     const timer = setTimeout(() => {
       window.print();
-      setTimeout(() => { window.close(); }, 1000);
+      setTimeout(() => { window.close(); }, 300);
     }, printDelayMs);
     return () => clearTimeout(timer);
   }, [ready, printDelayMs, tipo, id]);
