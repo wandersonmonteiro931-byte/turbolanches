@@ -393,7 +393,7 @@ const AdminDashboard = () => {
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
         @page { size:72mm auto; margin:0; }
       </style></head><body>
-        <h1>TURBO DELIVERY LANCHES</h1>
+        <h1>TURBO LANCHES</h1>
         <h2>RELATÓRIO DIÁRIO</h2>
         <div class="center">${date}</div>
         <div class="sep"></div>
