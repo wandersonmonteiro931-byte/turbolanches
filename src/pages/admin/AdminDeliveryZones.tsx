@@ -43,9 +43,11 @@ function StoreAddressCard({ config, onSaved }: { config: StoreConfig; onSaved: (
   useEffect(() => setForm(config), [config]);
 
   const save = async () => {
+    const fullAddress = [form.store_address, form.store_neighborhood].filter(Boolean).join(" — ");
     const { error } = await supabase.from("store_settings").update({
       store_address: form.store_address,
       store_neighborhood: form.store_neighborhood,
+      store_address_full: fullAddress,
       price_per_km: form.price_per_km,
       store_lat: null, store_lng: null,
     } as any).not("id", "is", null);
