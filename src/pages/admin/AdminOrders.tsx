@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Truck, Clock, ChefHat, Package, Printer } from "lucide-react";
+import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
@@ -98,6 +98,9 @@ const AdminOrders = () => {
   useEffect(() => {
     fetchOrders();
 
+    // Polling every 1 second to ensure no order is missed
+    const interval = setInterval(fetchOrders, 1000);
+
     const channel = supabase
       .channel("admin-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
@@ -108,7 +111,10 @@ const AdminOrders = () => {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const updateStatus = async (orderId: string, newStatus: string) => {
@@ -161,7 +167,16 @@ const AdminOrders = () => {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => {
+            fetchOrders();
+            toast({ title: "✅ Pedidos atualizados" });
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shrink-0"
+        >
+          <RefreshCw size={14} /> Atualizar
+        </button>
         {Object.entries(statusConfig).map(([key, val]) => {
           const count = orders.filter((o) => o.status === key).length;
           if (count === 0) return null;
