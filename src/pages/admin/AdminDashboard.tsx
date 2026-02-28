@@ -510,6 +510,14 @@ const AdminDashboard = () => {
           Finalizar Dia
         </button>
 
+        <button
+          onClick={() => window.open("/cozinha", "_blank")}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <ChefHat size={16} />
+          Cozinha
+        </button>
+
         <div className="ml-auto flex items-center gap-4 text-sm">
           <div className="text-muted-foreground">
             <span className="font-bold text-foreground">{orders.length}</span> pedidos
