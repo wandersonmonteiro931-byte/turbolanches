@@ -1,0 +1,2 @@
+ALTER TABLE public.orders DROP CONSTRAINT orders_delivery_type_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_delivery_type_check CHECK (delivery_type = ANY (ARRAY['delivery','pickup','mesa','viagem','retirada','consumo']));
