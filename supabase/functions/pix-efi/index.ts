@@ -52,61 +52,34 @@ function getPemCredentials(): { cert: string; key: string } {
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
+const EFI_BASE = `https://${EFI_HOST}`;
+
+// Use Deno.createHttpClient for mTLS (supported in Supabase Edge Functions)
+function getHttpClient() {
+  const { cert, key } = getPemCredentials();
+  return (Deno as any).createHttpClient({
+    certChain: cert,
+    privateKey: key,
+  });
+}
 
 async function mtlsFetch(
   path: string,
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
-  const { cert, key } = getPemCredentials();
-
-  const pkcs1Key = forge.pki.privateKeyToPem(forge.pki.privateKeyFromPem(key));
-  const approaches = [
-    { opts: { hostname: EFI_HOST, port: 443, cert, key } },
-    { opts: { hostname: EFI_HOST, port: 443, cert, key: pkcs1Key } },
-  ];
-
-  for (const approach of approaches) {
-    try {
-      const conn = await (Deno as any).connectTls(approach.opts);
-      try {
-        const bodyBytes = options.body ? new TextEncoder().encode(options.body) : null;
-        const hdrs: Record<string, string> = {
-          Host: EFI_HOST, Connection: "close", ...options.headers,
-        };
-        if (bodyBytes) hdrs["Content-Length"] = String(bodyBytes.length);
-
-        let request = `${options.method} ${path} HTTP/1.1\r\n`;
-        for (const [k, v] of Object.entries(hdrs)) request += `${k}: ${v}\r\n`;
-        request += "\r\n";
-
-        await conn.write(new TextEncoder().encode(request));
-        if (bodyBytes) await conn.write(bodyBytes);
-
-        const chunks: Uint8Array[] = [];
-        const buf = new Uint8Array(8192);
-        while (true) {
-          const n = await conn.read(buf);
-          if (n === null) break;
-          chunks.push(buf.slice(0, n));
-        }
-        const raw = new TextDecoder().decode(
-          chunks.reduce((a, c) => { const m = new Uint8Array(a.length + c.length); m.set(a); m.set(c, a.length); return m; }, new Uint8Array(0))
-        );
-        const hdrEnd = raw.indexOf("\r\n\r\n");
-        if (hdrEnd === -1) throw new Error("No HTTP response");
-        const statusLine = raw.substring(0, raw.indexOf("\r\n"));
-        const status = parseInt(statusLine.match(/HTTP\/\d\.\d\s+(\d+)/)?.[1] || "0");
-        let respBody = raw.substring(hdrEnd + 4);
-        if (raw.substring(0, hdrEnd).toLowerCase().includes("transfer-encoding: chunked")) {
-          respBody = decodeChunked(respBody);
-        }
-        return { status, body: respBody };
-      } finally {
-        try { conn.close(); } catch { /* */ }
-      }
-    } catch { /* try next approach */ }
+  const client = getHttpClient();
+  try {
+    const resp = await fetch(`${EFI_BASE}${path}`, {
+      method: options.method,
+      headers: options.headers,
+      body: options.body,
+      client,
+    } as any);
+    const body = await resp.text();
+    return { status: resp.status, body };
+  } finally {
+    try { client.close(); } catch { /* */ }
   }
-  throw new Error("All mTLS approaches failed");
 }
 
 function decodeChunked(data: string): string {
@@ -237,36 +210,48 @@ serve(async (req) => {
 
 async function handleCreateCharge(userId: string, body: any) {
   const { order_id, amount, descricao } = body;
+  console.log("create-charge called:", { order_id, amount, userId });
   if (!order_id || !amount) return json({ error: "order_id and amount required" }, 400);
 
-  const pixKey = getEnv("EFI_PIX_KEY");
-  const token = await getAccessToken();
+  try {
+    const pixKey = getEnv("EFI_PIX_KEY");
+    console.log("Getting OAuth token...");
+    const token = await getAccessToken();
+    console.log("OAuth token obtained");
 
-  const cob = await createPixCharge(token, {
-    calendario: { expiracao: 3600 },
-    valor: { original: Number(amount).toFixed(2) },
-    chave: pixKey,
-    solicitacaoPagador: descricao || "Pedido Turbo Lanches",
-  });
+    console.log("Creating PIX charge...");
+    const cob = await createPixCharge(token, {
+      calendario: { expiracao: 3600 },
+      valor: { original: Number(amount).toFixed(2) },
+      chave: pixKey,
+      solicitacaoPagador: descricao || "Pedido Turbo Lanches",
+    });
+    console.log("PIX charge created:", { txid: cob.txid, locId: cob.loc?.id });
 
-  const qr = await getQrCode(token, cob.loc.id);
+    console.log("Getting QR code...");
+    const qr = await getQrCode(token, cob.loc.id);
+    console.log("QR code obtained, length:", qr.qrcode?.length);
 
-  const db = adminSupa();
-  await db.from("orders").update({
-    pix_txid: cob.txid,
-    pix_copia_cola: qr.qrcode,
-    pix_qrcode_image: qr.imagemQrcode,
-    pix_loc_id: cob.loc.id,
-    status: "pending",
-  }).eq("id", order_id);
+    const db = adminSupa();
+    await db.from("orders").update({
+      pix_txid: cob.txid,
+      pix_copia_cola: qr.qrcode,
+      pix_qrcode_image: qr.imagemQrcode,
+      pix_loc_id: cob.loc.id,
+      status: "pending",
+    }).eq("id", order_id);
 
-  return json({
-    txid: cob.txid,
-    qrcode: qr.qrcode,
-    qrcode_image: qr.imagemQrcode,
-    location: cob.loc.location,
-    expiracao: cob.calendario.expiracao,
-  });
+    return json({
+      txid: cob.txid,
+      qrcode: qr.qrcode,
+      qrcode_image: qr.imagemQrcode,
+      location: cob.loc.location,
+      expiracao: cob.calendario.expiracao,
+    });
+  } catch (err: any) {
+    console.error("create-charge ERROR:", err.message, err.stack);
+    return json({ error: err.message || "Erro ao gerar cobrança PIX" }, 500);
+  }
 }
 
 async function handleCheckStatus(userId: string, body: any) {
