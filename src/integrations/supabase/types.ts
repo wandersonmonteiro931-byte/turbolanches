@@ -263,6 +263,8 @@ export type Database = {
           change_for: number | null
           coupon_code: string | null
           created_at: string
+          delivered_at: string | null
+          delivering_at: string | null
           delivery_fee: number
           delivery_type: string
           discount: number
@@ -295,6 +297,8 @@ export type Database = {
           change_for?: number | null
           coupon_code?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivering_at?: string | null
           delivery_fee?: number
           delivery_type?: string
           discount?: number
@@ -327,6 +331,8 @@ export type Database = {
           change_for?: number | null
           coupon_code?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivering_at?: string | null
           delivery_fee?: number
           delivery_type?: string
           discount?: number
