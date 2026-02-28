@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock, QrCode } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
+import PixPaymentModal from "@/components/PixPaymentModal";
 
 interface Profile {
   full_name: string;
@@ -38,6 +39,7 @@ interface DeliveryConfig {
 }
 
 const paymentMethods = [
+  { id: "pix", label: "PIX", icon: QrCode, description: "Pagamento instantâneo via QR Code" },
   { id: "dinheiro", label: "Dinheiro", icon: Banknote, description: "Pague na entrega/retirada" },
   { id: "cartao", label: "Cartão", icon: CreditCard, description: "Débito/Crédito na entrega/retirada" },
 ];
@@ -51,11 +53,20 @@ const Checkout = () => {
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
-  const [paymentMethod, setPaymentMethod] = useState("dinheiro");
+  const [paymentMethod, setPaymentMethod] = useState("pix");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+
+  // PIX modal state
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixData, setPixData] = useState<{
+    orderId: string;
+    qrcode: string;
+    qrcodeImage: string;
+    expiracao: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -99,6 +110,19 @@ const Checkout = () => {
     });
   }, [user]);
 
+  const handlePixConfirmed = useCallback(() => {
+    clearCart();
+    toast.success("Pagamento PIX confirmado! 🎉");
+  }, [clearCart]);
+
+  const handlePixModalClose = useCallback(() => {
+    setShowPixModal(false);
+    if (pixData) {
+      clearCart();
+      navigate(`/pedido/${pixData.orderId}`);
+    }
+  }, [pixData, clearCart, navigate]);
+
   if (!user) {
     navigate("/auth");
     return null;
@@ -137,6 +161,51 @@ const Checkout = () => {
     ? (deliveryConfig?.pickup_time_minutes || 20)
     : ((deliveryConfig?.prep_time_minutes || 25) + (deliveryConfig?.delivery_time_minutes || 30));
 
+  const createOrderAndItems = async () => {
+    if (!user || !profile) throw new Error("Missing user/profile");
+
+    const orderData: any = {
+      user_id: user.id,
+      subtotal: totalPrice,
+      delivery_fee: deliveryFee,
+      total: grandTotal,
+      status: "pending",
+      delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
+      payment_method: paymentMethod,
+      observations: observations || null,
+      change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+    };
+
+    if (deliveryType === "delivery") {
+      orderData.address_street = profile.street;
+      orderData.address_number = profile.number;
+      orderData.address_complement = profile.complement;
+      orderData.address_neighborhood = profile.neighborhood;
+    }
+
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .insert(orderData)
+      .select("id")
+      .single();
+
+    if (orderError) throw orderError;
+
+    const orderItems = items.map((item) => ({
+      order_id: order.id,
+      product_name: item.product.name,
+      quantity: item.quantity,
+      unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price, 0),
+      observations: item.observations || null,
+      addons_json: item.selectedAddons.length > 0 ? JSON.parse(JSON.stringify(item.selectedAddons)) : null,
+    }));
+
+    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+    if (itemsError) throw itemsError;
+
+    return order;
+  };
+
   const handlePlaceOrder = async () => {
     if (!user || !profile) return;
     if (!storeIsOpen) {
@@ -146,55 +215,57 @@ const Checkout = () => {
     setLoading(true);
 
     try {
-      const orderData: any = {
-        user_id: user.id,
-        subtotal: totalPrice,
-        delivery_fee: deliveryFee,
-        total: grandTotal,
-        status: "pending",
-        delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
-        payment_method: paymentMethod,
-        observations: observations || null,
-        change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-      };
+      const order = await createOrderAndItems();
 
-      if (deliveryType === "delivery") {
-        orderData.address_street = profile.street;
-        orderData.address_number = profile.number;
-        orderData.address_complement = profile.complement;
-        orderData.address_neighborhood = profile.neighborhood;
+      if (paymentMethod === "pix") {
+        // Generate PIX charge via edge function
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error("Sessão expirada");
+
+        const resp = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/pix-efi/create-charge`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              order_id: order.id,
+              amount: grandTotal,
+              descricao: `Pedido Turbo Lanches #${order.id.slice(0, 8)}`,
+            }),
+          }
+        );
+
+        if (!resp.ok) {
+          const errData = await resp.json();
+          throw new Error(errData.error || "Erro ao gerar cobrança PIX");
+        }
+
+        const pixResult = await resp.json();
+        setPixData({
+          orderId: order.id,
+          qrcode: pixResult.qrcode,
+          qrcodeImage: pixResult.qrcode_image,
+          expiracao: pixResult.expiracao || 3600,
+        });
+        setShowPixModal(true);
+      } else {
+        // Non-PIX: complete immediately
+        clearCart();
+        toast.success("Pedido enviado com sucesso! 🔥");
+        sendWhatsAppNotification(order.id, profile!, grandTotal, paymentMethod);
+        navigate(`/pedido/${order.id}`);
       }
-
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert(orderData)
-        .select("id")
-        .single();
-
-      if (orderError) throw orderError;
-
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price, 0),
-        observations: item.observations || null,
-        addons_json: item.selectedAddons.length > 0 ? JSON.parse(JSON.stringify(item.selectedAddons)) : null,
-      }));
-
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
-
-      clearCart();
-      toast.success("Pedido enviado com sucesso! 🔥");
-      sendWhatsAppNotification(order.id, profile, grandTotal, paymentMethod);
-      navigate(`/pedido/${order.id}`);
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar pedido");
     } finally {
       setLoading(false);
     }
   };
+
 
   const sendWhatsAppNotification = (orderId: string, profile: Profile, total: number, payment: string) => {
     const itemsList = items
@@ -455,6 +526,19 @@ const Checkout = () => {
           )}
         </div>
       </div>
+
+      {/* PIX Payment Modal */}
+      {showPixModal && pixData && (
+        <PixPaymentModal
+          orderId={pixData.orderId}
+          qrcode={pixData.qrcode}
+          qrcodeImage={pixData.qrcodeImage}
+          total={grandTotal}
+          expiracao={pixData.expiracao}
+          onConfirmed={handlePixConfirmed}
+          onClose={handlePixModalClose}
+        />
+      )}
     </div>
   );
 };

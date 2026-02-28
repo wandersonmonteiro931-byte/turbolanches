@@ -269,6 +269,7 @@ export type Database = {
           id: string
           observations: string | null
           order_number: number
+          paid_at: string | null
           payment_confirmed: boolean
           payment_method: string
           pix_copia_cola: string | null
@@ -300,6 +301,7 @@ export type Database = {
           id?: string
           observations?: string | null
           order_number?: number
+          paid_at?: string | null
           payment_confirmed?: boolean
           payment_method?: string
           pix_copia_cola?: string | null
@@ -331,6 +333,7 @@ export type Database = {
           id?: string
           observations?: string | null
           order_number?: number
+          paid_at?: string | null
           payment_confirmed?: boolean
           payment_method?: string
           pix_copia_cola?: string | null
