@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logoTurbo from "@/assets/logo-turbo.jpeg";
+import { useAlarmSound } from "@/hooks/useAlarmSound";
 
 interface KitchenOrder {
   id: string;
@@ -28,13 +29,18 @@ interface CancelledAlert {
 
 const Kitchen = () => {
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [pendingCount, setPendingCount] = useState(0);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
   const [now, setNow] = useState(Date.now());
   const [brasiliaTime, setBrasiliaTime] = useState("");
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
+  // Alarm: plays while there are pending orders
+  useAlarmSound(pendingCount > 0);
+
   const fetchOrders = useCallback(async () => {
+    // Fetch preparing orders for display
     const { data } = await supabase
       .from("orders")
       .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority")
@@ -60,6 +66,12 @@ const Kitchen = () => {
         setItems({});
       }
     }
+    // Check for pending orders (for alarm)
+    const { count } = await supabase
+      .from("orders")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    setPendingCount(count || 0);
   }, []);
 
   useEffect(() => {
@@ -105,14 +117,8 @@ const Kitchen = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Track order count for reference (alarm is handled by useAlarmSound)
   useEffect(() => {
-    const prevCount = (window as any).__kitchenCount || 0;
-    if (orders.length > prevCount && prevCount > 0) {
-      try {
-        const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==");
-        audio.play().catch(() => {});
-      } catch {}
-    }
     (window as any).__kitchenCount = orders.length;
   }, [orders.length]);
 
