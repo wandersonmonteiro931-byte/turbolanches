@@ -1,25 +1,37 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw } from "lucide-react";
+import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, Filter, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Order {
   id: string;
+  order_number: number;
   user_id: string;
   status: string;
+  subtotal: number;
   total: number;
   delivery_fee: number;
+  discount: number;
   payment_method: string;
   payment_confirmed: boolean;
   delivery_type: string;
   address_street: string | null;
   address_number: string | null;
+  address_complement: string | null;
   address_neighborhood: string | null;
   created_at: string;
+  preparing_at: string | null;
+  ready_at: string | null;
+  delivering_at: string | null;
+  delivered_at: string | null;
   observations: string | null;
   priority: boolean;
+  change_for: number | null;
+  cancellation_reason: string | null;
 }
 
 interface OrderItem {
@@ -50,46 +62,121 @@ const nextStatus: Record<string, string> = {
   delivering: "delivered",
 };
 
+const paymentLabels: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "PIX",
+  cartao: "Cartão",
+  credito: "Crédito",
+  debito: "Débito",
+  fiado: "Fiado",
+};
+
+const deliveryLabels: Record<string, string> = {
+  delivery: "Delivery",
+  retirada: "Retirada",
+  mesa: "Mesa",
+  viagem: "Viagem",
+  consumo: "Consumo",
+};
+
 const AdminOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
-  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string }>>({});
+  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Alarm: plays while there are pending orders
-  const hasPendingOrders = orders.some((o) => o.status === "pending" || o.status === "paid");
+  // Search & Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterPayment, setFilterPayment] = useState<string[]>([]);
+  const [filterDeliveryType, setFilterDeliveryType] = useState<string[]>([]);
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterMinValue, setFilterMinValue] = useState("");
+  const [filterMaxValue, setFilterMaxValue] = useState("");
+  const [filterPaid, setFilterPaid] = useState<"all" | "paid" | "unpaid">("all");
+  const [filterProductName, setFilterProductName] = useState("");
+
+  // Product names for items filter - load all items for filtered orders
+  const [allItems, setAllItems] = useState<Record<string, OrderItem[]>>({});
+
+  const hasPendingOrders = allOrders.some((o) => o.status === "pending" || o.status === "paid");
   useAlarmSound(hasPendingOrders);
 
-  const fetchOrders = async () => {
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    if (data) {
-      // Pedidos PIX só aparecem se pagos (não pendentes/cancelados)
-      const filtered = data.filter((o: any) => {
-        if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
-        return true;
-      });
-      setOrders(filtered);
-      const userIds = [...new Set(data.map(o => o.user_id))];
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, customer_code, full_name")
-          .in("user_id", userIds);
-        if (profilesData) {
-          const map: Record<string, { customer_code: number; full_name: string }> = {};
-          profilesData.forEach(p => { map[p.user_id] = p; });
-          setProfiles(map);
-        }
+  const fetchOrders = useCallback(async () => {
+    // Fetch ALL orders (no limit) - paginated by 1000
+    let all: Order[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data } = await supabase
+        .from("orders")
+        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (data && data.length > 0) {
+        all = [...all, ...data];
+        from += pageSize;
+        if (data.length < pageSize) hasMore = false;
+      } else {
+        hasMore = false;
       }
     }
-  };
+
+    setAllOrders(all);
+
+    // Fetch profiles for all users
+    const userIds = [...new Set(all.map((o) => o.user_id))];
+    if (userIds.length > 0) {
+      // Batch fetch profiles in chunks of 100
+      const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+      for (let i = 0; i < userIds.length; i += 100) {
+        const batch = userIds.slice(i, i + 100);
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, customer_code, full_name, phone")
+          .in("user_id", batch);
+        if (profilesData) {
+          profilesData.forEach((p) => { profileMap[p.user_id] = p; });
+        }
+      }
+      setProfiles(profileMap);
+    }
+  }, []);
+
+  // Fetch items for product name filter
+  const fetchAllItemsForFilter = useCallback(async () => {
+    if (!filterProductName) return;
+    const term = `%${filterProductName}%`;
+    const { data } = await supabase
+      .from("order_items")
+      .select("order_id, product_name, quantity, unit_price")
+      .ilike("product_name", term)
+      .limit(5000);
+    if (data) {
+      const map: Record<string, OrderItem[]> = {};
+      data.forEach((item: any) => {
+        if (!map[item.order_id]) map[item.order_id] = [];
+        map[item.order_id].push(item);
+      });
+      setAllItems(map);
+    }
+  }, [filterProductName]);
+
+  useEffect(() => {
+    if (filterProductName.length >= 2) {
+      const t = setTimeout(fetchAllItemsForFilter, 400);
+      return () => clearTimeout(t);
+    } else {
+      setAllItems({});
+    }
+  }, [filterProductName, fetchAllItemsForFilter]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
@@ -113,10 +200,117 @@ const AdminOrders = () => {
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
+
+  // Filtered orders
+  const filteredOrders = useMemo(() => {
+    let result = allOrders;
+
+    // Filter PIX pending/cancelled
+    result = result.filter((o) => {
+      if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
+      return true;
+    });
+
+    // Search
+    if (searchQuery.length >= 1) {
+      const q = searchQuery.toLowerCase();
+      const codeMatch = q.match(/^#?(\d+)$/);
+      const clientCodeMatch = q.match(/^t?(\d+)$/i);
+
+      result = result.filter((o) => {
+        // Match order number
+        if (codeMatch && String(o.order_number).includes(codeMatch[1])) return true;
+        if (String(o.order_number).padStart(5, "0").includes(q.replace("#", ""))) return true;
+        // Match customer code
+        const profile = profiles[o.user_id];
+        if (clientCodeMatch && profile && String(profile.customer_code) === clientCodeMatch[1]) return true;
+        if (profile?.full_name?.toLowerCase().includes(q)) return true;
+        if (profile?.phone?.includes(q)) return true;
+        // Match address
+        if (o.address_street?.toLowerCase().includes(q)) return true;
+        if (o.address_neighborhood?.toLowerCase().includes(q)) return true;
+        // Match observations
+        if (o.observations?.toLowerCase().includes(q)) return true;
+        return false;
+      });
+    }
+
+    // Status filter
+    if (filterStatus.length > 0) {
+      result = result.filter((o) => filterStatus.includes(o.status));
+    }
+
+    // Payment filter
+    if (filterPayment.length > 0) {
+      result = result.filter((o) => filterPayment.includes(o.payment_method));
+    }
+
+    // Delivery type filter
+    if (filterDeliveryType.length > 0) {
+      result = result.filter((o) => filterDeliveryType.includes(o.delivery_type));
+    }
+
+    // Date range filter
+    if (filterDateFrom) {
+      const from = new Date(filterDateFrom);
+      from.setHours(0, 0, 0, 0);
+      result = result.filter((o) => new Date(o.created_at) >= from);
+    }
+    if (filterDateTo) {
+      const to = new Date(filterDateTo);
+      to.setHours(23, 59, 59, 999);
+      result = result.filter((o) => new Date(o.created_at) <= to);
+    }
+
+    // Value range filter
+    if (filterMinValue) {
+      const min = parseFloat(filterMinValue);
+      if (!isNaN(min)) result = result.filter((o) => o.total >= min);
+    }
+    if (filterMaxValue) {
+      const max = parseFloat(filterMaxValue);
+      if (!isNaN(max)) result = result.filter((o) => o.total <= max);
+    }
+
+    // Paid filter
+    if (filterPaid === "paid") {
+      result = result.filter((o) => o.payment_confirmed);
+    } else if (filterPaid === "unpaid") {
+      result = result.filter((o) => !o.payment_confirmed);
+    }
+
+    // Product name filter
+    if (filterProductName.length >= 2 && Object.keys(allItems).length > 0) {
+      const matchingOrderIds = new Set(Object.keys(allItems));
+      result = result.filter((o) => matchingOrderIds.has(o.id));
+    }
+
+    return result;
+  }, [allOrders, searchQuery, filterStatus, filterPayment, filterDeliveryType, filterDateFrom, filterDateTo, filterMinValue, filterMaxValue, filterPaid, filterProductName, allItems, profiles]);
+
+  const activeFiltersCount = [
+    filterStatus.length > 0,
+    filterPayment.length > 0,
+    filterDeliveryType.length > 0,
+    !!filterDateFrom || !!filterDateTo,
+    !!filterMinValue || !!filterMaxValue,
+    filterPaid !== "all",
+    filterProductName.length >= 2,
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setFilterStatus([]);
+    setFilterPayment([]);
+    setFilterDeliveryType([]);
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setFilterMinValue("");
+    setFilterMaxValue("");
+    setFilterPaid("all");
+    setFilterProductName("");
+  };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
@@ -125,7 +319,7 @@ const AdminOrders = () => {
     if (newStatus === "ready") updateData.ready_at = now;
     if (newStatus === "delivering") updateData.delivering_at = now;
     if (newStatus === "delivered") updateData.delivered_at = now;
-    
+
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
@@ -135,7 +329,6 @@ const AdminOrders = () => {
     setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
-    // Impressão automática por status — com retry garantido
     if (newStatus === "preparing") {
       safePrint(`/admin/imprimir/${orderId}?tipo=cozinha`);
     } else if (newStatus === "delivering") {
@@ -143,7 +336,6 @@ const AdminOrders = () => {
     }
   };
 
-  // Abre janela de impressão — apenas 1 tentativa, avisa se bloqueado
   const safePrint = (url: string) => {
     const win = window.open(url, "_blank", "width=300,height=600");
     if (!win || win.closed) {
@@ -169,47 +361,247 @@ const AdminOrders = () => {
     }
   };
 
-  const formatTime = (date: string) => {
+  const formatDateTime = (date: string) => {
+    return new Date(date).toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "2-digit",
+      hour: "2-digit", minute: "2-digit",
+    });
+  };
+
+  const formatTime = (date: string | null) => {
+    if (!date) return null;
     return new Date(date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
+    setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      {/* Search Bar */}
+      <div className="flex items-center gap-2">
+        <div className="flex flex-1 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2.5">
+          <Search size={16} className="text-muted-foreground shrink-0" />
+          <input
+            placeholder="Buscar por nº pedido, código cliente, nome, telefone ou endereço..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="text-muted-foreground hover:text-foreground">
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <button
-          onClick={() => {
-            fetchOrders();
-            toast({ title: "✅ Pedidos atualizados" });
-          }}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shrink-0"
+          onClick={() => setShowFilters(!showFilters)}
+          className={`relative inline-flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
+            showFilters || activeFiltersCount > 0
+              ? "border-primary bg-primary/10 text-primary"
+              : "border-border bg-card text-foreground hover:bg-muted"
+          }`}
         >
-          <RefreshCw size={14} /> Atualizar
+          <Filter size={14} />
+          Filtros
+          {activeFiltersCount > 0 && (
+            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+              {activeFiltersCount}
+            </span>
+          )}
         </button>
+        <button
+          onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados" }); }}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shrink-0"
+        >
+          <RefreshCw size={14} />
+        </button>
+      </div>
+
+      {/* Filters Panel */}
+      {showFilters && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-foreground uppercase">Filtros</h3>
+            {activeFiltersCount > 0 && (
+              <button onClick={clearFilters} className="text-xs font-medium text-primary hover:underline">
+                Limpar todos
+              </button>
+            )}
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Status</label>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(statusConfig).map(([key, val]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(filterStatus, key, setFilterStatus)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                    filterStatus.includes(key) ? val.color + " ring-2 ring-offset-1 ring-primary/30" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {val.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Pagamento</label>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(paymentLabels).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(filterPayment, key, setFilterPayment)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                    filterPayment.includes(key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Delivery Type */}
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Tipo</label>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(deliveryLabels).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(filterDeliveryType, key, setFilterDeliveryType)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                    filterDeliveryType.includes(key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Paid Status */}
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Pagamento Confirmado</label>
+            <div className="flex gap-1.5">
+              {([["all", "Todos"], ["paid", "Pagos"], ["unpaid", "Não pagos"]] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setFilterPaid(key)}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                    filterPaid === key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Data inicial</label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Data final</label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground"
+              />
+            </div>
+          </div>
+
+          {/* Value Range */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Valor mínimo (R$)</label>
+              <input
+                type="number"
+                placeholder="0,00"
+                value={filterMinValue}
+                onChange={(e) => setFilterMinValue(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Valor máximo (R$)</label>
+              <input
+                type="number"
+                placeholder="999,99"
+                value={filterMaxValue}
+                onChange={(e) => setFilterMaxValue(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+          </div>
+
+          {/* Product Name */}
+          <div>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Item do cardápio</label>
+            <input
+              placeholder="Ex: X-Bacon, Coca-Cola..."
+              value={filterProductName}
+              onChange={(e) => setFilterProductName(e.target.value)}
+              className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Status Summary + Results Count */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-bold text-muted-foreground">
+          {filteredOrders.length} pedido(s)
+          {(searchQuery || activeFiltersCount > 0) && ` de ${allOrders.length} total`}
+        </span>
         {Object.entries(statusConfig).map(([key, val]) => {
-          const count = orders.filter((o) => o.status === key).length;
+          const count = filteredOrders.filter((o) => o.status === key).length;
           if (count === 0) return null;
           return (
-            <span key={key} className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${val.color}`}>
+            <span key={key} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${val.color}`}>
               {val.label} ({count})
             </span>
           );
         })}
       </div>
 
-      {orders.length === 0 && (
+      {filteredOrders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <Package size={48} className="mb-3 opacity-50" />
-          <p className="text-sm">Nenhum pedido ainda</p>
+          <p className="text-sm">{searchQuery || activeFiltersCount > 0 ? "Nenhum pedido encontrado com esses filtros" : "Nenhum pedido ainda"}</p>
         </div>
       )}
 
-      {orders.map((order) => {
+      {filteredOrders.map((order) => {
         const status = statusConfig[order.status] || statusConfig.pending;
         const StatusIcon = status.icon;
         const next = nextStatus[order.status];
+        const profile = profiles[order.user_id];
+        const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
 
         return (
-          <div key={order.id} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div
+            key={order.id}
+            className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
+              order.status === "pending" || order.status === "paid"
+                ? "border-amber-400 animate-pulse ring-1 ring-amber-300"
+                : "border-border"
+            }`}
+          >
             <button
               onClick={() => toggleExpand(order.id)}
               className="flex w-full items-center gap-3 p-4 text-left"
@@ -219,68 +611,114 @@ const AdminOrders = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-foreground">#{String((order as any).order_number).padStart(5, '0')}</span>
-                  {(() => {
-                    const profile = profiles[order.user_id];
-                    const code = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
-                    return code ? (
-                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                        CLIENTE: {code}
-                      </span>
-                    ) : null;
-                  })()}
+                  <span className="text-sm font-bold text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
+                  {customerCode && (
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                      {customerCode}
+                    </span>
+                  )}
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
                     {status.label}
                   </span>
+                  {order.priority && (
+                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                  )}
+                  {!order.payment_confirmed && order.status !== "cancelled" && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
+                  )}
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {formatTime(order.created_at)} · {order.delivery_type === "delivery" ? "Entrega" : "Retirada"} · {order.payment_method.toUpperCase()}
-                  {profiles[order.user_id]?.full_name ? ` · ${profiles[order.user_id].full_name}` : ""}
+                <p className="mt-0.5 text-xs text-muted-foreground truncate">
+                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {paymentLabels[order.payment_method] || order.payment_method}
+                  {profile?.full_name ? ` · ${profile.full_name}` : ""}
                 </p>
               </div>
-              <span className="text-sm font-bold text-foreground">R$ {Number(order.total).toFixed(2)}</span>
+              <div className="text-right shrink-0">
+                <span className="text-sm font-bold text-foreground">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+              </div>
             </button>
 
             {expandedOrder === order.id && (
-              <div className="border-t border-border px-4 pb-4 pt-3">
-                {order.address_street && (
-                  <p className="mb-2 text-xs text-muted-foreground">
-                    📍 {order.address_street}, {order.address_number} - {order.address_neighborhood}
-                  </p>
-                )}
-                {order.observations && (
-                  <p className="mb-2 text-xs text-muted-foreground">💬 {order.observations}</p>
+              <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                {/* Timeline */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                  <span>📥 Recebido: {formatTime(order.created_at)}</span>
+                  {order.preparing_at && <span>👨‍🍳 Preparo: {formatTime(order.preparing_at)}</span>}
+                  {order.ready_at && <span>✅ Pronto: {formatTime(order.ready_at)}</span>}
+                  {order.delivering_at && <span>🚀 Saiu: {formatTime(order.delivering_at)}</span>}
+                  {order.delivered_at && <span>📦 Entregue: {formatTime(order.delivered_at)}</span>}
+                </div>
+
+                {/* Customer Info */}
+                {profile && (
+                  <div className="text-xs text-muted-foreground">
+                    👤 {profile.full_name || "Sem nome"} · {profile.phone || "Sem telefone"} · {customerCode}
+                  </div>
                 )}
 
-                <div className="space-y-1.5 mb-3">
+                {/* Address */}
+                {order.address_street && (
+                  <p className="text-xs text-muted-foreground">
+                    📍 {order.address_street}, {order.address_number || "S/N"}
+                    {order.address_complement ? ` - ${order.address_complement}` : ""} - {order.address_neighborhood}
+                  </p>
+                )}
+
+                {/* Observations */}
+                {order.observations && (
+                  <p className="text-xs text-muted-foreground">💬 {order.observations}</p>
+                )}
+
+                {/* Cancellation Reason */}
+                {order.cancellation_reason && (
+                  <p className="text-xs text-red-600 font-medium">❌ Motivo cancelamento: {order.cancellation_reason}</p>
+                )}
+
+                {/* Items */}
+                <div className="space-y-1.5">
                   {(items[order.id] || []).map((item) => (
-                    <div key={item.id} className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">
-                        {item.quantity}x {item.product_name}
-                      </span>
-                      <span className="text-muted-foreground">
-                        R$ {(Number(item.unit_price) * item.quantity).toFixed(2)}
-                      </span>
+                    <div key={item.id}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-foreground font-medium">
+                          {item.quantity}x {item.product_name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
+                      {item.addons_json && (item.addons_json as any[]).length > 0 && (item.addons_json as any[]).map((a: any, i: number) => (
+                        <div key={i} className="text-[11px] text-muted-foreground pl-4">+ {a.name}</div>
+                      ))}
+                      {item.observations && <div className="text-[11px] text-muted-foreground pl-4">Obs: {item.observations}</div>}
                     </div>
                   ))}
                 </div>
 
-                <div className="flex gap-2 mb-2">
-                  <button
-                    onClick={() => printReceipt(order.id, "cozinha")}
-                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
+                {/* Totals */}
+                <div className="rounded-lg bg-muted/50 p-2.5 space-y-0.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
+                  {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
+                  <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
+                  <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="text-foreground">{paymentLabels[order.payment_method] || order.payment_method} {order.payment_confirmed ? "✅" : "❌"}</span></div>
+                  {order.change_for && order.change_for > 0 && (
+                    <div className="flex justify-between"><span className="text-muted-foreground">Troco para</span><span className="text-foreground">R$ {Number(order.change_for).toFixed(2).replace(".", ",")}</span></div>
+                  )}
+                </div>
+
+                {/* Print buttons */}
+                <div className="flex gap-2">
+                  <button onClick={() => printReceipt(order.id, "cozinha")}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Cozinha
                   </button>
-                  <button
-                    onClick={() => printEntregaCliente(order.id)}
-                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
+                  <button onClick={() => printEntregaCliente(order.id)}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Entrega+Cliente
                   </button>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-2">
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-2">
                   {order.status === "preparing" && (
                     <button
                       onClick={async () => {
@@ -288,13 +726,11 @@ const AdminOrders = () => {
                         toast({ title: order.priority ? "Prioridade removida" : "⚡ Pedido marcado como PRIORIDADE" });
                         fetchOrders();
                       }}
-                      className={`rounded-lg border px-4 py-2 text-sm font-bold ${
-                        order.priority
-                          ? "border-purple-500 bg-purple-50 text-purple-700"
-                          : "border-border text-muted-foreground"
+                      className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                        order.priority ? "border-purple-500 bg-purple-50 text-purple-700" : "border-border text-muted-foreground"
                       }`}
                     >
-                      ⚡ {order.priority ? "Remover Prioridade" : "Marcar Prioridade"}
+                      ⚡ {order.priority ? "Remover Prioridade" : "Prioridade"}
                     </button>
                   )}
                   {order.payment_method !== "fiado" && order.status !== "cancelled" && (
@@ -304,13 +740,14 @@ const AdminOrders = () => {
                         toast({ title: "📝 Pedido marcado como Fiado" });
                         fetchOrders();
                       }}
-                      className="rounded-lg border border-amber-500 px-4 py-2 text-sm font-bold text-amber-600"
+                      className="rounded-lg border border-amber-500 px-3 py-2 text-xs font-bold text-amber-600"
                     >
-                      📝 Marcar Fiado
+                      📝 Fiado
                     </button>
                   )}
                 </div>
 
+                {/* Status actions */}
                 <div className="flex gap-2">
                   {next && (
                     <button
@@ -320,7 +757,7 @@ const AdminOrders = () => {
                       {next === "preparing" ? "✅ Aceitar" : `Avançar → ${statusConfig[next]?.label}`}
                     </button>
                   )}
-                  {order.status !== "cancelled" && (
+                  {order.status !== "cancelled" && order.status !== "delivered" && (
                     <button
                       onClick={() => updateStatus(order.id, "cancelled")}
                       className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
