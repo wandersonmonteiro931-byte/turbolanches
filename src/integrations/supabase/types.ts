@@ -450,6 +450,42 @@ export type Database = {
           },
         ]
       }
+      profile_changes: {
+        Row: {
+          changed_by: string
+          changed_by_role: string
+          created_at: string
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          profile_id: string
+          user_id: string
+        }
+        Insert: {
+          changed_by: string
+          changed_by_role?: string
+          created_at?: string
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          profile_id: string
+          user_id: string
+        }
+        Update: {
+          changed_by?: string
+          changed_by_role?: string
+          created_at?: string
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          profile_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           city: string

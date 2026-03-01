@@ -25,6 +25,7 @@ import AdminPrint from "./pages/admin/AdminPrint";
 import AdminDeliveryZones from "./pages/admin/AdminDeliveryZones";
 import AdminManualOrder from "./pages/admin/AdminManualOrder";
 import AdminSchedule from "./pages/admin/AdminSchedule";
+import AdminCustomers from "./pages/admin/AdminCustomers";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="categorias" element={<AdminCategories />} />
                 <Route path="entregas" element={<AdminDeliveryZones />} />
                 <Route path="horarios" element={<AdminSchedule />} />
+                <Route path="clientes" element={<AdminCustomers />} />
               </Route>
               <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
               <Route path="/admin/imprimir/:id" element={<AdminPrint />} />

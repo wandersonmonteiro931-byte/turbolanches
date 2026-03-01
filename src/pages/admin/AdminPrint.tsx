@@ -111,10 +111,10 @@ const AdminPrint = () => {
   const manualClienteMatch = obsText.match(/Cliente:\s*([^|]+)/);
   const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
   const clienteName = manualClienteMatch ? manualClienteMatch[1].trim() : (profile?.full_name || "");
-  const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
+  // Only show customer code if it's NOT a manual order (i.e., actual customer placed the order)
+  const isManualOrder = obsText.includes("Cliente:") || obsText.includes("Tel:");
+  const customerCode = (!isManualOrder && profile?.customer_code) ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
   const clientePhone = manualTelMatch ? manualTelMatch[1].trim() : (profile?.phone || "");
-  // For manual orders (obs has "Cliente:" pattern or no profile), don't use admin's profile as fallback
-  const isManualOrder = obsText.includes("Cliente:") || obsText.includes("Tel:") || !profile;
   const displayName = isManualOrder ? (manualClienteMatch ? manualClienteMatch[1].trim() : "") : (profile?.full_name || "");
   const displayPhone = isManualOrder ? (manualTelMatch ? manualTelMatch[1].trim() : "") : (profile?.phone || "");
 

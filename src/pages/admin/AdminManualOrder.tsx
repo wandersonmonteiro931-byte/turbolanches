@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
+import CustomerSearch from "@/components/admin/CustomerSearch";
 
 interface Product {
   id: string;
@@ -56,6 +57,8 @@ const AdminManualOrder = () => {
   const [isPaid, setIsPaid] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>("");
   const [tableNumber, setTableNumber] = useState("");
   const [addressStreet, setAddressStreet] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
@@ -230,7 +233,25 @@ const AdminManualOrder = () => {
 
         {/* Customer Info */}
         <div className="rounded-xl bg-card border border-border p-4 space-y-3">
-          <h2 className="text-sm font-bold text-foreground">Informações</h2>
+          <h2 className="text-sm font-bold text-foreground">Informações do Cliente</h2>
+          <CustomerSearch
+            onSelect={(profile) => {
+              setCustomerName(profile.full_name);
+              setCustomerPhone(profile.phone);
+              setSelectedCustomerId(profile.user_id);
+              setSelectedCustomerCode(`T${String(profile.customer_code).padStart(5, "0")}`);
+              if (deliveryType === "delivery") {
+                setAddressStreet(profile.street || "");
+                setAddressNumber(profile.number || "");
+                setAddressNeighborhood(profile.neighborhood || "");
+                setAddressComplement([profile.complement, profile.quadra ? `Qd ${profile.quadra}` : "", profile.lote ? `Lt ${profile.lote}` : ""].filter(Boolean).join(" "));
+              }
+            }}
+            onClear={() => {
+              setSelectedCustomerId(null);
+              setSelectedCustomerCode("");
+            }}
+          />
           <div className="grid grid-cols-2 gap-3">
             <input
               placeholder="Nome do cliente"
