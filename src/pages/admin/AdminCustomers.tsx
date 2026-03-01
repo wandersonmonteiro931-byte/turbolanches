@@ -107,7 +107,7 @@ const AdminCustomers = () => {
     if (orders[userId]) return;
 
     const [ordersRes, addressesRes, changesRes] = await Promise.all([
-      supabase.from("orders").select("id, order_number, status, total, payment_method, payment_confirmed, delivery_type, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(100),
+      supabase.from("orders").select("id, order_number, status, total, payment_method, payment_confirmed, delivery_type, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10000),
       supabase.from("customer_addresses").select("id, label, street, number, neighborhood, complement, quadra, lote, is_default").eq("user_id", userId),
       supabase.from("profile_changes").select("id, field_name, old_value, new_value, changed_by_role, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
     ]);
@@ -378,8 +378,8 @@ const AdminCustomers = () => {
                 {userOrders.length > 0 && (
                   <div className="space-y-2">
                     <h3 className="text-xs font-bold text-foreground uppercase">Últimos Pedidos</h3>
-                    <div className="max-h-40 overflow-y-auto space-y-1">
-                      {userOrders.slice(0, 10).map((o) => (
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {userOrders.map((o) => (
                         <div key={o.id} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-1.5">
                           <span className="text-xs font-bold text-foreground">#{String(o.order_number).padStart(5, "0")}</span>
                           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${o.status === "delivered" ? "bg-green-100 text-green-800" : o.status === "cancelled" ? "bg-red-100 text-red-800" : "bg-amber-100 text-amber-800"}`}>
