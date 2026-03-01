@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotificationBanner from "@/components/NotificationBanner";
+import InstallGate from "@/components/InstallGate";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
 import Index from "./pages/Index";
@@ -58,6 +59,7 @@ const AppInner = () => {
     <CartProvider>
       <Toaster />
       <Sonner />
+      <InstallGate />
       <NotificationBanner />
       <BrowserRouter>
         <Routes>
