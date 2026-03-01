@@ -110,7 +110,7 @@ const AdminPrint = () => {
   const obsText = order.observations || "";
   const manualClienteMatch = obsText.match(/Cliente:\s*([^|]+)/);
   const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
-  const clienteName = manualClienteMatch ? manualClienteMatch[1].trim() : (profile?.full_name || "Cliente");
+  const clienteName = manualClienteMatch ? manualClienteMatch[1].trim() : (profile?.full_name || "");
   const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
   const clientePhone = manualTelMatch ? manualTelMatch[1].trim() : (profile?.phone || "");
 
@@ -267,7 +267,7 @@ const AdminPrint = () => {
       {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
       <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
       <div className="separator" />
-      <div className="info">CLIENTE: {clienteName}{clientePhone ? ` | TEL: ${clientePhone}` : ""}</div>
+      {(clienteName || clientePhone) && <div className="info">{clienteName ? `CLIENTE: ${clienteName}` : ""}{clienteName && clientePhone ? " | " : ""}{clientePhone ? `TEL: ${clientePhone}` : ""}</div>}
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
       {order.observations && (
@@ -291,8 +291,8 @@ const AdminPrint = () => {
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
       <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
       <div className="separator" />
-      <div className="info">Cliente: {clienteName}</div>
-      <div className="info">Telefone: {clientePhone}</div>
+      {clienteName && <div className="info">Cliente: {clienteName}</div>}
+      {clientePhone && <div className="info">Telefone: {clientePhone}</div>}
       <div className="box-highlight">{address}</div>
       {order.observations && <div className="info">OBS: {order.observations}</div>}
       <div className="separator" />
@@ -322,7 +322,7 @@ const AdminPrint = () => {
       <div className="separator" />
       <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="separator" />
-      <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho e higiene!</div>
+      {clienteName && <div className="msg-carinho">{clienteName}, seu pedido foi preparado com muito carinho e higiene!</div>}
       <div className="separator" />
       {itensSection}
       {totaisSection(false)}
