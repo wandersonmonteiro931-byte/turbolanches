@@ -35,6 +35,9 @@ const InstallGate = () => {
     // Show modal after 5s initially, then every 5 minutes
     const show = () => {
       if (isStandalone()) return;
+      // Don't show on admin/kitchen routes
+      const path = window.location.pathname;
+      if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
       setIosMode(isIOS());
       setVisible(true);
     };
