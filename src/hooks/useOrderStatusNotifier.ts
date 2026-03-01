@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdmin } from "@/hooks/useAdmin";
 
 interface PushTemplate {
   trigger_status: string;
@@ -18,11 +17,29 @@ interface PushTemplate {
  */
 export function useOrderStatusNotifier() {
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminChecked, setAdminChecked] = useState(false);
   const sentKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    if (adminLoading || !isAdmin || !user) return;
+    if (!user) {
+      setIsAdmin(false);
+      setAdminChecked(true);
+      return;
+    }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .then(({ data }) => {
+        setIsAdmin((data?.length ?? 0) > 0);
+        setAdminChecked(true);
+      });
+  }, [user]);
+
+  useEffect(() => {
+    if (!adminChecked || !isAdmin || !user) return;
 
     const channel = supabase
       .channel("order-status-push")
@@ -103,5 +120,5 @@ export function useOrderStatusNotifier() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAdmin, adminLoading, user]);
+  }, [isAdmin, adminChecked, user]);
 }
