@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Download, X, Share, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Download, X, Share, ShieldCheck, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -17,31 +17,32 @@ const isStandalone = () =>
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
-// Store the event globally so it survives React re-renders
+// Store globally so it survives React re-renders and HMR
 let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
 
-// Capture before React even mounts
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
   globalDeferredPrompt = e as BeforeInstallPromptEvent;
-  console.log("[InstallGate] beforeinstallprompt captured globally");
 });
 
 const InstallGate = () => {
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [iosMode, setIosMode] = useState(false);
+  const [hasPrompt, setHasPrompt] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
 
-    // Also listen inside the component for late-arriving events
     const handler = (e: Event) => {
       e.preventDefault();
       globalDeferredPrompt = e as BeforeInstallPromptEvent;
-      console.log("[InstallGate] beforeinstallprompt captured in component");
+      setHasPrompt(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
+
+    // Check if already captured
+    if (globalDeferredPrompt) setHasPrompt(true);
 
     const ios = isIOS();
     const intervalMs = ios ? IOS_INTERVAL_MS : ANDROID_INTERVAL_MS;
@@ -51,6 +52,7 @@ const InstallGate = () => {
       const path = window.location.pathname;
       if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
       setIosMode(isIOS());
+      if (globalDeferredPrompt) setHasPrompt(true);
       setVisible(true);
     };
 
@@ -64,47 +66,37 @@ const InstallGate = () => {
     };
   }, []);
 
-  // Hide when app gets installed
   useEffect(() => {
     const handler = () => {
       setVisible(false);
       globalDeferredPrompt = null;
+      setHasPrompt(false);
     };
     window.addEventListener("appinstalled", handler);
     return () => window.removeEventListener("appinstalled", handler);
   }, []);
 
   const handleInstall = useCallback(async () => {
-    console.log("[InstallGate] Baixar clicked, prompt available:", !!globalDeferredPrompt);
-    
-    if (!globalDeferredPrompt) {
-      // Fallback: no prompt available, guide user manually
-      alert(
-        "Para instalar o app:\n\n" +
-        "1. Toque no menu ⋮ (três pontinhos) do Chrome\n" +
-        "2. Selecione \"Adicionar à tela inicial\"\n" +
-        "3. Toque em \"Adicionar\""
-      );
-      return;
-    }
-
+    if (!globalDeferredPrompt) return;
     setInstalling(true);
     try {
       await globalDeferredPrompt.prompt();
       const { outcome } = await globalDeferredPrompt.userChoice;
-      console.log("[InstallGate] User choice:", outcome);
       if (outcome === "accepted") {
         setVisible(false);
       }
-    } catch (err) {
-      console.error("[InstallGate] Install error:", err);
+    } catch {
+      // ignore
     } finally {
       setInstalling(false);
       globalDeferredPrompt = null;
+      setHasPrompt(false);
     }
   }, []);
 
   const dismiss = () => setVisible(false);
+
+  const showAndroidInstructions = !iosMode && !hasPrompt;
 
   return (
     <AnimatePresence>
@@ -160,12 +152,30 @@ const InstallGate = () => {
                 </div>
               )}
 
+              {showAndroidInstructions && (
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>Para instalar:</p>
+                  <p>
+                    1. Toque no menu{" "}
+                    <MoreVertical size={14} className="inline text-primary" />{" "}
+                    (três pontinhos) do Chrome
+                  </p>
+                  <p>
+                    2. Selecione <strong>"Instalar aplicativo"</strong> ou{" "}
+                    <strong>"Adicionar à tela inicial"</strong>
+                  </p>
+                  <p>
+                    3. Toque em <strong>"Instalar"</strong>
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-center justify-center gap-2 text-xs text-green-600">
                 <ShieldCheck size={16} />
                 <span>100% seguro e criptografado.</span>
               </div>
 
-              {!iosMode && (
+              {!iosMode && hasPrompt && (
                 <button
                   onClick={handleInstall}
                   disabled={installing}
