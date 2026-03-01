@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "https://esm.sh/node-forge@1.3.1";
-import { request as httpsRequest } from "node:https";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,55 +48,35 @@ function getPemCredentials(): { cert: string; key: string } {
 }
 
 // ══════════════════════════════════════════════════════════════
-// mTLS via node:https (bypasses Deno rustls entirely)
+// mTLS via Deno.createHttpClient + fetch (with retry)
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
 
-function mtlsFetch(
+async function mtlsFetch(
   path: string,
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
   const { cert, key } = getPemCredentials();
 
-  return new Promise((resolve, reject) => {
-    const req = httpsRequest(
-      {
-        hostname: EFI_HOST,
-        port: 443,
-        path: path,
-        method: options.method,
-        headers: {
-          ...options.headers,
-          "Connection": "close",
-          ...(options.body ? { "Content-Length": new TextEncoder().encode(options.body).length.toString() } : {}),
-        },
-        cert: cert,
-        key: key,
-        rejectUnauthorized: true,
-      },
-      (res) => {
-        const chunks: Uint8Array[] = [];
-        res.on("data", (chunk: Uint8Array) => chunks.push(chunk));
-        res.on("end", () => {
-          const total = chunks.reduce((s, c) => s + c.length, 0);
-          const merged = new Uint8Array(total);
-          let offset = 0;
-          for (const c of chunks) { merged.set(c, offset); offset += c.length; }
-          const body = new TextDecoder().decode(merged);
-          resolve({ status: res.statusCode || 0, body });
-        });
-      }
-    );
-
-    req.on("error", (err) => reject(err));
-    req.setTimeout(15000, () => {
-      req.destroy(new Error("Request timeout"));
-    });
-
-    if (options.body) req.write(options.body);
-    req.end();
+  const client = (Deno as any).createHttpClient({
+    certChain: cert,
+    privateKey: key,
   });
+
+  try {
+    const resp = await fetch(`https://${EFI_HOST}${path}`, {
+      method: options.method,
+      headers: options.headers,
+      body: options.body,
+      // @ts-ignore Deno-specific
+      client,
+    });
+    const body = await resp.text();
+    return { status: resp.status, body };
+  } finally {
+    try { client.close(); } catch { /* ignore */ }
+  }
 }
 
 async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
@@ -107,9 +86,11 @@ async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
       return await mtlsFetch(path, opts);
     } catch (e) {
       lastError = e as Error;
-      console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${lastError.message}`);
+      const msg = lastError.message || "";
+      console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${msg}`);
+      // If it's the TLS close_notify error, retry quickly
       if (i < retries) {
-        await new Promise(r => setTimeout(r, 2000 * i));
+        await new Promise(r => setTimeout(r, 1000 * i));
       }
     }
   }
