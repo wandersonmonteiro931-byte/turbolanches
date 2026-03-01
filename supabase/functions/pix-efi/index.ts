@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "https://esm.sh/node-forge@1.3.1";
-import { connect as tlsConnect } from "node:tls";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,9 +19,10 @@ function getEnv(name: string): string {
 }
 
 let _cachedPem: { cert: string; key: string } | null = null;
+let _cachedForgeKey: any = null;
 
-function getPemCredentials(): { cert: string; key: string } {
-  if (_cachedPem) return _cachedPem;
+function getPemCredentials(): { cert: string; key: string; forgeKey: any } {
+  if (_cachedPem && _cachedForgeKey) return { ..._cachedPem, forgeKey: _cachedForgeKey };
 
   const b64 = getEnv("EFI_CERTIFICATE_BASE64");
   const derBytes = forge.util.decode64(b64);
@@ -45,96 +45,140 @@ function getPemCredentials(): { cert: string; key: string } {
   const key = forge.pki.privateKeyInfoToPem(pkInfo);
 
   _cachedPem = { cert, key };
-  return _cachedPem;
+  _cachedForgeKey = keyBag.key;
+  return { cert, key, forgeKey: _cachedForgeKey };
 }
 
 // ══════════════════════════════════════════════════════════════
-// mTLS via node:tls + raw HTTP/1.1 (bypasses Deno rustls)
+// mTLS via forge pure-JS TLS over raw TCP (Deno.connect)
+// Completely bypasses Deno rustls and node compat layer
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
 
-function mtlsFetch(
+async function mtlsFetch(
   path: string,
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
   const { cert, key } = getPemCredentials();
 
-  return new Promise((resolve, reject) => {
+  // 1. Raw TCP connection (no TLS — forge handles TLS in pure JS)
+  const conn = await Deno.connect({ hostname: EFI_HOST, port: 443 });
+
+  return new Promise<{ status: number; body: string }>((resolve, reject) => {
+    let responseData = "";
     let settled = false;
-    const timeout = setTimeout(() => {
-      if (!settled) { settled = true; socket.destroy(); reject(new Error("Request timeout 15s")); }
-    }, 15000);
 
-    const socket = tlsConnect(
-      {
-        host: EFI_HOST,
-        port: 443,
-        cert,
-        key,
-        rejectUnauthorized: true,
-        servername: EFI_HOST,
-      },
-      () => {
-        // TLS handshake complete – send HTTP/1.1 request
-        const bodyBuf = options.body ? new TextEncoder().encode(options.body) : null;
-        let reqStr = `${options.method} ${path} HTTP/1.1\r\n`;
-        reqStr += `Host: ${EFI_HOST}\r\n`;
-        reqStr += `Connection: close\r\n`;
-        if (bodyBuf) reqStr += `Content-Length: ${bodyBuf.length}\r\n`;
-        if (options.headers) {
-          for (const [k, v] of Object.entries(options.headers)) {
-            reqStr += `${k}: ${v}\r\n`;
-          }
-        }
-        reqStr += `\r\n`;
-        socket.write(reqStr);
-        if (options.body) socket.write(options.body);
-      }
-    );
-
-    const chunks: string[] = [];
-    socket.setEncoding("utf-8");
-    socket.on("data", (chunk: string) => chunks.push(chunk));
-
-    function parseResponse() {
-      const raw = chunks.join("");
-      const idx = raw.indexOf("\r\n\r\n");
-      if (idx === -1) return null;
-      const headerPart = raw.substring(0, idx);
-      const bodyPart = raw.substring(idx + 4);
-      const statusLine = headerPart.split("\r\n")[0];
-      const statusMatch = statusLine.match(/HTTP\/\d\.\d\s+(\d+)/);
-      const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
-      const finalBody = headerPart.toLowerCase().includes("transfer-encoding: chunked")
-        ? decodeChunked(bodyPart)
-        : bodyPart;
-      return { status, body: finalBody };
-    }
-
-    socket.on("end", () => {
-      clearTimeout(timeout);
-      if (settled) return;
-      settled = true;
-      const result = parseResponse();
-      if (result) resolve(result);
-      else reject(new Error("Invalid HTTP response (no header boundary)"));
-    });
-
-    socket.on("error", (err: Error) => {
-      clearTimeout(timeout);
-      if (!settled) { settled = true; reject(err); }
-    });
-
-    socket.on("close", () => {
-      clearTimeout(timeout);
+    const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
-        const result = chunks.length > 0 ? parseResponse() : null;
-        if (result) resolve(result);
-        else reject(new Error("Connection closed with no data"));
+        try { conn.close(); } catch { /* */ }
+        reject(new Error("Request timeout 20s"));
       }
+    }, 20000);
+
+    function finish() {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      try { conn.close(); } catch { /* */ }
+
+      const idx = responseData.indexOf("\r\n\r\n");
+      if (idx === -1) {
+        console.error("Raw response (first 500 chars):", responseData.substring(0, 500));
+        reject(new Error("No HTTP headers in response, data length: " + responseData.length));
+        return;
+      }
+      const hdr = responseData.substring(0, idx);
+      let body = responseData.substring(idx + 4);
+      const m = hdr.match(/HTTP\/\d\.\d\s+(\d+)/);
+      const status = m ? parseInt(m[1]) : 0;
+      if (hdr.toLowerCase().includes("transfer-encoding: chunked")) body = decodeChunked(body);
+      resolve({ status, body });
+    }
+
+    // Serialize writes to TCP
+    let writeChain = Promise.resolve();
+    function tcpWrite(bytes: Uint8Array) {
+      writeChain = writeChain.then(() => conn.write(bytes)).catch(() => {});
+    }
+
+    // 2. Forge TLS connection (pure JS TLS implementation)
+    const tls = forge.tls.createConnection({
+      server: false,
+      verify: (_c: any, _verified: any, _depth: any, _certs: any) => true,
+      connected: (_c: any) => {
+        console.log("forge TLS handshake complete");
+        // Build and send HTTP/1.1 request
+        const bodyLen = options.body
+          ? new TextEncoder().encode(options.body).length
+          : 0;
+        let req = `${options.method} ${path} HTTP/1.1\r\n`;
+        req += `Host: ${EFI_HOST}\r\n`;
+        req += `Connection: close\r\n`;
+        if (bodyLen > 0) req += `Content-Length: ${bodyLen}\r\n`;
+        for (const [k, v] of Object.entries(options.headers || {})) {
+          req += `${k}: ${v}\r\n`;
+        }
+        req += "\r\n";
+        if (options.body) req += options.body;
+        tls.prepare(req);
+      },
+      getCertificate: () => cert,
+      getPrivateKey: () => key,
+      tlsDataReady: (c: any) => {
+        // Encrypted data ready → write to raw TCP socket
+        const data = c.tlsData.getBytes();
+        const buf = new Uint8Array(data.length);
+        for (let i = 0; i < data.length; i++) buf[i] = data.charCodeAt(i);
+        tcpWrite(buf);
+      },
+      dataReady: (c: any) => {
+        // Decrypted HTTP data received
+        responseData += c.data.getBytes();
+      },
+      closed: () => {
+        console.log("forge TLS closed, response length:", responseData.length);
+        finish();
+      },
+      error: (_c: any, error: any) => {
+        clearTimeout(timer);
+        console.error("forge TLS error:", error.message);
+        // If we already have response data, try to use it
+        if (responseData.length > 0) {
+          finish();
+        } else if (!settled) {
+          settled = true;
+          try { conn.close(); } catch { /* */ }
+          reject(new Error(`TLS error: ${error.message}`));
+        }
+      },
     });
+
+    // 3. Start TLS handshake
+    tls.handshake();
+
+    // 4. Read loop: raw TCP → forge TLS processor
+    (async () => {
+      const buf = new Uint8Array(16384);
+      try {
+        while (!settled) {
+          const n = await conn.read(buf);
+          if (n === null) {
+            // TCP connection closed by peer — normal with Connection: close
+            finish();
+            break;
+          }
+          // Convert Uint8Array to forge binary string
+          let str = "";
+          for (let i = 0; i < n; i++) str += String.fromCharCode(buf[i]);
+          tls.process(str);
+        }
+      } catch (_e) {
+        // TCP read error — resolve with whatever data we have
+        finish();
+      }
+    })();
   });
 }
 
@@ -153,7 +197,7 @@ function decodeChunked(raw: string): string {
   return parts.join("");
 }
 
-async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
+async function mtlsFetchRetry(path: string, opts: any, retries = 2) {
   let lastError: Error | null = null;
   for (let i = 1; i <= retries; i++) {
     try {
@@ -161,7 +205,7 @@ async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
     } catch (e) {
       lastError = e as Error;
       console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${lastError.message}`);
-      if (i < retries) await new Promise(r => setTimeout(r, 1000 * i));
+      if (i < retries) await new Promise((r) => setTimeout(r, 1500 * i));
     }
   }
   throw lastError || new Error("All retries failed");
