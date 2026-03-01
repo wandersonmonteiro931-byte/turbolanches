@@ -7,8 +7,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const ANDROID_INTERVAL_MS = 5 * 60_000; // 5 min
-const IOS_INTERVAL_MS = 3 * 60_000; // 3 min
+const ANDROID_INTERVAL_MS = 5 * 60_000;
+const IOS_INTERVAL_MS = 3 * 60_000;
 
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
@@ -17,43 +17,29 @@ const isStandalone = () =>
 const isIOS = () =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
+// Store the event globally so it survives React re-renders
+let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
+
+// Capture before React even mounts
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  globalDeferredPrompt = e as BeforeInstallPromptEvent;
+  console.log("[InstallGate] beforeinstallprompt captured globally");
+});
+
 const InstallGate = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [iosMode, setIosMode] = useState(false);
 
-  // Keep ref in sync with state
-  useEffect(() => {
-    deferredPromptRef.current = deferredPrompt;
-  }, [deferredPrompt]);
-
-  const triggerInstall = useCallback(async () => {
-    const prompt = deferredPromptRef.current;
-    if (!prompt) return;
-    try {
-      await prompt.prompt();
-      const { outcome } = await prompt.userChoice;
-      if (outcome === "accepted") {
-        setVisible(false);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setDeferredPrompt(null);
-      deferredPromptRef.current = null;
-    }
-  }, []);
-
   useEffect(() => {
     if (isStandalone()) return;
 
+    // Also listen inside the component for late-arriving events
     const handler = (e: Event) => {
       e.preventDefault();
-      const evt = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(evt);
-      deferredPromptRef.current = evt;
+      globalDeferredPrompt = e as BeforeInstallPromptEvent;
+      console.log("[InstallGate] beforeinstallprompt captured in component");
     };
     window.addEventListener("beforeinstallprompt", handler);
 
@@ -76,19 +62,47 @@ const InstallGate = () => {
       clearInterval(interval);
       window.removeEventListener("beforeinstallprompt", handler);
     };
-  }, [triggerInstall]);
+  }, []);
 
+  // Hide when app gets installed
   useEffect(() => {
     const handler = () => {
       setVisible(false);
-      setDeferredPrompt(null);
+      globalDeferredPrompt = null;
     };
     window.addEventListener("appinstalled", handler);
     return () => window.removeEventListener("appinstalled", handler);
   }, []);
 
+  const handleInstall = useCallback(async () => {
+    console.log("[InstallGate] Baixar clicked, prompt available:", !!globalDeferredPrompt);
+    
+    if (!globalDeferredPrompt) {
+      // Fallback: no prompt available, guide user manually
+      alert(
+        "Para instalar o app:\n\n" +
+        "1. Toque no menu ⋮ (três pontinhos) do Chrome\n" +
+        "2. Selecione \"Adicionar à tela inicial\"\n" +
+        "3. Toque em \"Adicionar\""
+      );
+      return;
+    }
 
-
+    setInstalling(true);
+    try {
+      await globalDeferredPrompt.prompt();
+      const { outcome } = await globalDeferredPrompt.userChoice;
+      console.log("[InstallGate] User choice:", outcome);
+      if (outcome === "accepted") {
+        setVisible(false);
+      }
+    } catch (err) {
+      console.error("[InstallGate] Install error:", err);
+    } finally {
+      setInstalling(false);
+      globalDeferredPrompt = null;
+    }
+  }, []);
 
   const dismiss = () => setVisible(false);
 
@@ -153,7 +167,7 @@ const InstallGate = () => {
 
               {!iosMode && (
                 <button
-                  onClick={triggerInstall}
+                  onClick={handleInstall}
                   disabled={installing}
                   className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
                 >
