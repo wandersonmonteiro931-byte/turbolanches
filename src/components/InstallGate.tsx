@@ -112,14 +112,15 @@ const InstallGate = () => {
                 )}
               </div>
               <h2 className="text-xl font-bold text-foreground">
-                Instale o Turbo Lanches! 🍔
+                Instale o app Turbo Lanches! 🍔
               </h2>
 
-              {iosMode ? (
+              <p className="text-sm text-muted-foreground">
+                Instalando você garante todas as notificações e fica sabendo primeiro das promoções exclusivas!
+              </p>
+
+              {iosMode && (
                 <div className="text-sm text-muted-foreground space-y-2">
-                  <p className="font-semibold text-foreground">
-                    Instale e garanta todas as notificações! Fique sabendo primeiro das promoções exclusivas! 🔥
-                  </p>
                   <p>Para instalar no seu iPhone/iPad:</p>
                   <p>
                     1. Toque no botão <strong>Compartilhar</strong>{" "}
@@ -131,22 +132,13 @@ const InstallGate = () => {
                   <p>
                     3. Toque em <strong>"Adicionar"</strong> no canto superior direito
                   </p>
-                  <div className="flex items-center justify-center gap-2 pt-1 text-xs text-green-600">
-                    <ShieldCheck size={16} />
-                    <span>100% seguro e criptografado. Sem vírus ou ameaças.</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground space-y-2">
-                  <p>
-                    Instalando você garante <strong>todas as notificações</strong> e fica sabendo primeiro das <strong>promoções exclusivas</strong>! 🔥
-                  </p>
-                  <div className="flex items-center justify-center gap-2 pt-1 text-xs text-green-600">
-                    <ShieldCheck size={16} />
-                    <span>100% seguro e criptografado. Sem vírus ou ameaças.</span>
-                  </div>
                 </div>
               )}
+
+              <div className="flex items-center justify-center gap-2 text-xs text-green-600">
+                <ShieldCheck size={16} />
+                <span>100% seguro e criptografado.</span>
+              </div>
 
               {!iosMode && deferredPrompt && (
                 <button
