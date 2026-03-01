@@ -30,7 +30,7 @@ self.addEventListener("push", function (event) {
         vibrate: [200, 100, 200],
         tag: "turbo-" + Date.now(),
         renotify: true,
-        requireInteraction: true,
+        requireInteraction: false,
         data: { url: url },
       });
     })()
