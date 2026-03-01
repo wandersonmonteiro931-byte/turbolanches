@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, X } from "lucide-react";
+import { Download, X, Share } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -7,29 +7,46 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const DISMISS_KEY = "install_gate_dismissed";
+const INTERVAL_MS = 5 * 60_000; // 5 minutes
+
+const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
+const isIOS = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
 const InstallGate = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [iosMode, setIosMode] = useState(false);
 
   useEffect(() => {
-    // Already installed as standalone
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // Dismissed recently (24h)
-    const dismissed = localStorage.getItem(DISMISS_KEY);
-    if (dismissed && Date.now() - Number(dismissed) < 86_400_000) return;
+    if (isStandalone()) return;
 
+    // Capture the beforeinstallprompt (Chrome/Edge/Android)
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Show after a small delay so it doesn't compete with page load
-      setTimeout(() => setVisible(true), 3000);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // Show modal after 5s initially, then every 5 minutes
+    const show = () => {
+      if (isStandalone()) return;
+      setIosMode(isIOS());
+      setVisible(true);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    const initialTimer = setTimeout(show, 5000);
+    const interval = setInterval(show, INTERVAL_MS);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
   }, []);
 
   // Hide when app gets installed
@@ -59,10 +76,7 @@ const InstallGate = () => {
     }
   }, [deferredPrompt]);
 
-  const dismiss = () => {
-    localStorage.setItem(DISMISS_KEY, String(Date.now()));
-    setVisible(false);
-  };
+  const dismiss = () => setVisible(false);
 
   return (
     <AnimatePresence>
@@ -88,21 +102,42 @@ const InstallGate = () => {
             </div>
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Download size={32} className="text-primary" />
+                {iosMode ? (
+                  <Share size={32} className="text-primary" />
+                ) : (
+                  <Download size={32} className="text-primary" />
+                )}
               </div>
               <h2 className="text-xl font-bold text-foreground">
                 Instale o Turbo Lanches! 🍔
               </h2>
-              <p className="text-sm text-muted-foreground">
-                Adicione à sua tela inicial para pedir com mais rapidez, receber notificações e ter uma experiência completa!
-              </p>
-              <button
-                onClick={handleInstall}
-                disabled={installing}
-                className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
-              >
-                {installing ? "Instalando..." : "Instalar App"}
-              </button>
+
+              {iosMode ? (
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>Para instalar no seu iPhone/iPad:</p>
+                  <p>
+                    1. Toque no botão <strong>Compartilhar</strong>{" "}
+                    <Share size={14} className="inline text-primary" /> na barra do Safari
+                  </p>
+                  <p>
+                    2. Selecione <strong>"Adicionar à Tela de Início"</strong>
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Adicione à sua tela inicial para pedir com mais rapidez, receber notificações e ter uma experiência completa!
+                </p>
+              )}
+
+              {!iosMode && deferredPrompt && (
+                <button
+                  onClick={handleInstall}
+                  disabled={installing}
+                  className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {installing ? "Instalando..." : "Instalar App"}
+                </button>
+              )}
               <button
                 onClick={dismiss}
                 className="text-sm text-muted-foreground underline"
