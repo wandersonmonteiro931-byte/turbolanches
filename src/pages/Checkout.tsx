@@ -257,7 +257,6 @@ const Checkout = () => {
         // Non-PIX: complete immediately
         toast.success("Pedido enviado com sucesso! 🔥");
         clearCart();
-        sendWhatsAppNotification(order.id, profile!, grandTotal, paymentMethod);
         navigate(`/pedido/${order.id}`);
       }
     } catch (error: any) {
