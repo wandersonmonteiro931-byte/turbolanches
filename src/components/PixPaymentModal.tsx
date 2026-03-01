@@ -49,6 +49,8 @@ const PixPaymentModal = ({
             body: JSON.stringify({ order_id: orderId }),
           }
         );
+        // Order was deleted (client cancelled) — stop polling silently
+        if (resp.status === 404) return;
         const data = await resp.json();
         if (data.confirmed) {
           setConfirmed(true);
