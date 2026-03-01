@@ -80,15 +80,15 @@ const AdminPrint = () => {
   const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const horarioSaida = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-  const complemento = order.address_complement || profile?.complement || "";
-  const quadra = profile?.quadra || "";
-  const lote = profile?.lote || "";
+  const complemento = order.address_complement || "";
+  const quadra = "";
+  const lote = "";
   // Formato: RUA/AV X, QUADRA X LOTE X (OU AP, BLOCO, NÚMERO), BAIRRO/SETOR
   const addressLine1 = order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "";
   const addressLine2 = [
     quadra ? `QUADRA ${quadra}` : null,
     lote ? `LOTE ${lote}` : null,
-    complemento || null,
+    complemento ? complemento : null,
   ].filter(Boolean).join(" ");
   const addressLine3 = order.address_neighborhood || "";
   const addressFull = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(", ");
