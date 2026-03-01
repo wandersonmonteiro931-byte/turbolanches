@@ -48,38 +48,83 @@ function getPemCredentials(): { cert: string; key: string } {
 }
 
 // ══════════════════════════════════════════════════════════════
-// mTLS
+// mTLS via raw Deno.connectTls + manual HTTP/1.1
+// (bypasses fetch/createHttpClient rustls close_notify issues)
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
-const EFI_BASE = `https://${EFI_HOST}`;
 
-// Use Deno.createHttpClient for mTLS — cached to reuse TLS sessions
-let _cachedClient: any = null;
-
-function getHttpClient() {
-  if (_cachedClient) return _cachedClient;
-  const { cert, key } = getPemCredentials();
-  _cachedClient = (Deno as any).createHttpClient({
-    certChain: cert,
-    privateKey: key,
-  });
-  return _cachedClient;
+function concatUint8Arrays(arrays: Uint8Array[]): Uint8Array {
+  const total = arrays.reduce((s, a) => s + a.length, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const a of arrays) { result.set(a, offset); offset += a.length; }
+  return result;
 }
 
 async function mtlsFetch(
   path: string,
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
-  const client = getHttpClient();
-  const resp = await fetch(`${EFI_BASE}${path}`, {
-    method: options.method,
-    headers: options.headers,
-    body: options.body,
-    client,
-  } as any);
-  const body = await resp.text();
-  return { status: resp.status, body };
+  const { cert, key } = getPemCredentials();
+
+  const conn = await (Deno as any).connectTls({
+    hostname: EFI_HOST,
+    port: 443,
+    certChain: cert,
+    privateKey: key,
+  });
+
+  try {
+    const headerLines = Object.entries(options.headers || {})
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\r\n");
+
+    const bodyBytes = options.body ? new TextEncoder().encode(options.body) : null;
+
+    const request =
+      `${options.method} ${path} HTTP/1.1\r\n` +
+      `Host: ${EFI_HOST}\r\n` +
+      `Connection: close\r\n` +
+      (bodyBytes ? `Content-Length: ${bodyBytes.length}\r\n` : "") +
+      (headerLines ? headerLines + "\r\n" : "") +
+      `\r\n`;
+
+    await conn.write(new TextEncoder().encode(request));
+    if (bodyBytes) await conn.write(bodyBytes);
+
+    // Read full response
+    const chunks: Uint8Array[] = [];
+    const buf = new Uint8Array(8192);
+    while (true) {
+      try {
+        const n = await conn.read(buf);
+        if (n === null || n === 0) break;
+        chunks.push(buf.slice(0, n));
+      } catch {
+        break; // EOF or close_notify — expected with Connection: close
+      }
+    }
+
+    const raw = new TextDecoder().decode(concatUint8Arrays(chunks));
+    const headerEnd = raw.indexOf("\r\n\r\n");
+    if (headerEnd === -1) throw new Error("Invalid HTTP response from Efí");
+
+    const headerSection = raw.substring(0, headerEnd);
+    const statusMatch = headerSection.match(/HTTP\/\d\.\d (\d{3})/);
+    const status = statusMatch ? parseInt(statusMatch[1]) : 0;
+
+    let body = raw.substring(headerEnd + 4);
+
+    // Handle chunked transfer encoding
+    if (headerSection.toLowerCase().includes("transfer-encoding: chunked")) {
+      body = decodeChunked(body);
+    }
+
+    return { status, body };
+  } finally {
+    try { conn.close(); } catch { /* */ }
+  }
 }
 
 function decodeChunked(data: string): string {
@@ -101,8 +146,6 @@ async function mtlsFetchRetry(path: string, opts: any, retries = 5) {
     catch (e) {
       console.warn(`mtlsFetch attempt ${i}/${retries} failed:`, (e as Error).message);
       if (i >= retries) throw e;
-      // Recreate client on failure in case TLS session is corrupted
-      _cachedClient = null;
       await new Promise(r => setTimeout(r, 1500 * i));
     }
   }
