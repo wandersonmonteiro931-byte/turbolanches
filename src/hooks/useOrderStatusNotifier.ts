@@ -20,6 +20,7 @@ export function useOrderStatusNotifier() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
   const sentKeysRef = useRef<Set<string>>(new Set());
+  const orderStatusCache = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!user) {
@@ -39,7 +40,6 @@ export function useOrderStatusNotifier() {
   }, [user]);
 
   // Track last known status per order to detect real changes
-  const orderStatusCache = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!adminChecked || !isAdmin || !user) return;
