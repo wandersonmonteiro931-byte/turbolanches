@@ -106,17 +106,17 @@ const AdminPrint = () => {
   const troco = isPaidAtDelivery && changeFor > total ? changeFor - total : 0;
   const paymentLabel = isFiado ? "FIADO" : isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
 
-  // Parse customer name/phone from observations for manual orders (format: "Cliente: X | Tel: Y | ...")
+  // Parse customer info from observations for manual orders (format: "[PDV] | Cliente: X | Tel: Y | Código: T00001 | ...")
   const obsText = order.observations || "";
+  const isManualOrder = obsText.includes("[PDV]");
   const manualClienteMatch = obsText.match(/Cliente:\s*([^|]+)/);
   const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
-  const clienteName = manualClienteMatch ? manualClienteMatch[1].trim() : (profile?.full_name || "");
-  // Only show customer code if it's NOT a manual order (i.e., actual customer placed the order)
-  const isManualOrder = obsText.includes("Cliente:") || obsText.includes("Tel:");
-  const customerCode = (!isManualOrder && profile?.customer_code) ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
-  const clientePhone = manualTelMatch ? manualTelMatch[1].trim() : (profile?.phone || "");
+  const manualCodeMatch = obsText.match(/Código:\s*(T\d+)/);
+  
+  // For manual orders: use parsed data from observations; for regular orders: use profile
   const displayName = isManualOrder ? (manualClienteMatch ? manualClienteMatch[1].trim() : "") : (profile?.full_name || "");
   const displayPhone = isManualOrder ? (manualTelMatch ? manualTelMatch[1].trim() : "") : (profile?.phone || "");
+  const customerCode = isManualOrder ? (manualCodeMatch ? manualCodeMatch[1].trim() : "") : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "");
 
   const isCozinha = tipo === "cozinha";
   const isEntrega = tipo === "entrega";

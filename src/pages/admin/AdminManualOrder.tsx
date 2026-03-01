@@ -154,11 +154,13 @@ const AdminManualOrder = () => {
           address_complement: deliveryType === "delivery" ? addressComplement : null,
           address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
           observations: [
+            "[PDV]",
             customerName ? `Cliente: ${customerName}` : null,
             customerPhone ? `Tel: ${customerPhone}` : null,
+            selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
             tableNumber ? `Mesa: ${tableNumber}` : null,
             observations || null,
-          ].filter(Boolean).join(" | ") || null,
+          ].filter(Boolean).join(" | ") || "[PDV]",
           change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
         })
         .select("id, order_number")
