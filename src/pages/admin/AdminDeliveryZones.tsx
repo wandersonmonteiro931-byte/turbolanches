@@ -304,6 +304,7 @@ const AdminDeliveryZones = () => {
   const [filterKmMax, setFilterKmMax] = useState("");
   const [filterPriceMin, setFilterPriceMin] = useState("");
   const [filterPriceMax, setFilterPriceMax] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [showFilters, setShowFilters] = useState(false);
 
   const { toast } = useToast();
@@ -388,20 +389,29 @@ const AdminDeliveryZones = () => {
     fetchZones();
   };
 
+  const toggleActive = async (zone: DeliveryZone) => {
+    const newVal = !zone.active;
+    await supabase.from("delivery_zones").update({ active: newVal } as any).eq("id", zone.id);
+    toast({ title: newVal ? `✅ ${zone.neighborhood} ativado` : `⛔ ${zone.neighborhood} desativado` });
+    fetchZones();
+  };
+
   // ── Filtering ──
   const filteredZones = useMemo(() => {
     return zones.filter(z => {
       if (searchTerm && !z.neighborhood.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterStatus === "active" && !z.active) return false;
+      if (filterStatus === "inactive" && z.active) return false;
       if (filterKmMin && (z.distance_km === null || z.distance_km < Number(filterKmMin))) return false;
       if (filterKmMax && (z.distance_km === null || z.distance_km > Number(filterKmMax))) return false;
       if (filterPriceMin && z.delivery_fee < Number(filterPriceMin)) return false;
       if (filterPriceMax && z.delivery_fee > Number(filterPriceMax)) return false;
       return true;
     });
-  }, [zones, searchTerm, filterKmMin, filterKmMax, filterPriceMin, filterPriceMax]);
+  }, [zones, searchTerm, filterStatus, filterKmMin, filterKmMax, filterPriceMin, filterPriceMax]);
 
   const zonesWithoutDistance = zones.filter(z => z.distance_km === null).length;
-  const activeFilters = [filterKmMin, filterKmMax, filterPriceMin, filterPriceMax].filter(Boolean).length;
+  const activeFilters = [filterKmMin, filterKmMax, filterPriceMin, filterPriceMax, filterStatus !== "all" ? filterStatus : ""].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -494,7 +504,14 @@ const AdminDeliveryZones = () => {
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Filter size={14} /> Filtros</h3>
-            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterPriceMin(""); setFilterPriceMax(""); }} className="text-xs text-primary font-medium">Limpar</button>
+            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterPriceMin(""); setFilterPriceMax(""); setFilterStatus("all"); }} className="text-xs text-primary font-medium">Limpar</button>
+          </div>
+          <div className="flex gap-2 mb-2">
+            {(["all", "active", "inactive"] as const).map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${filterStatus === s ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:bg-muted"}`}>
+                {s === "all" ? "Todos" : s === "active" ? "✅ Ativos" : "⛔ Inativos"}
+              </button>
+            ))}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
@@ -595,7 +612,11 @@ const AdminDeliveryZones = () => {
                       )}
 
                       {isBlocked && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-bold shrink-0">BLOQUEADO</span>}
-                      {!zone.active && <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground shrink-0">Inativo</span>}
+                      {!zone.active && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-bold shrink-0">INATIVO</span>}
+
+                      <button onClick={() => toggleActive(zone)} className={`rounded-lg border p-2 shrink-0 ${zone.active ? "border-green-300 text-green-600 bg-green-50" : "border-destructive/30 text-destructive bg-destructive/5"}`} title={zone.active ? "Desativar bairro" : "Ativar bairro"}>
+                        {zone.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                      </button>
 
                       <button onClick={() => toggleTempFree(zone)} className={`rounded-lg border p-2 shrink-0 ${zone.temp_free_delivery ? "border-green-300 text-green-600 bg-green-50" : "border-border text-muted-foreground hover:bg-muted"}`} title="Frete grátis temporário">
                         <Gift size={14} />
