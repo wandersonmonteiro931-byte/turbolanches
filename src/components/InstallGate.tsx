@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Download, X, Share } from "lucide-react";
+import { Download, X, Share, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -7,7 +7,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const INTERVAL_MS = 5 * 60_000; // 5 minutes
+const ANDROID_INTERVAL_MS = 5 * 60_000; // 5 min
+const IOS_INTERVAL_MS = 3 * 60_000; // 3 min
 
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
@@ -25,17 +26,17 @@ const InstallGate = () => {
   useEffect(() => {
     if (isStandalone()) return;
 
-    // Capture the beforeinstallprompt (Chrome/Edge/Android)
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Show modal after 5s initially, then every 5 minutes
+    const ios = isIOS();
+    const intervalMs = ios ? IOS_INTERVAL_MS : ANDROID_INTERVAL_MS;
+
     const show = () => {
       if (isStandalone()) return;
-      // Don't show on admin/kitchen routes
       const path = window.location.pathname;
       if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
       setIosMode(isIOS());
@@ -43,7 +44,7 @@ const InstallGate = () => {
     };
 
     const initialTimer = setTimeout(show, 5000);
-    const interval = setInterval(show, INTERVAL_MS);
+    const interval = setInterval(show, intervalMs);
 
     return () => {
       clearTimeout(initialTimer);
@@ -52,7 +53,6 @@ const InstallGate = () => {
     };
   }, []);
 
-  // Hide when app gets installed
   useEffect(() => {
     const handler = () => {
       setVisible(false);
@@ -117,19 +117,35 @@ const InstallGate = () => {
 
               {iosMode ? (
                 <div className="text-sm text-muted-foreground space-y-2">
+                  <p className="font-semibold text-foreground">
+                    Instale e garanta todas as notificações! Fique sabendo primeiro das promoções exclusivas! 🔥
+                  </p>
                   <p>Para instalar no seu iPhone/iPad:</p>
                   <p>
                     1. Toque no botão <strong>Compartilhar</strong>{" "}
-                    <Share size={14} className="inline text-primary" /> na barra do Safari
+                    <Share size={14} className="inline text-primary" /> na barra inferior do Safari
                   </p>
                   <p>
-                    2. Selecione <strong>"Adicionar à Tela de Início"</strong>
+                    2. Role e toque em <strong>"Adicionar à Tela de Início"</strong>
                   </p>
+                  <p>
+                    3. Toque em <strong>"Adicionar"</strong> no canto superior direito
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-1 text-xs text-green-600">
+                    <ShieldCheck size={16} />
+                    <span>100% seguro e criptografado. Sem vírus ou ameaças.</span>
+                  </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Adicione à sua tela inicial para pedir com mais rapidez, receber notificações e ter uma experiência completa!
-                </p>
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    Instalando você garante <strong>todas as notificações</strong> e fica sabendo primeiro das <strong>promoções exclusivas</strong>! 🔥
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-1 text-xs text-green-600">
+                    <ShieldCheck size={16} />
+                    <span>100% seguro e criptografado. Sem vírus ou ameaças.</span>
+                  </div>
+                </div>
               )}
 
               {!iosMode && deferredPrompt && (
