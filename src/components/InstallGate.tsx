@@ -77,20 +77,63 @@ const InstallGate = () => {
   }, []);
 
   const handleInstall = useCallback(async () => {
-    if (!globalDeferredPrompt) return;
+    if (globalDeferredPrompt) {
+      setInstalling(true);
+      try {
+        await globalDeferredPrompt.prompt();
+        const { outcome } = await globalDeferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setVisible(false);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setInstalling(false);
+        globalDeferredPrompt = null;
+        setHasPrompt(false);
+      }
+      return;
+    }
+
+    // No prompt available — force SW re-register to trigger Chrome re-evaluation
     setInstalling(true);
     try {
-      await globalDeferredPrompt.prompt();
-      const { outcome } = await globalDeferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setVisible(false);
+      if ("serviceWorker" in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+        await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+      }
+
+      // Wait for Chrome to re-evaluate and fire beforeinstallprompt
+      await new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 3000);
+        const onPrompt = (e: Event) => {
+          e.preventDefault();
+          globalDeferredPrompt = e as BeforeInstallPromptEvent;
+          setHasPrompt(true);
+          clearTimeout(timeout);
+          window.removeEventListener("beforeinstallprompt", onPrompt);
+          resolve(undefined);
+        };
+        window.addEventListener("beforeinstallprompt", onPrompt);
+      });
+
+      // If we got the prompt, trigger it immediately
+      if (globalDeferredPrompt) {
+        await globalDeferredPrompt.prompt();
+        const { outcome } = await globalDeferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setVisible(false);
+        }
+        globalDeferredPrompt = null;
+        setHasPrompt(false);
       }
     } catch {
       // ignore
     } finally {
       setInstalling(false);
-      globalDeferredPrompt = null;
-      setHasPrompt(false);
     }
   }, []);
 
