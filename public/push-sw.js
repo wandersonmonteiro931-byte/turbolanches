@@ -1,3 +1,15 @@
+// SW Version 2 — forces update on existing installs
+var SW_VERSION = "v2";
+
+// Activate immediately, replacing old service worker
+self.addEventListener("install", function (event) {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+  event.waitUntil(self.clients.claim());
+});
+
 // ---- Fetch handler (required for PWA installability) ----
 self.addEventListener("fetch", function (event) {
   // Network-first strategy: try network, fallback to cache
