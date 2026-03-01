@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, X, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,11 +12,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return Uint8Array.from(rawData, (c) => c.charCodeAt(0));
 }
 
+const isIOSDevice = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+const isStandalone = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
 const NotificationBanner = () => {
   const [visible, setVisible] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [iosNeedsPWA, setIosNeedsPWA] = useState(false);
 
   const shouldShow = useCallback(() => {
+    // iOS outside PWA — no Notification API, but we still want to show a message
+    if (isIOSDevice() && !isStandalone()) return true;
+
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return false;
     return Notification.permission === "default";
   }, []);
@@ -24,13 +35,22 @@ const NotificationBanner = () => {
   useEffect(() => {
     if (!shouldShow()) return;
 
-    const initialTimer = setTimeout(() => {
-      if (shouldShow()) setVisible(true);
-    }, 5000);
+    const show = () => {
+      if (!shouldShow()) return;
+      // On admin/kitchen routes, skip
+      const path = window.location.pathname;
+      if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
 
-    const interval = setInterval(() => {
-      if (shouldShow()) setVisible(true);
-    }, INTERVAL_MS);
+      if (isIOSDevice() && !isStandalone()) {
+        setIosNeedsPWA(true);
+      } else {
+        setIosNeedsPWA(false);
+      }
+      setVisible(true);
+    };
+
+    const initialTimer = setTimeout(show, 5000);
+    const interval = setInterval(show, INTERVAL_MS);
 
     return () => {
       clearTimeout(initialTimer);
@@ -41,7 +61,6 @@ const NotificationBanner = () => {
   const requestPermission = async () => {
     setRegistering(true);
     try {
-      // Register service worker first
       if ("serviceWorker" in navigator) {
         await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
       }
@@ -49,7 +68,6 @@ const NotificationBanner = () => {
       const result = await Notification.requestPermission();
 
       if (result === "granted") {
-        // Actually subscribe to push after permission is granted
         await subscribeToPush();
       }
 
@@ -67,7 +85,6 @@ const NotificationBanner = () => {
       const pushManager = (registration as any).pushManager;
       if (!pushManager) return;
 
-      // Get VAPID key from server
       const { data: vapidData } = await supabase.functions.invoke("push-notification", {
         body: { action: "get_vapid_public_key" },
       });
@@ -75,7 +92,6 @@ const NotificationBanner = () => {
 
       const applicationServerKey = urlBase64ToUint8Array(vapidData.public_key);
 
-      // Unsubscribe old if vapid changed
       let subscription = await pushManager.getSubscription();
       const storedVapid = localStorage.getItem("push_vapid_key");
       if (subscription && storedVapid !== vapidData.public_key) {
@@ -134,19 +150,40 @@ const NotificationBanner = () => {
             </div>
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Bell size={32} className="text-primary" />
+                {iosNeedsPWA ? (
+                  <Download size={32} className="text-primary" />
+                ) : (
+                  <Bell size={32} className="text-primary" />
+                )}
               </div>
-              <h2 className="text-xl font-bold text-foreground">Ative as Notificações! 🔔</h2>
-              <p className="text-sm text-muted-foreground">
-                Receba atualizações em tempo real sobre seus pedidos, promoções e avisos! Saiba quando seu pedido estiver sendo preparado, pronto e saindo para entrega.
-              </p>
-              <button
-                onClick={requestPermission}
-                disabled={registering}
-                className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
-              >
-                {registering ? "Ativando..." : "Permitir Notificações"}
-              </button>
+
+              {iosNeedsPWA ? (
+                <>
+                  <h2 className="text-xl font-bold text-foreground">
+                    Instale para receber notificações! 🔔
+                  </h2>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>No iPhone, as notificações só funcionam com o app instalado na tela inicial.</p>
+                    <p>1. Toque no botão <strong>Compartilhar</strong> (ícone ↑) na barra do Safari</p>
+                    <p>2. Selecione <strong>"Adicionar à Tela de Início"</strong></p>
+                    <p>3. Abra o app e ative as notificações!</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-foreground">Ative as Notificações! 🔔</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Receba atualizações em tempo real sobre seus pedidos, promoções e avisos! Saiba quando seu pedido estiver sendo preparado, pronto e saindo para entrega.
+                  </p>
+                  <button
+                    onClick={requestPermission}
+                    disabled={registering}
+                    className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {registering ? "Ativando..." : "Permitir Notificações"}
+                  </button>
+                </>
+              )}
               <button
                 onClick={dismiss}
                 className="text-sm text-muted-foreground underline"
