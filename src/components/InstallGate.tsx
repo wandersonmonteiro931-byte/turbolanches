@@ -112,7 +112,7 @@ const InstallGate = () => {
                 )}
               </div>
               <h2 className="text-xl font-bold text-foreground">
-                Instale o app Turbo Lanches! 🍔
+                Instale o app Turbo Lanches!
               </h2>
 
               <p className="text-sm text-muted-foreground">
