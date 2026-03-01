@@ -54,13 +54,17 @@ function getPemCredentials(): { cert: string; key: string } {
 const EFI_HOST = "pix.api.efipay.com.br";
 const EFI_BASE = `https://${EFI_HOST}`;
 
-// Use Deno.createHttpClient for mTLS (supported in Supabase Edge Functions)
+// Use Deno.createHttpClient for mTLS — cached to reuse TLS sessions
+let _cachedClient: any = null;
+
 function getHttpClient() {
+  if (_cachedClient) return _cachedClient;
   const { cert, key } = getPemCredentials();
-  return (Deno as any).createHttpClient({
+  _cachedClient = (Deno as any).createHttpClient({
     certChain: cert,
     privateKey: key,
   });
+  return _cachedClient;
 }
 
 async function mtlsFetch(
@@ -68,18 +72,14 @@ async function mtlsFetch(
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
   const client = getHttpClient();
-  try {
-    const resp = await fetch(`${EFI_BASE}${path}`, {
-      method: options.method,
-      headers: options.headers,
-      body: options.body,
-      client,
-    } as any);
-    const body = await resp.text();
-    return { status: resp.status, body };
-  } finally {
-    try { client.close(); } catch { /* */ }
-  }
+  const resp = await fetch(`${EFI_BASE}${path}`, {
+    method: options.method,
+    headers: options.headers,
+    body: options.body,
+    client,
+  } as any);
+  const body = await resp.text();
+  return { status: resp.status, body };
 }
 
 function decodeChunked(data: string): string {
@@ -95,10 +95,16 @@ function decodeChunked(data: string): string {
   return result;
 }
 
-async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
+async function mtlsFetchRetry(path: string, opts: any, retries = 5) {
   for (let i = 1; i <= retries; i++) {
     try { return await mtlsFetch(path, opts); }
-    catch (e) { if (i >= retries) throw e; await new Promise(r => setTimeout(r, 2000 * i)); }
+    catch (e) {
+      console.warn(`mtlsFetch attempt ${i}/${retries} failed:`, (e as Error).message);
+      if (i >= retries) throw e;
+      // Recreate client on failure in case TLS session is corrupted
+      _cachedClient = null;
+      await new Promise(r => setTimeout(r, 1500 * i));
+    }
   }
   throw new Error("Unreachable");
 }
