@@ -489,6 +489,27 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
+        {/* WhatsApp Contact */}
+        {!isCancelled && order.status !== "delivered" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65 }}
+            className="rounded-2xl bg-card p-5 shadow-sm"
+          >
+            <h2 className="font-bold text-foreground text-sm mb-2">💬 Precisa de ajuda?</h2>
+            <a
+              href="https://wa.me/5562994753582"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition-all hover:bg-green-700"
+            >
+              <MessageCircle size={18} />
+              Falar com a loja no WhatsApp
+            </a>
+          </motion.div>
+        )}
+
         {/* Back to menu */}
         <motion.div
           initial={{ opacity: 0 }}
