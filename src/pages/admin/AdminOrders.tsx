@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getBusinessDayRange } from "@/lib/businessDay";
 
 interface Order {
   id: string;
@@ -252,16 +253,16 @@ const AdminOrders = () => {
       result = result.filter((o) => filterDeliveryType.includes(o.delivery_type));
     }
 
-    // Date range filter
+    // Date range filter (using business day logic: 03:00 to 02:59:59 next day)
     if (filterDateFrom) {
-      const from = new Date(filterDateFrom);
-      from.setHours(0, 0, 0, 0);
-      result = result.filter((o) => new Date(o.created_at) >= from);
+      const fromDate = new Date(filterDateFrom + "T00:00:00");
+      const { start } = getBusinessDayRange(fromDate);
+      result = result.filter((o) => new Date(o.created_at) >= new Date(start));
     }
     if (filterDateTo) {
-      const to = new Date(filterDateTo);
-      to.setHours(23, 59, 59, 999);
-      result = result.filter((o) => new Date(o.created_at) <= to);
+      const toDate = new Date(filterDateTo + "T00:00:00");
+      const { end } = getBusinessDayRange(toDate);
+      result = result.filter((o) => new Date(o.created_at) <= new Date(end));
     }
 
     // Value range filter

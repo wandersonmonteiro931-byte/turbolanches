@@ -8,6 +8,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -95,19 +96,18 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString();
+  const todayBD = getTodayBusinessDay();
+  const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
   const fetchOrders = useCallback(async () => {
-    const dayStart = new Date(selectedDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(selectedDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    // Business day: orders from 03:00 of selectedDate to 02:59:59 of next day (Brasília)
+    const { start, end } = getBusinessDayRange(selectedDate);
 
     const { data } = await supabase
       .from("orders")
       .select("*")
-      .gte("created_at", dayStart.toISOString())
-      .lte("created_at", dayEnd.toISOString())
+      .gte("created_at", start)
+      .lte("created_at", end)
       .order("created_at", { ascending: false });
     if (data) {
       // Pedidos PIX só aparecem se pagos (não pendentes/cancelados)
@@ -358,8 +358,8 @@ const AdminDashboard = () => {
   };
 
   const handleCloseDay = async () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Use business day (orders until 3AM count as previous day)
+    const businessDay = getTodayBusinessDay();
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
@@ -368,7 +368,7 @@ const AdminDashboard = () => {
     const totalLiquido = totalBruto - totalGastos;
 
     await supabase.from("daily_reports").upsert({
-      report_date: today.toISOString().split("T")[0],
+      report_date: format(businessDay, "yyyy-MM-dd"),
       total_orders: allOrders.length,
       total_bruto: totalBruto,
       total_delivery_fees: totalDelivery,
