@@ -70,17 +70,21 @@ function mtlsFetch(
         headers: {
           ...options.headers,
           "Connection": "close",
-          ...(options.body ? { "Content-Length": Buffer.byteLength(options.body).toString() } : {}),
+          ...(options.body ? { "Content-Length": new TextEncoder().encode(options.body).length.toString() } : {}),
         },
         cert: cert,
         key: key,
         rejectUnauthorized: true,
       },
       (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        const chunks: Uint8Array[] = [];
+        res.on("data", (chunk: Uint8Array) => chunks.push(chunk));
         res.on("end", () => {
-          const body = Buffer.concat(chunks).toString("utf-8");
+          const total = chunks.reduce((s, c) => s + c.length, 0);
+          const merged = new Uint8Array(total);
+          let offset = 0;
+          for (const c of chunks) { merged.set(c, offset); offset += c.length; }
+          const body = new TextDecoder().decode(merged);
           resolve({ status: res.statusCode || 0, body });
         });
       }
