@@ -52,6 +52,7 @@ const AdminManualOrder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState("mesa");
   const [paymentMethod, setPaymentMethod] = useState("dinheiro");
+  const [isPaid, setIsPaid] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [tableNumber, setTableNumber] = useState("");
@@ -123,14 +124,6 @@ const AdminManualOrder = () => {
       toast.error("Você precisa estar logado");
       return;
     }
-    if (!customerName.trim()) {
-      toast.error("Informe o nome do cliente");
-      return;
-    }
-    if (!customerPhone.trim()) {
-      toast.error("Informe o telefone do cliente");
-      return;
-    }
     if (deliveryType === "delivery" && (!addressStreet || !addressNeighborhood)) {
       toast.error("Preencha o endereço para delivery");
       return;
@@ -138,7 +131,6 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
-      const isPaidOnline = false; // No online payment methods currently
       const isFiado = paymentMethod === "fiado";
 
       const { data: order, error: orderError } = await supabase
@@ -152,7 +144,7 @@ const AdminManualOrder = () => {
           preparing_at: new Date().toISOString(),
           delivery_type: deliveryType,
           payment_method: paymentMethod,
-          payment_confirmed: isPaidOnline || isFiado,
+          payment_confirmed: isPaid || isFiado,
           address_street: deliveryType === "delivery" ? addressStreet : null,
           address_number: deliveryType === "delivery" ? addressNumber : null,
           address_complement: deliveryType === "delivery" ? addressComplement : null,
@@ -400,7 +392,20 @@ const AdminManualOrder = () => {
               </button>
             ))}
           </div>
-          {paymentMethod === "dinheiro" && (
+          {/* Paid checkbox */}
+          <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isPaid}
+              onChange={(e) => setIsPaid(e.target.checked)}
+              className="h-5 w-5 rounded border-border accent-primary"
+            />
+            <div>
+              <span className="text-sm font-bold text-foreground">💰 Já está pago</span>
+              <p className="text-xs text-muted-foreground">Nenhum valor a receber na entrega/retirada</p>
+            </div>
+          </label>
+          {paymentMethod === "dinheiro" && !isPaid && (
             <input
               type="number"
               placeholder="Troco para quanto? (R$)"
