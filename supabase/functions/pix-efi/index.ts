@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "https://esm.sh/node-forge@1.3.1";
+import { connect as tlsConnect } from "node:tls";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,35 +49,108 @@ function getPemCredentials(): { cert: string; key: string } {
 }
 
 // ══════════════════════════════════════════════════════════════
-// mTLS via Deno.createHttpClient + fetch (with retry)
+// mTLS via node:tls + raw HTTP/1.1 (bypasses Deno rustls)
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
 
-async function mtlsFetch(
+function mtlsFetch(
   path: string,
   options: { method: string; headers?: Record<string, string>; body?: string }
 ): Promise<{ status: number; body: string }> {
   const { cert, key } = getPemCredentials();
 
-  const client = (Deno as any).createHttpClient({
-    certChain: cert,
-    privateKey: key,
-  });
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (!settled) { settled = true; socket.destroy(); reject(new Error("Request timeout 15s")); }
+    }, 15000);
 
-  try {
-    const resp = await fetch(`https://${EFI_HOST}${path}`, {
-      method: options.method,
-      headers: options.headers,
-      body: options.body,
-      // @ts-ignore Deno-specific
-      client,
+    const socket = tlsConnect(
+      {
+        host: EFI_HOST,
+        port: 443,
+        cert,
+        key,
+        rejectUnauthorized: true,
+        servername: EFI_HOST,
+      },
+      () => {
+        // TLS handshake complete – send HTTP/1.1 request
+        const bodyBuf = options.body ? new TextEncoder().encode(options.body) : null;
+        let reqStr = `${options.method} ${path} HTTP/1.1\r\n`;
+        reqStr += `Host: ${EFI_HOST}\r\n`;
+        reqStr += `Connection: close\r\n`;
+        if (bodyBuf) reqStr += `Content-Length: ${bodyBuf.length}\r\n`;
+        if (options.headers) {
+          for (const [k, v] of Object.entries(options.headers)) {
+            reqStr += `${k}: ${v}\r\n`;
+          }
+        }
+        reqStr += `\r\n`;
+        socket.write(reqStr);
+        if (options.body) socket.write(options.body);
+      }
+    );
+
+    const chunks: string[] = [];
+    socket.setEncoding("utf-8");
+    socket.on("data", (chunk: string) => chunks.push(chunk));
+
+    function parseResponse() {
+      const raw = chunks.join("");
+      const idx = raw.indexOf("\r\n\r\n");
+      if (idx === -1) return null;
+      const headerPart = raw.substring(0, idx);
+      const bodyPart = raw.substring(idx + 4);
+      const statusLine = headerPart.split("\r\n")[0];
+      const statusMatch = statusLine.match(/HTTP\/\d\.\d\s+(\d+)/);
+      const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
+      const finalBody = headerPart.toLowerCase().includes("transfer-encoding: chunked")
+        ? decodeChunked(bodyPart)
+        : bodyPart;
+      return { status, body: finalBody };
+    }
+
+    socket.on("end", () => {
+      clearTimeout(timeout);
+      if (settled) return;
+      settled = true;
+      const result = parseResponse();
+      if (result) resolve(result);
+      else reject(new Error("Invalid HTTP response (no header boundary)"));
     });
-    const body = await resp.text();
-    return { status: resp.status, body };
-  } finally {
-    try { client.close(); } catch { /* ignore */ }
+
+    socket.on("error", (err: Error) => {
+      clearTimeout(timeout);
+      if (!settled) { settled = true; reject(err); }
+    });
+
+    socket.on("close", () => {
+      clearTimeout(timeout);
+      if (!settled) {
+        settled = true;
+        const result = chunks.length > 0 ? parseResponse() : null;
+        if (result) resolve(result);
+        else reject(new Error("Connection closed with no data"));
+      }
+    });
+  });
+}
+
+function decodeChunked(raw: string): string {
+  const parts: string[] = [];
+  let pos = 0;
+  while (pos < raw.length) {
+    const nl = raw.indexOf("\r\n", pos);
+    if (nl === -1) break;
+    const size = parseInt(raw.substring(pos, nl).trim(), 16);
+    if (isNaN(size) || size === 0) break;
+    pos = nl + 2;
+    parts.push(raw.substring(pos, pos + size));
+    pos += size + 2;
   }
+  return parts.join("");
 }
 
 async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
@@ -86,12 +160,8 @@ async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
       return await mtlsFetch(path, opts);
     } catch (e) {
       lastError = e as Error;
-      const msg = lastError.message || "";
-      console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${msg}`);
-      // If it's the TLS close_notify error, retry quickly
-      if (i < retries) {
-        await new Promise(r => setTimeout(r, 1000 * i));
-      }
+      console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${lastError.message}`);
+      if (i < retries) await new Promise(r => setTimeout(r, 1000 * i));
     }
   }
   throw lastError || new Error("All retries failed");
