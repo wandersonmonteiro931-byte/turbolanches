@@ -98,9 +98,6 @@ const AdminOrders = () => {
   useEffect(() => {
     fetchOrders();
 
-    // Polling every 1 second to ensure no order is missed
-    const interval = setInterval(fetchOrders, 1000);
-
     const channel = supabase
       .channel("admin-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
@@ -112,7 +109,6 @@ const AdminOrders = () => {
       .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, []);
