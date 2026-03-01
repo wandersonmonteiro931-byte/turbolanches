@@ -64,14 +64,8 @@ const InstallGate = () => {
       if (isStandalone()) return;
       const path = window.location.pathname;
       if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
-      const iosNow = isIOS();
-      setIosMode(iosNow);
-      // On Android, trigger install prompt automatically if available
-      if (!iosNow && deferredPromptRef.current) {
-        triggerInstall();
-      } else {
-        setVisible(true);
-      }
+      setIosMode(isIOS());
+      setVisible(true);
     };
 
     const initialTimer = setTimeout(show, 5000);
@@ -157,8 +151,15 @@ const InstallGate = () => {
                 <span>100% seguro e criptografado.</span>
               </div>
 
-
-
+              {!iosMode && deferredPromptRef.current && (
+                <button
+                  onClick={triggerInstall}
+                  disabled={installing}
+                  className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {installing ? "Baixando..." : "Baixar"}
+                </button>
+              )}
               <button
                 onClick={dismiss}
                 className="text-sm text-muted-foreground underline"
