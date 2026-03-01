@@ -31,28 +31,36 @@ function getPemCredentials(): { cert: string; key: string } {
   const certBags = p12.getBags({ bagType: forge.pki.oids.certBag });
   const allCerts = certBags[forge.pki.oids.certBag] || [];
   if (!allCerts[0]?.cert) throw new Error("No certificate in .p12");
-  const cert = allCerts
-    .filter((b: any) => b.cert)
-    .map((b: any) => forge.pki.certificateToPem(b.cert))
-    .join("\n");
+  // Use ONLY the leaf certificate (first one)
+  const cert = forge.pki.certificateToPem(allCerts[0].cert);
 
   const keyBags = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag });
   const keyBag = (keyBags[forge.pki.oids.pkcs8ShroudedKeyBag] || [])[0];
   if (!keyBag?.key) throw new Error("No private key in .p12");
+  // Use PKCS#8 format (BEGIN PRIVATE KEY)
   const rsaKey = forge.pki.privateKeyToAsn1(keyBag.key);
   const pkInfo = forge.pki.wrapRsaPrivateKey(rsaKey);
   const key = forge.pki.privateKeyInfoToPem(pkInfo);
+
+  // Log cert validity for debugging
+  const certObj = allCerts[0].cert;
+  console.log("Cert subject:", certObj.subject.getField("CN")?.value);
+  console.log("Cert valid from:", certObj.validity.notBefore);
+  console.log("Cert valid to:", certObj.validity.notAfter);
+  console.log("Cert issuer:", certObj.issuer.getField("CN")?.value);
+  console.log("Number of certs in p12:", allCerts.filter((b: any) => b.cert).length);
 
   _cachedPem = { cert, key };
   return _cachedPem;
 }
 
 // ══════════════════════════════════════════════════════════════
-// mTLS via Deno.connectTls + raw HTTP/1.1
-// Key insight: read all data BEFORE close_notify error occurs
+// mTLS via Deno.createHttpClient + fetch
+// With http2:false to force HTTP/1.1, PKCS#8 key, leaf cert only
 // ══════════════════════════════════════════════════════════════
 
 const EFI_HOST = "pix.api.efipay.com.br";
+const EFI_BASE = `https://${EFI_HOST}`;
 
 async function mtlsFetch(
   path: string,
@@ -60,91 +68,30 @@ async function mtlsFetch(
 ): Promise<{ status: number; body: string }> {
   const { cert, key } = getPemCredentials();
 
-  // Connect with mTLS via Deno's native TLS (rustls)
-  const conn = await (Deno as any).connectTls({
-    hostname: EFI_HOST,
-    port: 443,
+  const client = (Deno as any).createHttpClient({
     certChain: cert,
     privateKey: key,
+    http2: false,
   });
 
   try {
-    // Build HTTP/1.1 request
-    const bodyBytes = options.body ? new TextEncoder().encode(options.body) : null;
-    let reqStr = `${options.method} ${path} HTTP/1.1\r\n`;
-    reqStr += `Host: ${EFI_HOST}\r\n`;
-    reqStr += `Connection: close\r\n`;
-    if (bodyBytes) reqStr += `Content-Length: ${bodyBytes.length}\r\n`;
-    for (const [k, v] of Object.entries(options.headers || {})) {
-      reqStr += `${k}: ${v}\r\n`;
-    }
-    reqStr += "\r\n";
-
-    // Write request
-    const encoder = new TextEncoder();
-    await conn.write(encoder.encode(reqStr));
-    if (bodyBytes) await conn.write(bodyBytes);
-
-    // Read response — accumulate ALL data, catch close_notify on final read
-    const chunks: Uint8Array[] = [];
-    const buf = new Uint8Array(32768);
-    try {
-      while (true) {
-        const n = await conn.read(buf);
-        if (n === null) break; // clean EOF
-        chunks.push(buf.slice(0, n));
-      }
-    } catch (readErr: any) {
-      // close_notify error happens HERE on the LAST read
-      // but we already have all the response data in chunks
-      const msg = readErr?.message || "";
-      if (msg.includes("close_notify") || msg.includes("eof") || msg.includes("closed")) {
-        console.warn("Expected close_notify error (ignoring, we have data):", msg);
-      } else {
-        console.warn("Read error (ignoring, we have data):", msg);
-      }
-    }
-
-    // Parse accumulated response
-    const totalLen = chunks.reduce((s, c) => s + c.length, 0);
-    if (totalLen === 0) throw new Error("No data received from server");
-
-    const full = new Uint8Array(totalLen);
-    let offset = 0;
-    for (const c of chunks) { full.set(c, offset); offset += c.length; }
-    const raw = new TextDecoder().decode(full);
-
-    const idx = raw.indexOf("\r\n\r\n");
-    if (idx === -1) {
-      console.error("Raw response (first 300):", raw.substring(0, 300));
-      throw new Error("No HTTP headers in response");
-    }
-
-    const hdr = raw.substring(0, idx);
-    let body = raw.substring(idx + 4);
-    const m = hdr.match(/HTTP\/\d\.\d\s+(\d+)/);
-    const status = m ? parseInt(m[1]) : 0;
-    if (hdr.toLowerCase().includes("transfer-encoding: chunked")) body = decodeChunked(body);
-
-    return { status, body };
+    console.log(`mtlsFetch: ${options.method} ${path}`);
+    const resp = await fetch(`${EFI_BASE}${path}`, {
+      method: options.method,
+      headers: {
+        ...options.headers,
+        "Connection": "close",
+      },
+      body: options.body,
+      // @ts-ignore Deno-specific
+      client,
+    });
+    const body = await resp.text();
+    console.log(`mtlsFetch OK: status=${resp.status}, bodyLen=${body.length}`);
+    return { status: resp.status, body };
   } finally {
-    try { conn.close(); } catch { /* already closed */ }
+    try { client.close(); } catch { /* */ }
   }
-}
-
-function decodeChunked(raw: string): string {
-  const parts: string[] = [];
-  let pos = 0;
-  while (pos < raw.length) {
-    const nl = raw.indexOf("\r\n", pos);
-    if (nl === -1) break;
-    const size = parseInt(raw.substring(pos, nl).trim(), 16);
-    if (isNaN(size) || size === 0) break;
-    pos = nl + 2;
-    parts.push(raw.substring(pos, pos + size));
-    pos += size + 2;
-  }
-  return parts.join("");
 }
 
 async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
@@ -155,12 +102,11 @@ async function mtlsFetchRetry(path: string, opts: any, retries = 3) {
     } catch (e) {
       lastError = e as Error;
       console.warn(`mtlsFetch attempt ${i}/${retries} failed: ${lastError.message}`);
-      if (i < retries) await new Promise((r) => setTimeout(r, 1500 * i));
+      if (i < retries) await new Promise((r) => setTimeout(r, 1000 * i));
     }
   }
   throw lastError || new Error("All retries failed");
 }
-
 // ══════════════════════════════════════════════════════════════
 // API Efí
 // ══════════════════════════════════════════════════════════════
