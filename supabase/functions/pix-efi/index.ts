@@ -1,16 +1,17 @@
-// Polyfill crypto.randomBytes for node-forge in Deno
+// Polyfill crypto.randomBytes BEFORE forge loads
+// (ESM static imports are hoisted, so we must use dynamic import for forge)
 import { Buffer } from "node:buffer";
-if (typeof globalThis.crypto !== "undefined" && !(globalThis as any).crypto.randomBytes) {
-  (globalThis as any).crypto.randomBytes = (size: number) => {
-    const buf = new Uint8Array(size);
-    crypto.getRandomValues(buf);
-    return Buffer.from(buf);
-  };
-}
+(globalThis as any).crypto.randomBytes = (size: number) => {
+  const buf = new Uint8Array(size);
+  crypto.getRandomValues(buf);
+  return Buffer.from(buf);
+};
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import forge from "https://esm.sh/node-forge@1.3.1";
+
+// Dynamic import so polyfill runs first
+const forge = (await import("https://esm.sh/node-forge@1.3.1")).default;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
