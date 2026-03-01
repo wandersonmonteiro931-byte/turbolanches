@@ -151,10 +151,10 @@ const InstallGate = () => {
                 <span>100% seguro e criptografado.</span>
               </div>
 
-              {!iosMode && deferredPromptRef.current && (
+              {!iosMode && (
                 <button
                   onClick={triggerInstall}
-                  disabled={installing}
+                  disabled={installing || !deferredPrompt}
                   className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
                 >
                   {installing ? "Baixando..." : "Baixar"}
