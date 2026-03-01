@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import NotificationGate from "@/components/NotificationGate";
+import NotificationBanner from "@/components/NotificationBanner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
 import Index from "./pages/Index";
@@ -58,41 +58,40 @@ const AppInner = () => {
     <CartProvider>
       <Toaster />
       <Sonner />
-      <NotificationGate>
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes - accessible without login */}
-            <Route path="/" element={<Index />} />
-            <Route path="/produto/:id" element={<ProductDetail />} />
-            <Route path="/auth" element={<Auth />} />
+      <NotificationBanner />
+      <BrowserRouter>
+        <Routes>
+          {/* Public routes - accessible without login */}
+          <Route path="/" element={<Index />} />
+          <Route path="/produto/:id" element={<ProductDetail />} />
+          <Route path="/auth" element={<Auth />} />
 
-            {/* Protected routes - require authentication */}
-            <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-            <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-            <Route path="/busca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-            <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
-            <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
+          {/* Protected routes - require authentication */}
+          <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+          <Route path="/busca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+          <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
 
-            {/* Admin routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="pedidos" element={<AdminOrders />} />
-              <Route path="produtos" element={<AdminProducts />} />
-              <Route path="categorias" element={<AdminCategories />} />
-              <Route path="entregas" element={<AdminDeliveryZones />} />
-              <Route path="horarios" element={<AdminSchedule />} />
-              <Route path="clientes" element={<AdminCustomers />} />
-              <Route path="notificacoes" element={<AdminNotifications />} />
-            </Route>
-            <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
-            <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
-            <Route path="/cozinha" element={<Kitchen />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </NotificationGate>
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="pedidos" element={<AdminOrders />} />
+            <Route path="produtos" element={<AdminProducts />} />
+            <Route path="categorias" element={<AdminCategories />} />
+            <Route path="entregas" element={<AdminDeliveryZones />} />
+            <Route path="horarios" element={<AdminSchedule />} />
+            <Route path="clientes" element={<AdminCustomers />} />
+            <Route path="notificacoes" element={<AdminNotifications />} />
+          </Route>
+          <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
+          <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
+          <Route path="/cozinha" element={<Kitchen />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
     </CartProvider>
   );
 };
