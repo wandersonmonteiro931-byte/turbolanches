@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,7 @@ const navItems = [
   { path: "/admin/entregas", icon: MapPin, label: "Entregas" },
   { path: "/admin/horarios", icon: Clock, label: "Horários" },
   { path: "/admin/clientes", icon: Users, label: "Clientes" },
+  { path: "/admin/notificacoes", icon: Bell, label: "Notificações" },
 ];
 
 const AdminLayout = () => {
