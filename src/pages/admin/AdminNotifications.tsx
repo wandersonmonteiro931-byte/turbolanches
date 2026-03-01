@@ -42,6 +42,8 @@ interface PushSubscriber {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  pending: "Pedido Recebido",
+  paid: "Pagamento Confirmado",
   accepted: "Pedido Aceito",
   preparing: "Em Preparo",
   ready: "Pronto",

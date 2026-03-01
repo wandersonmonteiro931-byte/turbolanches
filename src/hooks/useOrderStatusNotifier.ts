@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface PushTemplate {
   trigger_status: string;
@@ -11,24 +13,17 @@ interface PushTemplate {
 /**
  * Listens to order status changes via Supabase Realtime and sends
  * push notifications using configurable templates from push_templates table.
+ * Only runs for admin users to prevent duplicate sends from multiple clients.
  * Variables: {nome} = customer name, {pedido} = order number formatted.
  */
 export function useOrderStatusNotifier() {
-  const lastStatusRef = useRef<Record<string, string>>({});
-  const templatesRef = useRef<PushTemplate[]>([]);
-
-  // Load templates once
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("push_templates")
-        .select("trigger_status, title, body, active");
-      if (data) templatesRef.current = data as PushTemplate[];
-    };
-    load();
-  }, []);
+  const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+  const sentKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    if (adminLoading || !isAdmin || !user) return;
+
     const channel = supabase
       .channel("order-status-push")
       .on(
@@ -41,16 +36,28 @@ export function useOrderStatusNotifier() {
 
           if (!newStatus || newStatus === oldStatus) return;
 
-          // Find matching template
-          const template = templatesRef.current.find(
+          // Dedup key per order+status in this session
+          const dedupKey = `${order.id}_${newStatus}`;
+          if (sentKeysRef.current.has(dedupKey)) return;
+          sentKeysRef.current.add(dedupKey);
+
+          // Fetch templates fresh each time to reflect admin edits
+          const { data: templates } = await supabase
+            .from("push_templates")
+            .select("trigger_status, title, body, active");
+
+          const template = (templates as PushTemplate[] | null)?.find(
             (t) => t.trigger_status === newStatus && t.active
           );
           if (!template) return;
 
-          // Avoid duplicate sends
-          const key = `${order.id}_${newStatus}`;
-          if (lastStatusRef.current[key]) return;
-          lastStatusRef.current[key] = newStatus;
+          // Check if notification already sent for this order+status (server-side dedup)
+          const { data: existing } = await supabase
+            .from("push_notifications")
+            .select("id")
+            .contains("target_ids", [order.user_id])
+            .ilike("title", `%${String(order.order_number).padStart(5, "0")}%`)
+            .limit(1);
 
           // Get customer name
           let customerName = "Cliente";
@@ -61,13 +68,12 @@ export function useOrderStatusNotifier() {
               .eq("user_id", order.user_id)
               .single();
             if (profile?.full_name) {
-              customerName = profile.full_name.split(" ")[0]; // First name
+              customerName = profile.full_name.split(" ")[0];
             }
           } catch {}
 
           const orderNumber = String(order.order_number).padStart(5, "0");
 
-          // Replace variables
           const title = template.title
             .replace(/\{nome\}/g, customerName)
             .replace(/\{pedido\}/g, orderNumber);
@@ -84,7 +90,7 @@ export function useOrderStatusNotifier() {
                 icon: "/favicon.ico",
                 target_type: "selected",
                 target_ids: [order.user_id],
-                sent_by: order.user_id,
+                sent_by: user.id,
               },
             });
           } catch (err) {
@@ -97,5 +103,5 @@ export function useOrderStatusNotifier() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isAdmin, adminLoading, user]);
 }
