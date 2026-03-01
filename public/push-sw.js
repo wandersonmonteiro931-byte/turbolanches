@@ -1,3 +1,14 @@
+// ---- Fetch handler (required for PWA installability) ----
+self.addEventListener("fetch", function (event) {
+  // Network-first strategy: try network, fallback to cache
+  event.respondWith(
+    fetch(event.request).catch(function () {
+      return caches.match(event.request);
+    })
+  );
+});
+
+// ---- Push notifications ----
 self.addEventListener("push", function (event) {
   event.waitUntil(
     (function () {
