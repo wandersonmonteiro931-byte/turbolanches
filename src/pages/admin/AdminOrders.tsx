@@ -70,7 +70,12 @@ const AdminOrders = () => {
       .order("created_at", { ascending: false })
       .limit(50);
     if (data) {
-      setOrders(data);
+      // Pedidos PIX só aparecem se pagos (não pendentes/cancelados)
+      const filtered = data.filter((o: any) => {
+        if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
+        return true;
+      });
+      setOrders(filtered);
       const userIds = [...new Set(data.map(o => o.user_id))];
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
