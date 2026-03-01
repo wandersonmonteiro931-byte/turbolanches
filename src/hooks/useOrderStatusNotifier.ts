@@ -1,22 +1,32 @@
 import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const STATUS_MESSAGES: Record<string, string> = {
-  accepted: "✅ Seu pedido foi aceito!",
-  preparing: "👨‍🍳 Seu pedido está sendo preparado!",
-  ready: "🎉 Seu pedido está pronto!",
-  delivering: "🛵 Seu pedido saiu para entrega!",
-  delivered: "📦 Pedido entregue! Bom apetite!",
-  cancelled: "❌ Seu pedido foi cancelado.",
-};
+interface PushTemplate {
+  trigger_status: string;
+  title: string;
+  body: string;
+  active: boolean;
+}
 
 /**
  * Listens to order status changes via Supabase Realtime and sends
- * push notifications to affected users automatically.
- * Should be used in admin context (Dashboard/Layout).
+ * push notifications using configurable templates from push_templates table.
+ * Variables: {nome} = customer name, {pedido} = order number formatted.
  */
 export function useOrderStatusNotifier() {
   const lastStatusRef = useRef<Record<string, string>>({});
+  const templatesRef = useRef<PushTemplate[]>([]);
+
+  // Load templates once
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("push_templates")
+        .select("trigger_status, title, body, active");
+      if (data) templatesRef.current = data as PushTemplate[];
+    };
+    load();
+  }, []);
 
   useEffect(() => {
     const channel = supabase
@@ -31,24 +41,50 @@ export function useOrderStatusNotifier() {
 
           if (!newStatus || newStatus === oldStatus) return;
 
-          const message = STATUS_MESSAGES[newStatus];
-          if (!message) return;
+          // Find matching template
+          const template = templatesRef.current.find(
+            (t) => t.trigger_status === newStatus && t.active
+          );
+          if (!template) return;
 
-          // Avoid duplicate sends for same order+status
+          // Avoid duplicate sends
           const key = `${order.id}_${newStatus}`;
           if (lastStatusRef.current[key]) return;
           lastStatusRef.current[key] = newStatus;
+
+          // Get customer name
+          let customerName = "Cliente";
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name")
+              .eq("user_id", order.user_id)
+              .single();
+            if (profile?.full_name) {
+              customerName = profile.full_name.split(" ")[0]; // First name
+            }
+          } catch {}
+
+          const orderNumber = String(order.order_number).padStart(5, "0");
+
+          // Replace variables
+          const title = template.title
+            .replace(/\{nome\}/g, customerName)
+            .replace(/\{pedido\}/g, orderNumber);
+          const body = template.body
+            .replace(/\{nome\}/g, customerName)
+            .replace(/\{pedido\}/g, orderNumber);
 
           try {
             await supabase.functions.invoke("push-notification", {
               body: {
                 action: "send",
-                title: `Pedido #${String(order.order_number).padStart(5, "0")}`,
-                body: message,
+                title,
+                body,
                 icon: "/favicon.ico",
                 target_type: "selected",
                 target_ids: [order.user_id],
-                sent_by: order.user_id, // system-triggered
+                sent_by: order.user_id,
               },
             });
           } catch (err) {
