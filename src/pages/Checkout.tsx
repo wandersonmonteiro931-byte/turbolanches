@@ -345,13 +345,9 @@ const Checkout = () => {
         {isNeighborhoodBlocked && deliveryType === "delivery" && (
           <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-5 text-center space-y-2">
             <Truck size={32} className="mx-auto text-destructive" />
-            <h2 className="text-base font-bold text-destructive">
-              {isNeighborhoodNotServed ? "Bairro não atendido" : "Região fora da área de entrega"}
-            </h2>
+            <h2 className="text-base font-bold text-destructive">Região não atendida</h2>
             <p className="text-sm text-muted-foreground">
-              {isNeighborhoodNotServed
-                ? `O bairro "${profile?.neighborhood}" não está sendo atendido no momento. Tente outro endereço ou opte por retirar na loja. 🙏`
-                : "Infelizmente hoje não estamos fazendo entrega na sua região. Obrigado pela preferência! 🙏"}
+              Pedimos desculpas, mas hoje não estamos atendendo sua região.
             </p>
             <button onClick={() => navigate("/completar-perfil")} className="mt-2 text-sm font-semibold text-primary underline">
               Alterar endereço
