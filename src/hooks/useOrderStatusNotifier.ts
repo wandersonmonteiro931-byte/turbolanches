@@ -53,8 +53,16 @@ export function useOrderStatusNotifier() {
 
           if (!newStatus || newStatus === oldStatus) return;
 
+          // For "ready" status, use delivery-type-specific template
+          const deliveryType = order.delivery_type;
+          const isPickup = deliveryType === "pickup" || deliveryType === "retirada";
+          let triggerKey = newStatus;
+          if (newStatus === "ready") {
+            triggerKey = isPickup ? "ready_pickup" : "ready_delivery";
+          }
+
           // Dedup key per order+status in this session
-          const dedupKey = `${order.id}_${newStatus}`;
+          const dedupKey = `${order.id}_${triggerKey}`;
           if (sentKeysRef.current.has(dedupKey)) return;
           sentKeysRef.current.add(dedupKey);
 
@@ -64,7 +72,7 @@ export function useOrderStatusNotifier() {
             .select("trigger_status, title, body, active");
 
           const template = (templates as PushTemplate[] | null)?.find(
-            (t) => t.trigger_status === newStatus && t.active
+            (t) => t.trigger_status === triggerKey && t.active
           );
           if (!template) return;
 
