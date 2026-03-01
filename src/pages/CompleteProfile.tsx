@@ -4,6 +4,7 @@ import { Phone, MapPin, User, Hash, Building, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
@@ -103,28 +104,42 @@ const CompleteProfile = () => {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
-          {fields.map((f) => (
-            <div key={f.key} className="flex items-center gap-3 rounded-xl bg-card px-4 py-3">
-              <f.icon size={18} className="flex-shrink-0 text-muted-foreground" />
-              <input
-                type="text"
-                value={(form as any)[f.key]}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  update(f.key, val);
-                  if (f.key === "zip_code" && val.replace(/\D/g, "").length === 8) {
-                    fetchCep(val);
-                  }
-                }}
-                onBlur={() => {
-                  if (f.key === "zip_code") fetchCep((form as any)[f.key]);
-                }}
-                placeholder={f.label + (f.key === "zip_code" && cepLoading ? " (buscando...)" : "")}
-                required={f.required}
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
-            </div>
-          ))}
+          {fields.map((f) => {
+            // Neighborhood uses autocomplete
+            if (f.key === "neighborhood") {
+              return (
+                <div key={f.key}>
+                  <NeighborhoodAutocomplete
+                    value={form.neighborhood}
+                    onChange={(val) => update("neighborhood", val)}
+                    placeholder="Bairro"
+                  />
+                </div>
+              );
+            }
+            return (
+              <div key={f.key} className="flex items-center gap-3 rounded-xl bg-card px-4 py-3">
+                <f.icon size={18} className="flex-shrink-0 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={(form as any)[f.key]}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    update(f.key, val);
+                    if (f.key === "zip_code" && val.replace(/\D/g, "").length === 8) {
+                      fetchCep(val);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (f.key === "zip_code") fetchCep((form as any)[f.key]);
+                  }}
+                  placeholder={f.label + (f.key === "zip_code" && cepLoading ? " (buscando...)" : "")}
+                  required={f.required}
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                />
+              </div>
+            );
+          })}
 
           <button
             type="submit"

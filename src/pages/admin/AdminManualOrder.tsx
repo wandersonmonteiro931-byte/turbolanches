@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 
 interface Product {
   id: string;
@@ -258,8 +259,15 @@ const AdminManualOrder = () => {
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
               <input placeholder="Número" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)}
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
-              <input placeholder="Bairro" value={addressNeighborhood} onChange={(e) => setAddressNeighborhood(e.target.value)}
-                className="col-span-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
+              <NeighborhoodAutocomplete
+                value={addressNeighborhood}
+                onChange={(val, fee) => {
+                  setAddressNeighborhood(val);
+                }}
+                placeholder="Bairro"
+                allowInactive={true}
+                className="col-span-2"
+              />
               <input placeholder="Complemento / Quadra / Lote" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)}
                 className="col-span-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
             </div>
