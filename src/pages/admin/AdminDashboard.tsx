@@ -110,7 +110,12 @@ const AdminDashboard = () => {
       .lte("created_at", dayEnd.toISOString())
       .order("created_at", { ascending: false });
     if (data) {
-      setOrders(data as Order[]);
+      // Pedidos PIX só aparecem se pagos (não pendentes/cancelados)
+      const filtered = (data as Order[]).filter(o => {
+        if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
+        return true;
+      });
+      setOrders(filtered);
       const userIds = [...new Set(data.map(o => o.user_id))];
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase
