@@ -609,6 +609,36 @@ export type Database = {
         }
         Relationships: []
       }
+      push_templates: {
+        Row: {
+          active: boolean
+          body: string
+          created_at: string | null
+          id: string
+          title: string
+          trigger_status: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          body?: string
+          created_at?: string | null
+          id?: string
+          title?: string
+          trigger_status: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          created_at?: string | null
+          id?: string
+          title?: string
+          trigger_status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       push_vapid_keys: {
         Row: {
           created_at: string | null
