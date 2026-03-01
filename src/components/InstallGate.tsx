@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Download, X, Share, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,16 +19,41 @@ const isIOS = () =>
 
 const InstallGate = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [iosMode, setIosMode] = useState(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    deferredPromptRef.current = deferredPrompt;
+  }, [deferredPrompt]);
+
+  const triggerInstall = useCallback(async () => {
+    const prompt = deferredPromptRef.current;
+    if (!prompt) return;
+    try {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") {
+        setVisible(false);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setDeferredPrompt(null);
+      deferredPromptRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (isStandalone()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const evt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(evt);
+      deferredPromptRef.current = evt;
     };
     window.addEventListener("beforeinstallprompt", handler);
 
@@ -39,8 +64,14 @@ const InstallGate = () => {
       if (isStandalone()) return;
       const path = window.location.pathname;
       if (path.startsWith("/admin") || path.startsWith("/cozinha")) return;
-      setIosMode(isIOS());
-      setVisible(true);
+      const iosNow = isIOS();
+      setIosMode(iosNow);
+      // On Android, trigger install prompt automatically if available
+      if (!iosNow && deferredPromptRef.current) {
+        triggerInstall();
+      } else {
+        setVisible(true);
+      }
     };
 
     const initialTimer = setTimeout(show, 5000);
@@ -51,7 +82,7 @@ const InstallGate = () => {
       clearInterval(interval);
       window.removeEventListener("beforeinstallprompt", handler);
     };
-  }, []);
+  }, [triggerInstall]);
 
   useEffect(() => {
     const handler = () => {
@@ -62,22 +93,8 @@ const InstallGate = () => {
     return () => window.removeEventListener("appinstalled", handler);
   }, []);
 
-  const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    setInstalling(true);
-    try {
-      await deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
-        setVisible(false);
-      }
-    } catch {
-      // ignore
-    } finally {
-      setInstalling(false);
-      setDeferredPrompt(null);
-    }
-  }, [deferredPrompt]);
+
+
 
   const dismiss = () => setVisible(false);
 
@@ -140,15 +157,8 @@ const InstallGate = () => {
                 <span>100% seguro e criptografado.</span>
               </div>
 
-              {!iosMode && deferredPrompt && (
-                <button
-                  onClick={handleInstall}
-                  disabled={installing}
-                  className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  {installing ? "Instalando..." : "Instalar App"}
-                </button>
-              )}
+
+
               <button
                 onClick={dismiss}
                 className="text-sm text-muted-foreground underline"
