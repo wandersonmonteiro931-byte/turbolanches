@@ -38,6 +38,9 @@ export function useOrderStatusNotifier() {
       });
   }, [user]);
 
+  // Track last known status per order to detect real changes
+  const orderStatusCache = useRef<Map<string, string>>(new Map());
+
   useEffect(() => {
     if (!adminChecked || !isAdmin || !user) return;
 
@@ -48,10 +51,20 @@ export function useOrderStatusNotifier() {
         { event: "UPDATE", schema: "public", table: "orders" },
         async (payload) => {
           const order = payload.new as any;
-          const oldStatus = (payload.old as any)?.status;
           const newStatus = order.status;
+          if (!newStatus) return;
 
-          if (!newStatus || newStatus === oldStatus) return;
+          // Use local cache to detect REAL status changes
+          // (payload.old.status is unreliable without REPLICA IDENTITY FULL)
+          const cachedStatus = orderStatusCache.current.get(order.id);
+          orderStatusCache.current.set(order.id, newStatus);
+
+          // Skip if status hasn't actually changed
+          if (cachedStatus === newStatus) return;
+
+          // Skip "pending" — not a meaningful customer notification
+          // (PIX orders start as "pending" and get updated with pix fields while still "pending")
+          if (newStatus === "pending") return;
 
           // For "ready" status, use delivery-type-specific template
           const deliveryType = order.delivery_type;
@@ -76,13 +89,19 @@ export function useOrderStatusNotifier() {
           );
           if (!template) return;
 
-          // Check if notification already sent for this order+status (server-side dedup)
+          // Server-side dedup: check if already sent for this order+status
+          const orderNumber = String(order.order_number).padStart(5, "0");
           const { data: existing } = await supabase
             .from("push_notifications")
             .select("id")
             .contains("target_ids", [order.user_id])
-            .ilike("title", `%${String(order.order_number).padStart(5, "0")}%`)
+            .ilike("title", `%${orderNumber}%`)
             .limit(1);
+
+          if (existing && existing.length > 0) {
+            console.log("[Push] Already sent for order", orderNumber, "— skipping");
+            return;
+          }
 
           // Get customer name
           let customerName = "Cliente";
@@ -91,13 +110,11 @@ export function useOrderStatusNotifier() {
               .from("profiles")
               .select("full_name")
               .eq("user_id", order.user_id)
-              .single();
+              .maybeSingle();
             if (profile?.full_name) {
               customerName = profile.full_name.split(" ")[0];
             }
           } catch {}
-
-          const orderNumber = String(order.order_number).padStart(5, "0");
 
           const title = template.title
             .replace(/\{nome\}/g, customerName)
