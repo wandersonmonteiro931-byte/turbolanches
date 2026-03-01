@@ -138,12 +138,16 @@ const Checkout = () => {
     (z) => z.neighborhood.toLowerCase() === profile?.neighborhood?.toLowerCase()
   );
 
-  const isNeighborhoodBlocked = deliveryType === "delivery" &&
+  const isNeighborhoodNotServed = deliveryType === "delivery" && !matchedZone;
+
+  const isNeighborhoodTooFar = deliveryType === "delivery" &&
     deliveryConfig?.max_serving_km_active &&
     matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined &&
     matchedZone.distance_km >= 0 &&
     deliveryConfig.max_serving_km !== null &&
     matchedZone.distance_km > deliveryConfig.max_serving_km;
+
+  const isNeighborhoodBlocked = isNeighborhoodNotServed || isNeighborhoodTooFar;
 
   // Delivery fee only applies for delivery type
   const rawFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
@@ -341,9 +345,13 @@ const Checkout = () => {
         {isNeighborhoodBlocked && deliveryType === "delivery" && (
           <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-5 text-center space-y-2">
             <Truck size={32} className="mx-auto text-destructive" />
-            <h2 className="text-base font-bold text-destructive">Região fora da área de entrega</h2>
+            <h2 className="text-base font-bold text-destructive">
+              {isNeighborhoodNotServed ? "Bairro não atendido" : "Região fora da área de entrega"}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Infelizmente hoje não estamos fazendo entrega na sua região. Obrigado pela preferência! 🙏
+              {isNeighborhoodNotServed
+                ? `O bairro "${profile?.neighborhood}" não está sendo atendido no momento. Tente outro endereço ou opte por retirar na loja. 🙏`
+                : "Infelizmente hoje não estamos fazendo entrega na sua região. Obrigado pela preferência! 🙏"}
             </p>
             <button onClick={() => navigate("/completar-perfil")} className="mt-2 text-sm font-semibold text-primary underline">
               Alterar endereço
