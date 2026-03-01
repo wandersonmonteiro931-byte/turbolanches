@@ -1,3 +1,13 @@
+// Polyfill crypto.randomBytes for node-forge in Deno
+import { Buffer } from "node:buffer";
+if (typeof globalThis.crypto !== "undefined" && !(globalThis as any).crypto.randomBytes) {
+  (globalThis as any).crypto.randomBytes = (size: number) => {
+    const buf = new Uint8Array(size);
+    crypto.getRandomValues(buf);
+    return Buffer.from(buf);
+  };
+}
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import forge from "https://esm.sh/node-forge@1.3.1";
