@@ -285,7 +285,7 @@ const Checkout = () => {
       `Total: R$ ${total.toFixed(2).replace(".", ",")}\n` +
       `Pagamento: ${payment.toUpperCase()}`
     );
-    window.open(`https://wa.me/5500000000000?text=${message}`, "_blank");
+    window.open(`https://wa.me/5562994753582?text=${message}`, "_blank");
   };
 
   if (profileLoading) {
