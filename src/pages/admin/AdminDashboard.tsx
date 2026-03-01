@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power, Settings,
-  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save
+  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -544,6 +544,14 @@ const AdminDashboard = () => {
           Cozinha
         </button>
 
+        <button
+          onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados!" }); }}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <RefreshCw size={16} />
+          Atualizar
+        </button>
+
         <div className="ml-auto flex items-center gap-4 text-sm">
           <div className="text-muted-foreground">
             <span className="font-bold text-foreground">{orders.length}</span> pedidos
@@ -662,6 +670,7 @@ const AdminDashboard = () => {
         {tabs.map(tab => {
           const count = stats[tab.key as keyof typeof stats] || 0;
           const isActive = activeTab === tab.key;
+          const isPendingWithOrders = tab.key === "pending" && count > 0;
           return (
             <button
               key={tab.key}
@@ -670,13 +679,13 @@ const AdminDashboard = () => {
                 isActive
                   ? `${tab.color} text-white`
                   : "bg-card border border-border text-foreground hover:bg-muted"
-              }`}
+              } ${isPendingWithOrders && !isActive ? "animate-pulse border-amber-500 border-2" : ""}`}
             >
               <tab.icon size={16} />
               {tab.label}
               {count > 0 && (
                 <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-                  isActive ? "bg-white/20 text-white" : "bg-muted text-foreground"
+                  isActive ? "bg-white/20 text-white" : isPendingWithOrders ? "bg-amber-500 text-white" : "bg-muted text-foreground"
                 }`}>
                   {count}
                 </span>
@@ -702,7 +711,9 @@ const AdminDashboard = () => {
             const isEditing = editingOrder === order.id;
 
             return (
-              <div key={order.id} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+              <div key={order.id} className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
+                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" : "border-border"
+              }`}>
                 <button
                   onClick={() => {
                     if (expandedOrder === order.id) setExpandedOrder(null);
