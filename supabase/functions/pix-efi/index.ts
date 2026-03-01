@@ -474,10 +474,20 @@ async function handleCheckStatus(userId: string, body: any) {
   if (!order_id) return json({ error: "order_id required" }, 400);
 
   const db = adminSupa();
-  const { data: order } = await db.from("orders").select("*")
-    .eq("id", order_id).eq("user_id", userId).single();
+  const { data: order, error: queryErr } = await db.from("orders").select("*")
+    .eq("id", order_id).eq("user_id", userId).maybeSingle();
 
-  if (!order) return json({ error: "Order not found" }, 404);
+  if (queryErr) {
+    console.error("check-status query error:", queryErr.message);
+    return json({ error: "DB query error" }, 500);
+  }
+
+  if (!order) {
+    // Could be a timing issue — order not yet visible; return pending instead of 404
+    console.warn("check-status: order not found yet", { order_id, userId: userId.substring(0, 8) });
+    return json({ status: "pending", confirmed: false });
+  }
+
   if (order.status !== "pending") return json({ status: order.status, confirmed: true });
 
   if (order.pix_txid) {
