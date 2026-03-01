@@ -1,8 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Bell, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const INTERVAL_MS = 60_000;
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from(rawData, (c) => c.charCodeAt(0));
+}
 
 const NotificationBanner = () => {
   const [visible, setVisible] = useState(false);
@@ -33,17 +41,70 @@ const NotificationBanner = () => {
   const requestPermission = async () => {
     setRegistering(true);
     try {
+      // Register service worker first
       if ("serviceWorker" in navigator) {
         await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
       }
+
       const result = await Notification.requestPermission();
-      if (result === "granted" || result === "denied") {
-        setVisible(false);
+
+      if (result === "granted") {
+        // Actually subscribe to push after permission is granted
+        await subscribeToPush();
       }
+
+      setVisible(false);
     } catch (err) {
       console.error("[Push] Permission error:", err);
     } finally {
       setRegistering(false);
+    }
+  };
+
+  const subscribeToPush = async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const pushManager = (registration as any).pushManager;
+      if (!pushManager) return;
+
+      // Get VAPID key from server
+      const { data: vapidData } = await supabase.functions.invoke("push-notification", {
+        body: { action: "get_vapid_public_key" },
+      });
+      if (!vapidData?.public_key) return;
+
+      const applicationServerKey = urlBase64ToUint8Array(vapidData.public_key);
+
+      // Unsubscribe old if vapid changed
+      let subscription = await pushManager.getSubscription();
+      const storedVapid = localStorage.getItem("push_vapid_key");
+      if (subscription && storedVapid !== vapidData.public_key) {
+        try { await subscription.unsubscribe(); } catch {}
+        subscription = null;
+      }
+
+      if (!subscription) {
+        subscription = await pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey,
+        });
+      }
+
+      localStorage.setItem("push_vapid_key", vapidData.public_key);
+
+      const subJson = subscription.toJSON();
+      await supabase.functions.invoke("push-notification", {
+        body: {
+          action: "subscribe",
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys?.p256dh,
+          auth: subJson.keys?.auth,
+        },
+      });
+
+      console.log("[Push] Subscription registered successfully");
+    } catch (err) {
+      console.error("[Push] Subscription error:", err);
     }
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, Send, Users, User, Search, Clock, CheckCircle, XCircle, Settings, Save, Plus, Trash2 } from "lucide-react";
+import { Bell, Send, Users, User, Search, Clock, CheckCircle, XCircle, Settings, Save, Plus, Trash2, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -32,6 +32,15 @@ interface PushTemplate {
   active: boolean;
 }
 
+interface PushSubscriber {
+  user_id: string;
+  created_at: string;
+  full_name: string;
+  phone: string;
+  customer_code: number;
+  subscription_count: number;
+}
+
 const STATUS_LABELS: Record<string, string> = {
   accepted: "Pedido Aceito",
   preparing: "Em Preparo",
@@ -61,10 +70,15 @@ const AdminNotifications = () => {
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
 
+  // Subscribers
+  const [subscribers, setSubscribers] = useState<PushSubscriber[]>([]);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(true);
+
   useEffect(() => {
     loadProfiles();
     loadHistory();
     loadTemplates();
+    loadSubscribers();
   }, []);
 
   const loadProfiles = async () => {
@@ -92,6 +106,56 @@ const AdminNotifications = () => {
       .order("created_at");
     if (data) setTemplates(data as PushTemplate[]);
     setLoadingTemplates(false);
+  };
+
+  const loadSubscribers = async () => {
+    try {
+      const { data: subs } = await supabase
+        .from("push_subscriptions")
+        .select("user_id, created_at");
+
+      if (!subs || subs.length === 0) {
+        setSubscribers([]);
+        setLoadingSubscribers(false);
+        return;
+      }
+
+      const userMap = new Map<string, { count: number; earliest: string }>();
+      for (const s of subs) {
+        const existing = userMap.get(s.user_id);
+        if (existing) {
+          existing.count++;
+          if (s.created_at && s.created_at < existing.earliest) existing.earliest = s.created_at;
+        } else {
+          userMap.set(s.user_id, { count: 1, earliest: s.created_at || "" });
+        }
+      }
+
+      const userIds = Array.from(userMap.keys());
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone, customer_code")
+        .in("user_id", userIds);
+
+      const result: PushSubscriber[] = userIds.map((uid) => {
+        const prof = profs?.find((p) => p.user_id === uid);
+        const info = userMap.get(uid)!;
+        return {
+          user_id: uid,
+          created_at: info.earliest,
+          full_name: prof?.full_name || "Sem nome",
+          phone: prof?.phone || "",
+          customer_code: prof?.customer_code || 0,
+          subscription_count: info.count,
+        };
+      });
+
+      setSubscribers(result);
+    } catch (err) {
+      console.error("Error loading subscribers:", err);
+    } finally {
+      setLoadingSubscribers(false);
+    }
   };
 
   const handleSend = async () => {
@@ -468,6 +532,76 @@ const AdminNotifications = () => {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Subscribers */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+          <Smartphone size={20} className="text-primary" />
+          Assinantes Push ({subscribers.length})
+        </h2>
+
+        {loadingSubscribers ? (
+          <div className="flex justify-center py-8">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : subscribers.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Nenhum cliente ativou as notificações ainda
+          </p>
+        ) : (
+          <>
+            <div className="mb-3 flex items-center gap-3 rounded-lg bg-primary/10 p-3">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary">{subscribers.length}</p>
+                <p className="text-xs text-muted-foreground">Ativaram</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-foreground">
+                  {subscribers.reduce((acc, s) => acc + s.subscription_count, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Dispositivos</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-foreground">
+                  {history.reduce((acc, h) => acc + h.sent_count, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Enviadas</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-destructive">
+                  {history.reduce((acc, h) => acc + h.failed_count, 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Falharam</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {subscribers.map((s) => (
+                <div
+                  key={s.user_id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">{s.full_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      T{String(s.customer_code).padStart(5, "0")}
+                      {s.phone ? ` • ${s.phone}` : ""}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
+                      {s.subscription_count} disp.
+                    </span>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {s.created_at ? format(new Date(s.created_at), "dd/MM/yy HH:mm", { locale: ptBR }) : "—"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>
