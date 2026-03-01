@@ -21,6 +21,7 @@ export function useOrderStatusNotifier() {
   const [adminChecked, setAdminChecked] = useState(false);
   const sentKeysRef = useRef<Set<string>>(new Set());
   const orderStatusCache = useRef<Map<string, string>>(new Map());
+  const processingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) {
@@ -39,13 +40,13 @@ export function useOrderStatusNotifier() {
       });
   }, [user]);
 
-  // Track last known status per order to detect real changes
-
   useEffect(() => {
     if (!adminChecked || !isAdmin || !user) return;
 
+    const channelName = `order-status-push-${user.id}`;
+
     const channel = supabase
-      .channel("order-status-push")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders" },
@@ -55,7 +56,6 @@ export function useOrderStatusNotifier() {
           if (!newStatus) return;
 
           // Use local cache to detect REAL status changes
-          // (payload.old.status is unreliable without REPLICA IDENTITY FULL)
           const cachedStatus = orderStatusCache.current.get(order.id);
           orderStatusCache.current.set(order.id, newStatus);
 
@@ -63,7 +63,6 @@ export function useOrderStatusNotifier() {
           if (cachedStatus === newStatus) return;
 
           // Skip "pending" — not a meaningful customer notification
-          // (PIX orders start as "pending" and get updated with pix fields while still "pending")
           if (newStatus === "pending") return;
 
           // For "ready" status, use delivery-type-specific template
@@ -74,56 +73,44 @@ export function useOrderStatusNotifier() {
             triggerKey = isPickup ? "ready_pickup" : "ready_delivery";
           }
 
-          // Dedup key per order+status in this session
+          // Dedup: mutex + sent check (prevents race between duplicate realtime events)
           const dedupKey = `${order.id}_${triggerKey}`;
-          if (sentKeysRef.current.has(dedupKey)) return;
-          sentKeysRef.current.add(dedupKey);
-
-          // Fetch templates fresh each time to reflect admin edits
-          const { data: templates } = await supabase
-            .from("push_templates")
-            .select("trigger_status, title, body, active");
-
-          const template = (templates as PushTemplate[] | null)?.find(
-            (t) => t.trigger_status === triggerKey && t.active
-          );
-          if (!template) return;
-
-          // Server-side dedup: check if already sent for this order+status
-          const orderNumber = String(order.order_number).padStart(5, "0");
-          const { data: existing } = await supabase
-            .from("push_notifications")
-            .select("id")
-            .contains("target_ids", [order.user_id])
-            .ilike("title", `%${orderNumber}%`)
-            .limit(1);
-
-          if (existing && existing.length > 0) {
-            console.log("[Push] Already sent for order", orderNumber, "— skipping");
-            return;
-          }
-
-          // Get customer name
-          let customerName = "Cliente";
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("full_name")
-              .eq("user_id", order.user_id)
-              .maybeSingle();
-            if (profile?.full_name) {
-              customerName = profile.full_name.split(" ")[0];
-            }
-          } catch {}
-
-          const title = template.title
-            .replace(/\{nome\}/g, customerName)
-            .replace(/\{pedido\}/g, orderNumber);
-          const body = template.body
-            .replace(/\{nome\}/g, customerName)
-            .replace(/\{pedido\}/g, orderNumber);
+          if (sentKeysRef.current.has(dedupKey) || processingRef.current.has(dedupKey)) return;
+          processingRef.current.add(dedupKey);
 
           try {
+            // Fetch templates fresh each time to reflect admin edits
+            const { data: templates } = await supabase
+              .from("push_templates")
+              .select("trigger_status, title, body, active");
+
+            const template = (templates as PushTemplate[] | null)?.find(
+              (t) => t.trigger_status === triggerKey && t.active
+            );
+            if (!template) return;
+
+            // Get customer name
+            let customerName = "Cliente";
+            try {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("user_id", order.user_id)
+                .maybeSingle();
+              if (profile?.full_name) {
+                customerName = profile.full_name.split(" ")[0];
+              }
+            } catch {}
+
+            const orderNumber = String(order.order_number).padStart(5, "0");
+
+            const title = template.title
+              .replace(/\{nome\}/g, customerName)
+              .replace(/\{pedido\}/g, orderNumber);
+            const body = template.body
+              .replace(/\{nome\}/g, customerName)
+              .replace(/\{pedido\}/g, orderNumber);
+
             await supabase.functions.invoke("push-notification", {
               body: {
                 action: "send",
@@ -135,8 +122,13 @@ export function useOrderStatusNotifier() {
                 sent_by: user.id,
               },
             });
+
+            // Mark as sent AFTER successful send
+            sentKeysRef.current.add(dedupKey);
           } catch (err) {
             console.error("[Push] Status notify error:", err);
+          } finally {
+            processingRef.current.delete(dedupKey);
           }
         }
       )
