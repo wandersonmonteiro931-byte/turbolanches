@@ -175,7 +175,7 @@ const InstallGate = () => {
                 <span>100% seguro e criptografado.</span>
               </div>
 
-              {!iosMode && hasPrompt && (
+              {!iosMode && (
                 <button
                   onClick={handleInstall}
                   disabled={installing}
