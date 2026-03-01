@@ -14,6 +14,7 @@ interface PushTemplate {
  * push notifications using configurable templates from push_templates table.
  * Only runs for admin users to prevent duplicate sends from multiple clients.
  * Variables: {nome} = customer name, {pedido} = order number formatted.
+ * v2 - robust dedup with processingRef mutex
  */
 export function useOrderStatusNotifier() {
   const { user } = useAuth();
