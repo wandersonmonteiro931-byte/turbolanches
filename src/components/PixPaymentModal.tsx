@@ -73,8 +73,9 @@ const PixPaymentModal = ({
   const handleCancel = useCallback(async () => {
     setCancelling(true);
     try {
-      await supabase.from("orders").delete().eq("id", orderId).eq("status", "pending");
+      // Delete items first (FK dependency), then the order
       await supabase.from("order_items").delete().eq("order_id", orderId);
+      await supabase.from("orders").delete().eq("id", orderId).eq("status", "pending");
       toast.info("Pedido cancelado.");
       onCancelled();
     } catch {
