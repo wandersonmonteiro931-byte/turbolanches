@@ -543,6 +543,93 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notifications: {
+        Row: {
+          body: string
+          created_at: string | null
+          failed_count: number | null
+          icon: string | null
+          id: string
+          sent_by: string
+          sent_count: number | null
+          target_ids: string[] | null
+          target_type: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          failed_count?: number | null
+          icon?: string | null
+          id?: string
+          sent_by: string
+          sent_count?: number | null
+          target_ids?: string[] | null
+          target_type?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          failed_count?: number | null
+          icon?: string | null
+          id?: string
+          sent_by?: string
+          sent_count?: number | null
+          target_ids?: string[] | null
+          target_type?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string | null
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_vapid_keys: {
+        Row: {
+          created_at: string | null
+          id: string
+          private_key: string
+          public_key: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          private_key: string
+          public_key: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          private_key?: string
+          public_key?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           comment: string | null
