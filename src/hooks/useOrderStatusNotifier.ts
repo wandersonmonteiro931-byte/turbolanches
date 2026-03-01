@@ -1,3 +1,4 @@
+// force HMR refresh - v3
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
