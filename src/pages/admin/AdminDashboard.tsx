@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
@@ -85,6 +85,7 @@ const AdminDashboard = () => {
   const [scheduleClose, setScheduleClose] = useState("");
   const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
+  const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
@@ -185,14 +186,22 @@ const AdminDashboard = () => {
       })
       .subscribe();
 
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(storeChannel);
-      clearInterval(timer);
     };
   }, [fetchOrders, fetchStoreSettings, isToday]);
+
+  // Only tick the timer when there are preparing orders visible (saves CPU)
+  const hasPreparingVisible = activeTab === "preparing" && orders.some(o => o.status === "preparing");
+  useEffect(() => {
+    if (hasPreparingVisible) {
+      nowIntervalRef.current = setInterval(() => setNow(Date.now()), 1000);
+    } else {
+      if (nowIntervalRef.current) { clearInterval(nowIntervalRef.current); nowIntervalRef.current = null; }
+    }
+    return () => { if (nowIntervalRef.current) { clearInterval(nowIntervalRef.current); nowIntervalRef.current = null; } };
+  }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
     if (!storeSettings) return;
@@ -466,16 +475,16 @@ const AdminDashboard = () => {
     return { min, sec };
   };
 
-  const stats = {
+  const stats = useMemo(() => ({
     pending: orders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
     preparing: orders.filter(o => o.status === "preparing").length,
     ready: orders.filter(o => o.status === "ready").length,
     delivering: orders.filter(o => o.status === "delivering").length,
     delivered: orders.filter(o => o.status === "delivered").length,
     cancelled: orders.filter(o => o.status === "cancelled").length,
-  };
+  }), [orders]);
 
-  const todayRevenue = orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0);
+  const todayRevenue = useMemo(() => orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [orders]);
 
   return (
     <div className="space-y-4">
