@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -18,6 +18,8 @@ const AdminCategories = () => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
   const { toast } = useToast();
+  const dragItem = useRef<number | null>(null);
+  const dragOver = useRef<number | null>(null);
 
   const [form, setForm] = useState({ name: "", icon: "", image_url: "", sort_order: "0", active: true });
 
@@ -42,13 +44,9 @@ const AdminCategories = () => {
 
   const handleSave = async () => {
     const payload = {
-      name: form.name,
-      icon: form.icon,
-      image_url: form.image_url || null,
-      sort_order: parseInt(form.sort_order) || 0,
-      active: form.active,
+      name: form.name, icon: form.icon, image_url: form.image_url || null,
+      sort_order: parseInt(form.sort_order) || 0, active: form.active,
     };
-
     if (editing) {
       await supabase.from("categories").update(payload).eq("id", editing.id);
       toast({ title: "Categoria atualizada!" });
@@ -64,6 +62,20 @@ const AdminCategories = () => {
     await supabase.from("categories").delete().eq("id", id);
     toast({ title: "Categoria removida!" });
     fetchData();
+  };
+
+  const handleDragEnd = async () => {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) return;
+    const reordered = [...categories];
+    const [moved] = reordered.splice(dragItem.current, 1);
+    reordered.splice(dragOver.current, 0, moved);
+    dragItem.current = null;
+    dragOver.current = null;
+    setCategories(reordered);
+
+    const updates = reordered.map((c, i) => supabase.from("categories").update({ sort_order: i }).eq("id", c.id));
+    await Promise.all(updates);
+    toast({ title: "Ordem atualizada!" });
   };
 
   return (
@@ -87,7 +99,6 @@ const AdminCategories = () => {
               <input placeholder="Ícone (emoji)" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <label className="text-sm font-medium text-foreground">Imagem da Categoria</label>
               <ImageUpload value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="categories" />
-              <input placeholder="Ordem" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativa
               </label>
@@ -97,9 +108,19 @@ const AdminCategories = () => {
         </div>
       )}
 
+      <p className="text-xs text-muted-foreground">☰ Arraste para reordenar</p>
       <div className="space-y-2">
-        {categories.map((c) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
+        {categories.map((c, idx) => (
+          <div
+            key={c.id}
+            draggable
+            onDragStart={() => { dragItem.current = idx; }}
+            onDragEnter={() => { dragOver.current = idx; }}
+            onDragOver={(e) => e.preventDefault()}
+            onDragEnd={handleDragEnd}
+            className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 shadow-sm cursor-grab active:cursor-grabbing active:opacity-70 transition-opacity"
+          >
+            <GripVertical size={18} className="shrink-0 text-muted-foreground" />
             {c.image_url ? (
               <img src={c.image_url} alt={c.name} className="h-10 w-10 rounded-lg object-cover" />
             ) : (
@@ -107,7 +128,6 @@ const AdminCategories = () => {
             )}
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground">{c.name}</p>
-              <p className="text-xs text-muted-foreground">Ordem: {c.sort_order}</p>
             </div>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
               {c.active ? "Ativa" : "Inativa"}
