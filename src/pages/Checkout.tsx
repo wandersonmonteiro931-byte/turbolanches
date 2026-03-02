@@ -271,24 +271,54 @@ const Checkout = () => {
   };
 
 
-  const sendWhatsAppNotification = (orderId: string, profile: Profile, total: number, payment: string) => {
+  const buildWhatsAppMessage = (orderId?: string) => {
     const itemsList = items
-      .map((i) => `${i.quantity}x ${i.product.name}`)
-      .join("\n");
+      .map((i) => {
+        let line = `${i.quantity}x ${i.product.name}`;
+        if (i.selectedAddons.length > 0) {
+          const addonLines = i.selectedAddons
+            .map((a) => `   + ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+            .join("\n");
+          line += "\n" + addonLines;
+        }
+        if (i.observations) line += `\n   📝 ${i.observations}`;
+        const addonsTotal = i.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
+        const lineTotal = (i.product.price + addonsTotal) * i.quantity;
+        line += `\n   R$ ${lineTotal.toFixed(2).replace(".", ",")}`;
+        return line;
+      })
+      .join("\n\n");
+
     const typeLabel = deliveryType === "pickup" ? "RETIRADA" : "ENTREGA";
-    const message = encodeURIComponent(
-      `🍔 *NOVO PEDIDO - TURBO LANCHES*\n\n` +
-      `Pedido #${orderId.slice(0, 6)}\n` +
-      `Tipo: ${typeLabel}\n` +
-      `Cliente: ${profile.full_name}\n` +
-      `Telefone: ${profile.phone}\n` +
-      (deliveryType === "delivery"
-        ? `Endereço: ${profile.street}, ${profile.number} - ${profile.neighborhood}\n\n`
-        : `Retirada na loja\n\n`) +
-      `${itemsList}\n\n` +
-      `Total: R$ ${total.toFixed(2).replace(".", ",")}\n` +
-      `Pagamento: ${payment.toUpperCase()}`
-    );
+    const payLabel = paymentMethod === "pix" ? "PIX" : paymentMethod === "dinheiro" ? "DINHEIRO" : "CARTÃO";
+
+    let msg = `🍔 *PEDIDO - TURBO LANCHES*\n\n`;
+    if (orderId) msg += `Pedido #${orderId.slice(0, 6)}\n`;
+    msg += `Tipo: ${typeLabel}\n`;
+    msg += `Cliente: ${profile?.full_name}\n`;
+    msg += `Telefone: ${profile?.phone}\n`;
+    if (deliveryType === "delivery") {
+      msg += `Endereço: ${profile?.street}, ${profile?.number} - ${profile?.neighborhood}\n`;
+    } else {
+      msg += `Retirada na loja\n`;
+    }
+    msg += `\n📋 *ITENS:*\n${itemsList}\n\n`;
+    msg += `Subtotal: R$ ${totalPrice.toFixed(2).replace(".", ",")}\n`;
+    if (deliveryType === "delivery") {
+      msg += `Taxa entrega: ${deliveryFee === 0 ? "GRÁTIS 🎉" : `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`}\n`;
+    }
+    msg += `*Total: R$ ${grandTotal.toFixed(2).replace(".", ",")}*\n`;
+    msg += `Pagamento: ${payLabel}`;
+    if (paymentMethod === "dinheiro" && changeFor) {
+      msg += ` (troco p/ R$ ${changeFor})`;
+    }
+    if (observations) msg += `\n\nObs: ${observations}`;
+
+    return msg;
+  };
+
+  const sendWhatsAppNotification = (orderId: string) => {
+    const message = encodeURIComponent(buildWhatsAppMessage(orderId));
     window.open(`https://wa.me/5562994753582?text=${message}`, "_blank");
   };
 
@@ -530,20 +560,7 @@ const Checkout = () => {
               </button>
               <button
                 onClick={() => {
-                  const itemsList = items.map((i) => `${i.quantity}x ${i.product.name}`).join("\n");
-                  const typeLabel = deliveryType === "pickup" ? "RETIRADA" : "ENTREGA";
-                  const message = encodeURIComponent(
-                    `🍔 *PEDIDO - TURBO LANCHES*\n\n` +
-                    `Tipo: ${typeLabel}\n` +
-                    `Cliente: ${profile?.full_name}\n` +
-                    `Telefone: ${profile?.phone}\n` +
-                    (deliveryType === "delivery"
-                      ? `Endereço: ${profile?.street}, ${profile?.number} - ${profile?.neighborhood}\n\n`
-                      : `Retirada na loja\n\n`) +
-                    `${itemsList}\n\n` +
-                    `Total: R$ ${grandTotal.toFixed(2).replace(".", ",")}\n` +
-                    `Pagamento: ${paymentMethod.toUpperCase()}`
-                  );
+                  const message = encodeURIComponent(buildWhatsAppMessage());
                   window.open(`https://wa.me/5562994753582?text=${message}`, "_blank");
                 }}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-green-500/30 bg-green-500/10 py-3 text-sm font-semibold text-green-600 transition-all active:scale-[0.98]"
