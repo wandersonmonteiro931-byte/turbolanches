@@ -67,7 +67,7 @@ const ProductDetail = () => {
 
       {/* Image */}
       <div className="relative">
-        <img src={product.image} alt={product.name} className="h-64 w-full object-cover" />
+        <img src={product.image} alt={product.name} className="w-full h-auto object-contain" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/30" />
         <button
           onClick={() => navigate(-1)}
