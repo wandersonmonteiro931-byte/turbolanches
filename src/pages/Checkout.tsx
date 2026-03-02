@@ -200,7 +200,7 @@ const Checkout = () => {
       order_id: order.id,
       product_name: item.product.name,
       quantity: item.quantity,
-      unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price, 0),
+      unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0),
       observations: item.observations || null,
       addons_json: item.selectedAddons.length > 0 ? JSON.parse(JSON.stringify(item.selectedAddons)) : null,
     }));
@@ -402,7 +402,7 @@ const Checkout = () => {
               <h2 className="font-bold text-foreground text-sm mb-2">Itens do pedido</h2>
               <div className="space-y-2">
                 {items.map((item, index) => {
-                  const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price, 0);
+                  const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
                   const lineTotal = (item.product.price + addonsTotal) * item.quantity;
                   return (
                     <div key={index} className="flex justify-between gap-2 text-sm">

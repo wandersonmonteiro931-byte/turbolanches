@@ -16,7 +16,7 @@ const ProductDetail = () => {
   const product = products.find((p) => p.id === id);
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedAddons, setSelectedAddons] = useState<ProductAddon[]>([]);
+  const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
 
   if (loading) {
@@ -35,15 +35,21 @@ const ProductDetail = () => {
     );
   }
 
-  const toggleAddon = (addon: ProductAddon) => {
-    setSelectedAddons((prev) =>
-      prev.find((a) => a.id === addon.id)
-        ? prev.filter((a) => a.id !== addon.id)
-        : [...prev, addon]
-    );
+  const setAddonQty = (addonId: string, qty: number) => {
+    setAddonQuantities((prev) => {
+      if (qty <= 0) {
+        const { [addonId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [addonId]: qty };
+    });
   };
 
-  const addonsTotal = selectedAddons.reduce((s, a) => s + a.price, 0);
+  const selectedAddons: ProductAddon[] = product.addons
+    .filter((a) => (addonQuantities[a.id] || 0) > 0)
+    .map((a) => ({ ...a, quantity: addonQuantities[a.id] }));
+
+  const addonsTotal = selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
   const itemTotal = (product.price + addonsTotal) * quantity;
 
   const handleAdd = () => {
@@ -60,8 +66,8 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background pb-28">
       {/* Store closed banner */}
       {!storeIsOpen && (
-        <div className="bg-red-600 px-4 py-2 text-center">
-          <p className="text-xs font-bold text-white">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+        <div className="bg-destructive px-4 py-2 text-center">
+          <p className="text-xs font-bold text-destructive-foreground">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
         </div>
       )}
 
@@ -101,20 +107,41 @@ const ProductDetail = () => {
             <p className="text-xs text-muted-foreground">Escolha quantos quiser</p>
             <div className="mt-3 space-y-2">
               {product.addons.map((addon) => {
-                const isSelected = selectedAddons.some((a) => a.id === addon.id);
+                const qty = addonQuantities[addon.id] || 0;
+                const isSelected = qty > 0;
                 return (
-                  <button
+                  <div
                     key={addon.id}
-                    onClick={() => toggleAddon(addon)}
                     className={`flex w-full items-center justify-between rounded-lg p-3 transition-all ${
                       isSelected ? "bg-fire-gradient-soft border border-primary/30" : "bg-card"
                     }`}
                   >
-                    <span className="text-sm text-foreground">{addon.name}</span>
-                    <span className="text-sm font-semibold text-primary">
-                      {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
-                    </span>
-                  </button>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-foreground">{addon.name}</span>
+                      <p className="text-xs font-semibold text-primary">
+                        {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isSelected && (
+                        <button
+                          onClick={() => setAddonQty(addon.id, qty - 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-primary text-primary"
+                        >
+                          <Minus size={14} />
+                        </button>
+                      )}
+                      {isSelected && (
+                        <span className="min-w-[20px] text-center text-sm font-bold text-foreground">{qty}</span>
+                      )}
+                      <button
+                        onClick={() => setAddonQty(addon.id, qty + 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>

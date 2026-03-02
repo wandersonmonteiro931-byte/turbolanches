@@ -224,7 +224,7 @@ const AdminPrint = () => {
               <span>R$ {lineTotal.toFixed(2).replace(".", ",")}</span>
             </div>
             {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-              <div key={i} className="addon">+ {a.name}</div>
+              <div key={i} className="addon">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
             ))}
             {item.observations && <div className="addon">Obs: {item.observations}</div>}
           </div>
@@ -247,7 +247,7 @@ const AdminPrint = () => {
               <span>R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}</span>
             </div>
             {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-              <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}</div>
+              <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
             ))}
             {item.observations && <div style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
           </div>

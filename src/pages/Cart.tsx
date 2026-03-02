@@ -84,7 +84,7 @@ const Cart = () => {
 
       <div className="mx-auto max-w-md px-4 space-y-3">
         {items.map((item, index) => {
-          const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price, 0);
+          const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
           const lineTotal = (item.product.price + addonsTotal) * item.quantity;
           return (
             <div key={index} className="rounded-xl bg-card p-4">
@@ -94,7 +94,7 @@ const Cart = () => {
                   <h3 className="font-semibold text-foreground text-sm truncate">{item.product.name}</h3>
                   {item.selectedAddons.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      + {item.selectedAddons.map((a) => a.name).join(", ")}
+                      + {item.selectedAddons.map((a) => `${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(", ")}
                     </p>
                   )}
                   {item.observations && (

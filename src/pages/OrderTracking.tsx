@@ -427,7 +427,7 @@ const OrderTracking = () => {
                   {item.addons_json && Array.isArray(item.addons_json) && item.addons_json.length > 0 && (
                     <div className="ml-4">
                       {item.addons_json.map((addon: any, i: number) => (
-                        <p key={i} className="text-[11px] text-muted-foreground">+ {addon.name}</p>
+                        <p key={i} className="text-[11px] text-muted-foreground">+ {addon.name}{(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}</p>
                       ))}
                     </div>
                   )}
