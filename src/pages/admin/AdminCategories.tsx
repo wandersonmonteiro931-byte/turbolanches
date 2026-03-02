@@ -129,9 +129,15 @@ const AdminCategories = () => {
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground">{c.name}</p>
             </div>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-              {c.active ? "Ativa" : "Inativa"}
-            </span>
+            <button
+              onClick={async () => {
+                await supabase.from("categories").update({ active: !c.active }).eq("id", c.id);
+                fetchData();
+              }}
+              className={`rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${c.active ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700" : "bg-red-100 text-red-700 hover:bg-emerald-100 hover:text-emerald-700"}`}
+            >
+              {c.active ? "✓ Visível" : "✕ Oculta"}
+            </button>
             <button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
             <button onClick={() => handleDelete(c.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
           </div>
