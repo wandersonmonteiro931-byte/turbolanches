@@ -163,9 +163,15 @@ const AdminProducts = () => {
               <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
               <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)}</p>
             </div>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-              {p.active ? "Ativo" : "Inativo"}
-            </span>
+            <button
+              onClick={async () => {
+                await supabase.from("products").update({ active: !p.active }).eq("id", p.id);
+                fetchData();
+              }}
+              className={`rounded-full px-3 py-1 text-[11px] font-bold transition-colors ${p.active ? "bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700" : "bg-red-100 text-red-700 hover:bg-emerald-100 hover:text-emerald-700"}`}
+            >
+              {p.active ? "✓ Visível" : "✕ Oculto"}
+            </button>
             <button onClick={() => openEdit(p)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
             <button onClick={() => handleDelete(p.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
           </div>
