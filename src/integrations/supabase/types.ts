@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_product_links: {
+        Row: {
+          addon_id: string
+          id: string
+          product_id: string
+        }
+        Insert: {
+          addon_id: string
+          id?: string
+          product_id: string
+        }
+        Update: {
+          addon_id?: string
+          id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_product_links_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "product_addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_product_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners: {
         Row: {
           active: boolean
@@ -398,24 +431,30 @@ export type Database = {
       product_addons: {
         Row: {
           active: boolean
+          apply_to_all: boolean
           id: string
           name: string
           price: number
-          product_id: string
+          product_id: string | null
+          sort_order: number
         }
         Insert: {
           active?: boolean
+          apply_to_all?: boolean
           id?: string
           name: string
           price?: number
-          product_id: string
+          product_id?: string | null
+          sort_order?: number
         }
         Update: {
           active?: boolean
+          apply_to_all?: boolean
           id?: string
           name?: string
           price?: number
-          product_id?: string
+          product_id?: string | null
+          sort_order?: number
         }
         Relationships: [
           {
