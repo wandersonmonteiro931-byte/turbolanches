@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface Category {
   id: string;
@@ -76,7 +77,7 @@ const AdminCategories = () => {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-card p-5 shadow-lg">
+          <div className="w-full max-w-sm rounded-xl bg-card p-5 shadow-lg max-h-[90vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-foreground">{editing ? "Editar" : "Nova"} Categoria</h3>
               <button onClick={() => setShowForm(false)}><X size={20} className="text-muted-foreground" /></button>
@@ -84,7 +85,8 @@ const AdminCategories = () => {
             <div className="space-y-3">
               <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <input placeholder="Ícone (emoji)" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
-              <input placeholder="URL da imagem" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <label className="text-sm font-medium text-foreground">Imagem da Categoria</label>
+              <ImageUpload value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="categories" />
               <input placeholder="Ordem" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativa
@@ -98,7 +100,11 @@ const AdminCategories = () => {
       <div className="space-y-2">
         {categories.map((c) => (
           <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-            <span className="text-2xl">{c.icon}</span>
+            {c.image_url ? (
+              <img src={c.image_url} alt={c.name} className="h-10 w-10 rounded-lg object-cover" />
+            ) : (
+              <span className="text-2xl">{c.icon}</span>
+            )}
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground">{c.name}</p>
               <p className="text-xs text-muted-foreground">Ordem: {c.sort_order}</p>

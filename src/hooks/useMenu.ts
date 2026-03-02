@@ -40,8 +40,9 @@ export function useProducts() {
       const [productsRes, addonsRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, description, price, original_price, image_url, category_id, popular, active")
+          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order")
           .eq("active", true)
+          .order("sort_order")
           .order("name"),
         supabase
           .from("product_addons")

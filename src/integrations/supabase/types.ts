@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          image_url: string
+          link: string
+          sort_order: number
+          subtitle: string
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          link?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          image_url?: string
+          link?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           active: boolean
@@ -408,6 +441,7 @@ export type Database = {
           original_price: number | null
           popular: boolean
           price: number
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -423,6 +457,7 @@ export type Database = {
           original_price?: number | null
           popular?: boolean
           price: number
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -438,6 +473,7 @@ export type Database = {
           original_price?: number | null
           popular?: boolean
           price?: number
+          sort_order?: number
           updated_at?: string
         }
         Relationships: [
@@ -704,6 +740,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_content: {
+        Row: {
+          content_type: string
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          content_type?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: string
+        }
+        Update: {
+          content_type?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
       store_schedule: {
         Row: {

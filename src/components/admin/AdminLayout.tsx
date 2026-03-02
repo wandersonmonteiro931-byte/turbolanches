@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,8 @@ const navItems = [
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
   { path: "/admin/categorias", icon: Tag, label: "Categorias" },
+  { path: "/admin/banners", icon: Image, label: "Banners" },
+  { path: "/admin/conteudo", icon: FileText, label: "Conteúdo" },
   { path: "/admin/entregas", icon: MapPin, label: "Entregas" },
   { path: "/admin/horarios", icon: Clock, label: "Horários" },
   { path: "/admin/clientes", icon: Users, label: "Clientes" },
@@ -29,7 +31,6 @@ const AdminLayout = () => {
     }
   }, [isAdmin, loading, navigate]);
 
-  // Auto-open kitchen on second screen
   useEffect(() => {
     if (!loading && isAdmin) {
       const alreadyOpened = sessionStorage.getItem("kitchen_opened");
@@ -101,12 +102,10 @@ const AdminLayout = () => {
 
   return (
     <div className="flex h-screen bg-muted/30">
-      {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block">
         <NavContent />
       </aside>
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
@@ -116,7 +115,6 @@ const AdminLayout = () => {
         </div>
       )}
 
-      {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
           <button onClick={() => setSidebarOpen(true)} className="md:hidden">
