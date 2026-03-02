@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText, ListPlus } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,7 @@ const navItems = [
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
   { path: "/admin/categorias", icon: Tag, label: "Categorias" },
+  { path: "/admin/adicionais", icon: ListPlus, label: "Adicionais" },
   { path: "/admin/banners", icon: Image, label: "Banners" },
   { path: "/admin/conteudo", icon: FileText, label: "Conteúdo" },
   { path: "/admin/entregas", icon: MapPin, label: "Entregas" },

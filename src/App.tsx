@@ -32,6 +32,7 @@ import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
+import AdminAddons from "./pages/admin/AdminAddons";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const AppInner = () => {
             <Route path="produtos" element={<AdminProducts />} />
             <Route path="categorias" element={<AdminCategories />} />
             <Route path="entregas" element={<AdminDeliveryZones />} />
+            <Route path="adicionais" element={<AdminAddons />} />
             <Route path="horarios" element={<AdminSchedule />} />
             <Route path="clientes" element={<AdminCustomers />} />
             <Route path="notificacoes" element={<AdminNotifications />} />

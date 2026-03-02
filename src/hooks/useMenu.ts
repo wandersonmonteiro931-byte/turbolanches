@@ -37,7 +37,7 @@ export function useProducts() {
 
   useEffect(() => {
     const fetch = async () => {
-      const [productsRes, addonsRes] = await Promise.all([
+      const [productsRes, addonsRes, linksRes] = await Promise.all([
         supabase
           .from("products")
           .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order")
@@ -46,16 +46,47 @@ export function useProducts() {
           .order("name"),
         supabase
           .from("product_addons")
-          .select("id, name, price, product_id")
-          .eq("active", true),
+          .select("id, name, price, product_id, apply_to_all, sort_order")
+          .eq("active", true)
+          .order("sort_order"),
+        supabase
+          .from("addon_product_links")
+          .select("addon_id, product_id"),
       ]);
 
+      // Build a map: addon_id -> list of product_ids it's linked to
+      const linksMap = new Map<string, string[]>();
+      if (linksRes.data) {
+        for (const link of linksRes.data) {
+          const list = linksMap.get(link.addon_id) || [];
+          list.push(link.product_id);
+          linksMap.set(link.addon_id, list);
+        }
+      }
+
+      // Build per-product addons map
       const addonsMap = new Map<string, ProductAddon[]>();
+      const globalAddons: ProductAddon[] = [];
+
       if (addonsRes.data) {
         for (const a of addonsRes.data) {
-          const list = addonsMap.get(a.product_id) || [];
-          list.push({ id: a.id, name: a.name, price: a.price });
-          addonsMap.set(a.product_id, list);
+          const addon: ProductAddon = { id: a.id, name: a.name, price: a.price };
+          if (a.apply_to_all) {
+            globalAddons.push(addon);
+          } else if (a.product_id) {
+            // Legacy: direct product_id reference
+            const list = addonsMap.get(a.product_id) || [];
+            list.push(addon);
+            addonsMap.set(a.product_id, list);
+          } else {
+            // New: linked via junction table
+            const linkedProducts = linksMap.get(a.id) || [];
+            for (const pid of linkedProducts) {
+              const list = addonsMap.get(pid) || [];
+              list.push(addon);
+              addonsMap.set(pid, list);
+            }
+          }
         }
       }
 
@@ -72,7 +103,7 @@ export function useProducts() {
             rating: 0,
             ratingCount: 0,
             popular: p.popular,
-            addons: addonsMap.get(p.id) || [],
+            addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
           }))
         );
       }
