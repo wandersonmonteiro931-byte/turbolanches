@@ -687,7 +687,7 @@ const AdminOrders = () => {
                         </span>
                       </div>
                       {item.addons_json && (item.addons_json as any[]).length > 0 && (item.addons_json as any[]).map((a: any, i: number) => (
-                        <div key={i} className="text-[11px] text-muted-foreground pl-4">+ {a.name}</div>
+                        <div key={i} className="text-[11px] text-muted-foreground pl-4">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
                       ))}
                       {item.observations && <div className="text-[11px] text-muted-foreground pl-4">Obs: {item.observations}</div>}
                     </div>

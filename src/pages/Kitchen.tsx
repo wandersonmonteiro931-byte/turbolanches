@@ -352,7 +352,7 @@ const Kitchen = () => {
                           {item.quantity}x {item.product_name}
                         </div>
                         {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-                          <div key={i} className="kds-addon">+ {a.name}</div>
+                          <div key={i} className="kds-addon">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
                         ))}
                         {item.observations && (
                           <div className="kds-item-obs">⚠ {item.observations}</div>
