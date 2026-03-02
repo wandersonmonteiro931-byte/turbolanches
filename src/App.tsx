@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotificationBanner from "@/components/NotificationBanner";
-import InstallGate from "@/components/InstallGate";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
 import Index from "./pages/Index";
@@ -31,6 +30,8 @@ import AdminManualOrder from "./pages/admin/AdminManualOrder";
 import AdminSchedule from "./pages/admin/AdminSchedule";
 import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminBanners from "./pages/admin/AdminBanners";
+import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
@@ -59,7 +60,6 @@ const AppInner = () => {
     <CartProvider>
       <Toaster />
       <Sonner />
-      <InstallGate />
       <NotificationBanner />
       <BrowserRouter>
         <Routes>
@@ -87,6 +87,8 @@ const AppInner = () => {
             <Route path="horarios" element={<AdminSchedule />} />
             <Route path="clientes" element={<AdminCustomers />} />
             <Route path="notificacoes" element={<AdminNotifications />} />
+            <Route path="banners" element={<AdminBanners />} />
+            <Route path="conteudo" element={<AdminSiteContent />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />

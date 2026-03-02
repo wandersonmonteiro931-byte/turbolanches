@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 interface Product {
   id: string;
@@ -13,6 +14,7 @@ interface Product {
   category_id: string | null;
   active: boolean;
   popular: boolean;
+  sort_order: number;
 }
 
 interface Category {
@@ -36,11 +38,12 @@ const AdminProducts = () => {
     category_id: "",
     active: true,
     popular: false,
+    sort_order: "0",
   });
 
   const fetchData = async () => {
     const [prodRes, catRes] = await Promise.all([
-      supabase.from("products").select("*").order("name"),
+      supabase.from("products").select("*").order("sort_order").order("name"),
       supabase.from("categories").select("id, name").order("sort_order"),
     ]);
     if (prodRes.data) setProducts(prodRes.data);
@@ -51,7 +54,7 @@ const AdminProducts = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false });
+    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, sort_order: "0" });
     setShowForm(true);
   };
 
@@ -66,6 +69,7 @@ const AdminProducts = () => {
       category_id: p.category_id || "",
       active: p.active,
       popular: p.popular,
+      sort_order: String(p.sort_order ?? 0),
     });
     setShowForm(true);
   };
@@ -80,6 +84,7 @@ const AdminProducts = () => {
       category_id: form.category_id || null,
       active: form.active,
       popular: form.popular,
+      sort_order: parseInt(form.sort_order) || 0,
     };
 
     if (editing) {
@@ -108,7 +113,6 @@ const AdminProducts = () => {
         </button>
       </div>
 
-      {/* Form modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-card p-5 shadow-lg max-h-[90vh] overflow-auto">
@@ -123,11 +127,13 @@ const AdminProducts = () => {
                 <input placeholder="Preço" type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
                 <input placeholder="Preço original" type="number" step="0.01" value={form.original_price} onChange={(e) => setForm({ ...form, original_price: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               </div>
-              <input placeholder="URL da imagem" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <label className="text-sm font-medium text-foreground">Imagem do Produto</label>
+              <ImageUpload value={form.image_url} onChange={(url) => setForm({ ...form, image_url: url })} folder="products" />
               <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
                 <option value="">Sem categoria</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+              <input placeholder="Ordem de exibição" type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativo
@@ -142,7 +148,6 @@ const AdminProducts = () => {
         </div>
       )}
 
-      {/* Product list */}
       <div className="space-y-2">
         {products.map((p) => (
           <div key={p.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
@@ -151,7 +156,7 @@ const AdminProducts = () => {
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
-              <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)} • Ordem: {p.sort_order}</p>
             </div>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
               {p.active ? "Ativo" : "Inativo"}
