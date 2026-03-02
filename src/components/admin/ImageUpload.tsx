@@ -23,7 +23,7 @@ const ImageUpload = ({ value, onChange, folder = "general" }: ImageUploadProps) 
     <div className="space-y-2">
       {value && (
         <div className="relative inline-block">
-          <img src={value} alt="Preview" className="max-w-full h-auto rounded-lg object-contain" />
+          <img src={value} alt="Preview" className="h-20 w-20 rounded-lg object-cover" />
           <button
             type="button"
             onClick={() => onChange("")}

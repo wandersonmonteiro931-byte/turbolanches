@@ -62,7 +62,7 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
         transition={{ duration: 0.3 }}
         src={product.image}
         alt={product.name}
-        className="max-w-[40%] w-auto h-auto flex-shrink-0 rounded-lg object-contain"
+        className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
         loading="lazy"
       />
     </motion.button>
