@@ -118,7 +118,7 @@ const Index = () => {
         className="relative w-full"
       >
         {banners.length > 0 ? (
-          <div className="relative h-48 w-full overflow-hidden bg-primary">
+        <div className="relative w-full overflow-hidden bg-primary">
             <AnimatePresence mode="wait">
               <motion.img
                 key={activeBanner}
@@ -128,7 +128,7 @@ const Index = () => {
                 transition={{ duration: 0.5 }}
                 src={banners[activeBanner]?.image_url || "/placeholder.svg"}
                 alt={banners[activeBanner]?.title}
-                className="h-full w-full object-cover opacity-90"
+                className="w-full h-auto object-contain opacity-90"
               />
             </AnimatePresence>
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
@@ -153,7 +153,7 @@ const Index = () => {
             </motion.div>
           </div>
         ) : (
-          <div className="relative h-48 w-full overflow-hidden bg-primary">
+            <div className="relative w-full min-h-[120px] overflow-hidden bg-primary">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -244,11 +244,11 @@ const Index = () => {
                   onClick={() => scrollToCategory(cat.id)}
                   className="flex flex-col items-center gap-2 rounded-2xl bg-background p-3 shadow-sm"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl">
+                  <div className="flex items-center justify-center overflow-hidden rounded-xl">
                     <img
                       src={cat.image}
                       alt={cat.name}
-                      className="h-full w-full object-cover"
+                      className="w-full h-auto object-contain"
                     />
                   </div>
                   <span className="text-[11px] font-semibold text-foreground leading-tight text-center">
