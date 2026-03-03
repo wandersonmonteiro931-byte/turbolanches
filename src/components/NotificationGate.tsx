@@ -5,27 +5,20 @@ interface NotificationGateProps {
   children: React.ReactNode;
 }
 
+const isIOS = () =>
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+const getInitialPermission = (): NotificationPermission | "unsupported" => {
+  if (isIOS()) return "unsupported";
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
+  return Notification.permission;
+};
+
 const NotificationGate = ({ children }: NotificationGateProps) => {
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(getInitialPermission);
   const [dismissed, setDismissed] = useState(false);
   const [registering, setRegistering] = useState(false);
-
-  const isIOSDevice =
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-  useEffect(() => {
-    // Don't ask for notifications on iOS (not well supported)
-    if (isIOSDevice) {
-      setPermission("unsupported");
-      return;
-    }
-    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-      setPermission("unsupported");
-      return;
-    }
-    setPermission(Notification.permission);
-  }, []);
 
   const requestPermission = async () => {
     setRegistering(true);
