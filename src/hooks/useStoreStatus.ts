@@ -22,11 +22,22 @@ const getBrasiliaTime = () => {
   const m = parts.find((p) => p.type === "minute")!.value;
   const hhmm = `${h}:${m}`;
 
-  // Day of week in Brasília
   const brDate = new Date(
     now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
   );
   return { hhmm, dayOfWeek: brDate.getDay() };
+};
+
+/** Convert a Date to Brasília HH:MM */
+const toBrasiliaHHMM = (date: Date): string => {
+  const fmt = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(date);
+  return `${parts.find((p) => p.type === "hour")!.value}:${parts.find((p) => p.type === "minute")!.value}`;
 };
 
 export const useStoreStatus = () => {
@@ -57,49 +68,26 @@ export const useStoreStatus = () => {
     const { hhmm, dayOfWeek } = getBrasiliaTime();
     const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
 
-    // Helper: did admin explicitly close DURING current schedule window?
-    const wasExplicitlyClosedDuringWindow = (openTime: string): boolean => {
-      if (!settings.closed_at || settings.is_open !== false) return false;
-      const closedAt = new Date(settings.closed_at as string);
-      // Convert closed_at to Brasília HH:MM
-      const closedFmt = new Intl.DateTimeFormat("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const closedParts = closedFmt.formatToParts(closedAt);
-      const closedHHMM = `${closedParts.find((p) => p.type === "hour")!.value}:${closedParts.find((p) => p.type === "minute")!.value}`;
-      // Only count as explicit close if it happened AFTER today's open time
-      // and within last 12 hours
-      const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
-      return closedAt.getTime() > twelveHoursAgo && closedHHMM >= openTime;
-    };
-
-    const wasExplicitlyOpened = (): boolean => {
-      if (!settings.opened_at) return false;
-      const openedAt = new Date(settings.opened_at as string).getTime();
-      const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
-      return openedAt > twelveHoursAgo && settings.is_open === true;
+    const isRecent = (ts: string | null): boolean => {
+      if (!ts) return false;
+      return Date.now() - new Date(ts as string).getTime() < 12 * 60 * 60 * 1000;
     };
 
     if (todaySchedule) {
-      // Day marked as closed
       if (todaySchedule.is_closed) {
-        // Admin can explicitly open even on closed days
-        setIsOpen(wasExplicitlyOpened());
+        // Day marked closed — only open if admin explicitly opened recently
+        const manuallyOpened = settings.is_open === true && isRecent(settings.opened_at);
+        setIsOpen(manuallyOpened);
         setLoading(false);
         return;
       }
 
-      // Check if current time is within schedule window
       const openT = todaySchedule.open_time?.slice(0, 5);
       const closeT = todaySchedule.close_time?.slice(0, 5);
 
       let inTimeWindow = false;
       if (openT && closeT) {
         if (closeT <= openT) {
-          // Crosses midnight (e.g., 18:00 - 00:00)
           inTimeWindow = hhmm >= openT || hhmm <= closeT;
         } else {
           inTimeWindow = hhmm >= openT && hhmm <= closeT;
@@ -107,14 +95,33 @@ export const useStoreStatus = () => {
       }
 
       if (inTimeWindow) {
-        // Within schedule: OPEN by default, unless admin explicitly closed
-        setIsOpen(!wasExplicitlyClosedDuringWindow(openT!));
+        // WITHIN schedule window → default OPEN
+        // Unless admin manually closed AFTER this window's open_time (and it's recent)
+        if (settings.is_open === false && isRecent(settings.closed_at)) {
+          const closedHHMM = toBrasiliaHHMM(new Date(settings.closed_at as string));
+          // Only honour manual close if it happened after today's open time
+          setIsOpen(!(closedHHMM >= openT!));
+        } else {
+          setIsOpen(true);
+        }
       } else {
-        // Outside schedule: CLOSED by default, unless admin explicitly opened
-        setIsOpen(wasExplicitlyOpened());
+        // OUTSIDE schedule window → default CLOSED
+        // Unless admin manually opened AND that open happened AFTER the last close boundary
+        if (settings.is_open === true && isRecent(settings.opened_at)) {
+          const openedHHMM = toBrasiliaHHMM(new Date(settings.opened_at as string));
+          if (closeT && hhmm >= closeT && !(closeT <= openT!)) {
+            // We're past today's closing time — only honour if opened AFTER close
+            setIsOpen(openedHHMM >= closeT);
+          } else {
+            // Before today's opening time — honour the manual open
+            setIsOpen(true);
+          }
+        } else {
+          setIsOpen(false);
+        }
       }
     } else {
-      // No schedule entry, fall back to manual toggle
+      // No schedule entry → fall back to manual toggle
       setIsOpen(settings.is_open);
     }
 
