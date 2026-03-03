@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useAlarmSound } from "@/hooks/useAlarmSound";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,13 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Alarm: count pending orders (excluding unpaid PIX)
+  const pendingAlarmCount = orders.filter(o =>
+    (o.status === "pending" || o.status === "paid") &&
+    !(o.payment_method === "pix" && o.status === "pending")
+  ).length;
+  useAlarmSound(pendingAlarmCount > 0);
+
   const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
@@ -174,10 +182,6 @@ const AdminDashboard = () => {
       .channel("admin-dashboard-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
         if (payload.eventType === "INSERT" && isToday) {
-          try {
-            const audio = new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQ==");
-            audio.play().catch(() => {});
-          } catch {}
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
         }
         if (isToday) fetchOrders();
