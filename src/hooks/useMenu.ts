@@ -18,7 +18,7 @@ export function useCategories() {
           data.map((c: any) => ({
             id: c.id,
             name: c.name,
-            icon: c.icon || "📦",
+            icon: c.icon || "",
             image: c.image_url || "/placeholder.svg",
           }))
         );
