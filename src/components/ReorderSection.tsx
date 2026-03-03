@@ -154,7 +154,7 @@ export default function ReorderSection() {
 
   return (
     <div className="mt-5">
-      <h2 className="text-sm font-bold text-foreground mb-2">🔄 Pedir de novo</h2>
+      <h2 className="text-sm font-bold text-foreground mb-2">Pedir de novo</h2>
       <button
         onClick={handleReorder}
         disabled={adding}
