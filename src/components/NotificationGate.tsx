@@ -10,7 +10,14 @@ const NotificationGate = ({ children }: NotificationGateProps) => {
   const [dismissed, setDismissed] = useState(false);
   const [registering, setRegistering] = useState(false);
 
+  const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
   useEffect(() => {
+    // Don't ask for notifications on iOS (not well supported)
+    if (isIOSDevice) {
+      setPermission("unsupported");
+      return;
+    }
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
       setPermission("unsupported");
       return;
