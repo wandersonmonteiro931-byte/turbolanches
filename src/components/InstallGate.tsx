@@ -33,6 +33,8 @@ const InstallGate = () => {
 
   useEffect(() => {
     if (isStandalone()) return;
+    // Don't show install prompt on iOS at all
+    if (isIOS()) return;
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -44,8 +46,7 @@ const InstallGate = () => {
     // Check if already captured
     if (globalDeferredPrompt) setHasPrompt(true);
 
-    const ios = isIOS();
-    const intervalMs = ios ? IOS_INTERVAL_MS : ANDROID_INTERVAL_MS;
+    const intervalMs = ANDROID_INTERVAL_MS;
 
     const show = () => {
       if (isStandalone()) return;

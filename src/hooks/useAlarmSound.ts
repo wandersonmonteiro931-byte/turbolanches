@@ -15,29 +15,42 @@ export function useAlarmSound(shouldPlay: boolean) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
 
-      const playBeep = () => {
+      const playIfoodAlarm = () => {
         const ctx = audioCtxRef.current;
         if (!ctx) return;
-        // Resume if suspended (autoplay policy)
         if (ctx.state === "suspended") ctx.resume();
 
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
-        oscillator.connect(gain);
-        gain.connect(ctx.destination);
+        const t = ctx.currentTime;
 
-        oscillator.type = "square";
-        oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        // iFood-style: two-tone rapid beeps (high-low-high-low)
+        const notes = [
+          { freq: 1200, start: 0, dur: 0.12 },
+          { freq: 900, start: 0.15, dur: 0.12 },
+          { freq: 1200, start: 0.30, dur: 0.12 },
+          { freq: 900, start: 0.45, dur: 0.12 },
+          { freq: 1200, start: 0.60, dur: 0.12 },
+          { freq: 900, start: 0.75, dur: 0.12 },
+        ];
 
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.25);
+        notes.forEach(({ freq, start, dur }) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.type = "square";
+          osc.frequency.setValueAtTime(freq, t + start);
+          gain.gain.setValueAtTime(0.45, t + start);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + start + dur);
+
+          osc.start(t + start);
+          osc.stop(t + start + dur);
+        });
       };
 
-      // Play immediately, then every 1.5s
-      playBeep();
-      intervalRef.current = setInterval(playBeep, 1500);
+      // Play immediately, then every 2.5s
+      playIfoodAlarm();
+      intervalRef.current = setInterval(playIfoodAlarm, 2500);
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
