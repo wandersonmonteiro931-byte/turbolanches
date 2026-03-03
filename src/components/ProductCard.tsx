@@ -51,7 +51,7 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 className="rounded-full bg-fire-gradient px-2 py-0.5 text-[10px] font-bold text-primary-foreground"
               >
-                🔥 TOP
+                🔥 Mais pedido
               </motion.span>
             )}
           </div>

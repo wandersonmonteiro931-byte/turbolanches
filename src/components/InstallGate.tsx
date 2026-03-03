@@ -15,7 +15,8 @@ const isStandalone = () =>
   (navigator as any).standalone === true;
 
 const isIOS = () =>
-  /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
 // Store globally so it survives React re-renders and HMR
 let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
