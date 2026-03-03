@@ -117,59 +117,40 @@ const Index = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative w-full"
       >
-        {banners.length > 0 ? (
-        <div className="relative h-48 w-full overflow-hidden bg-primary">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={activeBanner}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-                src={banners[activeBanner]?.image_url || "/placeholder.svg"}
-                alt={banners[activeBanner]?.title}
-                className="h-full w-full object-cover opacity-90"
-              />
-            </AnimatePresence>
+      <div className="relative h-48 w-full overflow-hidden bg-primary">
+          {banners.length > 0 ? (
+            <>
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={activeBanner}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                  src={banners[activeBanner]?.image_url || "/placeholder.svg"}
+                  alt={banners[activeBanner]?.title}
+                  className="h-full w-full object-cover"
+                />
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            </>
+          ) : (
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="absolute bottom-6 left-4 right-4"
-            >
-              {banners[activeBanner]?.title && (
-                <>
-                  <span className="inline-block rounded-full bg-card px-3 py-1 text-xs font-bold text-primary shadow-sm">
-                    {banners[activeBanner].title}
-                  </span>
-                  {banners[activeBanner]?.subtitle && (
-                    <p className="mt-2 text-sm font-bold text-primary-foreground drop-shadow-md">
-                      {banners[activeBanner].subtitle}
-                    </p>
-                  )}
-                </>
-              )}
-            </motion.div>
-          </div>
-        ) : (
-            <div className="relative h-48 w-full overflow-hidden bg-primary">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className="absolute bottom-6 left-4 right-4"
-            >
-              <span className="inline-block rounded-full bg-card px-3 py-1 text-xs font-bold text-primary shadow-sm">
-                {content.home_promo_badge || "🔥 PROMOÇÃO DO DIA"}
-              </span>
-              <p className="mt-2 text-sm font-bold text-primary-foreground drop-shadow-md">
-                {content.home_promo_text || "Turbo Smash por R$ 32,90"}
-              </p>
-            </motion.div>
-          </div>
-        )}
+          )}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="absolute bottom-4 left-4 right-4"
+          >
+            <span className="inline-block rounded-full bg-card/90 backdrop-blur-sm px-3 py-1 text-xs font-bold text-primary shadow-sm">
+              {content.home_promo_badge || "🔥 PROMOÇÃO DO DIA"}
+            </span>
+            <p className="mt-1.5 text-sm font-bold text-white drop-shadow-lg">
+              {content.home_promo_text || "Turbo Smash por R$ 32,90"}
+            </p>
+          </motion.div>
+        </div>
       </motion.div>
 
       {/* Content area */}
