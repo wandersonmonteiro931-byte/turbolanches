@@ -45,9 +45,9 @@ const StoreHours = () => {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-sm rounded-t-2xl sm:rounded-2xl bg-card p-5 space-y-3 animate-in slide-in-from-bottom-4"
+            className="w-full max-w-sm rounded-2xl bg-card p-5 space-y-3 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
