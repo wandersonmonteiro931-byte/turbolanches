@@ -10,7 +10,9 @@ const NotificationGate = ({ children }: NotificationGateProps) => {
   const [dismissed, setDismissed] = useState(false);
   const [registering, setRegistering] = useState(false);
 
-  const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  const isIOSDevice =
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
   useEffect(() => {
     // Don't ask for notifications on iOS (not well supported)
