@@ -118,7 +118,7 @@ const Index = () => {
         className="relative w-full"
       >
         {banners.length > 0 ? (
-        <div className="relative w-full overflow-hidden bg-primary">
+        <div className="relative w-full overflow-hidden bg-primary max-h-52">
             <AnimatePresence mode="wait">
               <motion.img
                 key={activeBanner}
@@ -128,8 +128,7 @@ const Index = () => {
                 transition={{ duration: 0.5 }}
                 src={banners[activeBanner]?.image_url || "/placeholder.svg"}
                 alt={banners[activeBanner]?.title}
-                className="w-full object-cover"
-                style={{ aspectRatio: "16 / 5" }}
+                className="w-full h-full object-cover object-center"
               />
             </AnimatePresence>
           </div>
