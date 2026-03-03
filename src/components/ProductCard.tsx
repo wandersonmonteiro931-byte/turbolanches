@@ -12,7 +12,13 @@ interface ProductCardProps {
 const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProps) => {
   const navigate = useNavigate();
 
+  const isSoldOut = product.active === false;
+
   const handleClick = () => {
+    if (isSoldOut) {
+      toast.error("Este produto está esgotado no momento.");
+      return;
+    }
     if (!storeIsOpen) {
       toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
       return;
@@ -28,12 +34,17 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
       whileHover={{ scale: 1.02, boxShadow: "0 8px 24px -8px hsl(355 85% 52% / 0.18)" }}
       whileTap={{ scale: 0.97 }}
       onClick={handleClick}
-      className={`flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors ${!storeIsOpen ? "opacity-60" : ""}`}
+      className={`flex w-full gap-3 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors ${isSoldOut || !storeIsOpen ? "opacity-60" : ""}`}
     >
       <div className="flex flex-1 flex-col justify-between min-w-0">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="font-semibold text-foreground leading-tight line-clamp-2">{product.name}</h3>
+            {isSoldOut && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                ESGOTADO
+              </span>
+            )}
             {product.popular && (
               <motion.span
                 animate={{ scale: [1, 1.1, 1] }}
@@ -57,14 +68,21 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
           )}
         </div>
       </div>
-      <motion.img
-        whileHover={{ scale: 1.08 }}
-        transition={{ duration: 0.3 }}
-        src={product.image}
-        alt={product.name}
-        className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
-        loading="lazy"
-      />
+      <div className="relative h-24 w-24 flex-shrink-0">
+        <motion.img
+          whileHover={{ scale: 1.08 }}
+          transition={{ duration: 0.3 }}
+          src={product.image}
+          alt={product.name}
+          className={`h-full w-full rounded-lg object-cover ${isSoldOut ? "grayscale" : ""}`}
+          loading="lazy"
+        />
+        {isSoldOut && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/60">
+            <span className="text-xs font-bold text-muted-foreground">Esgotado</span>
+          </div>
+        )}
+      </div>
     </motion.button>
   );
 };

@@ -41,7 +41,6 @@ export function useProducts() {
         supabase
           .from("products")
           .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order")
-          .eq("active", true)
           .order("sort_order")
           .order("name"),
         supabase
@@ -103,6 +102,7 @@ export function useProducts() {
             rating: 0,
             ratingCount: 0,
             popular: p.popular,
+            active: p.active,
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
           }))
         );

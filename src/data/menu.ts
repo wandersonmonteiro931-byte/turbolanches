@@ -22,6 +22,7 @@ export interface Product {
   ratingCount: number;
   addons: ProductAddon[];
   popular?: boolean;
+  active?: boolean;
 }
 
 export interface CartItem {
