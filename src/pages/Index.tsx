@@ -6,6 +6,7 @@ import { useBanners } from "@/hooks/useBanners";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductCard from "@/components/ProductCard";
+import ReorderSection from "@/components/ReorderSection";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import BottomNav from "@/components/BottomNav";
 import StoreHours from "@/components/StoreHours";
@@ -253,6 +254,9 @@ const Index = () => {
             </div>
           )}
 
+          {/* Reorder Section */}
+          <ReorderSection />
+
           {/* Menu Sections */}
           {prodLoading ? (
             <div className="mt-7 flex justify-center py-12">
@@ -273,7 +277,7 @@ const Index = () => {
                     transition={{ duration: 0.5 }}
                   >
                     <h2 className="text-xl font-extrabold text-foreground">
-                      {cat.icon} {cat.name}
+                      {cat.icon ? `${cat.icon} ` : ""}{cat.name}
                     </h2>
                     <div className="mt-3 space-y-2.5">
                       {catProducts.map((product, i) => (

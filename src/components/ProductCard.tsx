@@ -47,9 +47,9 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
             )}
             {product.popular && (
               <motion.span
-                animate={{ scale: [1, 1.1, 1] }}
+                animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="rounded-full bg-fire-gradient px-2 py-0.5 text-[10px] font-bold text-primary-foreground"
+                className="inline-flex items-center gap-0.5 whitespace-nowrap rounded-md bg-fire-gradient px-1.5 py-[2px] text-[9px] font-bold text-primary-foreground leading-none shadow-sm"
               >
                 🔥 Mais pedido
               </motion.span>
