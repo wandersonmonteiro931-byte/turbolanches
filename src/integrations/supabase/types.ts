@@ -476,6 +476,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_combo: boolean
           name: string
           original_price: number | null
           popular: boolean
@@ -492,6 +493,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_combo?: boolean
           name: string
           original_price?: number | null
           popular?: boolean
@@ -508,6 +510,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_combo?: boolean
           name?: string
           original_price?: number | null
           popular?: boolean
