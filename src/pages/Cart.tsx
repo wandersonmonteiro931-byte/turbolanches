@@ -106,17 +106,11 @@ const Cart = () => {
                   {item.selectedAddons.length > 0 && (
                     <div className="mt-1 space-y-0.5">
                       {item.selectedAddons.map((a, ai) => {
-                        const baseQty = a.quantity || 1;
-                        const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
+                        const qty = a.quantity || 1;
                         return (
                           <p key={ai} className="text-[11px] text-muted-foreground flex items-center justify-between">
-                            <span>
-                              + {a.name}{effectiveQty > 1 ? ` x${effectiveQty}` : ""}
-                              {item.product.isCombo && comboMultiplier > 1 && (
-                                <span className="text-accent ml-1">(combo {comboMultiplier}x)</span>
-                              )}
-                            </span>
-                            <span className="text-foreground/70">{fmt(a.price * effectiveQty)}</span>
+                            <span>+ {a.name}{qty > 1 ? ` x${qty}` : ""}</span>
+                            <span className="text-foreground/70">{fmt(a.price * qty)}</span>
                           </p>
                         );
                       })}
