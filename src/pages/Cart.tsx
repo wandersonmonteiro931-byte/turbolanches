@@ -80,12 +80,8 @@ const Cart = () => {
 
       <div className="mx-auto max-w-md px-4 space-y-3">
         {items.map((item, index) => {
-          const comboMultiplier = item.product.isCombo ? (item.product.comboItemCount || 1) : 1;
-          const addonsTotal = item.selectedAddons.reduce((s, a) => {
-            const baseQty = a.quantity || 1;
-            const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
-            return s + a.price * effectiveQty;
-          }, 0);
+          // addon.quantity already includes combo multiplier
+          const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
           const unitTotal = item.product.price + addonsTotal;
           const lineTotal = unitTotal * item.quantity;
 
