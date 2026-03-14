@@ -354,11 +354,6 @@ const AdminOrders = () => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
-
-  const printPedidoObrigado = (orderId: string) => {
-    safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
-  };
-
   const toggleExpand = (orderId: string) => {
     if (expandedOrder === orderId) {
       setExpandedOrder(null);
