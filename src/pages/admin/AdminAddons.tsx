@@ -17,6 +17,7 @@ interface Addon {
 interface ProductOption {
   id: string;
   name: string;
+  is_combo: boolean;
 }
 
 const AdminAddons = () => {
