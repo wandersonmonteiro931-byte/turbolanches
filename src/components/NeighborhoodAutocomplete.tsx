@@ -15,6 +15,8 @@ interface Props {
   className?: string;
   /** If true, allows selecting inactive zones (for admin) */
   allowInactive?: boolean;
+  /** Change this value to force a data refresh */
+  refreshKey?: number;
 }
 
 const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false }: Props) => {
