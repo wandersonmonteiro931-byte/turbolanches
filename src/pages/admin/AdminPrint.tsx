@@ -202,12 +202,12 @@ const AdminPrint = () => {
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; line-height: 1.4; }
     .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; content: ''; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }
     .tipo-label {
-      font-size: 24px; font-weight: 900; text-align: center;
+      font-size: ${labelFontSize}px; font-weight: 900; text-align: center;
       letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
     .tipo-label-big {
-      font-size: 24px; font-weight: 900; text-align: center;
+      font-size: ${labelFontSize}px; font-weight: 900; text-align: center;
       letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
