@@ -250,9 +250,9 @@ const AdminDashboard = () => {
     await fetchOrders();
 
     if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
+      printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
-      printEntregaCliente(orderId);
+      printPedidoObrigado(orderId);
     }
   };
 
