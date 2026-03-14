@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, Truck, Store } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -80,12 +80,8 @@ const Cart = () => {
 
       <div className="mx-auto max-w-md px-4 space-y-3">
         {items.map((item, index) => {
-          const comboMultiplier = item.product.isCombo ? (item.product.comboItemCount || 1) : 1;
-          const addonsTotal = item.selectedAddons.reduce((s, a) => {
-            const baseQty = a.quantity || 1;
-            const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
-            return s + a.price * effectiveQty;
-          }, 0);
+          // addon.quantity already includes combo multiplier
+          const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
           const unitTotal = item.product.price + addonsTotal;
           const lineTotal = unitTotal * item.quantity;
 
@@ -110,17 +106,11 @@ const Cart = () => {
                   {item.selectedAddons.length > 0 && (
                     <div className="mt-1 space-y-0.5">
                       {item.selectedAddons.map((a, ai) => {
-                        const baseQty = a.quantity || 1;
-                        const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
+                        const qty = a.quantity || 1;
                         return (
                           <p key={ai} className="text-[11px] text-muted-foreground flex items-center justify-between">
-                            <span>
-                              + {a.name}{effectiveQty > 1 ? ` x${effectiveQty}` : ""}
-                              {item.product.isCombo && comboMultiplier > 1 && (
-                                <span className="text-accent ml-1">(combo {comboMultiplier}x)</span>
-                              )}
-                            </span>
-                            <span className="text-foreground/70">{fmt(a.price * effectiveQty)}</span>
+                            <span>+ {a.name}{qty > 1 ? ` x${qty}` : ""}</span>
+                            <span className="text-foreground/70">{fmt(a.price * qty)}</span>
                           </p>
                         );
                       })}
@@ -158,12 +148,7 @@ const Cart = () => {
 
           {/* Items breakdown */}
           {items.map((item, index) => {
-            const comboMultiplier = item.product.isCombo ? (item.product.comboItemCount || 1) : 1;
-            const addonsTotal = item.selectedAddons.reduce((s, a) => {
-              const baseQty = a.quantity || 1;
-              const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
-              return s + a.price * effectiveQty;
-            }, 0);
+            const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
             const lineTotal = (item.product.price + addonsTotal) * item.quantity;
             return (
               <div key={index} className="flex justify-between text-xs text-muted-foreground">
