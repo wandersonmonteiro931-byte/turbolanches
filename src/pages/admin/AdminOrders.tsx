@@ -333,7 +333,7 @@ const AdminOrders = () => {
     if (newStatus === "preparing") {
       safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
     } else if (newStatus === "delivering") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
+      safePrint(`/admin/imprimir/${orderId}?tipo=obrigado`);
     }
   };
 
