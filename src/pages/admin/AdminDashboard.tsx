@@ -252,7 +252,7 @@ const AdminDashboard = () => {
     if (newStatus === "preparing") {
       printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
-      printPedidoObrigado(orderId);
+      printReceipt(orderId, "obrigado");
     }
   };
 
