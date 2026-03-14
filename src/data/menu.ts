@@ -23,6 +23,7 @@ export interface Product {
   addons: ProductAddon[];
   popular?: boolean;
   active?: boolean;
+  isCombo?: boolean;
 }
 
 export interface CartItem {

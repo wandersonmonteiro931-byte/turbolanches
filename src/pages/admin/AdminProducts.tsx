@@ -14,6 +14,7 @@ interface Product {
   category_id: string | null;
   active: boolean;
   popular: boolean;
+  is_combo: boolean;
   sort_order: number;
 }
 
@@ -33,7 +34,7 @@ const AdminProducts = () => {
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
-    image_url: "", category_id: "", active: true, popular: false, sort_order: "0",
+    image_url: "", category_id: "", active: true, popular: false, is_combo: false, sort_order: "0",
   });
 
   const fetchData = async () => {
@@ -49,7 +50,7 @@ const AdminProducts = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, sort_order: "0" });
+    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, sort_order: "0" });
     setShowForm(true);
   };
 
@@ -59,7 +60,7 @@ const AdminProducts = () => {
       name: p.name, description: p.description || "", price: String(p.price),
       original_price: p.original_price ? String(p.original_price) : "",
       image_url: p.image_url || "", category_id: p.category_id || "",
-      active: p.active, popular: p.popular, sort_order: String(p.sort_order ?? 0),
+      active: p.active, popular: p.popular, is_combo: p.is_combo, sort_order: String(p.sort_order ?? 0),
     });
     setShowForm(true);
   };
@@ -69,7 +70,7 @@ const AdminProducts = () => {
       name: form.name, description: form.description, price: parseFloat(form.price),
       original_price: form.original_price ? parseFloat(form.original_price) : null,
       image_url: form.image_url, category_id: form.category_id || null,
-      active: form.active, popular: form.popular, sort_order: parseInt(form.sort_order) || 0,
+      active: form.active, popular: form.popular, is_combo: form.is_combo, sort_order: parseInt(form.sort_order) || 0,
     };
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
@@ -131,12 +132,16 @@ const AdminProducts = () => {
                 <option value="">Sem categoria</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
-              <div className="flex gap-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Ativo
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={form.popular} onChange={(e) => setForm({ ...form, popular: e.target.checked })} /> Popular
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={form.is_combo} onChange={(e) => setForm({ ...form, is_combo: e.target.checked })} />
+                  Combo
                 </label>
               </div>
               <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
@@ -160,7 +165,14 @@ const AdminProducts = () => {
             <GripVertical size={18} className="shrink-0 text-muted-foreground" />
             {p.image_url && <img src={p.image_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover" />}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
+                {p.is_combo && (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                    COMBO
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)}</p>
             </div>
             <button

@@ -54,6 +54,11 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
                 🔥 Mais pedido
               </motion.span>
             )}
+            {product.isCombo && (
+              <span className="rounded-md bg-accent px-1.5 py-[2px] text-[9px] font-bold text-accent-foreground leading-none">
+                COMBO
+              </span>
+            )}
           </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
         </div>

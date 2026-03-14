@@ -277,7 +277,11 @@ const Checkout = () => {
         let line = `${i.quantity}x ${i.product.name}`;
         if (i.selectedAddons.length > 0) {
           const addonLines = i.selectedAddons
-            .map((a) => `   + ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+            .map((a) => {
+              const baseQty = a.quantity || 1;
+              const displayQty = i.product.isCombo ? baseQty * i.quantity : baseQty;
+              return `   + ${a.name}${displayQty > 1 ? ` x${displayQty}` : ""}`;
+            })
             .join("\n");
           line += "\n" + addonLines;
         }
@@ -435,13 +439,24 @@ const Checkout = () => {
                   const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
                   const lineTotal = (item.product.price + addonsTotal) * item.quantity;
                   return (
-                    <div key={index} className="flex justify-between gap-2 text-sm">
-                      <span className="text-foreground min-w-0 truncate flex-1">
-                        {item.quantity}x {item.product.name}
-                      </span>
-                      <span className="text-muted-foreground whitespace-nowrap shrink-0">
-                        R$ {lineTotal.toFixed(2).replace(".", ",")}
-                      </span>
+                    <div key={index} className="space-y-0.5 text-sm">
+                      <div className="flex justify-between gap-2">
+                        <span className="text-foreground min-w-0 truncate flex-1">
+                          {item.quantity}x {item.product.name}
+                        </span>
+                        <span className="text-muted-foreground whitespace-nowrap shrink-0">
+                          R$ {lineTotal.toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
+                      {item.selectedAddons.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          + {item.selectedAddons.map((a) => {
+                            const baseQty = a.quantity || 1;
+                            const displayQty = item.product.isCombo ? baseQty * item.quantity : baseQty;
+                            return `${a.name}${displayQty > 1 ? ` x${displayQty}` : ""}`;
+                          }).join(", ")}
+                        </p>
+                      )}
                     </div>
                   );
                 })}

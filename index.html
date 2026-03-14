@@ -33,16 +33,9 @@
     <div id="root"></div>
     <script>
       // Suppress __LOVA_FIX_TRIGGER__ before any module loads
-      try {
-        if (typeof __LOVA_FIX_TRIGGER__ === "undefined") {
-          var __LOVA_FIX_TRIGGER__ = false;
-        }
-        if (typeof window.__LOVA_FIX_TRIGGER__ === "undefined") {
-          window.__LOVA_FIX_TRIGGER__ = false;
-        }
-      } catch (e) {
-        window.__LOVA_FIX_TRIGGER__ = false;
-      }
+      var __LOVA_FIX_TRIGGER__ = false;
+      window.__LOVA_FIX_TRIGGER__ = false;
+
       window.addEventListener("error", function (e) {
         if (e.message && e.message.indexOf("__LOVA_FIX_TRIGGER__") !== -1) {
           e.preventDefault();

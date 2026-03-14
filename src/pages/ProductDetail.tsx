@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Package } from "lucide-react";
 import { useProducts } from "@/hooks/useMenu";
 import type { ProductAddon } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
@@ -18,6 +18,8 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
+
+  const isComboProduct = Boolean(product?.isCombo);
 
   if (loading) {
     return (
@@ -102,18 +104,35 @@ const ProductDetail = () => {
 
         {/* Addons */}
         {product.addons.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-xl text-fire-gradient">ADICIONAIS</h2>
-            <p className="text-xs text-muted-foreground">Escolha quantos quiser</p>
+          <div className="mt-6 rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl text-fire-gradient">ADICIONAIS</h2>
+                <p className="text-xs text-muted-foreground">Escolha quantos quiser</p>
+                {isComboProduct && (
+                  <p className="mt-1 text-[11px] font-semibold text-primary">
+                    Produto Combo: adicionais são mostrados automaticamente no total do item.
+                  </p>
+                )}
+              </div>
+              {isComboProduct && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[10px] font-bold text-accent-foreground">
+                  <Package size={12} /> COMBO
+                </span>
+              )}
+            </div>
+
             <div className="mt-3 space-y-2">
               {product.addons.map((addon) => {
-                const qty = addonQuantities[addon.id] || 0;
-                const isSelected = qty > 0;
+                const unitQty = addonQuantities[addon.id] || 0;
+                const displayQty = isComboProduct ? unitQty * quantity : unitQty;
+                const isSelected = unitQty > 0;
+
                 return (
                   <div
                     key={addon.id}
-                    className={`flex w-full items-center justify-between rounded-lg p-3 transition-all ${
-                      isSelected ? "bg-fire-gradient-soft border border-primary/30" : "bg-card"
+                    className={`flex w-full items-center justify-between rounded-xl border p-3 transition-all ${
+                      isSelected ? "border-primary/30 bg-fire-gradient-soft" : "border-border bg-background"
                     }`}
                   >
                     <div className="flex-1 min-w-0">
@@ -121,21 +140,26 @@ const ProductDetail = () => {
                       <p className="text-xs font-semibold text-primary">
                         {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
                       </p>
+                      {isComboProduct && isSelected && (
+                        <p className="text-[10px] text-muted-foreground">
+                          Total no pedido: {displayQty}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {isSelected && (
                         <button
-                          onClick={() => setAddonQty(addon.id, qty - 1)}
+                          onClick={() => setAddonQty(addon.id, unitQty - 1)}
                           className="flex h-7 w-7 items-center justify-center rounded-full border border-primary text-primary"
                         >
                           <Minus size={14} />
                         </button>
                       )}
                       {isSelected && (
-                        <span className="min-w-[20px] text-center text-sm font-bold text-foreground">{qty}</span>
+                        <span className="min-w-[26px] text-center text-sm font-bold text-foreground">{displayQty}</span>
                       )}
                       <button
-                        onClick={() => setAddonQty(addon.id, qty + 1)}
+                        onClick={() => setAddonQty(addon.id, unitQty + 1)}
                         className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground"
                       >
                         <Plus size={14} />

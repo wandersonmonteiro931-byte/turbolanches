@@ -14,6 +14,7 @@ interface Product {
   price: number;
   category_id: string | null;
   image_url: string | null;
+  is_combo?: boolean;
 }
 
 interface Category {
@@ -120,7 +121,7 @@ const AdminManualOrder = () => {
   useEffect(() => {
     const load = async () => {
       const [prodRes, catRes, zonesRes, addonsRes, linksRes] = await Promise.all([
-        supabase.from("products").select("id, name, price, category_id, image_url").eq("active", true),
+        supabase.from("products").select("id, name, price, category_id, image_url, is_combo").eq("active", true),
         supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
         supabase.from("delivery_zones").select("neighborhood, delivery_fee"),
         supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
@@ -162,6 +163,13 @@ const AdminManualOrder = () => {
     return Array.from(addonMap.values());
   };
 
+  const isProductCombo = (product: Product) => {
+    const category = categories.find((c) => c.id === product.category_id);
+    const categorySuggestsCombo = category?.name?.toLowerCase().includes("combo") || false;
+    const nameSuggestsCombo = product.name.toLowerCase().includes("combo");
+    return Boolean(product.is_combo) || categorySuggestsCombo || nameSuggestsCombo;
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
@@ -182,7 +190,7 @@ const AdminManualOrder = () => {
           return { ...i, quantity: newQty, addons: updatedAddons };
         });
       }
-      return [...prev, { product, quantity: 1, observations: "", customPrice: product.price, isCombo: false, addons: [] }];
+      return [...prev, { product, quantity: 1, observations: "", customPrice: product.price, isCombo: isProductCombo(product), addons: [] }];
     });
   };
 
@@ -438,7 +446,14 @@ const AdminManualOrder = () => {
                     inCart ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted"
                   }`}>
                   <p className="text-xs font-bold text-foreground line-clamp-2">{product.name}</p>
-                  <p className="mt-1 text-xs font-semibold text-primary">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-primary">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                    {isProductCombo(product) && (
+                      <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground">
+                        COMBO
+                      </span>
+                    )}
+                  </div>
                   {inCart && (
                     <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                       {inCart.quantity}
