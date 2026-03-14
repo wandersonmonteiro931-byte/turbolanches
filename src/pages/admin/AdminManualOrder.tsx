@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2 } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -92,6 +92,30 @@ const AdminManualOrder = () => {
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
+  const comboSelectionInitializedRef = useRef(false);
+
+  useEffect(() => {
+    const cartIds = cart.map((item) => item.product.id);
+
+    setSelectedCartItemIds((prev) => {
+      const validPrev = prev.filter((id) => cartIds.includes(id));
+
+      if (validPrev.length === 0 && cartIds.length > 0 && !comboSelectionInitializedRef.current) {
+        comboSelectionInitializedRef.current = true;
+        return cartIds;
+      }
+
+      if (validPrev.length === prev.length && validPrev.every((id, idx) => id === prev[idx])) {
+        return prev;
+      }
+
+      return validPrev;
+    });
+
+    if (cartIds.length === 0) {
+      comboSelectionInitializedRef.current = false;
+    }
+  }, [cart]);
 
   useEffect(() => {
     const load = async () => {
@@ -129,11 +153,12 @@ const AdminManualOrder = () => {
 
   // Get all unique addons for selected cart items
   const getAddonsForSelectedItems = () => {
-    const targetIds = selectedCartItemIds.length > 0 ? selectedCartItemIds : [];
     const addonMap = new Map<string, AvailableAddon>();
-    targetIds.forEach((pid) => {
+
+    selectedCartItemIds.forEach((pid) => {
       getAddonsForProduct(pid).forEach((a) => addonMap.set(a.id, a));
     });
+
     return Array.from(addonMap.values());
   };
 
@@ -196,10 +221,14 @@ const AdminManualOrder = () => {
     setCart((prev) => prev.map((i) => {
       if (i.product.id !== productId) return i;
       const newIsCombo = !i.isCombo;
-      // When enabling combo, multiply all existing addon quantities by item quantity
+
       const updatedAddons = newIsCombo
-        ? i.addons.map((a) => ({ ...a, quantity: a.quantity > 0 ? i.quantity : 0 }))
+        ? i.addons.map((a) => ({
+            ...a,
+            quantity: a.quantity > 0 ? a.quantity * i.quantity : 0,
+          }))
         : i.addons;
+
       return { ...i, isCombo: newIsCombo, addons: updatedAddons };
     }));
   };
@@ -441,6 +470,17 @@ const AdminManualOrder = () => {
                     <span className="min-w-[20px] text-center text-sm font-bold text-foreground">{item.quantity}</span>
                     <button onClick={() => updateQuantity(item.product.id, 1)}
                       className="rounded-lg border border-border p-1.5 text-foreground hover:bg-muted"><Plus size={14} /></button>
+                    <button
+                      onClick={() => toggleCombo(item.product.id)}
+                      className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-bold transition-all ${
+                        item.isCombo
+                          ? "bg-accent text-accent-foreground ring-1 ring-accent"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <Package size={12} />
+                      Combo
+                    </button>
                     <div className="flex items-center gap-1">
                       <Edit2 size={12} className="text-muted-foreground" />
                       <input type="number" step="0.01" value={item.customPrice}
