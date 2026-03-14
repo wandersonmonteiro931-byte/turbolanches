@@ -51,16 +51,6 @@ const AdminPrint = () => {
 
   useEffect(() => {
     if (!ready) return;
-    // Two-receipt flow: print pedido then redirect to obrigado
-    if (tipo === "pedido_obrigado" || tipo === "entrega_cliente") {
-      const timer = setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-          window.location.href = `/admin/imprimir/${id}?tipo=obrigado&delay_ms=100`;
-        }, 400);
-      }, printDelayMs);
-      return () => clearTimeout(timer);
-    }
     const timer = setTimeout(() => {
       window.print();
       setTimeout(() => { window.close(); }, 300);
