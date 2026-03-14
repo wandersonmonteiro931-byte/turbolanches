@@ -385,7 +385,7 @@ const AdminManualOrder = () => {
   const hasCart = cart.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-full flex-col bg-background">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.18),_transparent_55%)]" />
 
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
@@ -420,7 +420,7 @@ const AdminManualOrder = () => {
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-7xl gap-4 px-4 pb-12 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
+      <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 pb-6 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
         <section className="space-y-4">
           <SectionCard title="1. Contexto do Pedido" icon="🧭" className="animate-enter">
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -868,18 +868,22 @@ const AdminManualOrder = () => {
                 </div>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={loading || !hasCart}
-                className="w-full rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
-              >
-                {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
-              </motion.button>
             </div>
           </SectionCard>
         </aside>
       </main>
+
+      {/* Fixed bottom bar */}
+      <div className="sticky bottom-0 z-30 border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSubmit}
+          disabled={loading || !hasCart}
+          className="mx-auto block w-full max-w-2xl rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
+        >
+          {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
+        </motion.button>
+      </div>
     </div>
   );
 };
