@@ -254,6 +254,19 @@ const AdminPrint = () => {
     .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
     .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
     .grand-total { font-size: 12px; font-weight: 900; margin: 2px 0; }
+    .txt-medio { font-size: 14px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
+    .txt-pequeno { font-size: 8px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
+    .txt-gigante { font-size: 24px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
+    .txt-borda-preta {
+      display: block;
+      width: 100%;
+      margin: 2px 0;
+      padding: 3px 4px;
+      background: #000;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+    }
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; }
     .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }
     .tipo-label {
