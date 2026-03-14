@@ -37,8 +37,8 @@ const deliveryTypes = [
 
 const paymentMethods = [
   { id: "dinheiro", label: "💵 Dinheiro" },
-  { id: "pix", label: "📱 PIX" },
-  { id: "pix_online", label: "📱 PIX Online" },
+  { id: "pix_entrega", label: "📱 PIX Entrega" },
+  { id: "pix_pago", label: "📱 PIX Pago" },
   { id: "cartao", label: "💳 Cartão" },
   { id: "credito", label: "💳 Crédito" },
   { id: "debito", label: "💳 Débito" },
@@ -136,9 +136,10 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
-      const isPixOnline = paymentMethod === "pix_online";
-      const actualPaymentMethod = isPixOnline ? "pix" : paymentMethod;
-      const actualPaid = isPaid || isPixOnline;
+      const isPixEntrega = paymentMethod === "pix_entrega";
+      const isPixPago = paymentMethod === "pix_pago";
+      const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
+      const actualPaid = isPixPago || isPaid;
 
       const { data: order, error: orderError } = await supabase
         .from("orders")
@@ -415,7 +416,11 @@ const AdminManualOrder = () => {
             {paymentMethods.map((pm) => (
               <button
                 key={pm.id}
-                onClick={() => setPaymentMethod(pm.id)}
+                onClick={() => {
+                  setPaymentMethod(pm.id);
+                  if (pm.id === "pix_pago") setIsPaid(true);
+                  if (pm.id === "pix_entrega") setIsPaid(false);
+                }}
                 className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
                   paymentMethod === pm.id
                     ? "bg-primary text-primary-foreground"
@@ -426,19 +431,26 @@ const AdminManualOrder = () => {
               </button>
             ))}
           </div>
-          {/* Paid checkbox */}
-          <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isPaid}
-              onChange={(e) => setIsPaid(e.target.checked)}
-              className="h-5 w-5 rounded border-border accent-primary"
-            />
-            <div>
-              <span className="text-sm font-bold text-foreground">💰 Já está pago</span>
-              <p className="text-xs text-muted-foreground">Nenhum valor a receber na entrega/retirada</p>
+          {(paymentMethod === "pix_entrega" || paymentMethod === "pix_pago") ? (
+            <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm font-bold text-foreground">
+              {paymentMethod === "pix_pago"
+                ? "✅ PIX PAGO: valor já recebido online (total a receber = R$ 0,00)."
+                : "💵 PIX ENTREGA: valor será recebido na entrega (total a receber = total do pedido)."}
             </div>
-          </label>
+          ) : (
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPaid}
+                onChange={(e) => setIsPaid(e.target.checked)}
+                className="h-5 w-5 rounded border-border accent-primary"
+              />
+              <div>
+                <span className="text-sm font-bold text-foreground">💰 Já está pago</span>
+                <p className="text-xs text-muted-foreground">Nenhum valor a receber na entrega/retirada</p>
+              </div>
+            </label>
+          )}
           {paymentMethod === "dinheiro" && !isPaid && (
             <input
               type="number"

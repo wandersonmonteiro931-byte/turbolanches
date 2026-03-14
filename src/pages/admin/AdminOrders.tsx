@@ -80,6 +80,12 @@ const deliveryLabels: Record<string, string> = {
   consumo: "Consumo",
 };
 
+const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
+  if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
+  if (paymentMethod === "fiado") return "FIADO";
+  return paymentLabels[paymentMethod] || paymentMethod;
+};
+
 const AdminOrders = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
@@ -629,7 +635,7 @@ const AdminOrders = () => {
                   )}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {paymentLabels[order.payment_method] || order.payment_method}
+                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                   {profile?.full_name ? ` · ${profile.full_name}` : ""}
                 </p>
               </div>
@@ -700,7 +706,7 @@ const AdminOrders = () => {
                   {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
                   <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
                   <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="text-foreground">{paymentLabels[order.payment_method] || order.payment_method} {order.payment_confirmed ? "✅" : "❌"}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="text-foreground">{getPaymentDisplay(order.payment_method, order.payment_confirmed)} {order.payment_confirmed ? "✅" : "❌"}</span></div>
                   {order.change_for && order.change_for > 0 && (
                     <div className="flex justify-between"><span className="text-muted-foreground">Troco para</span><span className="text-foreground">R$ {Number(order.change_for).toFixed(2).replace(".", ",")}</span></div>
                   )}

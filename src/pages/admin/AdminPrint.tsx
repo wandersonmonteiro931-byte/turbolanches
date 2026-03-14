@@ -93,12 +93,23 @@ const AdminPrint = () => {
   const discount = Number(order.discount) || 0;
   const total = Number(order.total);
   const isFiado = order.payment_method === "fiado";
-  const isPaidOnline = !isFiado && (order.payment_method === "pix" || order.payment_confirmed);
+  const isPix = order.payment_method === "pix";
+  const isPixPago = isPix && order.payment_confirmed;
+  const isPixEntrega = isPix && !order.payment_confirmed;
+  const isPaidOnline = !isFiado && (isPixPago || (!isPix && order.payment_confirmed));
   const totalReceber = isPaidOnline ? 0 : total;
   const totalPago = isPaidOnline ? total : 0;
   const changeFor = order.change_for ? Number(order.change_for) : 0;
   const troco = !isPaidOnline && !isFiado && changeFor > total ? changeFor - total : 0;
-  const paymentLabel = isFiado ? "FIADO" : isPaidOnline ? "PAGO ONLINE" : "PAGO NA ENTREGA";
+  const paymentLabel = isFiado
+    ? "FIADO"
+    : isPixEntrega
+      ? "PIX ENTREGA"
+      : isPixPago
+        ? "PIX PAGO"
+        : isPaidOnline
+          ? "PAGO ONLINE"
+          : "PAGO NA ENTREGA";
 
   const obsText = order.observations || "";
   const isManualOrder = obsText.includes("[PDV]");

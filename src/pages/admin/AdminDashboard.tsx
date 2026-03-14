@@ -75,6 +75,12 @@ const nextStatus: Record<string, string> = {
   delivering: "delivered",
 };
 
+const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
+  if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
+  if (paymentMethod === "fiado") return "FIADO";
+  return paymentConfirmed ? `${paymentMethod.toUpperCase()} (PAGO)` : paymentMethod.toUpperCase();
+};
+
 const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [orders, setOrders] = useState<Order[]>([]);
@@ -750,7 +756,7 @@ const AdminDashboard = () => {
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      {" · "}{order.payment_method.toUpperCase()}
+                      {" · "}{getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                       {profile?.full_name ? ` · ${profile.full_name}` : ""}
                     </p>
                   </div>
@@ -905,7 +911,7 @@ const AdminDashboard = () => {
                       )}
                       {order.payment_confirmed && order.status !== "awaiting_payment" && (
                         <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
-                          ✅ {order.payment_method === "fiado" ? "FIADO" : "PAGO"}
+                          ✅ {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                         </span>
                       )}
                     </div>
