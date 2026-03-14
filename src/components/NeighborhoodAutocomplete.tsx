@@ -19,7 +19,7 @@ interface Props {
   refreshKey?: number;
 }
 
-const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false }: Props) => {
+const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false, refreshKey = 0 }: Props) => {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
