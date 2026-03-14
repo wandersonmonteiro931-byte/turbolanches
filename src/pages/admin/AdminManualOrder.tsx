@@ -143,7 +143,10 @@ const AdminManualOrder = () => {
 
   // Get all unique addons for selected cart items
   const getAddonsForSelectedItems = () => {
-    const targetIds = selectedCartItemIds.length > 0 ? selectedCartItemIds : [];
+    const targetIds = selectedCartItemIds.length > 0
+      ? selectedCartItemIds
+      : cart.map((item) => item.product.id);
+
     const addonMap = new Map<string, AvailableAddon>();
     targetIds.forEach((pid) => {
       getAddonsForProduct(pid).forEach((a) => addonMap.set(a.id, a));
