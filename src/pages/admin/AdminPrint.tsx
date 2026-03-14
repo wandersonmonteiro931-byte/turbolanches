@@ -180,38 +180,53 @@ const AdminPrint = () => {
 
   // ─── Template parser ───
   const renderTemplate = (template: string) => {
-    const lines = template.split('\n');
+    const lines = template.split("\n");
+
+    const tagRules = [
+      { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
+      { open: "[GRANDE]", close: "[/GRANDE]", className: "tipo-label" },
+      { open: "[DESTAQUE]", close: "[/DESTAQUE]", className: "pedido-destaque" },
+      { open: "[CAIXA]", close: "[/CAIXA]", className: "box-highlight" },
+      { open: "[NEGRITO]", close: "[/NEGRITO]", className: "grand-total" },
+      { open: "[TXTMEDIO]", close: "[/TXTMEDIO]", className: "txt-medio" },
+      { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
+      { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
+      { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
+    ];
+
     return lines.map((rawLine, i) => {
       const line = rawLine.trimEnd();
-      if (line.trim() === '---') return <div key={i} className="separator" />;
-      if (line.trim() === '[ITENS]') return <Fragment key={i}>{renderItems()}</Fragment>;
+      if (line.trim() === "---") return <div key={i} className="separator" />;
+      if (line.trim() === "[ITENS]") return <Fragment key={i}>{renderItems()}</Fragment>;
 
       let content = replaceVars(line);
       if (!content.trim()) return null;
 
-      if (content.includes('[GRANDE]')) {
-        content = content.replace(/\[GRANDE\]/g, '').replace(/\[\/GRANDE\]/g, '');
-        return <div key={i} className="tipo-label">{content}</div>;
-      }
-      if (content.includes('[DESTAQUE]')) {
-        content = content.replace(/\[DESTAQUE\]/g, '').replace(/\[\/DESTAQUE\]/g, '');
-        return <div key={i} className="pedido-destaque">{content}</div>;
-      }
-      if (content.includes('[CAIXA]')) {
-        content = content.replace(/\[CAIXA\]/g, '').replace(/\[\/CAIXA\]/g, '');
-        return <div key={i} className="box-highlight">{content}</div>;
-      }
-      if (content.includes('[NEGRITO]')) {
-        content = content.replace(/\[NEGRITO\]/g, '').replace(/\[\/NEGRITO\]/g, '');
-        return <div key={i} className="grand-total" style={{ display: 'block' }}>{content}</div>;
-      }
-      if (content.includes('[CENTRO]')) {
-        content = content.replace(/\[CENTRO\]/g, '').replace(/\[\/CENTRO\]/g, '');
-        if (!content.trim()) return null;
-        return <div key={i} className="center info">{content}</div>;
+      const activeClasses: string[] = ["info"];
+
+      tagRules.forEach((rule) => {
+        if (content.includes(rule.open) || content.includes(rule.close)) {
+          activeClasses.push(rule.className);
+          content = content
+            .replace(new RegExp(rule.open.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "")
+            .replace(new RegExp(rule.close.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "");
+        }
+      });
+
+      // Compatibilidade com templates legados que fecham CENTRO com [CENTRO]
+      if (content.includes("[CENTRO]")) {
+        activeClasses.push("center");
+        content = content.replace(/\[CENTRO\]/g, "");
       }
 
-      return <div key={i} className="info">{content}</div>;
+      content = content.trim();
+      if (!content) return null;
+
+      return (
+        <div key={i} className={Array.from(new Set(activeClasses)).join(" ")}>
+          {content}
+        </div>
+      );
     });
   };
 
@@ -239,6 +254,19 @@ const AdminPrint = () => {
     .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
     .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
     .grand-total { font-size: 12px; font-weight: 900; margin: 2px 0; }
+    .txt-medio { font-size: 14px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
+    .txt-pequeno { font-size: 8px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
+    .txt-gigante { font-size: 24px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
+    .txt-borda-preta {
+      display: block;
+      width: 100%;
+      margin: 2px 0;
+      padding: 3px 4px;
+      background: #000;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+    }
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; }
     .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }
     .tipo-label {

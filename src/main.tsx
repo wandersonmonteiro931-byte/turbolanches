@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
 
 // Defensive fallback for transient runtime probes
@@ -23,4 +22,7 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = createRoot(document.getElementById("root")!);
+void import("./App.tsx").then(({ default: App }) => {
+  root.render(<App />);
+});

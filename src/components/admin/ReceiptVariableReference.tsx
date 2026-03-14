@@ -34,11 +34,15 @@ const VARIABLES = [
 
 const FORMATTING = [
   { marker: "---", desc: "Linha separadora tracejada" },
-  { marker: "[CENTRO]texto[/CENTRO]", desc: "Texto centralizado" },
+  { marker: "[CENTRO]texto[/CENTRO]", desc: "Texto centralizado (aceita também [CENTRO] no fechamento legado)" },
   { marker: "[GRANDE]texto[/GRANDE]", desc: "Texto grande com borda (título)" },
   { marker: "[CAIXA]texto[/CAIXA]", desc: "Texto em caixa com borda" },
   { marker: "[DESTAQUE]texto[/DESTAQUE]", desc: "Texto grande destacado" },
   { marker: "[NEGRITO]texto[/NEGRITO]", desc: "Texto em negrito maior" },
+  { marker: "[TXTMEDIO]texto[/TXTMEDIO]", desc: "Texto maior, sem ser gigante" },
+  { marker: "[TXTPEQUENO]texto[/TXTPEQUENO]", desc: "Texto menor" },
+  { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande em negrito" },
+  { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco em destaque com fundo preto e negrito" },
 ];
 
 const ReceiptVariableReference = () => {
