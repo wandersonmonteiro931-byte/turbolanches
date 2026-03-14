@@ -28,8 +28,7 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
 
   // Fetch ALL zones (including inactive) for display
   useEffect(() => {
-    if (loaded) return;
-    const fetch = async () => {
+    const fetchZones = async () => {
       const { data } = await supabase
         .from("delivery_zones")
         .select("neighborhood, delivery_fee, active")
@@ -37,8 +36,8 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
       if (data) setZones(data);
       setLoaded(true);
     };
-    fetch();
-  }, [loaded]);
+    fetchZones();
+  }, [refreshKey]);
 
   // Sync external value
   useEffect(() => {
