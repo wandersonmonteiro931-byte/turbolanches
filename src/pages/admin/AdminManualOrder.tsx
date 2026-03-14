@@ -462,6 +462,17 @@ const AdminManualOrder = () => {
                     <span className="min-w-[20px] text-center text-sm font-bold text-foreground">{item.quantity}</span>
                     <button onClick={() => updateQuantity(item.product.id, 1)}
                       className="rounded-lg border border-border p-1.5 text-foreground hover:bg-muted"><Plus size={14} /></button>
+                    <button
+                      onClick={() => toggleCombo(item.product.id)}
+                      className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-bold transition-all ${
+                        item.isCombo
+                          ? "bg-accent text-accent-foreground ring-1 ring-accent"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <Package size={12} />
+                      Combo
+                    </button>
                     <div className="flex items-center gap-1">
                       <Edit2 size={12} className="text-muted-foreground" />
                       <input type="number" step="0.01" value={item.customPrice}

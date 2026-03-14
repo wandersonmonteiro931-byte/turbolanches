@@ -164,7 +164,7 @@ const ManualOrderAddonSelector = ({
           <p className="text-[10px] text-muted-foreground">
             {selectedItemIds.length > 0
               ? `Aplicando para: ${selectedItems.map((i) => `${i.quantity}x ${i.productName}`).join(", ")}`
-              : "Selecione ao menos um item acima"}
+              : "Selecione itens para liberar os adicionais"}
           </p>
           {availableAddons.map((addon) => {
             // Show aggregate qty across selected items
