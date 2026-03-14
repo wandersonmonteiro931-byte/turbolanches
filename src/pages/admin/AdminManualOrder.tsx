@@ -323,7 +323,43 @@ const AdminManualOrder = () => {
 
   const addonsTotal = cart.reduce((sum, i) => sum + i.addons.reduce((s, a) => s + a.price * a.quantity, 0), 0);
   const subtotal = cart.reduce((sum, i) => sum + i.customPrice * i.quantity, 0) + addonsTotal;
-  const deliveryFee = deliveryType === "delivery" ? (parseFloat(customDeliveryFee.replace(",", ".")) || 0) : 0;
+
+  const matchedZone = deliveryZones.find(
+    (zone) => normalizeNeighborhood(zone.neighborhood) === normalizeNeighborhood(addressNeighborhood),
+  );
+  const rawDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
+
+  const isTempFree = Boolean(matchedZone?.temp_free_delivery || deliveryConfig.temp_free_delivery_all);
+  const isKmFree = Boolean(
+    deliveryConfig.free_delivery_max_km > 0 &&
+      matchedZone?.distance_km !== null &&
+      matchedZone?.distance_km !== undefined &&
+      matchedZone.distance_km >= 0 &&
+      matchedZone.distance_km <= deliveryConfig.free_delivery_max_km,
+  );
+  const isMinOrderFree = Boolean(
+    deliveryConfig.free_delivery_min_order > 0 && subtotal >= deliveryConfig.free_delivery_min_order,
+  );
+
+  const autoDeliveryFee = isTempFree || isKmFree || isMinOrderFree ? 0 : rawDeliveryFee;
+  const autoDeliveryReason = isTempFree
+    ? "Frete grátis por promoção temporária"
+    : isKmFree
+      ? `Frete grátis por distância (${deliveryConfig.free_delivery_max_km} km)`
+      : isMinOrderFree
+        ? `Frete grátis por pedido mínimo (R$ ${deliveryConfig.free_delivery_min_order.toFixed(2).replace(".", ",")})`
+        : null;
+
+  useEffect(() => {
+    if (deliveryType !== "delivery" || deliveryFeeOverridden) return;
+    setCustomDeliveryFee(autoDeliveryFee.toFixed(2));
+  }, [deliveryType, deliveryFeeOverridden, autoDeliveryFee]);
+
+  const deliveryFee =
+    deliveryType === "delivery"
+      ? (deliveryFeeOverridden ? (parseFloat(customDeliveryFee.replace(",", ".")) || 0) : autoDeliveryFee)
+      : 0;
+
   const discountValue = parseFloat(discount.replace(",", ".")) || 0;
   const total = Math.max(0, subtotal + deliveryFee - discountValue);
 
