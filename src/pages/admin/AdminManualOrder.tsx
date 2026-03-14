@@ -431,19 +431,26 @@ const AdminManualOrder = () => {
               </button>
             ))}
           </div>
-          {/* Paid checkbox */}
-          <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={isPaid}
-              onChange={(e) => setIsPaid(e.target.checked)}
-              className="h-5 w-5 rounded border-border accent-primary"
-            />
-            <div>
-              <span className="text-sm font-bold text-foreground">💰 Já está pago</span>
-              <p className="text-xs text-muted-foreground">Nenhum valor a receber na entrega/retirada</p>
+          {(paymentMethod === "pix_entrega" || paymentMethod === "pix_pago") ? (
+            <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm font-bold text-foreground">
+              {paymentMethod === "pix_pago"
+                ? "✅ PIX PAGO: valor já recebido online (total a receber = R$ 0,00)."
+                : "💵 PIX ENTREGA: valor será recebido na entrega (total a receber = total do pedido)."}
             </div>
-          </label>
+          ) : (
+            <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isPaid}
+                onChange={(e) => setIsPaid(e.target.checked)}
+                className="h-5 w-5 rounded border-border accent-primary"
+              />
+              <div>
+                <span className="text-sm font-bold text-foreground">💰 Já está pago</span>
+                <p className="text-xs text-muted-foreground">Nenhum valor a receber na entrega/retirada</p>
+              </div>
+            </label>
+          )}
           {paymentMethod === "dinheiro" && !isPaid && (
             <input
               type="number"

@@ -911,7 +911,7 @@ const AdminDashboard = () => {
                       )}
                       {order.payment_confirmed && order.status !== "awaiting_payment" && (
                         <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
-                          ✅ {order.payment_method === "fiado" ? "FIADO" : "PAGO"}
+                          ✅ {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                         </span>
                       )}
                     </div>
