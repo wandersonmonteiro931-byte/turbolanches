@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import NotificationBanner from "@/components/NotificationBanner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
+import { useAdminAlarm } from "@/hooks/useAdminAlarm";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
