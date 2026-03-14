@@ -868,18 +868,22 @@ const AdminManualOrder = () => {
                 </div>
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={loading || !hasCart}
-                className="w-full rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
-              >
-                {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
-              </motion.button>
             </div>
           </SectionCard>
         </aside>
       </main>
+
+      {/* Fixed bottom bar */}
+      <div className="sticky bottom-0 z-30 border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSubmit}
+          disabled={loading || !hasCart}
+          className="mx-auto block w-full max-w-2xl rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
+        >
+          {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
+        </motion.button>
+      </div>
     </div>
   );
 };
