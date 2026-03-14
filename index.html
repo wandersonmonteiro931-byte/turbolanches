@@ -32,11 +32,10 @@
   <body>
     <div id="root"></div>
     <script>
-      // Define __LOVA_FIX_TRIGGER__ globally to prevent ReferenceError
+      var __LOVA_FIX_TRIGGER__ = false;
       try { Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) { window.__LOVA_FIX_TRIGGER__ = false; }
       try { Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) {}
       if (typeof self !== "undefined") try { Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) {}
-
       window.addEventListener("error", function (e) {
         if (e.message && e.message.indexOf("__LOVA_FIX_TRIGGER__") !== -1) { e.preventDefault(); }
       });
