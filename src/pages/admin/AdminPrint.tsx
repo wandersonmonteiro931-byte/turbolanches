@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega" | "cliente"
+  const tipo = searchParams.get("tipo") || "cozinha";
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -29,13 +31,15 @@ const AdminPrint = () => {
       }
       setOrder(orderData);
 
-      const [itemsRes, profileRes] = await Promise.all([
+      const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
         supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
+        supabase.from("receipt_templates" as any).select("*").eq("template_type", tipo === "entrega_cliente" ? "entrega" : tipo).single(),
       ]);
 
       setItems(itemsRes.data || []);
       setProfile(profileRes.data);
+      setTpl((tplRes.data as unknown as ReceiptTemplate) || null);
       setReady(true);
     };
 
@@ -122,6 +126,42 @@ const AdminPrint = () => {
   const isEntrega = tipo === "entrega";
   const isCliente = tipo === "cliente";
 
+  // Template values with fallbacks
+  const storeName = tpl?.store_name || "TURBO LANCHES";
+  const tipoLabel = tpl?.label || (isCozinha ? "COZINHA" : isCliente ? "OBRIGADO!" : "ENTREGA");
+  const labelFontSize = tpl?.label_font_size || 24;
+  const itemsFontSize = tpl?.items_font_size || 14;
+  const showCustomerCode = tpl?.show_customer_code ?? true;
+  const showMaxTime = tpl?.show_max_delivery_time ?? true;
+  const showPayment = tpl?.show_payment_info ?? true;
+  const showTotalsDetail = tpl?.show_totals_detail ?? true;
+  const showTrocoFlag = tpl?.show_troco ?? true;
+  const showObs = tpl?.show_obs ?? true;
+  const showDriverField = tpl?.show_driver_field ?? true;
+
+  // Replace variables in custom message
+  const replaceVars = (text: string) => {
+    return text
+      .replace(/\[LOJA\]/g, storeName)
+      .replace(/\[PEDIDO\]/g, `#${String(order.order_number).padStart(5, '0')}`)
+      .replace(/\[CODIGO\]/g, customerCode)
+      .replace(/\[NOME\]/g, displayName)
+      .replace(/\[TELEFONE\]/g, displayPhone)
+      .replace(/\[DATA_HORA\]/g, dataHora)
+      .replace(/\[HORARIO_MAX\]/g, horarioMax)
+      .replace(/\[ENDERECO\]/g, address)
+      .replace(/\[TOTAL\]/g, `R$ ${total.toFixed(2).replace(".", ",")}`)
+      .replace(/\[SUBTOTAL\]/g, `R$ ${subtotal.toFixed(2).replace(".", ",")}`)
+      .replace(/\[ENTREGA_VALOR\]/g, `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`)
+      .replace(/\[DESCONTO\]/g, `R$ ${discount.toFixed(2).replace(".", ",")}`)
+      .replace(/\[PAGAMENTO\]/g, `${order.payment_method.toUpperCase()} - ${paymentLabel}`)
+      .replace(/\[TROCO\]/g, `R$ ${troco.toFixed(2).replace(".", ",")}`)
+      .replace(/\[TIPO_ENTREGA\]/g, deliveryLabel);
+  };
+
+  const customMsg = tpl?.custom_message ? replaceVars(tpl.custom_message) : "";
+  const footerMsg = tpl?.footer_message ? replaceVars(tpl.footer_message) : "";
+
   const styles = `
     @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
     @media print {
@@ -162,12 +202,12 @@ const AdminPrint = () => {
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; line-height: 1.4; }
     .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; content: ''; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }
     .tipo-label {
-      font-size: 24px; font-weight: 900; text-align: center;
+      font-size: ${labelFontSize}px; font-weight: 900; text-align: center;
       letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
     .tipo-label-big {
-      font-size: 24px; font-weight: 900; text-align: center;
+      font-size: ${labelFontSize}px; font-weight: 900; text-align: center;
       letter-spacing: 3px; margin: 3px 0; padding: 4px 0; border: 2.5px solid #000;
       text-transform: uppercase;
     }
@@ -197,16 +237,24 @@ const AdminPrint = () => {
 
   const totaisSection = (showHighlightReceber = false) => (
     <>
-      <div className="total-line"><span>SUBTOTAL</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
-      {discount > 0 && (
-        <div className="total-line"><span>DESCONTO</span><span>- R$ {discount.toFixed(2).replace(".", ",")}</span></div>
+      {showTotalsDetail && (
+        <>
+          <div className="total-line"><span>SUBTOTAL</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
+          {discount > 0 && (
+            <div className="total-line"><span>DESCONTO</span><span>- R$ {discount.toFixed(2).replace(".", ",")}</span></div>
+          )}
+          <div className="total-line"><span>ENTREGA</span><span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span></div>
+        </>
       )}
-      <div className="total-line"><span>ENTREGA</span><span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
-      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
+      {showTotalsDetail && (
+        <>
+          <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+          <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+        </>
+      )}
+      {showTrocoFlag && troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+      {showPayment && <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>}
     </>
   );
 
@@ -237,19 +285,19 @@ const AdminPrint = () => {
   // ===== COMANDA COZINHA =====
   const itensCozinha = (
     <>
-      <div style={{ fontWeight: 900, fontSize: 14 }}>ITENS:</div>
+      <div style={{ fontWeight: 900, fontSize: itemsFontSize }}>ITENS:</div>
       {items.map((item) => {
         const addons = item.addons_json as any[] | null;
         return (
           <div key={item.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 14, margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: itemsFontSize, margin: 0 }}>
               <span>{item.quantity}x {item.product_name}</span>
               <span>R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}</span>
             </div>
             {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-              <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
+              <div key={i} style={{ fontSize: Math.max(itemsFontSize - 2, 8), paddingLeft: 8, fontWeight: 900 }}>+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
             ))}
-            {item.observations && <div style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
+            {item.observations && <div style={{ fontSize: Math.max(itemsFontSize - 2, 8), paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
           </div>
         );
       })}
@@ -259,25 +307,37 @@ const AdminPrint = () => {
 
   const comandaCozinha = (
     <div>
-      <div className="store-name">TURBO LANCHES</div>
-      <div className="tipo-label">COZINHA</div>
+      <div className="store-name">{storeName}</div>
+      <div className="tipo-label">{tipoLabel}</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {showCustomerCode && customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
-      <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
+      {showMaxTime && <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>}
       <div className="separator" />
       {itensCozinha}
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
+      {showTrocoFlag && troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+      {showPayment && <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>}
       <div className="separator" />
       <div className="info">CLIENTE: {displayName || "Não informado"}{displayPhone ? ` | TEL: ${displayPhone}` : ""}</div>
       <div className="separator" />
       <div className="highlight-delivery">*** {deliveryLabel} ***</div>
-      {order.observations && (
+      {customMsg && (
+        <>
+          <div className="separator" />
+          <div className="msg-carinho">{customMsg}</div>
+        </>
+      )}
+      {showObs && order.observations && (
         <>
           <div className="separator" />
           <div className="info">OBS: {order.observations}</div>
+        </>
+      )}
+      {footerMsg && (
+        <>
+          <div className="separator" />
+          <div className="footer">{footerMsg}</div>
         </>
       )}
       <div className="separator" />
@@ -288,32 +348,34 @@ const AdminPrint = () => {
   // ===== COMANDA ENTREGA =====
   const comandaEntrega = (
     <div>
-      <div className="store-name">TURBO LANCHES</div>
-      <div className="tipo-label">ENTREGA</div>
+      <div className="store-name">{storeName}</div>
+      <div className="tipo-label">{tipoLabel}</div>
       <div className="separator" />
-      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
+      <div style={{ fontWeight: 900, fontSize: 10 }}>PEDIDO #{String(order.order_number).padStart(5, '0')} {showCustomerCode && customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="info">DATA E HORA PEDIDO: {dataHora}</div>
-      <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>
+      {showMaxTime && <div className="info">HORÁRIO MÁXIMO PARA ENTREGA: {horarioMax}</div>}
       <div className="separator" />
       <div className="info">Cliente: {displayName || "Não informado"}</div>
       <div className="info">Telefone: {displayPhone || "Não informado"}</div>
       <div className="box-highlight">{address}</div>
-      {order.observations && <div className="info">OBS: {order.observations}</div>}
+      {showObs && order.observations && <div className="info">OBS: {order.observations}</div>}
       <div className="separator" />
-      <div className="total-line"><span>SUBTOTAL</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
-      {discount > 0 && (
-        <div className="total-line"><span>DESCONTO</span><span>- R$ {discount.toFixed(2).replace(".", ",")}</span></div>
+      {totaisSection(true)}
+      {customMsg && (
+        <>
+          <div className="separator" />
+          <div className="msg-carinho">{customMsg}</div>
+        </>
       )}
-      <div className="total-line"><span>ENTREGA</span><span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span></div>
-      <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className="box-highlight-flex"><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
-      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
       <div className="separator" />
-      <div className="info">ENTREGADOR: ___________________</div>
-      <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
-      <div className="separator" />
+      {showDriverField && (
+        <>
+          <div className="info">ENTREGADOR: ___________________</div>
+          <div className="info">HORÁRIO DE SAÍDA PARA ENTREGA: {horarioSaida}</div>
+          <div className="separator" />
+        </>
+      )}
+      {footerMsg && <div className="footer">{footerMsg}</div>}
       <div className="print-end">&nbsp;</div>
     </div>
   );
@@ -321,18 +383,18 @@ const AdminPrint = () => {
   // ===== COMANDA CLIENTE =====
   const comandaCliente = (
     <div>
-      <div className="store-name">TURBO LANCHES</div>
-      <div className="tipo-label-big">OBRIGADO!</div>
+      <div className="store-name">{storeName}</div>
+      <div className="tipo-label-big">{tipoLabel}</div>
       <div className="separator" />
-      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {customerCode && `| CLIENTE: ${customerCode}`}</div>
+      <div className="pedido-destaque">PEDIDO #{String(order.order_number).padStart(5, '0')} {showCustomerCode && customerCode && `| CLIENTE: ${customerCode}`}</div>
       <div className="separator" />
-      {displayName ? <div className="msg-carinho">{displayName}, seu pedido foi preparado com muito carinho e higiene!</div> : <div className="msg-carinho">Seu pedido foi preparado com muito carinho e higiene!</div>}
-      <div className="separator" />
+      {customMsg && <div className="msg-carinho">{customMsg}</div>}
+      {customMsg && <div className="separator" />}
       {itensSection}
       {totaisSection(false)}
       <div className="separator" />
-      <div className="footer">Agradecemos a preferência!</div>
-      <div className="separator" />
+      {footerMsg && <div className="footer">{footerMsg}</div>}
+      {footerMsg && <div className="separator" />}
       <div className="print-end">&nbsp;</div>
     </div>
   );
