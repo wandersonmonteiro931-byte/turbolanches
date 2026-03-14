@@ -275,8 +275,9 @@ const AdminManualOrder = () => {
   const handleSubmit = async () => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
-    if (deliveryType === "delivery" && (!addressStreet || !addressNeighborhood)) {
-      toast.error("Preencha o endereço para delivery"); return;
+    if (!customerPhone) { toast.error("WhatsApp do cliente é obrigatório"); return; }
+    if (deliveryType === "delivery" && (!addressStreet || !addressNeighborhood || !addressComplement)) {
+      toast.error("Preencha rua, bairro e complemento para delivery"); return;
     }
 
     setLoading(true);

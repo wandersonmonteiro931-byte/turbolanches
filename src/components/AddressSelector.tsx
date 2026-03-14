@@ -64,8 +64,8 @@ const AddressSelector = ({ open, onClose }: Props) => {
   };
 
   const handleSave = async () => {
-    if (!form.street || !form.neighborhood) {
-      toast({ title: "Preencha pelo menos rua e bairro", variant: "destructive" });
+    if (!form.street || !form.neighborhood || !form.complement) {
+      toast({ title: "Preencha rua, bairro e complemento", variant: "destructive" });
       return;
     }
     setSaving(true);

@@ -80,8 +80,8 @@ const Checkout = () => {
     ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
         const p = profileRes.data;
-        if (!p.full_name || !p.phone || !p.street || !p.neighborhood) {
-          toast.error("Complete seu perfil antes de finalizar o pedido");
+        if (!p.full_name || !p.phone || !p.street || !p.neighborhood || !p.complement) {
+          toast.error("Complete seu perfil (rua, complemento e WhatsApp são obrigatórios)");
           navigate("/completar-perfil");
           return;
         }
