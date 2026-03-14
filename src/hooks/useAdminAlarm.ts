@@ -66,7 +66,7 @@ export function useAdminAlarm() {
 
   // Play alarm sound
   useEffect(() => {
-    const shouldPlay = pendingCount > 0 && isAdmin;
+    const shouldPlay = pendingCount > 0 && isAdmin && isOnAdminRoute;
 
     if (shouldPlay) {
       if (!audioCtxRef.current) {
