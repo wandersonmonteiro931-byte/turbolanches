@@ -385,7 +385,7 @@ const AdminManualOrder = () => {
   const hasCart = cart.length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-full flex-col bg-background">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.18),_transparent_55%)]" />
 
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
