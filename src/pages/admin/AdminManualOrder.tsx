@@ -136,6 +136,10 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
+      const isPixOnline = paymentMethod === "pix_online";
+      const actualPaymentMethod = isPixOnline ? "pix" : paymentMethod;
+      const actualPaid = isPaid || isPixOnline;
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -146,8 +150,8 @@ const AdminManualOrder = () => {
           status: "preparing",
           preparing_at: new Date().toISOString(),
           delivery_type: deliveryType,
-          payment_method: paymentMethod,
-          payment_confirmed: isPaid,
+          payment_method: actualPaymentMethod,
+          payment_confirmed: actualPaid,
           address_street: deliveryType === "delivery" ? addressStreet : null,
           address_number: deliveryType === "delivery" ? addressNumber : null,
           address_complement: deliveryType === "delivery" ? addressComplement : null,
@@ -160,7 +164,7 @@ const AdminManualOrder = () => {
             tableNumber ? `Mesa: ${tableNumber}` : null,
             observations || null,
           ].filter(Boolean).join(" | ") || "[PDV]",
-          change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+          change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
         })
         .select("id, order_number")
         .single();
