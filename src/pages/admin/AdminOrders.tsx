@@ -344,13 +344,13 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente", delayMs?: number) => {
+  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
 
-  const printEntregaCliente = (orderId: string) => {
-    safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
+  const printPedidoObrigado = (orderId: string) => {
+    safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
   };
 
   const toggleExpand = (orderId: string) => {
