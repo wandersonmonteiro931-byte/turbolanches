@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -25,6 +25,7 @@ interface CartItem {
   product: Product;
   quantity: number;
   observations: string;
+  customPrice: number; // admin can override
 }
 
 const deliveryTypes = [
@@ -40,8 +41,6 @@ const paymentMethods = [
   { id: "pix_entrega", label: "📱 PIX Entrega" },
   { id: "pix_pago", label: "📱 PIX Pago" },
   { id: "cartao", label: "💳 Cartão" },
-  { id: "credito", label: "💳 Crédito" },
-  { id: "debito", label: "💳 Débito" },
   { id: "fiado", label: "📝 Fiado" },
 ];
 
@@ -69,6 +68,9 @@ const AdminManualOrder = () => {
   const [changeFor, setChangeFor] = useState("");
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<{ neighborhood: string; delivery_fee: number }[]>([]);
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>("");
+  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(false);
+  const [discount, setDiscount] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
@@ -84,6 +86,14 @@ const AdminManualOrder = () => {
     load();
   }, []);
 
+  // Auto-set delivery fee from zone when neighborhood changes (only if not manually overridden)
+  useEffect(() => {
+    if (!deliveryFeeOverridden && deliveryType === "delivery") {
+      const matched = deliveryZones.find((z) => z.neighborhood.toLowerCase() === addressNeighborhood.toLowerCase());
+      setCustomDeliveryFee(matched ? String(matched.delivery_fee) : "5.99");
+    }
+  }, [addressNeighborhood, deliveryZones, deliveryType, deliveryFeeOverridden]);
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
@@ -96,7 +106,7 @@ const AdminManualOrder = () => {
       if (existing) {
         return prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { product, quantity: 1, observations: "" }];
+      return [...prev, { product, quantity: 1, observations: "", customPrice: product.price }];
     });
   };
 
@@ -115,10 +125,17 @@ const AdminManualOrder = () => {
     setCart((prev) => prev.map((i) => i.product.id === productId ? { ...i, observations: obs } : i));
   };
 
-  const subtotal = cart.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
-  const matchedZone = deliveryZones.find((z) => z.neighborhood.toLowerCase() === addressNeighborhood.toLowerCase());
-  const deliveryFee = deliveryType === "delivery" ? (matchedZone ? Number(matchedZone.delivery_fee) : 5.99) : 0;
-  const total = subtotal + deliveryFee;
+  const updateItemPrice = (productId: string, newPrice: string) => {
+    const val = parseFloat(newPrice.replace(",", "."));
+    if (!isNaN(val) && val >= 0) {
+      setCart((prev) => prev.map((i) => i.product.id === productId ? { ...i, customPrice: val } : i));
+    }
+  };
+
+  const subtotal = cart.reduce((sum, i) => sum + i.customPrice * i.quantity, 0);
+  const deliveryFee = deliveryType === "delivery" ? (parseFloat(customDeliveryFee.replace(",", ".")) || 0) : 0;
+  const discountValue = parseFloat(discount.replace(",", ".")) || 0;
+  const total = Math.max(0, subtotal + deliveryFee - discountValue);
 
   const handleSubmit = async () => {
     if (cart.length === 0) {
@@ -147,6 +164,7 @@ const AdminManualOrder = () => {
           user_id: user.id,
           subtotal,
           delivery_fee: deliveryFee,
+          discount: discountValue,
           total,
           status: "preparing",
           preparing_at: new Date().toISOString(),
@@ -177,7 +195,7 @@ const AdminManualOrder = () => {
         product_id: item.product.id,
         product_name: item.product.name,
         quantity: item.quantity,
-        unit_price: item.product.price,
+        unit_price: item.customPrice,
         observations: item.observations || null,
       }));
 
@@ -186,7 +204,6 @@ const AdminManualOrder = () => {
 
       toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
 
-      // Impressão automática da comanda de pedido
       const printUrl = `/admin/imprimir/${order.id}?tipo=pedido`;
       window.open(printUrl, "_blank", "width=300,height=600");
 
@@ -288,8 +305,9 @@ const AdminManualOrder = () => {
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
               <NeighborhoodAutocomplete
                 value={addressNeighborhood}
-                onChange={(val, fee) => {
+                onChange={(val) => {
                   setAddressNeighborhood(val);
+                  setDeliveryFeeOverridden(false);
                 }}
                 placeholder="Bairro"
                 allowInactive={true}
@@ -380,7 +398,7 @@ const AdminManualOrder = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-foreground">{item.product.name}</span>
                   <span className="text-sm font-bold text-foreground">
-                    R$ {(item.product.price * item.quantity).toFixed(2).replace(".", ",")}
+                    R$ {(item.customPrice * item.quantity).toFixed(2).replace(".", ",")}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -393,8 +411,18 @@ const AdminManualOrder = () => {
                     className="rounded-lg border border-border p-1.5 text-foreground hover:bg-muted">
                     <Plus size={14} />
                   </button>
+                  <div className="flex items-center gap-1">
+                    <Edit2 size={12} className="text-muted-foreground" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={item.customPrice}
+                      onChange={(e) => updateItemPrice(item.product.id, e.target.value)}
+                      className="w-20 rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-bold text-foreground text-center"
+                    />
+                  </div>
                   <input
-                    placeholder="Obs do item"
+                    placeholder="Obs"
                     value={item.observations}
                     onChange={(e) => updateItemObs(item.product.id, e.target.value)}
                     className="flex-1 rounded-lg border border-border bg-background px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground"
@@ -471,12 +499,38 @@ const AdminManualOrder = () => {
               <span>Subtotal</span>
               <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
             </div>
-            {deliveryFee > 0 && (
-              <div className="flex justify-between text-sm text-muted-foreground">
+            {deliveryType === "delivery" && (
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Entrega</span>
-                <span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={customDeliveryFee}
+                    onChange={(e) => {
+                      setCustomDeliveryFee(e.target.value);
+                      setDeliveryFeeOverridden(true);
+                    }}
+                    className="w-20 rounded border border-border bg-background px-2 py-1 text-xs font-bold text-foreground text-right"
+                  />
+                </div>
               </div>
             )}
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Desconto</span>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">- R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  className="w-20 rounded border border-border bg-background px-2 py-1 text-xs font-bold text-destructive text-right"
+                />
+              </div>
+            </div>
             <div className="flex justify-between text-base font-bold text-foreground">
               <span>Total</span>
               <span className="text-primary">R$ {total.toFixed(2).replace(".", ",")}</span>
