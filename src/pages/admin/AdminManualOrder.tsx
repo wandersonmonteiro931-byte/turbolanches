@@ -94,6 +94,20 @@ const AdminManualOrder = () => {
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
 
   useEffect(() => {
+    setSelectedCartItemIds((prev) => {
+      const cartIds = cart.map((item) => item.product.id);
+      const validPrev = prev.filter((id) => cartIds.includes(id));
+      const next = validPrev.length > 0 ? validPrev : cartIds;
+
+      if (next.length === prev.length && next.every((id, idx) => id === prev[idx])) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [cart]);
+
+  useEffect(() => {
     const load = async () => {
       const [prodRes, catRes, zonesRes, addonsRes, linksRes] = await Promise.all([
         supabase.from("products").select("id, name, price, category_id, image_url").eq("active", true),
