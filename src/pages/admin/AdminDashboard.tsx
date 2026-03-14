@@ -88,7 +88,7 @@ const AdminDashboard = () => {
   const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(getTodayBusinessDay());
   const [searchQuery, setSearchQuery] = useState("");
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
