@@ -209,39 +209,96 @@ const AdminAddons = () => {
               </label>
 
               {/* Apply to all or selected */}
-              <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="space-y-3 rounded-lg border border-border p-3">
                 <p className="text-sm font-semibold text-foreground">Aplicar a:</p>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="apply"
-                    checked={form.apply_to_all}
-                    onChange={() => setForm({ ...form, apply_to_all: true })}
-                  />
-                  Todos os produtos
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    name="apply"
-                    checked={!form.apply_to_all}
-                    onChange={() => setForm({ ...form, apply_to_all: false })}
-                  />
-                  Produtos selecionados
-                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, apply_to_all: true })}
+                    className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                      form.apply_to_all
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground"
+                    }`}
+                  >
+                    Todos os produtos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, apply_to_all: false })}
+                    className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                      !form.apply_to_all
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-background text-muted-foreground"
+                    }`}
+                  >
+                    Lista de produtos
+                  </button>
+                </div>
 
                 {!form.apply_to_all && (
-                  <div className="mt-2 max-h-48 space-y-1 overflow-auto rounded-lg border border-border bg-background p-2">
-                    {products.map((p) => (
-                      <label key={p.id} className="flex items-center gap-2 text-sm py-1">
-                        <input
-                          type="checkbox"
-                          checked={form.selected_products.includes(p.id)}
-                          onChange={() => toggleProduct(p.id)}
-                        />
-                        <span className="text-foreground">{p.name}</span>
-                      </label>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        {form.selected_products.length} produto(s) selecionado(s)
+                      </p>
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, selected_products: products.map((p) => p.id) }))}
+                          className="rounded border border-border px-2 py-1 text-[10px] font-bold text-foreground"
+                        >
+                          Marcar todos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm((prev) => ({ ...prev, selected_products: [] }))}
+                          className="rounded border border-border px-2 py-1 text-[10px] font-bold text-muted-foreground"
+                        >
+                          Limpar
+                        </button>
+                      </div>
+                    </div>
+
+                    <input
+                      placeholder="Buscar produto..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs"
+                    />
+
+                    <div className="max-h-56 space-y-1 overflow-auto rounded-lg border border-border bg-background p-2">
+                      {filteredProducts.map((p) => {
+                        const selected = form.selected_products.includes(p.id);
+                        return (
+                          <button
+                            type="button"
+                            key={p.id}
+                            onClick={() => toggleProduct(p.id)}
+                            className={`flex w-full items-center justify-between rounded-lg border px-2 py-2 text-left transition-colors ${
+                              selected
+                                ? "border-primary/30 bg-primary/10"
+                                : "border-transparent bg-card hover:border-border"
+                            }`}
+                          >
+                            <span className="text-xs text-foreground">{p.name}</span>
+                            <div className="flex items-center gap-1">
+                              {p.is_combo && (
+                                <span className="rounded bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground">
+                                  COMBO
+                                </span>
+                              )}
+                              <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                                {selected ? "✓" : "+"}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                      {filteredProducts.length === 0 && (
+                        <p className="py-3 text-center text-xs text-muted-foreground">Nenhum produto encontrado</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
