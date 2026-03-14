@@ -151,14 +151,22 @@ const Checkout = () => {
 
   // Delivery fee only applies for delivery type
   const rawFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
-  const isTempFree = matchedZone?.temp_free_delivery || deliveryConfig?.temp_free_delivery_all;
-  const isAutoFree = deliveryConfig &&
+  const isTempFree = Boolean(matchedZone?.temp_free_delivery || deliveryConfig?.temp_free_delivery_all);
+  const isKmFree = Boolean(
+    deliveryConfig &&
+    deliveryConfig.free_delivery_max_km > 0 &&
+    matchedZone?.distance_km !== null &&
+    matchedZone?.distance_km !== undefined &&
+    matchedZone.distance_km >= 0 &&
+    matchedZone.distance_km <= deliveryConfig.free_delivery_max_km,
+  );
+  const isMinOrderFree = Boolean(
+    deliveryConfig &&
     deliveryConfig.free_delivery_min_order > 0 &&
-    totalPrice >= deliveryConfig.free_delivery_min_order &&
-    (deliveryConfig.free_delivery_max_km === 0 ||
-      (matchedZone?.distance_km !== null && matchedZone?.distance_km !== undefined && matchedZone.distance_km <= deliveryConfig.free_delivery_max_km));
+    totalPrice >= deliveryConfig.free_delivery_min_order,
+  );
 
-  const deliveryFee = deliveryType === "pickup" ? 0 : ((isTempFree || isAutoFree) ? 0 : rawFee);
+  const deliveryFee = deliveryType === "pickup" ? 0 : ((isTempFree || isKmFree || isMinOrderFree) ? 0 : rawFee);
   const grandTotal = totalPrice + deliveryFee;
 
   // Estimated time
