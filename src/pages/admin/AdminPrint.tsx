@@ -18,7 +18,6 @@ const AdminPrint = () => {
 
   // Map legacy types and resolve the actual template type to load
   const resolveType = (t: string) => {
-    if (t === "pedido_obrigado" || t === "entrega_cliente") return "pedido";
     if (t === "cozinha" || t === "entrega") return "pedido";
     if (t === "cliente") return "obrigado";
     return t;

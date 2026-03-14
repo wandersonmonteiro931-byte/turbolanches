@@ -713,9 +713,9 @@ const AdminOrders = () => {
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Pedido
                   </button>
-                  <button onClick={() => printPedidoObrigado(order.id)}
+                  <button onClick={() => printReceipt(order.id, "obrigado")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Pedido+Obrigado
+                    <Printer size={14} /> Obrigado
                   </button>
                 </div>
 
