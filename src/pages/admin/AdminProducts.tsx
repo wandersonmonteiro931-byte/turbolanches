@@ -14,6 +14,7 @@ interface Product {
   category_id: string | null;
   active: boolean;
   popular: boolean;
+  is_combo: boolean;
   sort_order: number;
 }
 
