@@ -31,6 +31,12 @@
 
   <body>
     <div id="root"></div>
+    <script>
+      // Suppress __LOVA_FIX_TRIGGER__ before any module loads
+      try{if(typeof __LOVA_FIX_TRIGGER__==="undefined"){window.__LOVA_FIX_TRIGGER__=false}}catch(e){window.__LOVA_FIX_TRIGGER__=false}
+      window.addEventListener("error",function(e){if(e.message&&e.message.indexOf("__LOVA_FIX_TRIGGER__")!==-1){e.preventDefault()}});
+      window.addEventListener("unhandledrejection",function(e){var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");if(m.indexOf("__LOVA_FIX_TRIGGER__")!==-1){e.preventDefault()}});
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
