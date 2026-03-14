@@ -756,7 +756,7 @@ const AdminDashboard = () => {
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      {" · "}{order.payment_method.toUpperCase()}
+                      {" · "}{getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                       {profile?.full_name ? ` · ${profile.full_name}` : ""}
                     </p>
                   </div>
