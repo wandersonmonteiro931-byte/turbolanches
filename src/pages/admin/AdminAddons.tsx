@@ -36,6 +36,7 @@ const AdminAddons = () => {
     apply_to_all: true,
     selected_products: [] as string[],
   });
+  const [productSearch, setProductSearch] = useState("");
 
   const fetchData = async () => {
     const [addonsRes, productsRes, linksRes] = await Promise.all([
