@@ -190,7 +190,7 @@ const AdminManualOrder = () => {
           return { ...i, quantity: newQty, addons: updatedAddons };
         });
       }
-      return [...prev, { product, quantity: 1, observations: "", customPrice: product.price, isCombo: false, addons: [] }];
+      return [...prev, { product, quantity: 1, observations: "", customPrice: product.price, isCombo: isProductCombo(product), addons: [] }];
     });
   };
 
