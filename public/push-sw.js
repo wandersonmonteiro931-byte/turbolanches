@@ -1,8 +1,41 @@
-// SW Version 2 — forces update on existing installs
-var SW_VERSION = "v2";
+// SW Version 3 — resilient global probe suppression + immediate update
+var SW_VERSION = "v3";
+var __LOVA_FIX_TRIGGER__ = false;
+
+function isLovaProbeMessage(message) {
+  return typeof message === "string" && message.indexOf("__LOVA_FIX_TRIGGER__") !== -1;
+}
+
+self.addEventListener(
+  "error",
+  function (event) {
+    if (isLovaProbeMessage((event && event.message) || "")) {
+      event.preventDefault();
+    }
+  },
+  true,
+);
+
+self.addEventListener(
+  "unhandledrejection",
+  function (event) {
+    var message = "";
+    try {
+      message = event && event.reason && event.reason.message
+        ? event.reason.message
+        : String((event && event.reason) || "");
+    } catch (e) {
+      message = "";
+    }
+    if (isLovaProbeMessage(message)) {
+      event.preventDefault();
+    }
+  },
+  true,
+);
 
 // Activate immediately, replacing old service worker
-self.addEventListener("install", function (event) {
+self.addEventListener("install", function () {
   self.skipWaiting();
 });
 
@@ -16,7 +49,7 @@ self.addEventListener("fetch", function (event) {
   event.respondWith(
     fetch(event.request).catch(function () {
       return caches.match(event.request);
-    })
+    }),
   );
 });
 
@@ -56,7 +89,7 @@ self.addEventListener("push", function (event) {
         requireInteraction: false,
         data: { url: url },
       });
-    })()
+    })(),
   );
 });
 
@@ -78,6 +111,6 @@ self.addEventListener("notificationclick", function (event) {
           }
         }
         return self.clients.openWindow(url);
-      })
+      }),
   );
 });

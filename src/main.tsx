@@ -1,41 +1,60 @@
 import "./index.css";
 
+const LOVA_PROBE = "__LOVA_FIX_TRIGGER__";
+
+const suppressLova = (message: unknown) =>
+  typeof message === "string" && message.includes(LOVA_PROBE);
+
 const ensureLovaFixTrigger = () => {
   try {
-    (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+    (0, eval)(`var ${LOVA_PROBE} = false;`);
   } catch {}
 
   try {
-    Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
-      value: false,
-      writable: true,
-      configurable: true,
-    });
-  } catch {
-    (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
-  }
-
-  try {
-    (window as any).__LOVA_FIX_TRIGGER__ = false;
+    new Function(`var ${LOVA_PROBE} = false;`)();
   } catch {}
 
   try {
-    (self as any).__LOVA_FIX_TRIGGER__ = false;
+    (globalThis as any)[LOVA_PROBE] = false;
+  } catch {}
+
+  try {
+    (window as any)[LOVA_PROBE] = false;
+  } catch {}
+
+  try {
+    (self as any)[LOVA_PROBE] = false;
   } catch {}
 };
 
-const suppressLova = (msg: string) => msg.includes("__LOVA_FIX_TRIGGER__");
-
 ensureLovaFixTrigger();
 
-window.addEventListener("unhandledrejection", (e) => {
-  const m = e.reason instanceof Error ? e.reason.message : String(e.reason ?? "");
-  if (suppressLova(m)) e.preventDefault();
-});
+window.addEventListener(
+  "unhandledrejection",
+  (event) => {
+    const message = event.reason instanceof Error ? event.reason.message : String(event.reason ?? "");
+    if (suppressLova(message)) event.preventDefault();
+  },
+  true,
+);
 
-window.addEventListener("error", (e) => {
-  if (suppressLova(e.message || "")) e.preventDefault();
-});
+window.addEventListener(
+  "error",
+  (event) => {
+    if (suppressLova(event.message || "")) event.preventDefault();
+  },
+  true,
+);
+
+window.onerror = (message) => suppressLova(String(message ?? ""));
+window.onunhandledrejection = (event) => {
+  const message = event.reason instanceof Error ? event.reason.message : String(event.reason ?? "");
+  if (suppressLova(message)) {
+    event.preventDefault();
+    return true;
+  }
+  return false;
+};
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});
