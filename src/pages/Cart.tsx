@@ -94,7 +94,11 @@ const Cart = () => {
                   <h3 className="font-semibold text-foreground text-sm truncate">{item.product.name}</h3>
                   {item.selectedAddons.length > 0 && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      + {item.selectedAddons.map((a) => `${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(", ")}
+                      + {item.selectedAddons.map((a) => {
+                        const baseQty = a.quantity || 1;
+                        const displayQty = item.product.isCombo ? baseQty * item.quantity : baseQty;
+                        return `${a.name}${displayQty > 1 ? ` x${displayQty}` : ""}`;
+                      }).join(", ")}
                     </p>
                   )}
                   {item.observations && (

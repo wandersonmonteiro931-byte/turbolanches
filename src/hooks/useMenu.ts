@@ -93,6 +93,12 @@ export function useProducts() {
         }
       }
 
+      const comboCategoryIds = new Set(
+        (categoriesRes.data || [])
+          .filter((c: any) => c.name?.toLowerCase().includes("combo"))
+          .map((c: any) => c.id)
+      );
+
       if (productsRes.data) {
         setProducts(
           productsRes.data.map((p: any) => ({
@@ -107,6 +113,7 @@ export function useProducts() {
             ratingCount: 0,
             popular: p.popular,
             active: p.active,
+            isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
           }))
         );
