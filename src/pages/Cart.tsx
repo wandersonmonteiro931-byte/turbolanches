@@ -35,14 +35,23 @@ const Cart = () => {
         if (profile?.neighborhood) {
           const { data: zone } = await supabase
             .from("delivery_zones")
-            .select("delivery_fee, temp_free_delivery")
+            .select("delivery_fee, temp_free_delivery, distance_km")
             .ilike("neighborhood", profile.neighborhood)
             .single();
 
           if (zone) {
-            const isTempFree = zone.temp_free_delivery || config?.temp_free_delivery_all;
-            const isAutoFree = config && config.free_delivery_min_order > 0 && totalPrice >= config.free_delivery_min_order;
-            setDeliveryFee((isTempFree || isAutoFree) ? 0 : Number(zone.delivery_fee));
+            const isTempFree = Boolean(zone.temp_free_delivery || config?.temp_free_delivery_all);
+            const isKmFree = Boolean(
+              config &&
+              config.free_delivery_max_km > 0 &&
+              zone.distance_km !== null &&
+              Number(zone.distance_km) >= 0 &&
+              Number(zone.distance_km) <= config.free_delivery_max_km,
+            );
+            const isMinOrderFree = Boolean(
+              config && config.free_delivery_min_order > 0 && totalPrice >= config.free_delivery_min_order,
+            );
+            setDeliveryFee((isTempFree || isKmFree || isMinOrderFree) ? 0 : Number(zone.delivery_fee));
           }
         }
       }
