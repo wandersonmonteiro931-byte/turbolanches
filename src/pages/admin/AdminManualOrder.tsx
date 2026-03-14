@@ -446,7 +446,14 @@ const AdminManualOrder = () => {
                     inCart ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted"
                   }`}>
                   <p className="text-xs font-bold text-foreground line-clamp-2">{product.name}</p>
-                  <p className="mt-1 text-xs font-semibold text-primary">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <p className="text-xs font-semibold text-primary">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                    {isProductCombo(product) && (
+                      <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground">
+                        COMBO
+                      </span>
+                    )}
+                  </div>
                   {inCart && (
                     <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                       {inCart.quantity}
