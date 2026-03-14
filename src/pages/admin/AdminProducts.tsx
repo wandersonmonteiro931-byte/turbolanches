@@ -145,6 +145,15 @@ const AdminProducts = () => {
                   Combo
                 </label>
               </div>
+              {form.is_combo && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <label className="text-sm font-semibold text-foreground">Quantidade de itens no combo</label>
+                  <p className="text-[11px] text-muted-foreground">Os adicionais serão multiplicados por essa quantidade automaticamente</p>
+                  <input type="number" min="1" step="1" value={form.combo_item_count}
+                    onChange={(e) => setForm({ ...form, combo_item_count: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" placeholder="Ex: 4 (4 sanduíches)" />
+                </div>
+              )}
               <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
             </div>
           </div>

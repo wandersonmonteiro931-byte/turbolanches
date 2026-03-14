@@ -114,6 +114,7 @@ export function useProducts() {
             popular: p.popular,
             active: p.active,
             isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
+            comboItemCount: p.combo_item_count || 1,
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
           }))
         );
