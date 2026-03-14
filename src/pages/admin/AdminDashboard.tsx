@@ -879,13 +879,13 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => printReceipt(order.id, "cozinha")}
+                      <button onClick={() => printReceipt(order.id, "pedido")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Cozinha
+                        <Printer size={14} /> Pedido
                       </button>
-                      <button onClick={() => printEntregaCliente(order.id)}
+                      <button onClick={() => printPedidoObrigado(order.id)}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Entrega+Cliente
+                        <Printer size={14} /> Pedido+Obrigado
                       </button>
                       {!isEditing && (
                         <button onClick={() => startEdit(order)}

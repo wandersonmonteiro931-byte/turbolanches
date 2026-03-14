@@ -182,8 +182,8 @@ const AdminManualOrder = () => {
 
       toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
 
-      // Impressão automática da comanda de cozinha
-      const printUrl = `/admin/imprimir/${order.id}?tipo=cozinha`;
+      // Impressão automática da comanda de pedido
+      const printUrl = `/admin/imprimir/${order.id}?tipo=pedido`;
       window.open(printUrl, "_blank", "width=300,height=600");
 
       navigate("/admin");
