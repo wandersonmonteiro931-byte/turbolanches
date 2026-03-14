@@ -37,10 +37,10 @@ export function useProducts() {
 
   useEffect(() => {
     const fetch = async () => {
-      const [productsRes, addonsRes, linksRes] = await Promise.all([
+      const [productsRes, addonsRes, linksRes, categoriesRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order")
+          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo")
           .order("sort_order")
           .order("name"),
         supabase
@@ -51,6 +51,10 @@ export function useProducts() {
         supabase
           .from("addon_product_links")
           .select("addon_id, product_id"),
+        supabase
+          .from("categories")
+          .select("id, name")
+          .eq("active", true),
       ]);
 
       // Build a map: addon_id -> list of product_ids it's linked to
