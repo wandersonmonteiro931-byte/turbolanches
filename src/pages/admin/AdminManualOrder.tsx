@@ -163,6 +163,13 @@ const AdminManualOrder = () => {
     return Array.from(addonMap.values());
   };
 
+  const isProductCombo = (product: Product) => {
+    const category = categories.find((c) => c.id === product.category_id);
+    const categorySuggestsCombo = category?.name?.toLowerCase().includes("combo") || false;
+    const nameSuggestsCombo = product.name.toLowerCase().includes("combo");
+    return Boolean(product.is_combo) || categorySuggestsCombo || nameSuggestsCombo;
+  };
+
   const filteredProducts = products.filter((p) => {
     const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
