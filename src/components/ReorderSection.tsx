@@ -135,7 +135,7 @@ export default function ReorderSection() {
       }
 
       if (addedCount > 0) {
-        toast.success(`${addedCount} item(ns) adicionado(s) ao carrinho!`);
+        toast.success(`${addedCount} item(ns) adicionado(s) ao carrinho! A taxa de entrega será calculada com os valores atuais.`);
       } else {
         toast.error("Nenhum item disponível para repetir.");
       }
