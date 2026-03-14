@@ -71,7 +71,7 @@ const AdminProducts = () => {
       name: form.name, description: form.description, price: parseFloat(form.price),
       original_price: form.original_price ? parseFloat(form.original_price) : null,
       image_url: form.image_url, category_id: form.category_id || null,
-      active: form.active, popular: form.popular, is_combo: form.is_combo, sort_order: parseInt(form.sort_order) || 0,
+      active: form.active, popular: form.popular, is_combo: form.is_combo, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
     };
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
