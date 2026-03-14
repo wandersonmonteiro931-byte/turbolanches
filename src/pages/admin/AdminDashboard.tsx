@@ -298,7 +298,7 @@ const AdminDashboard = () => {
     }
 
     toAccept.forEach((order, i) => {
-      setTimeout(() => printReceipt(order.id, "cozinha"), i * 2000);
+      setTimeout(() => printReceipt(order.id, "pedido"), i * 2000);
     });
 
     toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
