@@ -312,7 +312,6 @@ const AdminManualOrder = () => {
   const handleSubmit = async () => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
-    if (!customerPhone) { toast.error("WhatsApp do cliente é obrigatório"); return; }
     if (deliveryType === "delivery") {
       if (!addressStreet) { toast.error("Preencha a rua para delivery"); return; }
       if (!addressNeighborhood) { toast.error("Preencha o bairro para delivery"); return; }
