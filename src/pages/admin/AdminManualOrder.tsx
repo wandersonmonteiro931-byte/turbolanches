@@ -312,7 +312,6 @@ const AdminManualOrder = () => {
   const handleSubmit = async () => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
-    if (!customerPhone) { toast.error("WhatsApp do cliente é obrigatório"); return; }
     if (deliveryType === "delivery") {
       if (!addressStreet) { toast.error("Preencha a rua para delivery"); return; }
       if (!addressNeighborhood) { toast.error("Preencha o bairro para delivery"); return; }
@@ -383,270 +382,317 @@ const AdminManualOrder = () => {
 
   const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
   const fmt = (v: number) => v.toFixed(2).replace(".", ",");
+  const hasCart = cart.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 flex items-center gap-3 bg-card/95 px-4 py-3 backdrop-blur-xl border-b border-border shadow-sm">
-        <button onClick={() => navigate("/admin")} className="rounded-xl p-2 hover:bg-muted transition-colors">
-          <ArrowLeft size={20} className="text-foreground" />
-        </button>
-        <h1 className="text-lg font-extrabold text-foreground tracking-tight">Novo Pedido</h1>
-        <AnimatePresence>
-          {cartItemCount > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="ml-auto flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-md"
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.18),_transparent_55%)]" />
+
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl items-center gap-3">
+          <button onClick={() => navigate("/admin")} className="rounded-xl p-2 transition-colors hover:bg-muted">
+            <ArrowLeft size={20} className="text-foreground" />
+          </button>
+          <div>
+            <h1 className="text-xl font-black tracking-tight text-foreground">Novo Pedido Manual</h1>
+            <p className="text-xs text-muted-foreground">Tela redesenhada com atualização dinâmica de produtos, frete e adicionais.</p>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => void loadLatestData()}
+              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
             >
-              <ShoppingBag size={14} /> {cartItemCount}
-            </motion.span>
-          )}
-        </AnimatePresence>
+              Atualizar dados
+            </button>
+            <AnimatePresence>
+              {cartItemCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-md"
+                >
+                  <ShoppingBag size={13} /> {cartItemCount}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 pb-36 space-y-4 pt-4">
-        {/* Delivery Type */}
-        <SectionCard title="Tipo do Pedido" icon="📋">
-          <div className="grid grid-cols-5 gap-1.5">
-            {deliveryTypes.map((dt) => (
-              <motion.button
-                key={dt.id}
-                whileTap={{ scale: 0.93 }}
-                onClick={() => setDeliveryType(dt.id)}
-                className={`rounded-2xl px-2 py-3 text-center transition-all ${
-                  deliveryType === dt.id
-                    ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20"
-                    : "bg-background border border-border text-foreground hover:bg-muted"
-                }`}
-              >
-                <div className="text-xl">{dt.icon}</div>
-                <div className="mt-1 text-[10px] font-bold leading-tight">{dt.label}</div>
-              </motion.button>
-            ))}
-          </div>
-        </SectionCard>
+      <main className="mx-auto grid w-full max-w-7xl gap-4 px-4 pb-12 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
+        <section className="space-y-4">
+          <SectionCard title="1. Contexto do Pedido" icon="🧭" className="animate-enter">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+              {deliveryTypes.map((dt) => (
+                <motion.button
+                  key={dt.id}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setDeliveryType(dt.id)}
+                  className={`rounded-2xl border px-2 py-3 text-center transition-all ${
+                    deliveryType === dt.id
+                      ? "border-primary bg-primary text-primary-foreground shadow-lg"
+                      : "border-border bg-background text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <div className="text-xl">{dt.icon}</div>
+                  <div className="mt-1 text-[10px] font-extrabold uppercase tracking-wide">{dt.label}</div>
+                </motion.button>
+              ))}
+            </div>
 
-        {/* Customer Info */}
-        <SectionCard title="Cliente" icon="👤">
-          <CustomerSearch
-            onSelect={(profile) => {
-              setCustomerName(profile.full_name);
-              setCustomerPhone(profile.phone);
-              setSelectedCustomerId(profile.user_id);
-              setSelectedCustomerCode(`T${String(profile.customer_code).padStart(5, "0")}`);
-              if (deliveryType === "delivery") {
-                setAddressStreet(profile.street || "");
-                setAddressNumber(profile.number || "");
-                setAddressNeighborhood(profile.neighborhood || "");
-                setAddressComplement(
-                  [profile.complement, profile.quadra ? `Qd ${profile.quadra}` : "", profile.lote ? `Lt ${profile.lote}` : ""]
-                    .filter(Boolean)
-                    .join(" ")
-                );
-              }
-            }}
-            onClear={() => { setSelectedCustomerId(null); setSelectedCustomerCode(""); }}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              placeholder="Nome"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
-            />
-            <input
-              placeholder="WhatsApp *"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all"
-            />
-          </div>
-
-          {(deliveryType === "mesa" || deliveryType === "consumo") && (
-            <motion.div {...fadeIn}>
-              <input
-                placeholder="Número da mesa"
-                value={tableNumber}
-                onChange={(e) => setTableNumber(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
+            <div className="rounded-2xl border border-border bg-background/70 p-3">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cliente</p>
+              <CustomerSearch
+                onSelect={(profile) => {
+                  setCustomerName(profile.full_name);
+                  setCustomerPhone(profile.phone);
+                  setSelectedCustomerId(profile.user_id);
+                  setSelectedCustomerCode(`T${String(profile.customer_code).padStart(5, "0")}`);
+                  if (deliveryType === "delivery") {
+                    setAddressStreet(profile.street || "");
+                    setAddressNumber(profile.number || "");
+                    setAddressNeighborhood(profile.neighborhood || "");
+                    setAddressComplement(
+                      [profile.complement, profile.quadra ? `Qd ${profile.quadra}` : "", profile.lote ? `Lt ${profile.lote}` : ""]
+                        .filter(Boolean)
+                        .join(" "),
+                    );
+                  }
+                }}
+                onClear={() => {
+                  setSelectedCustomerId(null);
+                  setSelectedCustomerCode("");
+                }}
               />
-            </motion.div>
-          )}
 
-          <AnimatePresence>
-            {deliveryType === "delivery" && (
-              <motion.div {...fadeIn} className="space-y-2">
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input
-                  placeholder="Rua *"
-                  value={addressStreet}
-                  onChange={(e) => setAddressStreet(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                  placeholder="Nome do cliente"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
                   <input
-                    placeholder="Número"
-                    value={addressNumber}
-                    onChange={(e) => setAddressNumber(e.target.value)}
-                    className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                    placeholder="WhatsApp (opcional)"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                  <input
-                    placeholder="Complemento *"
-                    value={addressComplement}
-                    onChange={(e) => setAddressComplement(e.target.value)}
-                    className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                  />
+                  <p className="text-[11px] text-muted-foreground">Você pode criar pedido sem telefone.</p>
                 </div>
-                <NeighborhoodAutocomplete
-                  value={addressNeighborhood}
-                  onChange={(val) => {
-                    setAddressNeighborhood(val);
-                    setDeliveryFeeOverridden(false);
-                  }}
-                  placeholder="Bairro *"
-                  allowInactive
-                  refreshKey={dataRefreshKey}
-                />
-                {matchedZone && (
-                  <motion.div {...fadeIn} className="flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/10 px-3 py-2">
-                    <span className="text-xs font-bold text-primary">
-                      Taxa: R$ {fmt(autoDeliveryFee)}
-                    </span>
-                    {autoDeliveryReason && (
-                      <span className="text-[10px] font-semibold text-primary/70">{autoDeliveryReason}</span>
-                    )}
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
 
-          <textarea
-            placeholder="Observações do pedido"
-            value={observations}
-            onChange={(e) => setObservations(e.target.value)}
-            rows={2}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:ring-2 focus:ring-primary/20 focus:outline-none"
-          />
-        </SectionCard>
-
-        {/* Product Catalog */}
-        <SectionCard title="Adicionar Itens" icon="🛒">
-          <button
-            onClick={() => setShowProducts(!showProducts)}
-            className="flex w-full items-center justify-between rounded-xl bg-muted px-3 py-2 text-xs font-bold text-foreground"
-          >
-            <span>{showProducts ? "Ocultar catálogo" : "Mostrar catálogo"}</span>
-            {showProducts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-
-          <AnimatePresence>
-            {showProducts && (
-              <motion.div {...fadeIn} className="space-y-2">
-                <div className="flex items-center gap-2 rounded-xl bg-background border border-border px-3 py-2.5">
-                  <Search size={16} className="text-muted-foreground" />
+              {(deliveryType === "mesa" || deliveryType === "consumo") && (
+                <motion.div {...fadeIn} className="mt-2">
                   <input
-                    placeholder="Buscar produto..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                    placeholder="Número da mesa"
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                </div>
+                </motion.div>
+              )}
+            </div>
 
-                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
-                  <button
-                    onClick={() => setSelectedCategory(null)}
-                    className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                      !selectedCategory ? "bg-primary text-primary-foreground shadow" : "bg-background border border-border text-foreground"
-                    }`}
-                  >
-                    Todos
-                  </button>
-                  {categories.map((cat) => (
+            <AnimatePresence>
+              {deliveryType === "delivery" && (
+                <motion.div {...fadeIn} className="space-y-2 rounded-2xl border border-border bg-background/70 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço de entrega</p>
+                    <span className="text-[11px] font-medium text-muted-foreground">Obrigatório: rua + complemento + bairro</span>
+                  </div>
+
+                  <input
+                    placeholder="Rua *"
+                    value={addressStreet}
+                    onChange={(e) => setAddressStreet(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <input
+                      placeholder="Número"
+                      value={addressNumber}
+                      onChange={(e) => setAddressNumber(e.target.value)}
+                      className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <input
+                      placeholder="Complemento *"
+                      value={addressComplement}
+                      onChange={(e) => setAddressComplement(e.target.value)}
+                      className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+
+                  <NeighborhoodAutocomplete
+                    value={addressNeighborhood}
+                    onChange={(val, fee) => {
+                      setAddressNeighborhood(val);
+                      setDeliveryFeeOverridden(false);
+                      if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2));
+                    }}
+                    placeholder="Bairro *"
+                    allowInactive
+                    refreshKey={dataRefreshKey}
+                  />
+
+                  {matchedZone && (
+                    <motion.div {...fadeIn} className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
+                      <span className="text-xs font-bold text-primary">Taxa atual: R$ {fmt(autoDeliveryFee)}</span>
+                      {autoDeliveryReason && <span className="text-[11px] font-semibold text-primary/80">{autoDeliveryReason}</span>}
+                      {!autoDeliveryReason && matchedZone.temp_free_delivery && (
+                        <span className="text-[11px] font-semibold text-primary/80">Frete promocional aplicado</span>
+                      )}
+                    </motion.div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <textarea
+              placeholder="Observações do pedido"
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              rows={3}
+              className="w-full resize-none rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </SectionCard>
+
+          <SectionCard title="2. Catálogo Atualizado" icon="🛒" className="animate-enter">
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/60 px-3 py-2">
+              <div className="text-xs font-bold text-foreground">Produtos e preços sincronizados no acesso da tela</div>
+              <button
+                onClick={() => setShowProducts((prev) => !prev)}
+                className="flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition-colors hover:bg-muted"
+              >
+                {showProducts ? "Ocultar" : "Mostrar"}
+                {showProducts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {showProducts && (
+                <motion.div {...fadeIn} className="space-y-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
+                    <Search size={16} className="text-muted-foreground" />
+                    <input
+                      placeholder="Buscar item, combo ou produto..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
                     <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => setSelectedCategory(null)}
                       className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                        selectedCategory === cat.id ? "bg-primary text-primary-foreground shadow" : "bg-background border border-border text-foreground"
+                        !selectedCategory ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
                       }`}
                     >
-                      {cat.name}
+                      Todos
                     </button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {filteredProducts.map((product) => {
-                    const inCart = cart.find((i) => i.product.id === product.id);
-                    return (
-                      <motion.button
-                        key={product.id}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => addToCart(product)}
-                        className={`relative rounded-2xl border p-3 text-left transition-all ${
-                          inCart ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-background hover:bg-muted"
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
+                          selectedCategory === cat.id ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
                         }`}
                       >
-                        <p className="text-xs font-bold text-foreground line-clamp-2">{product.name}</p>
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <p className="text-xs font-extrabold text-primary">R$ {fmt(product.price)}</p>
-                          {isProductCombo(product) && (
-                            <span className="rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground">COMBO</span>
-                          )}
-                        </div>
-                        <AnimatePresence>
-                          {inCart && (
-                            <motion.span
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              exit={{ scale: 0 }}
-                              className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow-lg"
-                            >
-                              {inCart.quantity}
-                            </motion.span>
-                          )}
-                        </AnimatePresence>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </SectionCard>
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
 
-        {/* Cart Items */}
-        <AnimatePresence>
-          {cart.length > 0 && (
-            <SectionCard title={`Itens (${cartItemCount})`} icon="📦">
-              <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                    {filteredProducts.map((product) => {
+                      const inCart = cart.find((i) => i.product.id === product.id);
+                      return (
+                        <motion.button
+                          key={product.id}
+                          whileHover={{ y: -3 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => addToCart(product)}
+                          className={`relative rounded-2xl border p-3 text-left transition-all ${
+                            inCart ? "border-primary bg-primary/10 shadow-sm" : "border-border bg-background hover:bg-muted"
+                          }`}
+                        >
+                          <p className="line-clamp-2 text-sm font-bold text-foreground">{product.name}</p>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <p className="text-sm font-black text-primary">R$ {fmt(product.price)}</p>
+                            {isProductCombo(product) && (
+                              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground">COMBO</span>
+                            )}
+                          </div>
+
+                          <AnimatePresence>
+                            {inCart && (
+                              <motion.span
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                exit={{ scale: 0 }}
+                                className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+                              >
+                                {inCart.quantity}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </SectionCard>
+        </section>
+
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+          <SectionCard title={`Itens no Carrinho (${cartItemCount})`} icon="📦" className="animate-enter">
+            {!hasCart ? (
+              <div className="rounded-xl border border-dashed border-border bg-background/70 px-4 py-6 text-center text-sm text-muted-foreground">
+                Adicione itens no catálogo para começar.
+              </div>
+            ) : (
+              <div className="max-h-[40vh] space-y-3 overflow-y-auto pr-1">
                 {cart.map((item) => {
                   const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
                   return (
-                    <motion.div key={item.product.id} layout {...fadeIn} className="rounded-xl bg-background border border-border p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-foreground">{item.product.name}</span>
-                        <span className="text-sm font-extrabold text-primary">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
+                    <motion.div key={item.product.id} layout {...fadeIn} className="rounded-xl border border-border bg-background p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-bold text-foreground">{item.product.name}</p>
+                        <button
+                          onClick={() => removeItem(item.product.id)}
+                          className="rounded-lg p-1.5 text-destructive transition-colors hover:bg-destructive/10"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <div className="flex items-center gap-2 flex-wrap">
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-1 rounded-xl bg-muted p-0.5">
-                          <button onClick={() => updateQuantity(item.product.id, -1)} className="rounded-lg p-1.5 text-foreground hover:bg-background transition-colors">
-                            <Minus size={14} />
+                          <button onClick={() => updateQuantity(item.product.id, -1)} className="rounded-lg p-1.5 transition-colors hover:bg-background">
+                            <Minus size={13} />
                           </button>
                           <span className="min-w-[24px] text-center text-sm font-bold text-foreground">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.product.id, 1)} className="rounded-lg p-1.5 text-foreground hover:bg-background transition-colors">
-                            <Plus size={14} />
+                          <button onClick={() => updateQuantity(item.product.id, 1)} className="rounded-lg p-1.5 transition-colors hover:bg-background">
+                            <Plus size={13} />
                           </button>
                         </div>
+
                         <button
                           onClick={() => toggleCombo(item.product.id)}
-                          className={`flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition-all ${
-                            item.isCombo ? "bg-accent text-accent-foreground shadow-sm" : "bg-muted text-muted-foreground"
+                          className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-bold ${
+                            item.isCombo ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
                           }`}
                         >
                           <Package size={12} /> Combo
                         </button>
+
                         <div className="flex items-center gap-1 rounded-xl bg-muted px-2 py-1">
                           <Edit2 size={11} className="text-muted-foreground" />
                           <input
@@ -654,21 +700,20 @@ const AdminManualOrder = () => {
                             step="0.01"
                             value={item.customPrice}
                             onChange={(e) => updateItemPrice(item.product.id, e.target.value)}
-                            className="w-16 bg-transparent text-xs font-bold text-foreground text-center focus:outline-none"
+                            className="w-14 bg-transparent text-center text-xs font-bold text-foreground focus:outline-none"
                           />
                         </div>
-                        <button onClick={() => removeItem(item.product.id)} className="rounded-xl p-1.5 text-destructive hover:bg-destructive/10 transition-colors ml-auto">
-                          <Trash2 size={14} />
-                        </button>
                       </div>
+
                       <input
-                        placeholder="Observação do item..."
+                        placeholder="Observação do item"
                         value={item.observations}
                         onChange={(e) => updateItemObs(item.product.id, e.target.value)}
-                        className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
+                        className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                       />
+
                       {item.addons.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="mt-2 flex flex-wrap gap-1">
                           {item.addons.map((a) => (
                             <span key={a.addon_id} className="rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
                               {a.quantity}x {a.name} (+R$ {fmt(a.price * a.quantity)})
@@ -676,149 +721,165 @@ const AdminManualOrder = () => {
                           ))}
                         </div>
                       )}
+
+                      <div className="mt-2 text-right text-xs font-black text-primary">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</div>
                     </motion.div>
                   );
                 })}
               </div>
-            </SectionCard>
-          )}
-        </AnimatePresence>
+            )}
+          </SectionCard>
 
-        {/* Addon Selector */}
-        <AnimatePresence>
-          {cart.length > 0 && (
-            <SectionCard title="Adicionais / Combo" icon="🧩">
-              <ManualOrderAddonSelector
-                items={cart.map((i) => ({ productId: i.product.id, productName: i.product.name, quantity: i.quantity, isCombo: i.isCombo, addons: i.addons }))}
-                availableAddons={getAddonsForSelectedItems().map((a) => ({ id: a.id, name: a.name, price: a.price }))}
-                selectedItemIds={selectedCartItemIds}
-                onToggleCombo={toggleCombo}
-                onToggleSelectItem={toggleSelectItem}
-                onSelectAll={selectAllItems}
-                onClearSelection={clearSelection}
-                onSetAddon={handleSetAddon}
-              />
-            </SectionCard>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {hasCart && (
+              <SectionCard title="Adicionais / Combo" icon="🧩" className="animate-enter">
+                <ManualOrderAddonSelector
+                  items={cart.map((i) => ({
+                    productId: i.product.id,
+                    productName: i.product.name,
+                    quantity: i.quantity,
+                    isCombo: i.isCombo,
+                    addons: i.addons,
+                  }))}
+                  availableAddons={getAddonsForSelectedItems().map((a) => ({ id: a.id, name: a.name, price: a.price }))}
+                  selectedItemIds={selectedCartItemIds}
+                  onToggleCombo={toggleCombo}
+                  onToggleSelectItem={toggleSelectItem}
+                  onSelectAll={selectAllItems}
+                  onClearSelection={clearSelection}
+                  onSetAddon={handleSetAddon}
+                />
+              </SectionCard>
+            )}
+          </AnimatePresence>
 
-        {/* Payment — always visible */}
-        <SectionCard title="Pagamento" icon="💳">
-          <div className="grid grid-cols-5 gap-1.5">
-            {paymentMethods.map((pm) => (
-              <motion.button
-                key={pm.id}
-                whileTap={{ scale: 0.93 }}
-                onClick={() => {
-                  setPaymentMethod(pm.id);
-                  if (pm.id === "pix_pago") setIsPaid(true);
-                  if (pm.id === "pix_entrega") setIsPaid(false);
-                }}
-                className={`rounded-2xl px-1.5 py-3 text-center transition-all ${
-                  paymentMethod === pm.id
-                    ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20"
-                    : "bg-background border border-border text-foreground hover:bg-muted"
+          <SectionCard title="3. Pagamento" icon="💳" className="animate-enter">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {paymentMethods.map((pm) => (
+                <motion.button
+                  key={pm.id}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    setPaymentMethod(pm.id);
+                    if (pm.id === "pix_pago") setIsPaid(true);
+                    if (pm.id === "pix_entrega") setIsPaid(false);
+                  }}
+                  className={`rounded-2xl border px-2 py-3 text-center transition-all ${
+                    paymentMethod === pm.id
+                      ? "border-primary bg-primary text-primary-foreground shadow-md"
+                      : "border-border bg-background text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <div className="text-lg">{pm.icon}</div>
+                  <div className="mt-1 text-[10px] font-extrabold leading-tight">{pm.label}</div>
+                </motion.button>
+              ))}
+            </div>
+
+            {paymentMethod === "pix_entrega" || paymentMethod === "pix_pago" ? (
+              <motion.div
+                {...fadeIn}
+                className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+                  paymentMethod === "pix_pago"
+                    ? "border-accent/40 bg-accent/15 text-accent-foreground"
+                    : "border-primary/20 bg-primary/10 text-foreground"
                 }`}
               >
-                <div className="text-lg">{pm.icon}</div>
-                <div className="mt-1 text-[9px] font-bold leading-tight">{pm.label}</div>
-              </motion.button>
-            ))}
-          </div>
+                {paymentMethod === "pix_pago" ? "✅ PIX PAGO — valor já recebido." : "📱 PIX ENTREGA — cobrar na entrega."}
+              </motion.div>
+            ) : (
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:bg-muted">
+                <input
+                  type="checkbox"
+                  checked={isPaid}
+                  onChange={(e) => setIsPaid(e.target.checked)}
+                  className="h-5 w-5 rounded border-border accent-primary"
+                />
+                <div>
+                  <span className="text-sm font-bold text-foreground">Já está pago</span>
+                  <p className="text-[11px] text-muted-foreground">Nenhum valor a receber.</p>
+                </div>
+              </label>
+            )}
 
-          {(paymentMethod === "pix_entrega" || paymentMethod === "pix_pago") ? (
-            <motion.div {...fadeIn} className={`rounded-xl px-4 py-3 text-sm font-bold ${paymentMethod === "pix_pago" ? "bg-green-500/10 text-green-700 border border-green-500/20" : "bg-primary/5 text-foreground border border-primary/10"}`}>
-              {paymentMethod === "pix_pago" ? "✅ PIX PAGO — valor já recebido." : "📱 PIX ENTREGA — cobrar na entrega."}
-            </motion.div>
-          ) : (
-            <label className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 cursor-pointer hover:bg-muted transition-colors">
-              <input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="h-5 w-5 rounded border-border accent-primary" />
-              <div>
-                <span className="text-sm font-bold text-foreground">Já está pago</span>
-                <p className="text-[11px] text-muted-foreground">Nenhum valor a receber</p>
-              </div>
-            </label>
-          )}
+            {paymentMethod === "dinheiro" && !isPaid && (
+              <motion.div {...fadeIn}>
+                <input
+                  type="number"
+                  placeholder="Troco para quanto? (R$)"
+                  value={changeFor}
+                  onChange={(e) => setChangeFor(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </motion.div>
+            )}
+          </SectionCard>
 
-          {paymentMethod === "dinheiro" && !isPaid && (
-            <motion.div {...fadeIn}>
-              <input
-                type="number"
-                placeholder="Troco para quanto? (R$)"
-                value={changeFor}
-                onChange={(e) => setChangeFor(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:outline-none"
-              />
-            </motion.div>
-          )}
-        </SectionCard>
-      </div>
-
-      {/* Bottom Fixed Bar */}
-      <AnimatePresence>
-        {cart.length > 0 && (
-          <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-xl px-4 py-3 shadow-2xl"
-          >
-            <div className="mx-auto max-w-2xl space-y-1.5">
-              <div className="flex justify-between text-xs text-muted-foreground">
+          <SectionCard title="4. Resumo e Criação" icon="🧾" className="animate-enter">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Subtotal</span>
                 <span>R$ {fmt(subtotal)}</span>
               </div>
+
               {deliveryType === "delivery" && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Entrega</span>
-                  <div className="flex items-center gap-1">
-                    <span>R$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={customDeliveryFee}
-                      onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }}
-                      className="w-16 rounded-lg border border-border bg-background px-2 py-0.5 text-xs font-bold text-foreground text-right focus:outline-none"
-                    />
+                <div className="space-y-1 rounded-xl border border-border bg-background px-3 py-2">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Entrega</span>
+                    <div className="flex items-center gap-1">
+                      <span>R$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={customDeliveryFee}
+                        onChange={(e) => {
+                          setCustomDeliveryFee(e.target.value);
+                          setDeliveryFeeOverridden(true);
+                        }}
+                        className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
+                      />
+                    </div>
                   </div>
+                  {!deliveryFeeOverridden && autoDeliveryReason && (
+                    <p className="text-[11px] font-medium text-primary">{autoDeliveryReason}</p>
+                  )}
                 </div>
               )}
-              {discountValue > 0 && (
-                <div className="flex justify-between text-xs text-destructive font-medium">
-                  <span>Desconto</span>
-                  <span>- R$ {fmt(discountValue)}</span>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Desconto</span>
+                <div className="flex items-center gap-1">
+                  <span>R$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={discount}
+                    onChange={(e) => setDiscount(e.target.value)}
+                    className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
+                  />
                 </div>
-              )}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-foreground">Total</span>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <span>desc:</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      className="w-14 rounded-lg border border-border bg-background px-1.5 py-0.5 text-xs font-bold text-destructive text-right focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <span className="text-lg font-extrabold text-primary">R$ {fmt(total)}</span>
               </div>
+
+              <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-foreground">Total do Pedido</span>
+                  <span className="text-xl font-black text-primary">R$ {fmt(total)}</span>
+                </div>
+              </div>
+
               <motion.button
-                whileTap={{ scale: 0.97 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleSubmit}
-                disabled={loading || cart.length === 0}
-                className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-lg transition-all disabled:opacity-50"
+                disabled={loading || !hasCart}
+                className="w-full rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
               >
-                {loading ? "Criando..." : `Criar Pedido · R$ ${fmt(total)}`}
+                {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
               </motion.button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </SectionCard>
+        </aside>
+      </main>
     </div>
   );
 };

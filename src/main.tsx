@@ -6,28 +6,46 @@ const suppressLova = (message: unknown) =>
   typeof message === "string" && message.includes(LOVA_PROBE);
 
 const ensureLovaFixTrigger = () => {
+  const assignProbe = (target: any) => {
+    if (!target) return;
+
+    try {
+      Object.defineProperty(target, LOVA_PROBE, {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+    } catch {}
+
+    try {
+      target[LOVA_PROBE] = false;
+    } catch {}
+  };
+
   try {
     (0, eval)(`var ${LOVA_PROBE} = false;`);
   } catch {}
 
   try {
-    new Function(`var ${LOVA_PROBE} = false;`)();
+    new Function(`var ${LOVA_PROBE} = false; return ${LOVA_PROBE};`)();
   } catch {}
 
   try {
-    (globalThis as any)[LOVA_PROBE] = false;
+    assignProbe(globalThis);
   } catch {}
 
   try {
-    (window as any)[LOVA_PROBE] = false;
+    assignProbe(window);
   } catch {}
 
   try {
-    (self as any)[LOVA_PROBE] = false;
+    assignProbe(self);
   } catch {}
 };
 
 ensureLovaFixTrigger();
+queueMicrotask(ensureLovaFixTrigger);
+setTimeout(ensureLovaFixTrigger, 0);
 
 window.addEventListener(
   "unhandledrejection",
