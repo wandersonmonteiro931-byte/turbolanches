@@ -136,9 +136,10 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
-      const isPixOnline = paymentMethod === "pix_online";
-      const actualPaymentMethod = isPixOnline ? "pix" : paymentMethod;
-      const actualPaid = isPaid || isPixOnline;
+      const isPixEntrega = paymentMethod === "pix_entrega";
+      const isPixPago = paymentMethod === "pix_pago";
+      const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
+      const actualPaid = isPixPago || isPaid;
 
       const { data: order, error: orderError } = await supabase
         .from("orders")
