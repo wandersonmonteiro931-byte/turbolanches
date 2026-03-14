@@ -129,7 +129,7 @@ export function useAdminAlarm() {
         alarmIntervalRef.current = null;
       }
     };
-  }, [pendingCount, isAdmin]);
+  }, [pendingCount, isAdmin, isOnAdminRoute]);
 
   return { pendingCount };
 }
