@@ -15,6 +15,7 @@ interface Product {
   active: boolean;
   popular: boolean;
   is_combo: boolean;
+  combo_item_count: number;
   sort_order: number;
 }
 
