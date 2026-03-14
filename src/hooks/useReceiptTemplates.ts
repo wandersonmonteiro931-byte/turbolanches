@@ -9,6 +9,7 @@ export interface ReceiptTemplate {
   label: string;
   custom_message: string;
   footer_message: string;
+  body_template: string;
   show_customer_code: boolean;
   show_max_delivery_time: boolean;
   show_driver_field: boolean;
