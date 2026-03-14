@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, Truck, Store } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
