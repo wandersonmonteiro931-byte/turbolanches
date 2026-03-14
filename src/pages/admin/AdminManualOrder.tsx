@@ -122,7 +122,7 @@ const AdminManualOrder = () => {
   useEffect(() => {
     const load = async () => {
       const [prodRes, catRes, zonesRes, addonsRes, linksRes] = await Promise.all([
-        supabase.from("products").select("id, name, price, category_id, image_url, is_combo").eq("active", true),
+        supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count").eq("active", true),
         supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
         supabase.from("delivery_zones").select("neighborhood, delivery_fee"),
         supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
