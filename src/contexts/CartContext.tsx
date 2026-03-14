@@ -59,7 +59,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => {
-    const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
+    const comboMultiplier = item.product.isCombo ? (item.product.comboItemCount || 1) : 1;
+    const addonsTotal = item.selectedAddons.reduce((s, a) => {
+      const baseQty = a.quantity || 1;
+      const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
+      return s + a.price * effectiveQty;
+    }, 0);
     return sum + (item.product.price + addonsTotal) * item.quantity;
   }, 0);
 

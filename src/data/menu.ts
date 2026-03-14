@@ -24,6 +24,7 @@ export interface Product {
   popular?: boolean;
   active?: boolean;
   isCombo?: boolean;
+  comboItemCount?: number;
 }
 
 export interface CartItem {

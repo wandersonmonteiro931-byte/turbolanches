@@ -15,6 +15,7 @@ interface Product {
   active: boolean;
   popular: boolean;
   is_combo: boolean;
+  combo_item_count: number;
   sort_order: number;
 }
 
@@ -34,7 +35,7 @@ const AdminProducts = () => {
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
-    image_url: "", category_id: "", active: true, popular: false, is_combo: false, sort_order: "0",
+    image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0",
   });
 
   const fetchData = async () => {
@@ -50,7 +51,7 @@ const AdminProducts = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, sort_order: "0" });
+    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0" });
     setShowForm(true);
   };
 
@@ -60,7 +61,7 @@ const AdminProducts = () => {
       name: p.name, description: p.description || "", price: String(p.price),
       original_price: p.original_price ? String(p.original_price) : "",
       image_url: p.image_url || "", category_id: p.category_id || "",
-      active: p.active, popular: p.popular, is_combo: p.is_combo, sort_order: String(p.sort_order ?? 0),
+      active: p.active, popular: p.popular, is_combo: p.is_combo, combo_item_count: String(p.combo_item_count || 1), sort_order: String(p.sort_order ?? 0),
     });
     setShowForm(true);
   };
@@ -70,7 +71,7 @@ const AdminProducts = () => {
       name: form.name, description: form.description, price: parseFloat(form.price),
       original_price: form.original_price ? parseFloat(form.original_price) : null,
       image_url: form.image_url, category_id: form.category_id || null,
-      active: form.active, popular: form.popular, is_combo: form.is_combo, sort_order: parseInt(form.sort_order) || 0,
+      active: form.active, popular: form.popular, is_combo: form.is_combo, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
     };
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
@@ -144,6 +145,15 @@ const AdminProducts = () => {
                   Combo
                 </label>
               </div>
+              {form.is_combo && (
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <label className="text-sm font-semibold text-foreground">Quantidade de itens no combo</label>
+                  <p className="text-[11px] text-muted-foreground">Os adicionais serão multiplicados por essa quantidade automaticamente</p>
+                  <input type="number" min="1" step="1" value={form.combo_item_count}
+                    onChange={(e) => setForm({ ...form, combo_item_count: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" placeholder="Ex: 4 (4 sanduíches)" />
+                </div>
+              )}
               <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
             </div>
           </div>
@@ -165,14 +175,14 @@ const AdminProducts = () => {
             <GripVertical size={18} className="shrink-0 text-muted-foreground" />
             {p.image_url && <img src={p.image_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover" />}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
-                {p.is_combo && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                    COMBO
-                  </span>
-                )}
-              </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
+                  {p.is_combo && (
+                    <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                      COMBO ({p.combo_item_count}x)
+                    </span>
+                  )}
+                </div>
               <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)}</p>
             </div>
             <button

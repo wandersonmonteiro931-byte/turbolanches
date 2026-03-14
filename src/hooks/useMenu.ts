@@ -40,7 +40,7 @@ export function useProducts() {
       const [productsRes, addonsRes, linksRes, categoriesRes] = await Promise.all([
         supabase
           .from("products")
-          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo")
+          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count")
           .order("sort_order")
           .order("name"),
         supabase
@@ -114,6 +114,7 @@ export function useProducts() {
             popular: p.popular,
             active: p.active,
             isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
+            comboItemCount: p.combo_item_count || 1,
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
           }))
         );

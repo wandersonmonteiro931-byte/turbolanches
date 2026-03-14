@@ -32,17 +32,19 @@
   <body>
     <div id="root"></div>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-      try { Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) { window.__LOVA_FIX_TRIGGER__ = false; }
-      try { Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) {}
-      if (typeof self !== "undefined") try { Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e) {}
-      window.addEventListener("error", function (e) {
-        if (e.message && e.message.indexOf("__LOVA_FIX_TRIGGER__") !== -1) { e.preventDefault(); }
-      });
-      window.addEventListener("unhandledrejection", function (e) {
-        var m = e.reason instanceof Error ? e.reason.message : String(e.reason || "");
-        if (m.indexOf("__LOVA_FIX_TRIGGER__") !== -1) { e.preventDefault(); }
-      });
+      // @ts-nocheck — suppress __LOVA_FIX_TRIGGER__ probe errors
+      (function(){
+        var v = false;
+        try { window["__LOVA_FIX_TRIGGER__"] = v; } catch(e){}
+        try { globalThis["__LOVA_FIX_TRIGGER__"] = v; } catch(e){}
+        try { self["__LOVA_FIX_TRIGGER__"] = v; } catch(e){}
+        function suppress(msg){ return typeof msg === "string" && msg.indexOf("__LOVA_FIX_TRIGGER__") !== -1; }
+        window.addEventListener("error", function(e){ if(suppress(e.message)) e.preventDefault(); });
+        window.addEventListener("unhandledrejection", function(e){
+          var m = e.reason instanceof Error ? e.reason.message : String(e.reason||"");
+          if(suppress(m)) e.preventDefault();
+        });
+      })();
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
