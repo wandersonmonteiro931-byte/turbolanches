@@ -237,16 +237,24 @@ const AdminPrint = () => {
 
   const totaisSection = (showHighlightReceber = false) => (
     <>
-      <div className="total-line"><span>SUBTOTAL</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
-      {discount > 0 && (
-        <div className="total-line"><span>DESCONTO</span><span>- R$ {discount.toFixed(2).replace(".", ",")}</span></div>
+      {showTotalsDetail && (
+        <>
+          <div className="total-line"><span>SUBTOTAL</span><span>R$ {subtotal.toFixed(2).replace(".", ",")}</span></div>
+          {discount > 0 && (
+            <div className="total-line"><span>DESCONTO</span><span>- R$ {discount.toFixed(2).replace(".", ",")}</span></div>
+          )}
+          <div className="total-line"><span>ENTREGA</span><span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span></div>
+        </>
       )}
-      <div className="total-line"><span>ENTREGA</span><span>R$ {deliveryFee.toFixed(2).replace(".", ",")}</span></div>
       <div className="grand-total"><span>TOTAL</span><span>R$ {total.toFixed(2).replace(".", ",")}</span></div>
-      <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
-      <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
-      {troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
-      <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>
+      {showTotalsDetail && (
+        <>
+          <div className="total-line"><span>TOTAL PAGO</span><span>R$ {isPaidOnline ? total.toFixed(2).replace(".", ",") : "0,00"}</span></div>
+          <div className={showHighlightReceber ? "box-highlight-flex" : "total-line"}><span>TOTAL A RECEBER</span><span>R$ {totalReceber.toFixed(2).replace(".", ",")}</span></div>
+        </>
+      )}
+      {showTrocoFlag && troco > 0 && <div className="total-line"><span>TROCO</span><span>R$ {troco.toFixed(2).replace(".", ",")}</span></div>}
+      {showPayment && <div className="info">PAGAMENTO: {order.payment_method.toUpperCase()} - {paymentLabel}</div>}
     </>
   );
 
