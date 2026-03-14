@@ -148,12 +148,7 @@ const Cart = () => {
 
           {/* Items breakdown */}
           {items.map((item, index) => {
-            const comboMultiplier = item.product.isCombo ? (item.product.comboItemCount || 1) : 1;
-            const addonsTotal = item.selectedAddons.reduce((s, a) => {
-              const baseQty = a.quantity || 1;
-              const effectiveQty = item.product.isCombo ? baseQty * comboMultiplier : baseQty;
-              return s + a.price * effectiveQty;
-            }, 0);
+            const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
             const lineTotal = (item.product.price + addonsTotal) * item.quantity;
             return (
               <div key={index} className="flex justify-between text-xs text-muted-foreground">
