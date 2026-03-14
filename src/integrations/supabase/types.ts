@@ -735,6 +735,63 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_templates: {
+        Row: {
+          custom_message: string
+          footer_message: string
+          id: string
+          items_font_size: number
+          label: string
+          label_font_size: number
+          show_customer_code: boolean
+          show_driver_field: boolean
+          show_max_delivery_time: boolean
+          show_obs: boolean
+          show_payment_info: boolean
+          show_totals_detail: boolean
+          show_troco: boolean
+          store_name: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          custom_message?: string
+          footer_message?: string
+          id?: string
+          items_font_size?: number
+          label?: string
+          label_font_size?: number
+          show_customer_code?: boolean
+          show_driver_field?: boolean
+          show_max_delivery_time?: boolean
+          show_obs?: boolean
+          show_payment_info?: boolean
+          show_totals_detail?: boolean
+          show_troco?: boolean
+          store_name?: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          custom_message?: string
+          footer_message?: string
+          id?: string
+          items_font_size?: number
+          label?: string
+          label_font_size?: number
+          show_customer_code?: boolean
+          show_driver_field?: boolean
+          show_max_delivery_time?: boolean
+          show_obs?: boolean
+          show_payment_info?: boolean
+          show_totals_detail?: boolean
+          show_troco?: boolean
+          store_name?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           comment: string | null
