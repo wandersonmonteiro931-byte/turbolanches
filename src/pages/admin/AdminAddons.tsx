@@ -70,6 +70,7 @@ const AdminAddons = () => {
   const openNew = () => {
     setEditing(null);
     setForm({ name: "", price: "0", active: true, apply_to_all: true, selected_products: [] });
+    setProductSearch("");
     setShowForm(true);
   };
 
