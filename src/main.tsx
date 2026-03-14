@@ -44,6 +44,8 @@ const ensureLovaFixTrigger = () => {
 };
 
 ensureLovaFixTrigger();
+queueMicrotask(ensureLovaFixTrigger);
+setTimeout(ensureLovaFixTrigger, 0);
 
 window.addEventListener(
   "unhandledrejection",
