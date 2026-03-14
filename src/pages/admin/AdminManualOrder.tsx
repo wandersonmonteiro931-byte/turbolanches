@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,6 +48,19 @@ interface AvailableAddon {
   product_id: string | null;
 }
 
+interface DeliveryZone {
+  neighborhood: string;
+  delivery_fee: number;
+  distance_km: number | null;
+  temp_free_delivery: boolean;
+}
+
+interface DeliveryConfig {
+  free_delivery_min_order: number;
+  free_delivery_max_km: number;
+  temp_free_delivery_all: boolean;
+}
+
 const deliveryTypes = [
   { id: "mesa", label: "🪑 Mesa", description: "Consumo no local" },
   { id: "viagem", label: "🛍️ Viagem", description: "Para levar" },
@@ -63,6 +76,8 @@ const paymentMethods = [
   { id: "cartao", label: "💳 Cartão" },
   { id: "fiado", label: "📝 Fiado" },
 ];
+
+const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
 
 const AdminManualOrder = () => {
   const navigate = useNavigate();
@@ -87,7 +102,12 @@ const AdminManualOrder = () => {
   const [observations, setObservations] = useState("");
   const [changeFor, setChangeFor] = useState("");
   const [loading, setLoading] = useState(false);
-  const [deliveryZones, setDeliveryZones] = useState<{ neighborhood: string; delivery_fee: number }[]>([]);
+  const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
+  const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
+    free_delivery_min_order: 0,
+    free_delivery_max_km: 0,
+    temp_free_delivery_all: false,
+  });
   const [customDeliveryFee, setCustomDeliveryFee] = useState<string>("");
   const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(false);
   const [discount, setDiscount] = useState<string>("");
@@ -119,30 +139,64 @@ const AdminManualOrder = () => {
     }
   }, [cart]);
 
-  useEffect(() => {
-    const load = async () => {
-      const [prodRes, catRes, zonesRes, addonsRes, linksRes] = await Promise.all([
-        supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count").eq("active", true),
-        supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
-        supabase.from("delivery_zones").select("neighborhood, delivery_fee"),
-        supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
-        supabase.from("addon_product_links").select("addon_id, product_id"),
-      ]);
-      if (prodRes.data) setProducts(prodRes.data);
-      if (catRes.data) setCategories(catRes.data);
-      if (zonesRes.data) setDeliveryZones(zonesRes.data);
-      if (addonsRes.data) setAvailableAddons(addonsRes.data);
-      if (linksRes.data) setAddonProductLinks(linksRes.data);
-    };
-    load();
+  const loadLatestData = useCallback(async () => {
+    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, name, price, category_id, image_url, is_combo, combo_item_count")
+        .eq("active", true)
+        .order("sort_order")
+        .order("name"),
+      supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
+      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
+      supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
+      supabase.from("addon_product_links").select("addon_id, product_id"),
+      supabase
+        .from("store_settings")
+        .select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all")
+        .limit(1)
+        .single(),
+    ]);
+
+    if (prodRes.data) setProducts(prodRes.data);
+    if (catRes.data) setCategories(catRes.data);
+    if (zonesRes.data) setDeliveryZones(zonesRes.data as DeliveryZone[]);
+    if (addonsRes.data) setAvailableAddons(addonsRes.data);
+    if (linksRes.data) setAddonProductLinks(linksRes.data);
+
+    if (settingsRes.data) {
+      const config = settingsRes.data as DeliveryConfig;
+      setDeliveryConfig({
+        free_delivery_min_order: Number(config.free_delivery_min_order) || 0,
+        free_delivery_max_km: Number(config.free_delivery_max_km) || 0,
+        temp_free_delivery_all: Boolean(config.temp_free_delivery_all),
+      });
+    }
   }, []);
 
   useEffect(() => {
-    if (!deliveryFeeOverridden && deliveryType === "delivery") {
-      const matched = deliveryZones.find((z) => z.neighborhood.toLowerCase() === addressNeighborhood.toLowerCase());
-      setCustomDeliveryFee(matched ? String(matched.delivery_fee) : "5.99");
-    }
-  }, [addressNeighborhood, deliveryZones, deliveryType, deliveryFeeOverridden]);
+    void loadLatestData();
+  }, [loadLatestData]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      void loadLatestData();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void loadLatestData();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadLatestData]);
 
   // Get addons available for a specific product
   const getAddonsForProduct = (productId: string) => {
