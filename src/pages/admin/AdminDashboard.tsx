@@ -280,11 +280,6 @@ const AdminDashboard = () => {
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
-
-  const printPedidoObrigado = (orderId: string) => {
-    window.open(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`, "_blank", "width=300,height=600");
-  };
-
   const acceptAllPending = async () => {
     const toAccept = orders.filter(o => o.status === "pending" || o.status === "paid");
     if (toAccept.length === 0) {
