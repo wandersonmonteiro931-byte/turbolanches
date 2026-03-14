@@ -277,7 +277,11 @@ const Checkout = () => {
         let line = `${i.quantity}x ${i.product.name}`;
         if (i.selectedAddons.length > 0) {
           const addonLines = i.selectedAddons
-            .map((a) => `   + ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+            .map((a) => {
+              const baseQty = a.quantity || 1;
+              const displayQty = i.product.isCombo ? baseQty * i.quantity : baseQty;
+              return `   + ${a.name}${displayQty > 1 ? ` x${displayQty}` : ""}`;
+            })
             .join("\n");
           line += "\n" + addonLines;
         }
