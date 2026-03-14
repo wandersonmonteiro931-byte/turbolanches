@@ -135,8 +135,6 @@ const AdminManualOrder = () => {
 
     setLoading(true);
     try {
-      const isFiado = paymentMethod === "fiado";
-
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -148,7 +146,7 @@ const AdminManualOrder = () => {
           preparing_at: new Date().toISOString(),
           delivery_type: deliveryType,
           payment_method: paymentMethod,
-          payment_confirmed: isPaid || isFiado,
+          payment_confirmed: isPaid,
           address_street: deliveryType === "delivery" ? addressStreet : null,
           address_number: deliveryType === "delivery" ? addressNumber : null,
           address_complement: deliveryType === "delivery" ? addressComplement : null,
