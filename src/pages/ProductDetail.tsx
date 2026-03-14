@@ -38,15 +38,7 @@ const ProductDetail = () => {
     );
   }
 
-  const toggleComboAddon = (addonId: string) => {
-    setAddonQuantities((prev) => {
-      if (prev[addonId]) {
-        const { [addonId]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [addonId]: comboCount };
-    });
-  };
+  const comboStep = Math.max(1, comboCount);
 
   const setAddonQty = (addonId: string, qty: number) => {
     setAddonQuantities((prev) => {
