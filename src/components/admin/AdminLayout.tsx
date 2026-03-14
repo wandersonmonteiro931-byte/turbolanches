@@ -17,6 +17,7 @@ const navItems = [
   { path: "/admin/horarios", icon: Clock, label: "Horários" },
   { path: "/admin/clientes", icon: Users, label: "Clientes" },
   { path: "/admin/notificacoes", icon: Bell, label: "Notificações" },
+  { path: "/admin/comandas", icon: Printer, label: "Comandas" },
 ];
 
 const AdminLayout = () => {
