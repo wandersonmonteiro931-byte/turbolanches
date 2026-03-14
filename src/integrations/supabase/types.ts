@@ -472,6 +472,7 @@ export type Database = {
           available_from: string | null
           available_until: string | null
           category_id: string | null
+          combo_item_count: number
           created_at: string
           description: string | null
           id: string
@@ -489,6 +490,7 @@ export type Database = {
           available_from?: string | null
           available_until?: string | null
           category_id?: string | null
+          combo_item_count?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -506,6 +508,7 @@ export type Database = {
           available_from?: string | null
           available_until?: string | null
           category_id?: string | null
+          combo_item_count?: number
           created_at?: string
           description?: string | null
           id?: string

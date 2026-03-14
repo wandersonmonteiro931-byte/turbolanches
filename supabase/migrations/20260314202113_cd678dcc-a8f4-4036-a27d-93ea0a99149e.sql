@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS combo_item_count integer NOT NULL DEFAULT 1;
