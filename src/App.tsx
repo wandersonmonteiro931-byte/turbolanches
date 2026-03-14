@@ -33,6 +33,7 @@ import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminAddons from "./pages/admin/AdminAddons";
+import AdminReceipts from "./pages/admin/AdminReceipts";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
