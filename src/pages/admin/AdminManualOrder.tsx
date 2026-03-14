@@ -288,7 +288,7 @@ const AdminManualOrder = () => {
         quantity: item.quantity,
         unit_price: item.customPrice,
         observations: item.observations || null,
-        addons_json: item.addons.length > 0 ? item.addons : null,
+        addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
       }));
 
       const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
