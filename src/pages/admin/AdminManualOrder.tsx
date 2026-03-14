@@ -420,7 +420,7 @@ const AdminManualOrder = () => {
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-7xl gap-4 px-4 pb-12 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
+      <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 pb-6 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
         <section className="space-y-4">
           <SectionCard title="1. Contexto do Pedido" icon="🧭" className="animate-enter">
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
