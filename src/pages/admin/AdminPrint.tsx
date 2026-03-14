@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const tipo = searchParams.get("tipo") || "cozinha"; // "cozinha" | "entrega" | "cliente"
+  const tipo = searchParams.get("tipo") || "cozinha";
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
 
   useEffect(() => {
     if (!id) return;
