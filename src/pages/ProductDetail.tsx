@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Package } from "lucide-react";
 import { useProducts } from "@/hooks/useMenu";
 import type { ProductAddon } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
