@@ -80,6 +80,12 @@ const deliveryLabels: Record<string, string> = {
   consumo: "Consumo",
 };
 
+const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
+  if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
+  if (paymentMethod === "fiado") return "FIADO";
+  return paymentLabels[paymentMethod] || paymentMethod;
+};
+
 const AdminOrders = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});

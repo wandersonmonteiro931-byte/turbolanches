@@ -75,6 +75,12 @@ const nextStatus: Record<string, string> = {
   delivering: "delivered",
 };
 
+const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
+  if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
+  if (paymentMethod === "fiado") return "FIADO";
+  return paymentConfirmed ? `${paymentMethod.toUpperCase()} (PAGO)` : paymentMethod.toUpperCase();
+};
+
 const AdminDashboard = () => {
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [orders, setOrders] = useState<Order[]>([]);

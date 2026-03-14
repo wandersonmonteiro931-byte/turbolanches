@@ -37,8 +37,8 @@ const deliveryTypes = [
 
 const paymentMethods = [
   { id: "dinheiro", label: "💵 Dinheiro" },
-  { id: "pix", label: "📱 PIX" },
-  { id: "pix_online", label: "📱 PIX Online" },
+  { id: "pix_entrega", label: "📱 PIX Entrega" },
+  { id: "pix_pago", label: "📱 PIX Pago" },
   { id: "cartao", label: "💳 Cartão" },
   { id: "credito", label: "💳 Crédito" },
   { id: "debito", label: "💳 Débito" },
