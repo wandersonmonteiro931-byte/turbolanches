@@ -6,6 +6,7 @@ interface DeliveryZone {
   neighborhood: string;
   delivery_fee: number;
   active: boolean;
+  temp_free_delivery: boolean;
 }
 
 interface Props {
@@ -19,64 +20,65 @@ interface Props {
   refreshKey?: number;
 }
 
-const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false, refreshKey = 0 }: Props) => {
+const NeighborhoodAutocomplete = ({
+  value,
+  onChange,
+  placeholder = "Bairro",
+  className = "",
+  allowInactive = false,
+  refreshKey = 0,
+}: Props) => {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Fetch ALL zones (including inactive) for display
   useEffect(() => {
     const fetchZones = async () => {
       const { data } = await supabase
         .from("delivery_zones")
-        .select("neighborhood, delivery_fee, active")
+        .select("neighborhood, delivery_fee, active, temp_free_delivery")
         .order("neighborhood");
-      if (data) setZones(data);
-      setLoaded(true);
+      if (data) setZones(data as DeliveryZone[]);
     };
-    fetchZones();
+
+    void fetchZones();
   }, [refreshKey]);
 
-  // Sync external value
   useEffect(() => {
     setQuery(value);
   }, [value]);
 
-  // Close on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = zones.filter((z) =>
-    z.neighborhood.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = zones.filter((z) => z.neighborhood.toLowerCase().includes(query.toLowerCase()));
 
   const handleSelect = (zone: DeliveryZone) => {
     if (!zone.active && !allowInactive) return;
     setQuery(zone.neighborhood);
-    onChange(zone.neighborhood, zone.delivery_fee);
+    onChange(zone.neighborhood, zone.temp_free_delivery ? 0 : zone.delivery_fee);
     setOpen(false);
   };
 
   return (
     <div ref={wrapperRef} className="relative">
       <div className={`flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 ${className}`}>
-        <Search size={14} className="text-muted-foreground shrink-0" />
+        <Search size={14} className="shrink-0 text-muted-foreground" />
         <input
           type="text"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
-            // Also propagate raw text so parent stays in sync
             onChange(e.target.value);
           }}
           onFocus={() => setOpen(true)}
@@ -86,10 +88,10 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
       </div>
 
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
           {filtered.map((zone) => {
-            const isInactive = !zone.active;
-            const blocked = isInactive && !allowInactive;
+            const blocked = !zone.active && !allowInactive;
+            const isPromoFree = Boolean(zone.temp_free_delivery);
 
             return (
               <button
@@ -98,28 +100,28 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
                 onClick={() => handleSelect(zone)}
                 disabled={blocked}
                 className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors ${
-                  blocked
-                    ? "opacity-50 cursor-not-allowed bg-muted/30"
-                    : "hover:bg-muted cursor-pointer"
+                  blocked ? "cursor-not-allowed bg-muted/30 opacity-50" : "cursor-pointer hover:bg-muted"
                 } ${zone.neighborhood.toLowerCase() === query.toLowerCase() ? "bg-primary/5" : ""}`}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                   {blocked ? (
-                    <Ban size={14} className="text-destructive shrink-0" />
+                    <Ban size={14} className="shrink-0 text-destructive" />
                   ) : (
-                    <MapPin size={14} className="text-primary shrink-0" />
+                    <MapPin size={14} className="shrink-0 text-primary" />
                   )}
-                  <span className={`truncate ${blocked ? "text-muted-foreground" : "text-foreground"}`}>
-                    {zone.neighborhood}
-                  </span>
+                  <span className={`truncate ${blocked ? "text-muted-foreground" : "text-foreground"}`}>{zone.neighborhood}</span>
                 </div>
-                <div className="shrink-0 ml-2">
+
+                <div className="ml-2 shrink-0 text-right">
                   {blocked ? (
                     <span className="text-[10px] font-semibold text-destructive">Não atendido</span>
+                  ) : isPromoFree ? (
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-bold text-primary">Grátis</div>
+                      <div className="text-[10px] font-semibold text-primary/80">Promoção</div>
+                    </div>
                   ) : (
-                    <span className="text-xs font-bold text-primary">
-                      R$ {Number(zone.delivery_fee).toFixed(2).replace(".", ",")}
-                    </span>
+                    <span className="text-xs font-bold text-primary">R$ {Number(zone.delivery_fee).toFixed(2).replace(".", ",")}</span>
                   )}
                 </div>
               </button>
@@ -130,7 +132,7 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
 
       {open && query.length > 0 && filtered.length === 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-card p-3 shadow-lg">
-          <p className="text-xs text-muted-foreground text-center">Nenhum bairro encontrado</p>
+          <p className="text-center text-xs text-muted-foreground">Nenhum bairro encontrado</p>
         </div>
       )}
     </div>
