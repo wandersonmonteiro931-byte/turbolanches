@@ -48,21 +48,7 @@
 
   <body>
     <div id="root"></div>
-    <script>
-      // Suppress __LOVA_FIX_TRIGGER__ probe errors
-      var __LOVA_FIX_TRIGGER__ = false;
-      try { window.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      try { globalThis.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      try { self.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      (function(){
-        function suppress(msg){ return typeof msg === "string" && msg.indexOf("__LOVA_FIX_TRIGGER__") !== -1; }
-        window.addEventListener("error", function(e){ if(suppress(e.message||"")) e.preventDefault(); });
-        window.addEventListener("unhandledrejection", function(e){
-          var m = e.reason instanceof Error ? e.reason.message : String(e.reason||"");
-          if(suppress(m)) e.preventDefault();
-        });
-      })();
-    </script>
+    <!-- __LOVA_FIX_TRIGGER__ suppression already handled in <head> -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
