@@ -19,6 +19,8 @@ const ProductDetail = () => {
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
 
+  const isComboProduct = Boolean(product?.isCombo);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
