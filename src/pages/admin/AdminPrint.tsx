@@ -126,6 +126,42 @@ const AdminPrint = () => {
   const isEntrega = tipo === "entrega";
   const isCliente = tipo === "cliente";
 
+  // Template values with fallbacks
+  const storeName = tpl?.store_name || "TURBO LANCHES";
+  const tipoLabel = tpl?.label || (isCozinha ? "COZINHA" : isCliente ? "OBRIGADO!" : "ENTREGA");
+  const labelFontSize = tpl?.label_font_size || 24;
+  const itemsFontSize = tpl?.items_font_size || 14;
+  const showCustomerCode = tpl?.show_customer_code ?? true;
+  const showMaxTime = tpl?.show_max_delivery_time ?? true;
+  const showPayment = tpl?.show_payment_info ?? true;
+  const showTotalsDetail = tpl?.show_totals_detail ?? true;
+  const showTrocoFlag = tpl?.show_troco ?? true;
+  const showObs = tpl?.show_obs ?? true;
+  const showDriverField = tpl?.show_driver_field ?? true;
+
+  // Replace variables in custom message
+  const replaceVars = (text: string) => {
+    return text
+      .replace(/\[LOJA\]/g, storeName)
+      .replace(/\[PEDIDO\]/g, `#${String(order.order_number).padStart(5, '0')}`)
+      .replace(/\[CODIGO\]/g, customerCode)
+      .replace(/\[NOME\]/g, displayName)
+      .replace(/\[TELEFONE\]/g, displayPhone)
+      .replace(/\[DATA_HORA\]/g, dataHora)
+      .replace(/\[HORARIO_MAX\]/g, horarioMax)
+      .replace(/\[ENDERECO\]/g, address)
+      .replace(/\[TOTAL\]/g, `R$ ${total.toFixed(2).replace(".", ",")}`)
+      .replace(/\[SUBTOTAL\]/g, `R$ ${subtotal.toFixed(2).replace(".", ",")}`)
+      .replace(/\[ENTREGA_VALOR\]/g, `R$ ${deliveryFee.toFixed(2).replace(".", ",")}`)
+      .replace(/\[DESCONTO\]/g, `R$ ${discount.toFixed(2).replace(".", ",")}`)
+      .replace(/\[PAGAMENTO\]/g, `${order.payment_method.toUpperCase()} - ${paymentLabel}`)
+      .replace(/\[TROCO\]/g, `R$ ${troco.toFixed(2).replace(".", ",")}`)
+      .replace(/\[TIPO_ENTREGA\]/g, deliveryLabel);
+  };
+
+  const customMsg = tpl?.custom_message ? replaceVars(tpl.custom_message) : "";
+  const footerMsg = tpl?.footer_message ? replaceVars(tpl.footer_message) : "";
+
   const styles = `
     @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
     @media print {
