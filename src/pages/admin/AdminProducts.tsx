@@ -61,7 +61,7 @@ const AdminProducts = () => {
       name: p.name, description: p.description || "", price: String(p.price),
       original_price: p.original_price ? String(p.original_price) : "",
       image_url: p.image_url || "", category_id: p.category_id || "",
-      active: p.active, popular: p.popular, is_combo: p.is_combo, sort_order: String(p.sort_order ?? 0),
+      active: p.active, popular: p.popular, is_combo: p.is_combo, combo_item_count: String(p.combo_item_count || 1), sort_order: String(p.sort_order ?? 0),
     });
     setShowForm(true);
   };
