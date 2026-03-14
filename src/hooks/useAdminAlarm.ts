@@ -12,6 +12,8 @@ export function useAdminAlarm() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const location = useLocation();
+  const isOnAdminRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/cozinha");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const alarmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
