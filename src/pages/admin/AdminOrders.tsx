@@ -331,9 +331,9 @@ const AdminOrders = () => {
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     if (newStatus === "preparing") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=cozinha`);
+      safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
     } else if (newStatus === "delivering") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
+      safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
     }
   };
 
@@ -344,13 +344,13 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "cozinha" | "entrega" | "cliente", delayMs?: number) => {
+  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
 
-  const printEntregaCliente = (orderId: string) => {
-    safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
+  const printPedidoObrigado = (orderId: string) => {
+    safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
   };
 
   const toggleExpand = (orderId: string) => {
@@ -708,13 +708,13 @@ const AdminOrders = () => {
 
                 {/* Print buttons */}
                 <div className="flex gap-2">
-                  <button onClick={() => printReceipt(order.id, "cozinha")}
+                  <button onClick={() => printReceipt(order.id, "pedido")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Cozinha
+                    <Printer size={14} /> Pedido
                   </button>
-                  <button onClick={() => printEntregaCliente(order.id)}
+                  <button onClick={() => printPedidoObrigado(order.id)}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Entrega+Cliente
+                    <Printer size={14} /> Pedido+Obrigado
                   </button>
                 </div>
 

@@ -250,9 +250,9 @@ const AdminDashboard = () => {
     await fetchOrders();
 
     if (newStatus === "preparing") {
-      printReceipt(orderId, "cozinha");
+      printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
-      printEntregaCliente(orderId);
+      printPedidoObrigado(orderId);
     }
   };
 
@@ -275,9 +275,8 @@ const AdminDashboard = () => {
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
 
-  const printEntregaCliente = (orderId: string) => {
-    // Uma única janela: imprime entrega, depois redireciona para cliente automaticamente
-    window.open(`/admin/imprimir/${orderId}?tipo=entrega_cliente`, "_blank", "width=300,height=600");
+  const printPedidoObrigado = (orderId: string) => {
+    window.open(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`, "_blank", "width=300,height=600");
   };
 
   const acceptAllPending = async () => {
@@ -299,7 +298,7 @@ const AdminDashboard = () => {
     }
 
     toAccept.forEach((order, i) => {
-      setTimeout(() => printReceipt(order.id, "cozinha"), i * 2000);
+      setTimeout(() => printReceipt(order.id, "pedido"), i * 2000);
     });
 
     toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
@@ -880,13 +879,13 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => printReceipt(order.id, "cozinha")}
+                      <button onClick={() => printReceipt(order.id, "pedido")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Cozinha
+                        <Printer size={14} /> Pedido
                       </button>
-                      <button onClick={() => printEntregaCliente(order.id)}
+                      <button onClick={() => printPedidoObrigado(order.id)}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Entrega+Cliente
+                        <Printer size={14} /> Pedido+Obrigado
                       </button>
                       {!isEditing && (
                         <button onClick={() => startEdit(order)}
