@@ -50,9 +50,9 @@ const ManualOrderAddonSelector = ({
   const selectedItems = items.filter((i) => selectedItemIds.includes(i.productId));
 
   const handleAddonChange = (addon: Addon, delta: number) => {
-    const targetIds = selectedItemIds.length > 0 ? selectedItemIds : [items[0].productId];
+    if (selectedItemIds.length === 0) return;
 
-    targetIds.forEach((pid) => {
+    selectedItemIds.forEach((pid) => {
       const item = items.find((i) => i.productId === pid);
       if (!item) return;
 
@@ -60,15 +60,15 @@ const ManualOrderAddonSelector = ({
       const currentQty = existing?.quantity || 0;
 
       if (item.isCombo) {
-        // For combo: add/remove in multiples of item quantity
         const newQty = delta > 0
           ? currentQty + item.quantity
           : Math.max(0, currentQty - item.quantity);
         onSetAddon([pid], addon.id, addon, newQty);
-      } else {
-        const newQty = Math.max(0, currentQty + delta);
-        onSetAddon([pid], addon.id, addon, newQty);
+        return;
       }
+
+      const newQty = Math.max(0, currentQty + delta);
+      onSetAddon([pid], addon.id, addon, newQty);
     });
   };
 
