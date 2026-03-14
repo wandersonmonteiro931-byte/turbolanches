@@ -83,6 +83,7 @@ const AdminAddons = () => {
       apply_to_all: a.apply_to_all,
       selected_products: a.linked_product_ids,
     });
+    setProductSearch("");
     setShowForm(true);
   };
 
