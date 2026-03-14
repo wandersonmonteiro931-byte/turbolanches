@@ -213,10 +213,14 @@ const AdminManualOrder = () => {
     setCart((prev) => prev.map((i) => {
       if (i.product.id !== productId) return i;
       const newIsCombo = !i.isCombo;
-      // When enabling combo, multiply all existing addon quantities by item quantity
+
       const updatedAddons = newIsCombo
-        ? i.addons.map((a) => ({ ...a, quantity: a.quantity > 0 ? i.quantity : 0 }))
+        ? i.addons.map((a) => ({
+            ...a,
+            quantity: a.quantity > 0 ? a.quantity * i.quantity : 0,
+          }))
         : i.addons;
+
       return { ...i, isCombo: newIsCombo, addons: updatedAddons };
     }));
   };
