@@ -275,9 +275,8 @@ const AdminDashboard = () => {
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
 
-  const printEntregaCliente = (orderId: string) => {
-    // Uma única janela: imprime entrega, depois redireciona para cliente automaticamente
-    window.open(`/admin/imprimir/${orderId}?tipo=entrega_cliente`, "_blank", "width=300,height=600");
+  const printPedidoObrigado = (orderId: string) => {
+    window.open(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`, "_blank", "width=300,height=600");
   };
 
   const acceptAllPending = async () => {
