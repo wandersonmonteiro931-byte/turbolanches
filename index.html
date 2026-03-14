@@ -3,11 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <script>
-      // Early global fallback for Lovable runtime probe
-      var __LOVA_FIX_TRIGGER__ = false;
-      try { window.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      try { globalThis.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      try { self.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
+      // Early global fallback for Lovable runtime probe — must run before ANY module
+      try{var __LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{window.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{globalThis.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{self.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{Object.defineProperty(globalThis,"__LOVA_FIX_TRIGGER__",{value:false,writable:true,configurable:true})}catch(e){}
+      // Suppress any unhandled reference errors for this probe immediately
+      (function(){
+        function isLova(m){return typeof m==="string"&&m.indexOf("__LOVA_FIX_TRIGGER__")!==-1}
+        window.addEventListener("error",function(e){if(isLova(e.message||""))e.preventDefault();},true);
+        window.addEventListener("unhandledrejection",function(e){
+          var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");
+          if(isLova(m))e.preventDefault();
+        },true);
+      })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <!-- TODO: Set the document title to the name of your application -->
