@@ -3,14 +3,14 @@ import "./index.css";
 
 // Defensive fallback for transient runtime probes
 try {
-  if (typeof (globalThis as any).__LOVA_FIX_TRIGGER__ === "undefined") {
-    Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
-      value: false,
-      writable: true,
-      configurable: true,
-    });
-  }
-} catch {}
+  Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
+    value: false,
+    writable: true,
+    configurable: true,
+  });
+} catch {
+  (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
+}
 
 const suppressLova = (msg: string) => msg.includes("__LOVA_FIX_TRIGGER__");
 
