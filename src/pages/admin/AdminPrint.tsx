@@ -31,13 +31,15 @@ const AdminPrint = () => {
       }
       setOrder(orderData);
 
-      const [itemsRes, profileRes] = await Promise.all([
+      const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
         supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
+        supabase.from("receipt_templates" as any).select("*").eq("template_type", tipo === "entrega_cliente" ? "entrega" : tipo).single(),
       ]);
 
       setItems(itemsRes.data || []);
       setProfile(profileRes.data);
+      setTpl((tplRes.data as unknown as ReceiptTemplate) || null);
       setReady(true);
     };
 
