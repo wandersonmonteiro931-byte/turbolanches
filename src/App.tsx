@@ -58,6 +58,7 @@ const AppInner = () => {
   const { user } = useAuth();
   usePushNotifications(user?.id);
   useOrderStatusNotifier();
+  useAdminAlarm();
 
   return (
     <CartProvider>

@@ -108,9 +108,8 @@ export function useAdminAlarm() {
           body: `${pendingCount} pedido(s) aguardando aceitação`,
           icon: "/favicon.ico",
           tag: "admin-alarm",
-          renotify: true,
           requireInteraction: true,
-        });
+        } as NotificationOptions);
       }
       wasPlayingRef.current = true;
     } else {
