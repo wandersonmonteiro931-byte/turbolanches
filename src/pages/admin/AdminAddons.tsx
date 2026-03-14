@@ -41,7 +41,7 @@ const AdminAddons = () => {
   const fetchData = async () => {
     const [addonsRes, productsRes, linksRes] = await Promise.all([
       supabase.from("product_addons").select("*").order("sort_order").order("name"),
-      supabase.from("products").select("id, name").order("name"),
+      supabase.from("products").select("id, name, is_combo").order("name"),
       supabase.from("addon_product_links").select("addon_id, product_id"),
     ]);
 
