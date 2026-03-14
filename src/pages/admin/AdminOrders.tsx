@@ -354,11 +354,6 @@ const AdminOrders = () => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
-
-  const printPedidoObrigado = (orderId: string) => {
-    safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
-  };
-
   const toggleExpand = (orderId: string) => {
     if (expandedOrder === orderId) {
       setExpandedOrder(null);
@@ -718,9 +713,9 @@ const AdminOrders = () => {
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Pedido
                   </button>
-                  <button onClick={() => printPedidoObrigado(order.id)}
+                  <button onClick={() => printReceipt(order.id, "obrigado")}
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Pedido+Obrigado
+                    <Printer size={14} /> Obrigado
                   </button>
                 </div>
 

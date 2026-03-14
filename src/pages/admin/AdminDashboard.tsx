@@ -280,11 +280,6 @@ const AdminDashboard = () => {
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
-
-  const printPedidoObrigado = (orderId: string) => {
-    window.open(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`, "_blank", "width=300,height=600");
-  };
-
   const acceptAllPending = async () => {
     const toAccept = orders.filter(o => o.status === "pending" || o.status === "paid");
     if (toAccept.length === 0) {
@@ -889,9 +884,9 @@ const AdminDashboard = () => {
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                         <Printer size={14} /> Pedido
                       </button>
-                      <button onClick={() => printPedidoObrigado(order.id)}
+                      <button onClick={() => printReceipt(order.id, "obrigado")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Pedido+Obrigado
+                        <Printer size={14} /> Obrigado
                       </button>
                       {!isEditing && (
                         <button onClick={() => startEdit(order)}

@@ -18,7 +18,6 @@ const AdminPrint = () => {
 
   // Map legacy types and resolve the actual template type to load
   const resolveType = (t: string) => {
-    if (t === "pedido_obrigado" || t === "entrega_cliente") return "pedido";
     if (t === "cozinha" || t === "entrega") return "pedido";
     if (t === "cliente") return "obrigado";
     return t;
@@ -51,16 +50,6 @@ const AdminPrint = () => {
 
   useEffect(() => {
     if (!ready) return;
-    // Two-receipt flow: print pedido then redirect to obrigado
-    if (tipo === "pedido_obrigado" || tipo === "entrega_cliente") {
-      const timer = setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-          window.location.href = `/admin/imprimir/${id}?tipo=obrigado&delay_ms=100`;
-        }, 400);
-      }, printDelayMs);
-      return () => clearTimeout(timer);
-    }
     const timer = setTimeout(() => {
       window.print();
       setTimeout(() => { window.close(); }, 300);
