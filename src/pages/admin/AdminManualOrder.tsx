@@ -15,6 +15,7 @@ interface Product {
   category_id: string | null;
   image_url: string | null;
   is_combo?: boolean;
+  combo_item_count?: number;
 }
 
 interface Category {
