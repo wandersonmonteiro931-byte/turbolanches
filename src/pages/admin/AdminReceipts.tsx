@@ -6,12 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ChefHat, Truck, Heart, RotateCcw } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw } from "lucide-react";
 
 const tabConfig = [
-  { type: "cozinha", label: "Cozinha", icon: ChefHat, color: "text-orange-500" },
-  { type: "entrega", label: "Entrega", icon: Truck, color: "text-blue-500" },
-  { type: "cliente", label: "Cliente", icon: Heart, color: "text-pink-500" },
+  { type: "pedido", label: "Comanda Pedido", icon: ClipboardList, color: "text-orange-500" },
+  { type: "obrigado", label: "Comanda Obrigado", icon: Heart, color: "text-pink-500" },
 ];
 
 const AdminReceipts = () => {
@@ -67,8 +66,8 @@ const AdminReceipts = () => {
 
       <ReceiptVariableReference />
 
-      <Tabs defaultValue="cozinha">
-        <TabsList className="w-full grid grid-cols-3">
+      <Tabs defaultValue="pedido">
+        <TabsList className="w-full grid grid-cols-2">
           {tabConfig.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
               <tab.icon size={16} className={tab.color} />
@@ -98,7 +97,7 @@ const AdminReceipts = () => {
                   <Input
                     value={(fields.label as string) || ""}
                     onChange={(e) => updateField(tab.type, "label", e.target.value)}
-                    placeholder={tab.type === "cliente" ? "OBRIGADO!" : tab.label.toUpperCase()}
+                    placeholder={tab.type === "obrigado" ? "OBRIGADO!" : "PEDIDO"}
                   />
                 </div>
                 <div className="space-y-1">

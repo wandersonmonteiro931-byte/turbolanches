@@ -7,7 +7,7 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const tipo = searchParams.get("tipo") || "cozinha";
+  const tipo = searchParams.get("tipo") || "pedido";
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +15,14 @@ const AdminPrint = () => {
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
+
+  // Map legacy types and resolve the actual template type to load
+  const resolveType = (t: string) => {
+    if (t === "pedido_obrigado" || t === "entrega_cliente") return "pedido";
+    if (t === "cozinha" || t === "entrega") return "pedido";
+    if (t === "cliente") return "obrigado";
+    return t;
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -24,7 +32,7 @@ const AdminPrint = () => {
       if (orderErr || !orderData) { setError("Pedido não encontrado"); return; }
       setOrder(orderData);
 
-      const tplType = tipo === "entrega_cliente" ? "entrega" : tipo;
+      const tplType = resolveType(tipo);
       const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
         supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
@@ -43,11 +51,12 @@ const AdminPrint = () => {
 
   useEffect(() => {
     if (!ready) return;
-    if (tipo === "entrega_cliente") {
+    // Two-receipt flow: print pedido then redirect to obrigado
+    if (tipo === "pedido_obrigado" || tipo === "entrega_cliente") {
       const timer = setTimeout(() => {
         window.print();
         setTimeout(() => {
-          window.location.href = `/admin/imprimir/${id}?tipo=cliente&delay_ms=100`;
+          window.location.href = `/admin/imprimir/${id}?tipo=obrigado&delay_ms=100`;
         }, 400);
       }, printDelayMs);
       return () => clearTimeout(timer);
@@ -102,7 +111,8 @@ const AdminPrint = () => {
   const customerCode = isManualOrder ? (manualCodeMatch?.[1]?.trim() || "") : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "");
 
   const storeName = tpl?.store_name || "TURBO LANCHES";
-  const tipoLabel = tpl?.label || (tipo === "cozinha" ? "COZINHA" : tipo === "cliente" ? "OBRIGADO!" : "ENTREGA");
+  const resolvedType = resolveType(tipo);
+  const tipoLabel = tpl?.label || (resolvedType === "obrigado" ? "OBRIGADO!" : "PEDIDO");
   const labelFontSize = tpl?.label_font_size || 24;
   const itemsFontSize = tpl?.items_font_size || 14;
   const divulgacao = tpl?.custom_message || "";
@@ -173,20 +183,12 @@ const AdminPrint = () => {
     const lines = template.split('\n');
     return lines.map((rawLine, i) => {
       const line = rawLine.trimEnd();
-
-      // Separator
       if (line.trim() === '---') return <div key={i} className="separator" />;
-
-      // [ITENS] placeholder
       if (line.trim() === '[ITENS]') return <Fragment key={i}>{renderItems()}</Fragment>;
 
-      // Process variable replacement first
       let content = replaceVars(line);
-
-      // Skip completely empty lines after variable replacement
       if (!content.trim()) return null;
 
-      // Formatting tags
       if (content.includes('[GRANDE]')) {
         content = content.replace(/\[GRANDE\]/g, '').replace(/\[\/GRANDE\]/g, '');
         return <div key={i} className="tipo-label">{content}</div>;
@@ -213,12 +215,9 @@ const AdminPrint = () => {
     });
   };
 
-  // ─── Get template ───
-  const tplType = tipo === "entrega_cliente" ? "entrega" : tipo;
   const bodyTemplate = tpl?.body_template || "";
-  const templateToRender = bodyTemplate || getDefaultTemplate(tplType);
+  const templateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
 
-  // ─── Styles ───
   const styles = `
     @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
     @media print {
