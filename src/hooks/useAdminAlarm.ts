@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,6 +12,8 @@ export function useAdminAlarm() {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const location = useLocation();
+  const isOnAdminRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/cozinha");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const alarmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -63,7 +66,7 @@ export function useAdminAlarm() {
 
   // Play alarm sound
   useEffect(() => {
-    const shouldPlay = pendingCount > 0 && isAdmin;
+    const shouldPlay = pendingCount > 0 && isAdmin && isOnAdminRoute;
 
     if (shouldPlay) {
       if (!audioCtxRef.current) {
@@ -126,7 +129,7 @@ export function useAdminAlarm() {
         alarmIntervalRef.current = null;
       }
     };
-  }, [pendingCount, isAdmin]);
+  }, [pendingCount, isAdmin, isOnAdminRoute]);
 
   return { pendingCount };
 }
