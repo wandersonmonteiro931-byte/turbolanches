@@ -92,19 +92,29 @@ const AdminManualOrder = () => {
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
+  const comboSelectionInitializedRef = useRef(false);
 
   useEffect(() => {
-    setSelectedCartItemIds((prev) => {
-      const cartIds = cart.map((item) => item.product.id);
-      const validPrev = prev.filter((id) => cartIds.includes(id));
-      const next = validPrev.length > 0 ? validPrev : cartIds;
+    const cartIds = cart.map((item) => item.product.id);
 
-      if (next.length === prev.length && next.every((id, idx) => id === prev[idx])) {
+    setSelectedCartItemIds((prev) => {
+      const validPrev = prev.filter((id) => cartIds.includes(id));
+
+      if (validPrev.length === 0 && cartIds.length > 0 && !comboSelectionInitializedRef.current) {
+        comboSelectionInitializedRef.current = true;
+        return cartIds;
+      }
+
+      if (validPrev.length === prev.length && validPrev.every((id, idx) => id === prev[idx])) {
         return prev;
       }
 
-      return next;
+      return validPrev;
     });
+
+    if (cartIds.length === 0) {
+      comboSelectionInitializedRef.current = false;
+    }
   }, [cart]);
 
   useEffect(() => {
