@@ -540,9 +540,13 @@ const Checkout = () => {
                       <span className="text-muted-foreground">R$ {deliveryFee.toFixed(2).replace(".", ",")}</span>
                     )}
                   </div>
-                  {(isTempFree || isAutoFree) && rawFee > 0 && (
+                  {(isTempFree || isKmFree || isMinOrderFree) && rawFee > 0 && (
                     <p className="text-[11px] text-green-600 font-medium">
-                      {isTempFree ? "🎁 Frete grátis temporário ativo!" : `🎉 Frete grátis em pedidos acima de R$ ${deliveryConfig?.free_delivery_min_order}`}
+                      {isTempFree
+                        ? "🎁 Frete grátis por bairros selecionados!"
+                        : isKmFree
+                          ? `📍 Frete grátis por distância (até ${deliveryConfig?.free_delivery_max_km} km)`
+                          : `🎉 Frete grátis em pedidos acima de R$ ${deliveryConfig?.free_delivery_min_order}`}
                     </p>
                   )}
                 </>

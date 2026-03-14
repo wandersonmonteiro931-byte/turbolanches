@@ -127,7 +127,7 @@ function FreeDeliveryCard({ config, onSaved }: { config: StoreConfig; onSaved: (
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Gift size={18} className="text-green-500" />
-          <h3 className="text-sm font-bold text-foreground">Frete Grátis Automático</h3>
+          <h3 className="text-sm font-bold text-foreground">Frete Grátis por Regra</h3>
         </div>
         {!editing && (
           <button onClick={() => setEditing(true)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
@@ -136,30 +136,38 @@ function FreeDeliveryCard({ config, onSaved }: { config: StoreConfig; onSaved: (
         )}
       </div>
       {editing ? (
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Pedido mínimo:</span>
-            <span className="text-sm text-muted-foreground">R$</span>
-            <input type="number" step="1" min="0" value={form.free_delivery_min_order} onChange={e => setForm(f => ({ ...f, free_delivery_min_order: Number(e.target.value) }))} className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Pedido mínimo:</span>
+              <span className="text-sm text-muted-foreground">R$</span>
+              <input type="number" step="1" min="0" value={form.free_delivery_min_order} onChange={e => setForm(f => ({ ...f, free_delivery_min_order: Number(e.target.value) }))} className="w-24 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Até distância:</span>
+              <input type="number" step="0.5" min="0" value={form.free_delivery_max_km} onChange={e => setForm(f => ({ ...f, free_delivery_max_km: Number(e.target.value) }))} className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+              <span className="text-xs text-muted-foreground">km</span>
+            </div>
+            <div className="flex gap-2 ml-auto">
+              <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
+              <button onClick={() => { setEditing(false); setForm(config); }} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground">Cancelar</button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Até distância:</span>
-            <input type="number" step="0.5" min="0" value={form.free_delivery_max_km} onChange={e => setForm(f => ({ ...f, free_delivery_max_km: Number(e.target.value) }))} className="w-20 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            <span className="text-xs text-muted-foreground">km</span>
-          </div>
-          <div className="flex gap-2 ml-auto">
-            <button onClick={save} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
-            <button onClick={() => { setEditing(false); setForm(config); }} className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground">Cancelar</button>
-          </div>
+          <p className="text-xs text-muted-foreground">Use o limite de km para liberar frete grátis por distância, ou ative bairros específicos no botão 🎁 da lista.</p>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {config.free_delivery_min_order > 0 ? (
-            <>Pedidos acima de <span className="font-bold text-foreground">R$ {config.free_delivery_min_order.toFixed(0)}</span> {config.free_delivery_max_km > 0 ? <>até <span className="font-bold text-foreground">{config.free_delivery_max_km} km</span></> : ""} ganham frete grátis.</>
-          ) : (
-            <span className="italic">Desativado (defina pedido mínimo &gt; 0 para ativar).</span>
+        <div className="text-sm text-muted-foreground space-y-1">
+          {config.free_delivery_max_km > 0 && (
+            <p>📍 Distância: frete grátis até <span className="font-bold text-foreground">{config.free_delivery_max_km} km</span>.</p>
           )}
-        </p>
+          {config.free_delivery_min_order > 0 && (
+            <p>🧾 Pedido mínimo: frete grátis acima de <span className="font-bold text-foreground">R$ {config.free_delivery_min_order.toFixed(0)}</span>.</p>
+          )}
+          {config.free_delivery_max_km <= 0 && config.free_delivery_min_order <= 0 && (
+            <p className="italic">Desativado (defina km ou pedido mínimo para ativar).</p>
+          )}
+          <p className="text-xs">🎁 Bairros selecionados continuam configuráveis na lista abaixo.</p>
+        </div>
       )}
     </div>
   );
