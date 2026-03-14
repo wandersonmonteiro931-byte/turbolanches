@@ -175,14 +175,14 @@ const AdminProducts = () => {
             <GripVertical size={18} className="shrink-0 text-muted-foreground" />
             {p.image_url && <img src={p.image_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover" />}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
-                {p.is_combo && (
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
-                    COMBO
-                  </span>
-                )}
-              </div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
+                  {p.is_combo && (
+                    <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
+                      COMBO ({p.combo_item_count}x)
+                    </span>
+                  )}
+                </div>
               <p className="text-xs text-muted-foreground">R$ {Number(p.price).toFixed(2)}</p>
             </div>
             <button
