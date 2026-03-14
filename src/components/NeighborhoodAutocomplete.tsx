@@ -15,9 +15,11 @@ interface Props {
   className?: string;
   /** If true, allows selecting inactive zones (for admin) */
   allowInactive?: boolean;
+  /** Change this value to force a data refresh */
+  refreshKey?: number;
 }
 
-const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false }: Props) => {
+const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", className = "", allowInactive = false, refreshKey = 0 }: Props) => {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
@@ -26,8 +28,7 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
 
   // Fetch ALL zones (including inactive) for display
   useEffect(() => {
-    if (loaded) return;
-    const fetch = async () => {
+    const fetchZones = async () => {
       const { data } = await supabase
         .from("delivery_zones")
         .select("neighborhood, delivery_fee, active")
@@ -35,8 +36,8 @@ const NeighborhoodAutocomplete = ({ value, onChange, placeholder = "Bairro", cla
       if (data) setZones(data);
       setLoaded(true);
     };
-    fetch();
-  }, [loaded]);
+    fetchZones();
+  }, [refreshKey]);
 
   // Sync external value
   useEffect(() => {
