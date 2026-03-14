@@ -1,0 +1,1 @@
+ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS body_template text NOT NULL DEFAULT '';
