@@ -53,12 +53,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Router-scoped effects (hooks that depend on Router context)
+const RouterEffects = ({ userId }: { userId?: string }) => {
+  usePushNotifications(userId);
+  useOrderStatusNotifier();
+  useAdminAlarm();
+  return null;
+};
+
 // Inner component to use hooks inside AuthProvider
 const AppInner = () => {
   const { user } = useAuth();
-  usePushNotifications(user?.id);
-  useOrderStatusNotifier();
-  useAdminAlarm();
 
   return (
     <CartProvider>
@@ -66,6 +71,7 @@ const AppInner = () => {
       <Sonner />
       <NotificationBanner />
       <BrowserRouter>
+        <RouterEffects userId={user?.id} />
         <Routes>
           {/* Public routes - accessible without login */}
           <Route path="/" element={<Index />} />
