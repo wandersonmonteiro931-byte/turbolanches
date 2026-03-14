@@ -35,7 +35,7 @@ const AdminProducts = () => {
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
-    image_url: "", category_id: "", active: true, popular: false, is_combo: false, sort_order: "0",
+    image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0",
   });
 
   const fetchData = async () => {
