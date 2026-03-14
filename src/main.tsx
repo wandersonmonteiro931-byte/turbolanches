@@ -3,6 +3,11 @@ import "./index.css";
 
 // Defensive fallback for transient runtime probes
 try {
+  // Ensure a real global binding exists (not only object property)
+  (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+} catch {}
+
+try {
   Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
     value: false,
     writable: true,
@@ -11,6 +16,9 @@ try {
 } catch {
   (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
 }
+
+try { (window as any).__LOVA_FIX_TRIGGER__ = false; } catch {}
+try { (self as any).__LOVA_FIX_TRIGGER__ = false; } catch {}
 
 const suppressLova = (msg: string) => msg.includes("__LOVA_FIX_TRIGGER__");
 

@@ -125,30 +125,48 @@ const ProductDetail = () => {
                 const isSelected = qty > 0;
 
                 if (isCombo) {
-                  // Combo: toggle only, qty is always comboCount, no editing
-                  const totalAddonPrice = addon.price * comboCount;
+                  // Combo: +/- available, each click changes by comboStep to keep multiplier
+                  const portions = Math.floor(qty / comboStep);
+                  const portionPrice = addon.price * comboStep;
+                  const totalAddonPrice = addon.price * qty;
+
                   return (
-                    <button key={addon.id} onClick={() => toggleComboAddon(addon.id)}
+                    <div key={addon.id}
                       className={`flex w-full items-center justify-between rounded-xl border p-3 transition-all ${
                         isSelected ? "border-primary/30 bg-fire-gradient-soft" : "border-border bg-background"
                       }`}>
-                      <div className="flex-1 min-w-0 text-left">
+                      <div className="flex-1 min-w-0">
                         <span className="text-sm text-foreground">{addon.name}</span>
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-xs text-muted-foreground">
-                            {addon.price > 0 ? `${fmt(addon.price)} × ${comboCount}` : "Grátis"}
+                            {addon.price > 0 ? `${fmt(addon.price)} × ${comboStep} por porção` : "Grátis"}
                           </p>
                           {addon.price > 0 && (
-                            <p className="text-xs font-bold text-primary">= {fmt(totalAddonPrice)}</p>
+                            <p className="text-xs font-bold text-primary">= {fmt(portionPrice)}</p>
                           )}
                         </div>
+                        {isSelected && addon.price > 0 && (
+                          <p className="text-[11px] text-primary/80 mt-0.5">
+                            {portions}x porção(ões): {fmt(totalAddonPrice)}
+                          </p>
+                        )}
                       </div>
-                      <div className={`flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
-                        isSelected ? "bg-primary text-primary-foreground" : "border border-border bg-background text-muted-foreground"
-                      }`}>
-                        {isSelected ? "✓" : "+"}
+                      <div className="flex items-center gap-2">
+                        {isSelected && (
+                          <button onClick={() => setAddonQty(addon.id, qty - comboStep)}
+                            className="flex h-7 w-7 items-center justify-center rounded-full border border-primary text-primary">
+                            <Minus size={14} />
+                          </button>
+                        )}
+                        {isSelected && (
+                          <span className="min-w-[26px] text-center text-sm font-bold text-foreground">{portions}</span>
+                        )}
+                        <button onClick={() => setAddonQty(addon.id, qty + comboStep)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                          <Plus size={14} />
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 }
 
