@@ -285,19 +285,19 @@ const AdminPrint = () => {
   // ===== COMANDA COZINHA =====
   const itensCozinha = (
     <>
-      <div style={{ fontWeight: 900, fontSize: 14 }}>ITENS:</div>
+      <div style={{ fontWeight: 900, fontSize: itemsFontSize }}>ITENS:</div>
       {items.map((item) => {
         const addons = item.addons_json as any[] | null;
         return (
           <div key={item.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 14, margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: itemsFontSize, margin: 0 }}>
               <span>{item.quantity}x {item.product_name}</span>
               <span>R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}</span>
             </div>
             {addons && addons.length > 0 && addons.map((a: any, i: number) => (
-              <div key={i} style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
+              <div key={i} style={{ fontSize: Math.max(itemsFontSize - 2, 8), paddingLeft: 8, fontWeight: 900 }}>+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
             ))}
-            {item.observations && <div style={{ fontSize: 12, paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
+            {item.observations && <div style={{ fontSize: Math.max(itemsFontSize - 2, 8), paddingLeft: 8, fontWeight: 900 }}>Obs: {item.observations}</div>}
           </div>
         );
       })}
