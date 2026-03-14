@@ -394,7 +394,7 @@ const AdminManualOrder = () => {
           <div className="grid grid-cols-2 gap-3">
             <input placeholder="Nome do cliente" value={customerName} onChange={(e) => setCustomerName(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
-            <input placeholder="Telefone" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
+            <input placeholder="WhatsApp *" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
           </div>
           {(deliveryType === "mesa" || deliveryType === "consumo") && (
@@ -403,14 +403,14 @@ const AdminManualOrder = () => {
           )}
           {deliveryType === "delivery" && (
             <div className="grid grid-cols-2 gap-3">
-              <input placeholder="Rua" value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)}
+              <input placeholder="Rua *" value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)}
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
               <input placeholder="Número" value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)}
                 className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
               <NeighborhoodAutocomplete value={addressNeighborhood}
                 onChange={(val) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); }}
                 placeholder="Bairro" allowInactive={true} className="col-span-2" />
-              <input placeholder="Complemento / Quadra / Lote" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)}
+              <input placeholder="Complemento / Quadra / Lote *" value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)}
                 className="col-span-2 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
             </div>
           )}
