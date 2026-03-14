@@ -635,7 +635,7 @@ const AdminOrders = () => {
                   )}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {paymentLabels[order.payment_method] || order.payment_method}
+                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                   {profile?.full_name ? ` · ${profile.full_name}` : ""}
                 </p>
               </div>
