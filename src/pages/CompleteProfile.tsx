@@ -83,11 +83,11 @@ const CompleteProfile = () => {
 
   const fields = [
     { key: "full_name", label: "Nome completo", icon: User, required: true },
-    { key: "phone", label: "Telefone (com DDD)", icon: Phone, required: true },
+    { key: "phone", label: "WhatsApp (com DDD)", icon: Phone, required: true },
     { key: "zip_code", label: "CEP", icon: Hash, required: true },
     { key: "street", label: "Rua", icon: MapPin, required: true },
     { key: "number", label: "Número", icon: Hash, required: true },
-    { key: "complement", label: "Complemento", icon: Building, required: false },
+    { key: "complement", label: "Complemento", icon: Building, required: true },
     { key: "quadra", label: "Quadra", icon: Hash, required: false },
     { key: "lote", label: "Lote", icon: Hash, required: false },
     { key: "neighborhood", label: "Bairro", icon: Map, required: true },
