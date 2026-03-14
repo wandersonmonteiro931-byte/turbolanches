@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useAlarmSound } from "@/hooks/useAlarmSound";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -103,12 +103,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Alarm: count pending orders (excluding unpaid PIX)
-  const pendingAlarmCount = orders.filter(o =>
-    (o.status === "pending" || o.status === "paid") &&
-    !(o.payment_method === "pix" && o.status === "pending")
-  ).length;
-  useAlarmSound(pendingAlarmCount > 0);
+  // Alarm is now global via useAdminAlarm in App.tsx
 
   const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
