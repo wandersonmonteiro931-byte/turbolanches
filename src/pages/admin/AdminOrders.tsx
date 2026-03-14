@@ -331,9 +331,9 @@ const AdminOrders = () => {
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     if (newStatus === "preparing") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=cozinha`);
+      safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
     } else if (newStatus === "delivering") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=entrega_cliente`);
+      safePrint(`/admin/imprimir/${orderId}?tipo=pedido_obrigado`);
     }
   };
 
