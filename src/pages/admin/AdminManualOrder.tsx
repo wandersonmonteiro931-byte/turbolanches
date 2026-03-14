@@ -416,7 +416,11 @@ const AdminManualOrder = () => {
             {paymentMethods.map((pm) => (
               <button
                 key={pm.id}
-                onClick={() => setPaymentMethod(pm.id)}
+                onClick={() => {
+                  setPaymentMethod(pm.id);
+                  if (pm.id === "pix_pago") setIsPaid(true);
+                  if (pm.id === "pix_entrega") setIsPaid(false);
+                }}
                 className={`rounded-xl px-3 py-2.5 text-xs font-bold transition-all ${
                   paymentMethod === pm.id
                     ? "bg-primary text-primary-foreground"
