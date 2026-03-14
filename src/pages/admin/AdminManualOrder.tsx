@@ -686,14 +686,29 @@ const AdminManualOrder = () => {
               <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
             </div>
             {deliveryType === "delivery" && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Entrega</span>
-                <div className="flex items-center gap-1">
-                  <span>R$</span>
-                  <input type="number" step="0.01" value={customDeliveryFee}
-                    onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }}
-                    className="w-20 rounded border border-border bg-background px-2 py-1 text-xs font-bold text-foreground text-right" />
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <span>Entrega</span>
+                  <div className="flex items-center gap-1">
+                    <span>R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={customDeliveryFee}
+                      onChange={(e) => {
+                        setCustomDeliveryFee(e.target.value);
+                        setDeliveryFeeOverridden(true);
+                      }}
+                      className="w-20 rounded border border-border bg-background px-2 py-1 text-xs font-bold text-foreground text-right"
+                    />
+                  </div>
                 </div>
+                {!deliveryFeeOverridden && autoDeliveryReason && (
+                  <p className="text-[11px] font-medium text-primary">{autoDeliveryReason}</p>
+                )}
+                {deliveryFeeOverridden && (
+                  <p className="text-[11px]">Taxa manual aplicada.</p>
+                )}
               </div>
             )}
             <div className="flex items-center justify-between text-sm text-muted-foreground">
