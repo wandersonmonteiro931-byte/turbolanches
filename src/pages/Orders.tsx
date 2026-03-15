@@ -63,7 +63,7 @@ const Orders = () => {
   }, [user]);
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    formatDateTimeBR(date, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="min-h-screen bg-background pb-24">
