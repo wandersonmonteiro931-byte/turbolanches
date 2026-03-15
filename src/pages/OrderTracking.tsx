@@ -30,8 +30,7 @@ interface OrderData {
 
 function formatTime(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return formatTimeBR(dateStr);
 }
 
 interface OrderItemData {
