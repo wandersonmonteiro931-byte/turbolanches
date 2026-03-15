@@ -47,9 +47,27 @@ const ensureLovaFixTrigger = () => {
   } catch {}
 };
 
+const injectGlobalProbeBinding = () => {
+  if (typeof document === "undefined") return;
+
+  try {
+    const script = document.createElement("script");
+    script.text = "var __LOVA_FIX_TRIGGER__ = false;";
+    (document.head ?? document.documentElement).prepend(script);
+    script.remove();
+  } catch {}
+};
+
+injectGlobalProbeBinding();
 ensureLovaFixTrigger();
-queueMicrotask(ensureLovaFixTrigger);
-setTimeout(ensureLovaFixTrigger, 0);
+queueMicrotask(() => {
+  injectGlobalProbeBinding();
+  ensureLovaFixTrigger();
+});
+setTimeout(() => {
+  injectGlobalProbeBinding();
+  ensureLovaFixTrigger();
+}, 0);
 
 window.addEventListener(
   "unhandledrejection",
