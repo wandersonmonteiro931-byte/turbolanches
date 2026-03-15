@@ -6,7 +6,7 @@ const ensureGlobalProbe = () => {
   } catch {}
 
   try {
-    (0, Function)("var __LOVA_FIX_TRIGGER__ = false;")();
+    Function("var __LOVA_FIX_TRIGGER__ = false;")();
   } catch {}
 
   try {
