@@ -293,6 +293,16 @@ const Index = () => {
         </div>
       </motion.div>
 
+      <footer className="mx-auto mt-10 max-w-md border-t border-border px-4 pb-24 pt-6 text-center">
+        <img
+          src={logoTurboTransparent}
+          alt="Logotipo Turbo Lanches"
+          className="mx-auto h-16 w-auto object-contain"
+          loading="lazy"
+        />
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">© 2026 Turbo Lanches</p>
+      </footer>
+
       <AddressSelector open={addrSelectorOpen} onClose={() => setAddrSelectorOpen(false)} />
       <CartFloatingButton />
       <BottomNav />
