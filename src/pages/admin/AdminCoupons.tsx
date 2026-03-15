@@ -88,7 +88,7 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCoupons = async () => {
-    if (!storeId) return;
+    if (!storeId) { setLoading(false); return; }
     const { data } = await supabase.from("coupons").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     setCoupons((data as Coupon[]) ?? []);
     setLoading(false);
