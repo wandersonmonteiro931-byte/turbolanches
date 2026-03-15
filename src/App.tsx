@@ -36,6 +36,8 @@ import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminAddons from "./pages/admin/AdminAddons";
 import AdminReceipts from "./pages/admin/AdminReceipts";
 import AdminCoupons from "./pages/admin/AdminCoupons";
+import AdminManageAdmins from "./pages/admin/AdminManageAdmins";
+import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
