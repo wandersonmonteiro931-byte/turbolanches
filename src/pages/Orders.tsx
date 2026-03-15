@@ -4,6 +4,7 @@ import { Clock, Check, ChefHat, Truck, Package, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import { formatDateTimeBR } from "@/lib/brasiliaTime";
 
 interface Order {
   id: string;
@@ -63,7 +64,7 @@ const Orders = () => {
   }, [user]);
 
   const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    formatDateTimeBR(date, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="min-h-screen bg-background pb-24">

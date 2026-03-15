@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { formatTimeBR } from "@/lib/brasiliaTime";
 import { motion } from "framer-motion";
 
 interface OrderData {
@@ -30,8 +31,7 @@ interface OrderData {
 
 function formatTime(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return formatTimeBR(dateStr);
 }
 
 interface OrderItemData {

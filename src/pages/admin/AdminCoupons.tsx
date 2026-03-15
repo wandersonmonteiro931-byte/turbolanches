@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Ticket } from "lucide-react";
+import { nowBrasilia, formatDateBR } from "@/lib/brasiliaTime";
 
 interface Coupon {
   id: string;
@@ -48,7 +49,7 @@ function toLocalDate(iso: string | null) {
 
 function couponStatus(c: Coupon): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
   if (!c.active) return { label: "Inativo", variant: "secondary" };
-  const now = new Date();
+  const now = nowBrasilia();
   if (c.expires_at && new Date(c.expires_at) < now) return { label: "Expirado", variant: "destructive" };
   if (c.starts_at && new Date(c.starts_at) > now) return { label: "Agendado", variant: "outline" };
   return { label: "Ativo", variant: "default" };
@@ -222,9 +223,9 @@ const AdminCoupons = () => {
                     <TableCell>{c.type === "percentage" ? "Percentual" : "Valor fixo"}</TableCell>
                     <TableCell>{c.type === "percentage" ? `${c.value}%` : `R$ ${Number(c.value).toFixed(2)}`}</TableCell>
                     <TableCell className="hidden text-xs md:table-cell">
-                      {c.starts_at ? new Date(c.starts_at).toLocaleDateString("pt-BR") : "—"}{" "}
+                      {c.starts_at ? formatDateBR(c.starts_at) : "—"}{" "}
                       até{" "}
-                      {c.expires_at ? new Date(c.expires_at).toLocaleDateString("pt-BR") : "—"}
+                      {c.expires_at ? formatDateBR(c.expires_at) : "—"}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {c.used_count}{c.max_uses ? `/${c.max_uses}` : ""}
