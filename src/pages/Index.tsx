@@ -10,6 +10,7 @@ import ReorderSection from "@/components/ReorderSection";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import BottomNav from "@/components/BottomNav";
 import StoreHours from "@/components/StoreHours";
+import FlashPhrases from "@/components/FlashPhrases";
 import AddressSelector from "@/components/AddressSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
@@ -243,6 +244,9 @@ const Index = () => {
                 <span className="text-xs font-bold text-primary">Siga nosso Instagram: {instagramHandle}</span>
               </motion.button>
             </div>
+
+            {/* Flash Phrases */}
+            <FlashPhrases />
           </motion.div>
 
           {/* Category Grid */}
