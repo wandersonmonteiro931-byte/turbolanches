@@ -786,121 +786,126 @@ const AdminManualOrder = () => {
           </AnimatePresence>
 
           <SectionCard title="3. Pagamento" icon="💳" className="animate-enter">
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {paymentMethods.map((pm) => (
-                <motion.button
-                  key={pm.id}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => {
-                    setPaymentMethod(pm.id);
-                    if (pm.id === "pix_pago") setIsPaid(true);
-                    if (pm.id === "pix_entrega") setIsPaid(false);
-                  }}
-                  className={`rounded-2xl border px-2 py-3 text-center transition-all ${
-                    paymentMethod === pm.id
-                      ? "border-primary bg-primary text-primary-foreground shadow-md"
-                      : "border-border bg-background text-foreground hover:bg-muted"
+            <SectionBlock title="Forma de pagamento" className="bg-muted/20">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {paymentMethods.map((pm) => (
+                  <motion.button
+                    key={pm.id}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setPaymentMethod(pm.id);
+                      if (pm.id === "pix_pago") setIsPaid(true);
+                      if (pm.id === "pix_entrega") setIsPaid(false);
+                    }}
+                    className={`rounded-xl border-2 px-2 py-3 text-center transition-all ${
+                      paymentMethod === pm.id
+                        ? "border-primary bg-primary text-primary-foreground shadow-md"
+                        : "border-border bg-background text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div className="text-lg">{pm.icon}</div>
+                    <div className="mt-1 text-[10px] font-extrabold leading-tight">{pm.label}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </SectionBlock>
+
+            <SectionBlock title="Status do pagamento" className="bg-muted/20">
+              {paymentMethod === "pix_entrega" || paymentMethod === "pix_pago" ? (
+                <motion.div
+                  {...fadeIn}
+                  className={`rounded-xl border px-4 py-3 text-sm font-bold ${
+                    paymentMethod === "pix_pago"
+                      ? "border-accent/40 bg-accent/15 text-accent-foreground"
+                      : "border-primary/20 bg-primary/10 text-foreground"
                   }`}
                 >
-                  <div className="text-lg">{pm.icon}</div>
-                  <div className="mt-1 text-[10px] font-extrabold leading-tight">{pm.label}</div>
-                </motion.button>
-              ))}
-            </div>
+                  {paymentMethod === "pix_pago" ? "✅ PIX PAGO — valor já recebido." : "📱 PIX ENTREGA — cobrar na entrega."}
+                </motion.div>
+              ) : (
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:bg-muted">
+                  <input
+                    type="checkbox"
+                    checked={isPaid}
+                    onChange={(e) => setIsPaid(e.target.checked)}
+                    className="h-5 w-5 rounded border-border accent-primary"
+                  />
+                  <div>
+                    <span className="text-sm font-bold text-foreground">Já está pago</span>
+                    <p className="text-[11px] text-muted-foreground">Nenhum valor a receber.</p>
+                  </div>
+                </label>
+              )}
 
-            {paymentMethod === "pix_entrega" || paymentMethod === "pix_pago" ? (
-              <motion.div
-                {...fadeIn}
-                className={`rounded-xl border px-4 py-3 text-sm font-bold ${
-                  paymentMethod === "pix_pago"
-                    ? "border-accent/40 bg-accent/15 text-accent-foreground"
-                    : "border-primary/20 bg-primary/10 text-foreground"
-                }`}
-              >
-                {paymentMethod === "pix_pago" ? "✅ PIX PAGO — valor já recebido." : "📱 PIX ENTREGA — cobrar na entrega."}
-              </motion.div>
-            ) : (
-              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:bg-muted">
-                <input
-                  type="checkbox"
-                  checked={isPaid}
-                  onChange={(e) => setIsPaid(e.target.checked)}
-                  className="h-5 w-5 rounded border-border accent-primary"
-                />
-                <div>
-                  <span className="text-sm font-bold text-foreground">Já está pago</span>
-                  <p className="text-[11px] text-muted-foreground">Nenhum valor a receber.</p>
-                </div>
-              </label>
-            )}
-
-            {paymentMethod === "dinheiro" && !isPaid && (
-              <motion.div {...fadeIn}>
-                <input
-                  type="number"
-                  placeholder="Troco para quanto? (R$)"
-                  value={changeFor}
-                  onChange={(e) => setChangeFor(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </motion.div>
-            )}
+              {paymentMethod === "dinheiro" && !isPaid && (
+                <motion.div {...fadeIn}>
+                  <input
+                    type="number"
+                    placeholder="Troco para quanto? (R$)"
+                    value={changeFor}
+                    onChange={(e) => setChangeFor(e.target.value)}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </motion.div>
+              )}
+            </SectionBlock>
           </SectionCard>
 
           <SectionCard title="4. Resumo e Criação" icon="🧾" className="animate-enter">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Subtotal</span>
-                <span>R$ {fmt(subtotal)}</span>
-              </div>
+            <SectionBlock title="Resumo financeiro" className="bg-muted/20">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>R$ {fmt(subtotal)}</span>
+                </div>
 
-              {deliveryType === "delivery" && (
-                <div className="space-y-1 rounded-xl border border-border bg-background px-3 py-2">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Entrega</span>
-                    <div className="flex items-center gap-1">
-                      <span>R$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={customDeliveryFee}
-                        onChange={(e) => {
-                          setCustomDeliveryFee(e.target.value);
-                          setDeliveryFeeOverridden(true);
-                        }}
-                        className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
-                      />
+                {deliveryType === "delivery" && (
+                  <div className="space-y-1 rounded-xl border border-border bg-background px-3 py-2">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Entrega</span>
+                      <div className="flex items-center gap-1">
+                        <span>R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={customDeliveryFee}
+                          onChange={(e) => {
+                            setCustomDeliveryFee(e.target.value);
+                            setDeliveryFeeOverridden(true);
+                          }}
+                          className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
+                        />
+                      </div>
                     </div>
+                    {!deliveryFeeOverridden && autoDeliveryReason && (
+                      <p className="text-[11px] font-medium text-primary">{autoDeliveryReason}</p>
+                    )}
                   </div>
-                  {!deliveryFeeOverridden && autoDeliveryReason && (
-                    <p className="text-[11px] font-medium text-primary">{autoDeliveryReason}</p>
-                  )}
-                </div>
-              )}
+                )}
 
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Desconto</span>
-                <div className="flex items-center gap-1">
-                  <span>R$</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={discount}
-                    onChange={(e) => setDiscount(e.target.value)}
-                    className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
-                  />
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Desconto</span>
+                  <div className="flex items-center gap-1">
+                    <span>R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={discount}
+                      onChange={(e) => setDiscount(e.target.value)}
+                      className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-foreground">Total do Pedido</span>
-                  <span className="text-xl font-black text-primary">R$ {fmt(total)}</span>
+                <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-foreground">Total do Pedido</span>
+                    <span className="text-xl font-black text-primary">R$ {fmt(total)}</span>
+                  </div>
                 </div>
               </div>
-
-            </div>
+            </SectionBlock>
           </SectionCard>
         </aside>
       </main>
