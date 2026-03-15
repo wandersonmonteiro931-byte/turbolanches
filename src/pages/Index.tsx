@@ -102,7 +102,7 @@ const Index = () => {
       {/* Store Status Banner */}
       {!storeIsOpen ? (
         <div className="bg-destructive px-4 py-3 text-center">
-          <p className="text-sm font-bold text-destructive-foreground">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+          <p className="text-sm font-bold text-destructive-foreground">ESTAMOS FECHADOS NO MOMENTO</p>
           {nextOpeningText && (
             <p className="mt-1 text-xs font-medium text-destructive-foreground/90">{nextOpeningText}</p>
           )}
@@ -112,7 +112,7 @@ const Index = () => {
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2 bg-card border-b border-border px-4 py-1.5">
-          <span className="text-[11px] text-muted-foreground">🟢 Aberto agora</span>
+          <span className="text-[11px] text-muted-foreground">Aberto agora</span>
           <StoreHours />
         </div>
       )}
