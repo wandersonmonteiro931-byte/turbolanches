@@ -73,6 +73,7 @@ function couponStatus(c: Coupon): { label: string; variant: "default" | "seconda
 }
 
 const AdminCoupons = () => {
+  const { storeId } = useStore();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -85,12 +86,13 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCoupons = async () => {
-    const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
+    if (!storeId) return;
+    const { data } = await supabase.from("coupons").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     setCoupons((data as Coupon[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchCoupons(); }, []);
+  useEffect(() => { fetchCoupons(); }, [storeId]);
 
   const openCreate = () => {
     setEditingId(null);
