@@ -24,6 +24,7 @@ interface Coupon {
   active: boolean;
   used_count: number;
   max_uses: number | null;
+  max_uses_per_customer: number | null;
   min_order: number | null;
   expires_at: string | null;
   starts_at: string | null;
