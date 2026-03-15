@@ -15,6 +15,7 @@ const VARIABLES = [
   { key: "[TOTAL]", desc: "Valor total do pedido" },
   { key: "[TAXAENTREGA]", desc: "Taxa de entrega" },
   { key: "[DESCONTO]", desc: "Valor do desconto" },
+  { key: "[CUPOM]", desc: "Código do cupom e valor do desconto" },
   { key: "[TROCO]", desc: "Valor do troco (se houver)" },
   { key: "[NOMELOJA]", desc: "Nome da loja (campo editável)" },
   { key: "[TIPOCOMANDA]", desc: "Título da comanda (campo editável)" },

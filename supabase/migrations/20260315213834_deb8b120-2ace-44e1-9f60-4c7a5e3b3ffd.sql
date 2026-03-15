@@ -1,0 +1,1 @@
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS max_uses_per_customer integer DEFAULT NULL;

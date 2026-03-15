@@ -24,6 +24,7 @@ interface Coupon {
   active: boolean;
   used_count: number;
   max_uses: number | null;
+  max_uses_per_customer: number | null;
   min_order: number | null;
   expires_at: string | null;
   starts_at: string | null;
@@ -37,6 +38,7 @@ const empty: Omit<Coupon, "id" | "created_at" | "used_count"> = {
   value: 0,
   active: true,
   max_uses: null,
+  max_uses_per_customer: null,
   min_order: null,
   expires_at: null,
   starts_at: null,
@@ -108,6 +110,7 @@ const AdminCoupons = () => {
       value: c.value,
       active: c.active,
       max_uses: c.max_uses,
+      max_uses_per_customer: c.max_uses_per_customer,
       min_order: c.min_order,
       expires_at: c.expires_at,
       starts_at: c.starts_at,
@@ -133,6 +136,7 @@ const AdminCoupons = () => {
       value: form.value,
       active: form.active,
       max_uses: form.max_uses || null,
+      max_uses_per_customer: form.max_uses_per_customer || null,
       min_order: form.min_order || null,
       expires_at: form.expires_at,
       starts_at: form.starts_at,
@@ -319,8 +323,14 @@ const AdminCoupons = () => {
             </div>
 
             <div>
-              <Label>Limite de usos (opcional)</Label>
+              <Label>Limite total de usos (opcional)</Label>
               <Input type="number" min={0} value={form.max_uses ?? ""} onChange={(e) => setForm({ ...form, max_uses: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite" />
+            </div>
+
+            <div>
+              <Label>Limite de usos por cliente (opcional)</Label>
+              <Input type="number" min={0} value={form.max_uses_per_customer ?? ""} onChange={(e) => setForm({ ...form, max_uses_per_customer: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite — cada cliente usa quantas vezes quiser" />
+              <p className="text-[11px] text-muted-foreground mt-1">Independente de outros requisitos (valor mínimo, primeira compra, etc.)</p>
             </div>
 
             <div>
