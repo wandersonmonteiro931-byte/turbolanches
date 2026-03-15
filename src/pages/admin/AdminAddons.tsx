@@ -111,7 +111,7 @@ const AdminAddons = () => {
       const toAdd = selectedProductIds.filter((pid) => !existingPids.includes(pid));
       if (toAdd.length > 0) {
         await supabase.from("addon_product_links").insert(
-          toAdd.map((pid) => ({ addon_id: addon.id, product_id: pid }))
+          toAdd.map((pid) => ({ addon_id: addon.id, product_id: pid, store_id: storeId }))
         );
       }
       toast({ title: `"${addon.name}" adicionado a ${selectedProductIds.length} produto(s)` });
