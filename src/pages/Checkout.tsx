@@ -262,6 +262,8 @@ const Checkout = () => {
       user_id: user.id,
       subtotal: totalPrice,
       delivery_fee: deliveryFee,
+      discount: couponDiscount,
+      coupon_code: appliedCoupon?.code || null,
       total: grandTotal,
       status: "pending",
       delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
