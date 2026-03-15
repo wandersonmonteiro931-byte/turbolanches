@@ -61,6 +61,16 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    type: string;
+    value: number;
+  } | null>(null);
+  const [couponError, setCouponError] = useState("");
+
   // PIX modal state
   const [showPixModal, setShowPixModal] = useState(false);
   const [pixData, setPixData] = useState<{
