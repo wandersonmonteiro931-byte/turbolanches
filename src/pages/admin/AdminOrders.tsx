@@ -117,7 +117,7 @@ const AdminOrders = () => {
   useAlarmSound(hasPendingOrders);
 
   const fetchOrders = useCallback(async () => {
-    // Fetch ALL orders (no limit) - paginated by 1000
+    if (!storeId) return;
     let all: Order[] = [];
     let from = 0;
     const pageSize = 1000;
@@ -127,6 +127,7 @@ const AdminOrders = () => {
       const { data } = await supabase
         .from("orders")
         .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
+        .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .range(from, from + pageSize - 1);
 
