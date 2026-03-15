@@ -176,12 +176,8 @@ const Checkout = () => {
 
   const deliveryFee = deliveryType === "pickup" ? 0 : ((isTempFree || isKmFree || isMinOrderFree) ? 0 : rawFee);
 
-  // Coupon discount
-  const couponDiscount = appliedCoupon
-    ? appliedCoupon.type === "percentage"
-      ? Math.min(totalPrice * (appliedCoupon.value / 100), totalPrice)
-      : Math.min(appliedCoupon.value, totalPrice)
-    : 0;
+
+
 
   const grandTotal = totalPrice + deliveryFee - couponDiscount;
 
