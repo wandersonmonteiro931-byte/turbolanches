@@ -134,7 +134,6 @@ const AdminCoupons = () => {
       toast.error("Data de início não pode ser posterior à data de fim");
       return;
     }
-    if (!form.starts_at || !form.expires_at) { toast.error("Datas de início e fim são obrigatórias"); return; }
 
     setSaving(true);
     const payload = {
