@@ -235,7 +235,7 @@ const AdminNotifications = () => {
     }
     const { data, error } = await supabase
       .from("push_templates")
-      .insert({ trigger_status: newTrigger.trim(), title: newTitle.trim(), body: newBody.trim() })
+      .insert({ trigger_status: newTrigger.trim(), title: newTitle.trim(), body: newBody.trim(), store_id: storeId })
       .select()
       .single();
     if (error) {

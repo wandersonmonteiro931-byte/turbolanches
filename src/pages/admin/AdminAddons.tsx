@@ -140,6 +140,7 @@ const AdminAddons = () => {
       apply_to_all: addonForm.apply_to_all,
       product_id: null as string | null,
       sort_order: editingAddon ? editingAddon.sort_order : addons.length,
+      store_id: storeId,
     };
 
     if (editingAddon) {
@@ -149,10 +150,9 @@ const AdminAddons = () => {
       }
     } else {
       const { data } = await supabase.from("product_addons").insert(payload).select("id").single();
-      // If not global & products selected, link them
       if (data && !addonForm.apply_to_all && selectedProductIds.length > 0) {
         await supabase.from("addon_product_links").insert(
-          selectedProductIds.map((pid) => ({ addon_id: data.id, product_id: pid }))
+          selectedProductIds.map((pid) => ({ addon_id: data.id, product_id: pid, store_id: storeId }))
         );
       }
     }

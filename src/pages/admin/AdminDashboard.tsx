@@ -378,6 +378,7 @@ const AdminDashboard = () => {
       total_liquido: totalLiquido,
       opened_at: storeSettings?.opened_at,
       closed_at: new Date().toISOString(),
+      store_id: storeId,
     }, { onConflict: "report_date" });
 
     if (storeSettings) {

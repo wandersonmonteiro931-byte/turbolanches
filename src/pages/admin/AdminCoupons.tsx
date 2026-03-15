@@ -137,6 +137,7 @@ const AdminCoupons = () => {
       expires_at: form.expires_at,
       starts_at: form.starts_at,
       first_purchase_only: form.first_purchase_only,
+      store_id: storeId,
     };
 
     if (editingId) {

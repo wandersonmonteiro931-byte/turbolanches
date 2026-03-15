@@ -159,7 +159,7 @@ const AdminOrders = () => {
       }
       setProfiles(profileMap);
     }
-  }, []);
+  }, [storeId]);
 
   // Fetch items for product name filter
   const fetchAllItemsForFilter = useCallback(async () => {

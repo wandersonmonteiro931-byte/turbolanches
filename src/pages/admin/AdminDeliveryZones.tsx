@@ -367,7 +367,7 @@ const AdminDeliveryZones = () => {
 
   const addZone = async () => {
     if (!newZone.neighborhood.trim()) { toast({ title: "Informe o bairro", variant: "destructive" }); return; }
-    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee });
+    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee, store_id: storeId });
     toast({ title: "✅ Região adicionada!" });
     setNewZone({ neighborhood: "", delivery_fee: 0 }); setShowAdd(false); fetchZones();
   };
