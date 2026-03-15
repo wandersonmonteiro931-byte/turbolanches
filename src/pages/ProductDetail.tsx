@@ -237,7 +237,7 @@ const ProductDetail = () => {
             className={`flex-1 rounded-xl py-3 text-center font-bold shadow-fire transition-all active:scale-[0.98] ${
               !storeIsOpen || isSoldOut ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-fire-gradient text-primary-foreground"
             }`}>
-            {isSoldOut ? "🚫 Produto Esgotado" : storeIsOpen ? `Adicionar ${fmt(itemTotal)}` : "🔴 Loja Fechada"}
+            {isSoldOut ? "🚫 Produto Esgotado" : storeIsOpen ? `Adicionar ${fmt(itemTotal)}` : "Loja Fechada"}
           </button>
         </div>
       </div>

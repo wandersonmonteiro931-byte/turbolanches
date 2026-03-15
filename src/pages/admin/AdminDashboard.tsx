@@ -223,7 +223,7 @@ const AdminDashboard = () => {
       is_open: newOpen,
       ...(newOpen ? { opened_at: new Date().toISOString() } : { closed_at: new Date().toISOString() }),
     }).eq("id", storeSettings.id);
-    toast({ title: newOpen ? "🟢 Loja aberta!" : "🔴 Loja fechada!" });
+    toast({ title: newOpen ? "Loja aberta!" : "Loja fechada!" });
   };
 
   const saveSchedule = async () => {
