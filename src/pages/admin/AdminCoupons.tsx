@@ -38,6 +38,7 @@ const empty: Omit<Coupon, "id" | "created_at" | "used_count"> = {
   value: 0,
   active: true,
   max_uses: null,
+  max_uses_per_customer: null,
   min_order: null,
   expires_at: null,
   starts_at: null,

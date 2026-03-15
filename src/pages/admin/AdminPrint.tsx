@@ -123,6 +123,10 @@ const AdminPrint = () => {
   const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
   // ─── Variable replacement ───
+  const couponInfo = order.coupon_code
+    ? `${order.coupon_code} (-${fmt(discount)})`
+    : "Nenhum";
+
   const replaceVars = (text: string): string => {
     return text
       .replace(/\[NUMEROPEDIDO\]/g, `#${String(order.order_number).padStart(5, '0')}`)
@@ -137,6 +141,7 @@ const AdminPrint = () => {
       .replace(/\[TOTAL\]/g, fmt(total))
       .replace(/\[TAXAENTREGA\]/g, fmt(deliveryFee))
       .replace(/\[DESCONTO\]/g, fmt(discount))
+      .replace(/\[CUPOM\]/g, couponInfo)
       .replace(/\[TROCO\]/g, troco > 0 ? fmt(troco) : "R$ 0,00")
       .replace(/\[NOMELOJA\]/g, storeName)
       .replace(/\[TIPOCOMANDA\]/g, tipoLabel)
