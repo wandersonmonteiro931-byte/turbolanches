@@ -143,13 +143,14 @@ const AdminDashboard = () => {
   }, [selectedDate, storeId]);
 
   const fetchStoreSettings = useCallback(async () => {
-    const { data } = await supabase.from("store_settings").select("*").limit(1).single();
+    if (!storeId) return;
+    const { data } = await supabase.from("store_settings").select("*").eq("store_id", storeId).limit(1).single();
     if (data) {
       setStoreSettings(data as StoreSettings);
       setScheduleOpen(data.scheduled_open || "");
       setScheduleClose(data.scheduled_close || "");
     }
-  }, []);
+  }, [storeId]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
