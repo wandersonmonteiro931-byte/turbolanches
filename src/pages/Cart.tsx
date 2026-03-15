@@ -5,6 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { nowBrasilia } from "@/lib/brasiliaTime";
 
 const Cart = () => {
   const navigate = useNavigate();
