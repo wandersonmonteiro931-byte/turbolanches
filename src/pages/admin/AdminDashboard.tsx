@@ -219,11 +219,22 @@ const AdminDashboard = () => {
   const toggleStore = async () => {
     if (!storeSettings) return;
     const newOpen = !storeSettings.is_open;
-    await supabase.from("store_settings").update({
+    const timestamp = new Date().toISOString();
+    const updatePayload: any = {
       is_open: newOpen,
-      ...(newOpen ? { opened_at: new Date().toISOString() } : { closed_at: new Date().toISOString() }),
-    }).eq("id", storeSettings.id);
+      ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }),
+    };
+    // Optimistic update
+    setStoreSettings({ ...storeSettings, is_open: newOpen, ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }) });
+    const { error } = await supabase.from("store_settings").update(updatePayload).eq("id", storeSettings.id);
+    if (error) {
+      // Revert on error
+      setStoreSettings(storeSettings);
+      toast({ title: "Erro ao alterar status da loja", variant: "destructive" });
+      return;
+    }
     toast({ title: newOpen ? "Loja aberta!" : "Loja fechada!" });
+    fetchStoreSettings();
   };
 
   const saveSchedule = async () => {
