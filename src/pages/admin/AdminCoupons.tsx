@@ -136,6 +136,7 @@ const AdminCoupons = () => {
       value: form.value,
       active: form.active,
       max_uses: form.max_uses || null,
+      max_uses_per_customer: form.max_uses_per_customer || null,
       min_order: form.min_order || null,
       expires_at: form.expires_at,
       starts_at: form.starts_at,
