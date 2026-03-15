@@ -34,7 +34,7 @@ const AdminPrint = () => {
       const tplType = resolveType(tipo);
       const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
+        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, street, neighborhood, customer_code").eq("user_id", orderData.user_id).single(),
         supabase.from("receipt_templates" as any).select("*").eq("template_type", tplType).single(),
       ]);
 
@@ -70,10 +70,12 @@ const AdminPrint = () => {
   const horarioSaida = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   const complemento = order.address_complement || "";
+  const quadraLote = [profile?.quadra ? `Qd. ${profile.quadra}` : "", profile?.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
   const addressLine1 = order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "";
-  const addressLine2 = complemento || "";
-  const addressLine3 = order.address_neighborhood || "";
-  const address = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(", ") || "Retirada no local";
+  const addressLine2 = quadraLote || "";
+  const addressLine3 = complemento || "";
+  const addressLine4 = order.address_neighborhood || "";
+  const address = [addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local";
 
   const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 

@@ -15,6 +15,8 @@ interface Profile {
   number: string;
   complement: string | null;
   neighborhood: string;
+  quadra: string;
+  lote: string;
   city: string;
   state: string;
 }
@@ -74,7 +76,7 @@ const Checkout = () => {
       return;
     }
     Promise.all([
-      supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, city, state").eq("user_id", user.id).single(),
+      supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, quadra, lote, city, state").eq("user_id", user.id).single(),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
       supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active, prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1).single(),
     ]).then(([profileRes, zonesRes, configRes]) => {
@@ -190,8 +192,9 @@ const Checkout = () => {
     };
 
     if (deliveryType === "delivery") {
+      const quadraLote = [profile.quadra ? `Qd. ${profile.quadra}` : "", profile.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
       orderData.address_street = profile.street;
-      orderData.address_number = profile.number;
+      orderData.address_number = [profile.number, quadraLote].filter(Boolean).join(" - ");
       orderData.address_complement = profile.complement;
       orderData.address_neighborhood = profile.neighborhood;
     }

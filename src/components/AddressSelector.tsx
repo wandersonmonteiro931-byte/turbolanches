@@ -88,8 +88,8 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
   };
 
   const handleSave = async () => {
-    if (!form.street || !form.neighborhood || !form.complement) {
-      toast({ title: "Preencha rua, bairro e complemento", variant: "destructive" });
+    if (!form.street || !form.neighborhood || !form.complement || !form.quadra || !form.lote) {
+      toast({ title: "Preencha rua, bairro, complemento, quadra e lote", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -202,15 +202,17 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
         <input
-          placeholder="Quadra"
+          placeholder="Quadra *"
           value={form.quadra}
           onChange={(e) => setForm((f) => ({ ...f, quadra: e.target.value }))}
+          required
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
         <input
-          placeholder="Lote"
+          placeholder="Lote *"
           value={form.lote}
           onChange={(e) => setForm((f) => ({ ...f, lote: e.target.value }))}
+          required
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
       </div>
