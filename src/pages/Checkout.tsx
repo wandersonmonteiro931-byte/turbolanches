@@ -129,66 +129,8 @@ const Checkout = () => {
     // Cart stays intact - user goes back to checkout
   }, []);
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setCouponLoading(true);
-    setCouponError("");
-    try {
-      const { data: coupon, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .ilike("code", couponCode.trim())
-        .single();
 
-      if (error || !coupon) {
-        setCouponError("Cupom não encontrado");
-        return;
-      }
-      if (!coupon.active) {
-        setCouponError("Este cupom está inativo");
-        return;
-      }
-      const now = new Date();
-      if (coupon.starts_at && new Date(coupon.starts_at) > now) {
-        setCouponError("Este cupom ainda não está válido");
-        return;
-      }
-      if (coupon.expires_at && new Date(coupon.expires_at) < now) {
-        setCouponError("Este cupom expirou");
-        return;
-      }
-      if (coupon.max_uses && coupon.used_count >= coupon.max_uses) {
-        setCouponError("Cupom esgotado");
-        return;
-      }
-      if (coupon.min_order && totalPrice < coupon.min_order) {
-        setCouponError(`Pedido mínimo de R$ ${Number(coupon.min_order).toFixed(2).replace(".", ",")}`);
-        return;
-      }
-      if (coupon.first_purchase_only && user) {
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id);
-        if (count && count > 0) {
-          setCouponError("Cupom válido apenas para primeira compra");
-          return;
-        }
-      }
-      setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value });
-      toast.success(`Cupom ${coupon.code} aplicado! 🎉`);
-    } catch {
-      setCouponError("Erro ao validar cupom");
-    } finally {
-      setCouponLoading(false);
-    }
-  };
 
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
-    setCouponError("");
-  };
 
   if (!user) {
     navigate("/auth");
