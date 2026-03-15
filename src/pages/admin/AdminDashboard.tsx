@@ -102,6 +102,7 @@ const AdminDashboard = () => {
   const [editData, setEditData] = useState<Partial<Order>>({});
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [togglingStore, setTogglingStore] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
