@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
+import { useStore } from "@/contexts/StoreContext";
 
 interface DeliveryZone {
   id: string;
