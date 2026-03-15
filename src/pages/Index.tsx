@@ -244,6 +244,9 @@ const Index = () => {
                 <span className="text-xs font-bold text-primary">Siga nosso Instagram: {instagramHandle}</span>
               </motion.button>
             </div>
+
+            {/* Flash Phrases */}
+            <FlashPhrases />
           </motion.div>
 
           {/* Category Grid */}
