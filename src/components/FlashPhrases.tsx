@@ -23,7 +23,7 @@ const FlashPhrases = () => {
   if (phrases.length === 0) return null;
 
   return (
-    <div className="mt-2 h-6 overflow-hidden relative">
+    <div className="mt-4 mb-4 h-6 overflow-hidden relative flex items-center justify-center">
       <AnimatePresence mode="wait">
         <motion.p
           key={index}
