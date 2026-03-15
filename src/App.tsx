@@ -101,6 +101,7 @@ const AppInner = () => {
             <Route path="notificacoes" element={<AdminNotifications />} />
             <Route path="banners" element={<AdminBanners />} />
             <Route path="conteudo" element={<AdminSiteContent />} />
+            <Route path="cupons" element={<AdminCoupons />} />
             <Route path="comandas" element={<AdminReceipts />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
