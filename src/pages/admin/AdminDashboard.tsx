@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/contexts/StoreContext";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
