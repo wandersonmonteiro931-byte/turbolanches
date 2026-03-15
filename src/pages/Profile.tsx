@@ -14,7 +14,8 @@ const Profile = () => {
   const [profile, setProfile] = useState<any>(null);
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrStartMode, setAddrStartMode] = useState<"list" | "add">("list");
-  const { addresses, defaultAddress, setDefault, deleteAddress } = useAddresses();
+  const { addresses, defaultAddress, setDefault, deleteAddress, fetchAddresses } = useAddresses();
+  const [editAddr, setEditAddr] = useState<CustomerAddress | null>(null);
 
   useEffect(() => {
     if (user) {
