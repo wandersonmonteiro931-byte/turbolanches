@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  define: {
+    __LOVA_FIX_TRIGGER__: "false",
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
