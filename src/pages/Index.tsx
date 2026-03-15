@@ -94,6 +94,8 @@ const Index = () => {
 
   const whatsappNumber = content.whatsapp_number || "5562994753582";
   const whatsappMessage = content.whatsapp_message || "Olá! Gostaria de fazer um pedido.";
+  const instagramHandle = content.instagram_handle || "@turboolanches";
+  const instagramUser = instagramHandle.replace(/^@/, "");
 
   return (
     <div className="min-h-screen bg-background pb-32">
