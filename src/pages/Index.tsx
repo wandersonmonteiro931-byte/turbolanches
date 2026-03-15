@@ -14,6 +14,7 @@ import AddressSelector from "@/components/AddressSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
+import logoTurboTransparent from "@/assets/logo-turbo-transparent.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
