@@ -103,6 +103,7 @@ const AdminDashboard = () => {
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [togglingStore, setTogglingStore] = useState(false);
+  const [showToggleConfirm, setShowToggleConfirm] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
