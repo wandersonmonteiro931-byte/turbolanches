@@ -102,6 +102,11 @@ const Kitchen = () => {
         console.log("[Kitchen] Realtime subscription status:", status);
       });
 
+    // Polling fallback every 5s to guarantee preparing orders always appear
+    const poll = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+
     const timer = setInterval(() => {
       setNow(Date.now());
       setBrasiliaTime(new Date().toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", second: "2-digit" }));
@@ -110,6 +115,7 @@ const Kitchen = () => {
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(poll);
       clearInterval(timer);
     };
   }, [fetchOrders]);

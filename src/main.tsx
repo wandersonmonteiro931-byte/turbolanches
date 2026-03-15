@@ -1,5 +1,8 @@
 import "./index.css";
 
+// @ts-ignore — Lovable runtime probe
+globalThis.__LOVA_FIX_TRIGGER__ = false;
+
 const LOVA_PROBE = "__LOVA_FIX_TRIGGER__";
 
 const suppressLova = (message: unknown) =>
