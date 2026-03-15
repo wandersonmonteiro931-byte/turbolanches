@@ -103,6 +103,7 @@ const AdminDashboard = () => {
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [togglingStore, setTogglingStore] = useState(false);
+  const [showToggleConfirm, setShowToggleConfirm] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -527,7 +528,7 @@ const AdminDashboard = () => {
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
-          onClick={toggleStore}
+          onClick={() => setShowToggleConfirm(true)}
           disabled={!storeSettings || togglingStore}
           className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
             storeSettings?.is_open
@@ -702,7 +703,46 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Status Tabs */}
+      {/* Toggle Store Confirmation Modal */}
+      {showToggleConfirm && storeSettings && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <Power size={24} className={storeSettings.is_open ? "text-red-500" : "text-green-500"} />
+              <h3 className="text-lg font-bold text-foreground">
+                {storeSettings.is_open ? "Fechar a loja?" : "Abrir a loja?"}
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {storeSettings.is_open
+                ? "A loja será fechada manualmente. Clientes não poderão fazer pedidos até que você abra novamente."
+                : "A loja será aberta manualmente, mesmo fora do horário programado. Clientes poderão fazer pedidos."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowToggleConfirm(false)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setShowToggleConfirm(false);
+                  await toggleStore();
+                }}
+                disabled={togglingStore}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-60 ${
+                  storeSettings.is_open ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {storeSettings.is_open ? "Sim, fechar" : "Sim, abrir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
         {tabs.map(tab => {
           const count = stats[tab.key as keyof typeof stats] || 0;
