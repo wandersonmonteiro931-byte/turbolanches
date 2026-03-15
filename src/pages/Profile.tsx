@@ -150,14 +150,35 @@ const Profile = () => {
                       <p className="text-[11px] text-muted-foreground">{addr.complement}</p>
                     )}
                   </div>
-                  {!addr.is_default && (
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    {!addr.is_default && (
+                      <button
+                        onClick={() => setDefault(addr.id)}
+                        className="text-[10px] font-medium text-primary border border-primary/30 rounded px-2 py-1 hover:bg-primary/10"
+                      >
+                        Usar
+                      </button>
+                    )}
                     <button
-                      onClick={() => setDefault(addr.id)}
-                      className="text-[10px] font-medium text-primary border border-primary/30 rounded px-2 py-1 hover:bg-primary/10 shrink-0"
+                      onClick={() => {
+                        setEditAddr(addr);
+                        setAddrStartMode("list");
+                        setAddrOpen(true);
+                      }}
+                      className="flex items-center justify-center gap-1 text-[10px] font-medium text-muted-foreground border border-border rounded px-2 py-1 hover:bg-muted"
                     >
-                      Usar
+                      <Edit2 size={10} /> Editar
                     </button>
-                  )}
+                    <button
+                      onClick={async () => {
+                        await deleteAddress(addr.id);
+                        toast.success("Endereço removido");
+                      }}
+                      className="flex items-center justify-center gap-1 text-[10px] font-medium text-destructive border border-destructive/30 rounded px-2 py-1 hover:bg-destructive/10"
+                    >
+                      <Trash2 size={10} /> Excluir
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
