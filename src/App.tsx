@@ -35,6 +35,7 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminAddons from "./pages/admin/AdminAddons";
 import AdminReceipts from "./pages/admin/AdminReceipts";
+import AdminCoupons from "./pages/admin/AdminCoupons";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
