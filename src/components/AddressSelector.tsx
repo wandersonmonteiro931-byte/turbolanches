@@ -9,6 +9,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   initialMode?: "list" | "add";
+  editAddress?: CustomerAddress | null;
 }
 
 const emptyForm = {
