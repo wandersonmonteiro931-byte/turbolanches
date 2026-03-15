@@ -41,30 +41,32 @@ const Kitchen = () => {
 
   const fetchOrders = useCallback(async () => {
     // Fetch preparing orders for display
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("orders")
       .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
-    if (data) {
-      setOrders(data as KitchenOrder[]);
-      const ids = data.map((o) => o.id);
-      if (ids.length > 0) {
-        const { data: itemsData } = await supabase
-          .from("order_items")
-          .select("id, product_name, quantity, observations, addons_json, order_id")
-          .in("order_id", ids);
-        if (itemsData) {
-          const grouped: Record<string, KitchenItem[]> = {};
-          itemsData.forEach((item: any) => {
-            if (!grouped[item.order_id]) grouped[item.order_id] = [];
-            grouped[item.order_id].push(item);
-          });
-          setItems(grouped);
-        }
-      } else {
-        setItems({});
+    if (error) {
+      console.error("[Kitchen] Error fetching orders:", error.message);
+    }
+    const rows = data ?? [];
+    setOrders(rows as KitchenOrder[]);
+    const ids = rows.map((o) => o.id);
+    if (ids.length > 0) {
+      const { data: itemsData } = await supabase
+        .from("order_items")
+        .select("id, product_name, quantity, observations, addons_json, order_id")
+        .in("order_id", ids);
+      if (itemsData) {
+        const grouped: Record<string, KitchenItem[]> = {};
+        itemsData.forEach((item: any) => {
+          if (!grouped[item.order_id]) grouped[item.order_id] = [];
+          grouped[item.order_id].push(item);
+        });
+        setItems(grouped);
       }
+    } else {
+      setItems({});
     }
     // Check for pending orders (for alarm) — exclude unpaid PIX
     const { data: alarmOrders } = await supabase
@@ -83,6 +85,7 @@ const Kitchen = () => {
     const channel = supabase
       .channel("kitchen-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+        console.log("[Kitchen] Realtime event:", payload.eventType, (payload.new as any)?.status);
         if (payload.eventType === "UPDATE" && (payload.new as any).status === "cancelled") {
           const cancelledId = (payload.new as any).id;
           const wasInKitchen = prevOrdersRef.current.find(o => o.id === cancelledId);
@@ -95,7 +98,9 @@ const Kitchen = () => {
         }
         fetchOrders();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Kitchen] Realtime subscription status:", status);
+      });
 
     const timer = setInterval(() => {
       setNow(Date.now());
