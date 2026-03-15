@@ -300,7 +300,7 @@ const Index = () => {
           className="mx-auto h-16 w-auto object-contain"
           loading="lazy"
         />
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">© 2026 Turbo Lanches</p>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">© 2026 Turbo Lanches — Todos os direitos reservados.</p>
       </footer>
 
       <AddressSelector open={addrSelectorOpen} onClose={() => setAddrSelectorOpen(false)} />
