@@ -218,24 +218,40 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (!storeSettings) return;
-    const newOpen = !storeSettings.is_open;
+    if (!storeSettings || togglingStore) return;
+
+    const previousSettings = storeSettings;
+    const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
-    const updatePayload: any = {
+    const nextSettings: StoreSettings = {
+      ...previousSettings,
       is_open: newOpen,
-      ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }),
+      opened_at: newOpen ? timestamp : null,
+      closed_at: newOpen ? null : timestamp,
     };
-    // Optimistic update
-    setStoreSettings({ ...storeSettings, is_open: newOpen, ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }) });
-    const { error } = await supabase.from("store_settings").update(updatePayload).eq("id", storeSettings.id);
+
+    setTogglingStore(true);
+    setStoreSettings(nextSettings);
+
+    const { error } = await supabase
+      .from("store_settings")
+      .update({
+        is_open: newOpen,
+        opened_at: newOpen ? timestamp : null,
+        closed_at: newOpen ? null : timestamp,
+      })
+      .eq("id", previousSettings.id);
+
     if (error) {
-      // Revert on error
-      setStoreSettings(storeSettings);
+      setStoreSettings(previousSettings);
       toast({ title: "Erro ao alterar status da loja", variant: "destructive" });
+      setTogglingStore(false);
       return;
     }
+
     toast({ title: newOpen ? "Loja aberta!" : "Loja fechada!" });
-    fetchStoreSettings();
+    await fetchStoreSettings();
+    setTogglingStore(false);
   };
 
   const saveSchedule = async () => {
