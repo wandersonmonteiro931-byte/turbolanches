@@ -60,7 +60,13 @@ const ProductDetail = () => {
 
   const fmt = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
+  const isSoldOut = product.active === false;
+
   const handleAdd = () => {
+    if (isSoldOut) {
+      toast.error("Este produto está esgotado no momento.");
+      return;
+    }
     if (!storeIsOpen) {
       toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
       return;
@@ -227,11 +233,11 @@ const ProductDetail = () => {
               <Plus size={18} />
             </button>
           </div>
-          <button onClick={handleAdd} disabled={!storeIsOpen}
+          <button onClick={handleAdd} disabled={!storeIsOpen || isSoldOut}
             className={`flex-1 rounded-xl py-3 text-center font-bold shadow-fire transition-all active:scale-[0.98] ${
-              storeIsOpen ? "bg-fire-gradient text-primary-foreground" : "bg-muted text-muted-foreground cursor-not-allowed"
+              !storeIsOpen || isSoldOut ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-fire-gradient text-primary-foreground"
             }`}>
-            {storeIsOpen ? `Adicionar ${fmt(itemTotal)}` : "🔴 Loja Fechada"}
+            {isSoldOut ? "🚫 Produto Esgotado" : storeIsOpen ? `Adicionar ${fmt(itemTotal)}` : "🔴 Loja Fechada"}
           </button>
         </div>
       </div>
