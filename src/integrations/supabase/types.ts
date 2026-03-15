@@ -1223,6 +1223,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_owns_store_row: { Args: { _store_id: string }; Returns: boolean }
       get_admin_store_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
