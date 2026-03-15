@@ -116,10 +116,13 @@ export type Database = {
           code: string
           created_at: string
           expires_at: string | null
+          first_purchase_only: boolean
           id: string
           max_uses: number | null
           min_order: number | null
+          starts_at: string | null
           type: string
+          updated_at: string
           used_count: number
           value: number
         }
@@ -128,10 +131,13 @@ export type Database = {
           code: string
           created_at?: string
           expires_at?: string | null
+          first_purchase_only?: boolean
           id?: string
           max_uses?: number | null
           min_order?: number | null
+          starts_at?: string | null
           type?: string
+          updated_at?: string
           used_count?: number
           value: number
         }
@@ -140,10 +146,13 @@ export type Database = {
           code?: string
           created_at?: string
           expires_at?: string | null
+          first_purchase_only?: boolean
           id?: string
           max_uses?: number | null
           min_order?: number | null
+          starts_at?: string | null
           type?: string
+          updated_at?: string
           used_count?: number
           value?: number
         }

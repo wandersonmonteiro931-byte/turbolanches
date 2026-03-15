@@ -35,6 +35,7 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminSiteContent from "./pages/admin/AdminSiteContent";
 import AdminAddons from "./pages/admin/AdminAddons";
 import AdminReceipts from "./pages/admin/AdminReceipts";
+import AdminCoupons from "./pages/admin/AdminCoupons";
 import Kitchen from "./pages/Kitchen";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,7 @@ const AppInner = () => {
             <Route path="notificacoes" element={<AdminNotifications />} />
             <Route path="banners" element={<AdminBanners />} />
             <Route path="conteudo" element={<AdminSiteContent />} />
+            <Route path="cupons" element={<AdminCoupons />} />
             <Route path="comandas" element={<AdminReceipts />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
