@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package, Ch
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 import CustomerSearch from "@/components/admin/CustomerSearch";
@@ -88,13 +89,34 @@ const fadeIn = {
 };
 
 const SectionCard = ({ children, title, icon, className = "" }: { children: React.ReactNode; title: string; icon?: string; className?: string }) => (
-  <motion.div {...fadeIn} className={`rounded-2xl bg-card border border-border p-4 space-y-3 shadow-sm ${className}`}>
+  <motion.div
+    {...fadeIn}
+    className={cn(
+      "rounded-xl border-2 border-border bg-card p-4 shadow-sm ring-1 ring-border/40 space-y-3",
+      className,
+    )}
+  >
     <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
       {icon && <span>{icon}</span>}
       {title}
     </h2>
     {children}
   </motion.div>
+);
+
+const SectionBlock = ({
+  title,
+  children,
+  className = "",
+}: {
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div className={cn("rounded-xl border-2 border-border bg-background/70 p-3 space-y-2", className)}>
+    {title && <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{title}</p>}
+    {children}
+  </div>
 );
 
 const AdminManualOrder = () => {
