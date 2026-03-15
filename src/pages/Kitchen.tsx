@@ -126,7 +126,7 @@ const Kitchen = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCancelledAlerts(prev => prev.filter(a => Date.now() - a.cancelledAt < 120000));
+      setCancelledAlerts(prev => prev.filter(a => Date.now() - a.cancelledAt < 60000));
     }, 5000);
     return () => clearInterval(interval);
   }, []);

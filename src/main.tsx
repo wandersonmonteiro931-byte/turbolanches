@@ -1,7 +1,8 @@
-import "./index.css";
+// @ts-ignore — Lovable runtime probe: must be FIRST line before any import
+(globalThis as any).__LOVA_FIX_TRIGGER__ = false;
+(window as any).__LOVA_FIX_TRIGGER__ = false;
 
-// @ts-ignore — Lovable runtime probe
-globalThis.__LOVA_FIX_TRIGGER__ = false;
+import "./index.css";
 
 const LOVA_PROBE = "__LOVA_FIX_TRIGGER__";
 
