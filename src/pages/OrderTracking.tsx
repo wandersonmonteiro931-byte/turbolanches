@@ -189,9 +189,19 @@ const OrderTracking = () => {
         <button onClick={() => navigate("/")}>
           <ArrowLeft size={22} className="text-foreground" />
         </button>
-        <h1 className="text-lg font-extrabold text-foreground">
-          PEDIDO <span className="text-primary">#{String(order.order_number).padStart(5, '0')}</span>
-        </h1>
+        <div className="flex-1">
+          <h1 className="text-lg font-extrabold text-foreground">
+            PEDIDO <span className="text-primary">#{String(order.order_number).padStart(5, '0')}</span>
+          </h1>
+          <p className="text-[11px] text-muted-foreground">
+            {new Date(order.created_at).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            })}{" "}
+            às {formatTime(order.created_at)}
+          </p>
+        </div>
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
