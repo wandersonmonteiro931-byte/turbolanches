@@ -36,10 +36,11 @@ const AddressSelector = ({ open, onClose, initialMode = "list" }: Props) => {
 
   useEffect(() => {
     if (open) {
-      setMode("list");
+      setMode(initialMode);
       setEditingId(null);
+      if (initialMode === "add") setForm(emptyForm);
     }
-  }, [open]);
+  }, [open, initialMode]);
 
   if (!open) return null;
 

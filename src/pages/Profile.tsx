@@ -163,7 +163,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} />
+      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} initialMode={addrStartMode} />
       <BottomNav />
     </div>
   );
