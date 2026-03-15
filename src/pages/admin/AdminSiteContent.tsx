@@ -56,7 +56,7 @@ const AdminSiteContent = () => {
 
   const handleSave = async (item: ContentItem) => {
     await supabase.from("site_content").update({ value: editValue, updated_at: new Date().toISOString() }).eq("id", item.id);
-    toast({ title: "Conteúdo atualizado!" });
+    toast({ title: item.key === "instagram_handle" ? "Instagram atualizado!" : "Conteúdo atualizado!" });
     setEditingId(null);
     fetchData();
   };
