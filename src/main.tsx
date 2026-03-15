@@ -6,6 +6,10 @@ const ensureGlobalProbe = () => {
   } catch {}
 
   try {
+    (0, Function)("var __LOVA_FIX_TRIGGER__ = false;")();
+  } catch {}
+
+  try {
     Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
       value: false,
       writable: true,
@@ -15,6 +19,8 @@ const ensureGlobalProbe = () => {
 
   try {
     (globalThis as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
+    (window as unknown as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
+    (self as unknown as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
   } catch {}
 
   try {

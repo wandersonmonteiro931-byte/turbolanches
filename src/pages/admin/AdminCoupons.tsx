@@ -88,9 +88,14 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCoupons = async () => {
-    if (!storeId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("coupons").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
+    let query = supabase.from("coupons").select("*").order("created_at", { ascending: false });
+
+    if (storeId) {
+      query = query.or(`store_id.eq.${storeId},store_id.is.null`);
+    }
+
+    const { data, error } = await query;
     if (error) console.error("Erro ao carregar cupons:", error.message);
     setCoupons((data as Coupon[]) ?? []);
     setLoading(false);
