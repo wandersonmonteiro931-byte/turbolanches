@@ -37,11 +37,28 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
 
   useEffect(() => {
     if (open) {
-      setMode(initialMode);
-      setEditingId(null);
-      if (initialMode === "add") setForm(emptyForm);
+      if (editAddress) {
+        setForm({
+          label: editAddress.label,
+          street: editAddress.street,
+          number: editAddress.number,
+          complement: editAddress.complement || "",
+          neighborhood: editAddress.neighborhood,
+          quadra: editAddress.quadra,
+          lote: editAddress.lote,
+          city: editAddress.city,
+          state: editAddress.state,
+          zip_code: editAddress.zip_code,
+        });
+        setEditingId(editAddress.id);
+        setMode("edit");
+      } else {
+        setMode(initialMode);
+        setEditingId(null);
+        if (initialMode === "add") setForm(emptyForm);
+      }
     }
-  }, [open, initialMode]);
+  }, [open, initialMode, editAddress]);
 
   if (!open) return null;
 
