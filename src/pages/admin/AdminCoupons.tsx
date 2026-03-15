@@ -42,9 +42,25 @@ const empty: Omit<Coupon, "id" | "created_at" | "used_count"> = {
   first_purchase_only: false,
 };
 
-function toLocalDate(iso: string | null) {
+/** Convert an ISO timestamp to a datetime-local input value in Brasília timezone */
+function toLocalDate(iso: string | null): string {
   if (!iso) return "";
-  return new Date(iso).toISOString().slice(0, 16);
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+/** Convert a datetime-local input value to an ISO string assuming Brasília timezone (UTC-3) */
+function fromLocalDate(val: string): string | null {
+  if (!val) return null;
+  // datetime-local gives "YYYY-MM-DDTHH:mm" — treat as Brasília time (UTC-3)
+  return new Date(val + ":00-03:00").toISOString();
 }
 
 function couponStatus(c: Coupon): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
@@ -290,11 +306,11 @@ const AdminCoupons = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Início *</Label>
-                <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: fromLocalDate(e.target.value) })} />
               </div>
               <div>
                 <Label>Fim *</Label>
-                <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: fromLocalDate(e.target.value) })} />
               </div>
             </div>
 
