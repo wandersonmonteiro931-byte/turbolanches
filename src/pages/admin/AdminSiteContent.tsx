@@ -30,6 +30,17 @@ const AdminSiteContent = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
+    const requiredKeys = [
+      { key: "whatsapp_number", content_type: "text", value: "" },
+      { key: "instagram_handle", content_type: "text", value: "@turboolanches" },
+    ];
+
+    for (const item of requiredKeys) {
+      const payload: any = { ...item };
+      if (storeId) payload.store_id = storeId;
+      await supabase.from("site_content").upsert(payload, { onConflict: "store_id,key" });
+    }
+
     let query = supabase.from("site_content").select("*").order("key");
     if (storeId) query = query.eq("store_id", storeId);
     const { data } = await query;
