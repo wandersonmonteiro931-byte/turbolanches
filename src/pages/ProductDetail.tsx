@@ -80,7 +80,7 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background pb-28">
       {!storeIsOpen && (
         <div className="bg-destructive px-4 py-2 text-center">
-          <p className="text-xs font-bold text-destructive-foreground">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
+          <p className="text-xs font-bold text-destructive-foreground">ESTAMOS FECHADOS NO MOMENTO</p>
         </div>
       )}
 
