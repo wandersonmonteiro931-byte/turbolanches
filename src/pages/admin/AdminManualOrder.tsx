@@ -445,27 +445,28 @@ const AdminManualOrder = () => {
       <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 pb-6 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
         <section className="space-y-4">
           <SectionCard title="1. Contexto do Pedido" icon="🧭" className="animate-enter">
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {deliveryTypes.map((dt) => (
-                <motion.button
-                  key={dt.id}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setDeliveryType(dt.id)}
-                  className={`rounded-2xl border px-2 py-3 text-center transition-all ${
-                    deliveryType === dt.id
-                      ? "border-primary bg-primary text-primary-foreground shadow-lg"
-                      : "border-border bg-background text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <div className="text-xl">{dt.icon}</div>
-                  <div className="mt-1 text-[10px] font-extrabold uppercase tracking-wide">{dt.label}</div>
-                </motion.button>
-              ))}
-            </div>
+            <SectionBlock title="Tipo de atendimento" className="bg-muted/30">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {deliveryTypes.map((dt) => (
+                  <motion.button
+                    key={dt.id}
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setDeliveryType(dt.id)}
+                    className={`rounded-xl border-2 px-2 py-3 text-center transition-all ${
+                      deliveryType === dt.id
+                        ? "border-primary bg-primary text-primary-foreground shadow-lg"
+                        : "border-border bg-background text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <div className="text-xl">{dt.icon}</div>
+                    <div className="mt-1 text-[10px] font-extrabold uppercase tracking-wide">{dt.label}</div>
+                  </motion.button>
+                ))}
+              </div>
+            </SectionBlock>
 
-            <div className="rounded-2xl border border-border bg-background/70 p-3">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">Cliente</p>
+            <SectionBlock title="Dados do cliente" className="bg-muted/20">
               <CustomerSearch
                 onSelect={(profile) => {
                   setCustomerName(profile.full_name);
@@ -517,70 +518,73 @@ const AdminManualOrder = () => {
                   />
                 </motion.div>
               )}
-            </div>
+            </SectionBlock>
 
             <AnimatePresence>
               {deliveryType === "delivery" && (
-                <motion.div {...fadeIn} className="space-y-2 rounded-2xl border border-border bg-background/70 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Endereço de entrega</p>
-                    <span className="text-[11px] font-medium text-muted-foreground">Obrigatório: rua + complemento + bairro</span>
-                  </div>
+                <motion.div {...fadeIn}>
+                  <SectionBlock title="Endereço de entrega" className="space-y-2 bg-muted/20">
+                    <div className="flex items-center justify-end">
+                      <span className="text-[11px] font-medium text-muted-foreground">Obrigatório: rua + complemento + bairro</span>
+                    </div>
 
-                  <input
-                    placeholder="Rua *"
-                    value={addressStreet}
-                    onChange={(e) => setAddressStreet(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input
-                      placeholder="Número"
-                      value={addressNumber}
-                      onChange={(e) => setAddressNumber(e.target.value)}
-                      className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      placeholder="Rua *"
+                      value={addressStreet}
+                      onChange={(e) => setAddressStreet(e.target.value)}
+                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
-                    <input
-                      placeholder="Complemento *"
-                      value={addressComplement}
-                      onChange={(e) => setAddressComplement(e.target.value)}
-                      className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <input
+                        placeholder="Número"
+                        value={addressNumber}
+                        onChange={(e) => setAddressNumber(e.target.value)}
+                        className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                      <input
+                        placeholder="Complemento *"
+                        value={addressComplement}
+                        onChange={(e) => setAddressComplement(e.target.value)}
+                        className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+
+                    <NeighborhoodAutocomplete
+                      value={addressNeighborhood}
+                      onChange={(val, fee) => {
+                        setAddressNeighborhood(val);
+                        setDeliveryFeeOverridden(false);
+                        if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2));
+                      }}
+                      placeholder="Bairro *"
+                      allowInactive
+                      refreshKey={dataRefreshKey}
                     />
-                  </div>
 
-                  <NeighborhoodAutocomplete
-                    value={addressNeighborhood}
-                    onChange={(val, fee) => {
-                      setAddressNeighborhood(val);
-                      setDeliveryFeeOverridden(false);
-                      if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2));
-                    }}
-                    placeholder="Bairro *"
-                    allowInactive
-                    refreshKey={dataRefreshKey}
-                  />
-
-                  {matchedZone && (
-                    <motion.div {...fadeIn} className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
-                      <span className="text-xs font-bold text-primary">Taxa atual: R$ {fmt(autoDeliveryFee)}</span>
-                      {autoDeliveryReason && <span className="text-[11px] font-semibold text-primary/80">{autoDeliveryReason}</span>}
-                      {!autoDeliveryReason && matchedZone.temp_free_delivery && (
-                        <span className="text-[11px] font-semibold text-primary/80">Frete promocional aplicado</span>
-                      )}
-                    </motion.div>
-                  )}
+                    {matchedZone && (
+                      <motion.div {...fadeIn} className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
+                        <span className="text-xs font-bold text-primary">Taxa atual: R$ {fmt(autoDeliveryFee)}</span>
+                        {autoDeliveryReason && <span className="text-[11px] font-semibold text-primary/80">{autoDeliveryReason}</span>}
+                        {!autoDeliveryReason && matchedZone.temp_free_delivery && (
+                          <span className="text-[11px] font-semibold text-primary/80">Frete promocional aplicado</span>
+                        )}
+                      </motion.div>
+                    )}
+                  </SectionBlock>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <textarea
-              placeholder="Observações do pedido"
-              value={observations}
-              onChange={(e) => setObservations(e.target.value)}
-              rows={3}
-              className="w-full resize-none rounded-2xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
+            <SectionBlock title="Observações do pedido" className="bg-muted/20">
+              <textarea
+                placeholder="Observações do pedido"
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                rows={3}
+                className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </SectionBlock>
           </SectionCard>
 
           <SectionCard title="2. Catálogo Atualizado" icon="🛒" className="animate-enter">
