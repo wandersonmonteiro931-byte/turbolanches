@@ -8,6 +8,7 @@ import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialMode?: "list" | "add";
 }
 
 const emptyForm = {
