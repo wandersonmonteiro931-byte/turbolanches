@@ -31,7 +31,7 @@ const AdminSiteContent = () => {
 
   const fetchData = async () => {
     let query = supabase.from("site_content").select("*").order("key");
-    if (storeId) query = query.eq("store_id", storeId);
+    if (storeId) query = query.or(`store_id.eq.${storeId},store_id.is.null`);
     const { data } = await query;
     if (data) setItems(data);
   };
