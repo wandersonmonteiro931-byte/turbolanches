@@ -205,6 +205,8 @@ const Checkout = () => {
       change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
     };
 
+    if (storeId) orderData.store_id = storeId;
+
     if (deliveryType === "delivery") {
       const quadraLote = [profile.quadra ? `Qd. ${profile.quadra}` : "", profile.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
       orderData.address_street = profile.street;

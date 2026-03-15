@@ -23,6 +23,7 @@ const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", 
 const DAY_SHORT = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
 const AdminSchedule = () => {
+  const { storeId } = useStore();
   const [schedule, setSchedule] = useState<ScheduleDay[]>([]);
   const [timeSettings, setTimeSettings] = useState<TimeSettings>({
     prep_time_minutes: 25,
@@ -36,9 +37,15 @@ const AdminSchedule = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
+    let scheduleQuery = supabase.from("store_schedule").select("*").order("day_of_week");
+    let settingsQuery = supabase.from("store_settings").select("prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1);
+    if (storeId) {
+      scheduleQuery = scheduleQuery.eq("store_id", storeId);
+      settingsQuery = settingsQuery.eq("store_id", storeId);
+    }
     const [scheduleRes, settingsRes] = await Promise.all([
-      supabase.from("store_schedule").select("*").order("day_of_week"),
-      supabase.from("store_settings").select("prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1).single(),
+      scheduleQuery,
+      settingsQuery.single(),
     ]);
     if (scheduleRes.data) setSchedule(scheduleRes.data as ScheduleDay[]);
     if (settingsRes.data) {
@@ -55,7 +62,7 @@ const AdminSchedule = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [storeId]);
 
   const updateDay = (dayOfWeek: number, field: keyof ScheduleDay, value: any) => {
     setSchedule((prev) =>
