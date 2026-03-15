@@ -4,6 +4,7 @@ import { Clock, Check, ChefHat, Truck, Package, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import { formatDateTimeBR } from "@/lib/brasiliaTime";
 
 interface Order {
   id: string;

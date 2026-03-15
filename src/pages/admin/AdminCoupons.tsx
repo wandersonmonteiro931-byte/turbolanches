@@ -223,9 +223,9 @@ const AdminCoupons = () => {
                     <TableCell>{c.type === "percentage" ? "Percentual" : "Valor fixo"}</TableCell>
                     <TableCell>{c.type === "percentage" ? `${c.value}%` : `R$ ${Number(c.value).toFixed(2)}`}</TableCell>
                     <TableCell className="hidden text-xs md:table-cell">
-                      {c.starts_at ? new Date(c.starts_at).toLocaleDateString("pt-BR") : "—"}{" "}
+                      {c.starts_at ? formatDateBR(c.starts_at) : "—"}{" "}
                       até{" "}
-                      {c.expires_at ? new Date(c.expires_at).toLocaleDateString("pt-BR") : "—"}
+                      {c.expires_at ? formatDateBR(c.expires_at) : "—"}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {c.used_count}{c.max_uses ? `/${c.max_uses}` : ""}
