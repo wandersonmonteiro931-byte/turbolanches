@@ -112,7 +112,7 @@ const Index = () => {
         </div>
       ) : (
         <div className="flex items-center justify-center gap-2 bg-card border-b border-border px-4 py-1.5">
-          <span className="text-[11px] text-muted-foreground">🟢 Aberto agora</span>
+          <span className="text-[11px] text-muted-foreground">Aberto agora</span>
           <StoreHours />
         </div>
       )}
