@@ -588,89 +588,95 @@ const AdminManualOrder = () => {
           </SectionCard>
 
           <SectionCard title="2. Catálogo Atualizado" icon="🛒" className="animate-enter">
-            <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-muted/60 px-3 py-2">
-              <div className="text-xs font-bold text-foreground">Produtos e preços sincronizados no acesso da tela</div>
-              <button
-                onClick={() => setShowProducts((prev) => !prev)}
-                className="flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-              >
-                {showProducts ? "Ocultar" : "Mostrar"}
-                {showProducts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-            </div>
+            <SectionBlock className="bg-muted/30">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-bold text-foreground">Produtos e preços sincronizados no acesso da tela</div>
+                <button
+                  onClick={() => setShowProducts((prev) => !prev)}
+                  className="flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition-colors hover:bg-muted"
+                >
+                  {showProducts ? "Ocultar" : "Mostrar"}
+                  {showProducts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+              </div>
+            </SectionBlock>
 
             <AnimatePresence>
               {showProducts && (
-                <motion.div {...fadeIn} className="space-y-3">
-                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
-                    <Search size={16} className="text-muted-foreground" />
-                    <input
-                      placeholder="Buscar item, combo ou produto..."
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                    />
-                  </div>
+                <motion.div {...fadeIn}>
+                  <SectionBlock title="Busca e filtros" className="bg-muted/20">
+                    <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
+                      <Search size={16} className="text-muted-foreground" />
+                      <input
+                        placeholder="Buscar item, combo ou produto..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    </div>
 
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setSelectedCategory(null)}
-                      className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                        !selectedCategory ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
-                      }`}
-                    >
-                      Todos
-                    </button>
-                    {categories.map((cat) => (
+                    <div className="flex gap-1.5 overflow-x-auto pb-1">
                       <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.id)}
+                        onClick={() => setSelectedCategory(null)}
                         className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                          selectedCategory === cat.id ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
+                          !selectedCategory ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
                         }`}
                       >
-                        {cat.name}
+                        Todos
                       </button>
-                    ))}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                    {filteredProducts.map((product) => {
-                      const inCart = cart.find((i) => i.product.id === product.id);
-                      return (
-                        <motion.button
-                          key={product.id}
-                          whileHover={{ y: -3 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => addToCart(product)}
-                          className={`relative rounded-2xl border p-3 text-left transition-all ${
-                            inCart ? "border-primary bg-primary/10 shadow-sm" : "border-border bg-background hover:bg-muted"
+                      {categories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
+                            selectedCategory === cat.id ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
                           }`}
                         >
-                          <p className="line-clamp-2 text-sm font-bold text-foreground">{product.name}</p>
-                          <div className="mt-2 flex items-center justify-between gap-2">
-                            <p className="text-sm font-black text-primary">R$ {fmt(product.price)}</p>
-                            {isProductCombo(product) && (
-                              <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground">COMBO</span>
-                            )}
-                          </div>
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                  </SectionBlock>
 
-                          <AnimatePresence>
-                            {inCart && (
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                exit={{ scale: 0 }}
-                                className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-                              >
-                                {inCart.quantity}
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
+                  <SectionBlock title="Produtos" className="mt-3 bg-muted/20">
+                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                      {filteredProducts.map((product) => {
+                        const inCart = cart.find((i) => i.product.id === product.id);
+                        return (
+                          <motion.button
+                            key={product.id}
+                            whileHover={{ y: -3 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => addToCart(product)}
+                            className={`relative rounded-xl border-2 p-3 text-left transition-all ${
+                              inCart ? "border-primary bg-primary/10 shadow-sm" : "border-border bg-background hover:bg-muted"
+                            }`}
+                          >
+                            <p className="line-clamp-2 text-sm font-bold text-foreground">{product.name}</p>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <p className="text-sm font-black text-primary">R$ {fmt(product.price)}</p>
+                              {isProductCombo(product) && (
+                                <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground">COMBO</span>
+                              )}
+                            </div>
+
+                            <AnimatePresence>
+                              {inCart && (
+                                <motion.span
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  exit={{ scale: 0 }}
+                                  className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
+                                >
+                                  {inCart.quantity}
+                                </motion.span>
+                              )}
+                            </AnimatePresence>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </SectionBlock>
                 </motion.div>
               )}
             </AnimatePresence>
