@@ -30,11 +30,7 @@ const FlashPhrases = () => {
           initial={{ x: 300, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -300, opacity: 0 }}
-          transition={{
-            enter: { duration: 0.3, ease: "easeOut" },
-            exit: { duration: 0.25, ease: "easeIn" },
-            duration: 0.3,
-          }}
+          transition={{ duration: 0.3 }}
           className="text-xs font-semibold text-primary text-center whitespace-nowrap truncate"
         >
           {phrases[index % phrases.length]}
