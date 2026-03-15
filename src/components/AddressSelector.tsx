@@ -88,8 +88,8 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
   };
 
   const handleSave = async () => {
-    if (!form.street || !form.neighborhood || !form.complement) {
-      toast({ title: "Preencha rua, bairro e complemento", variant: "destructive" });
+    if (!form.street || !form.neighborhood || !form.complement || !form.quadra || !form.lote) {
+      toast({ title: "Preencha rua, bairro, complemento, quadra e lote", variant: "destructive" });
       return;
     }
     setSaving(true);

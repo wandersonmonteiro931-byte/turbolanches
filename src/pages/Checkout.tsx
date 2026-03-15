@@ -192,8 +192,9 @@ const Checkout = () => {
     };
 
     if (deliveryType === "delivery") {
+      const quadraLote = [profile.quadra ? `Qd. ${profile.quadra}` : "", profile.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
       orderData.address_street = profile.street;
-      orderData.address_number = profile.number;
+      orderData.address_number = [profile.number, quadraLote].filter(Boolean).join(" - ");
       orderData.address_complement = profile.complement;
       orderData.address_neighborhood = profile.neighborhood;
     }
