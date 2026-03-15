@@ -85,6 +85,7 @@ const Kitchen = () => {
     const channel = supabase
       .channel("kitchen-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+        console.log("[Kitchen] Realtime event:", payload.eventType, (payload.new as any)?.status);
         if (payload.eventType === "UPDATE" && (payload.new as any).status === "cancelled") {
           const cancelledId = (payload.new as any).id;
           const wasInKitchen = prevOrdersRef.current.find(o => o.id === cancelledId);
@@ -97,7 +98,9 @@ const Kitchen = () => {
         }
         fetchOrders();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("[Kitchen] Realtime subscription status:", status);
+      });
 
     const timer = setInterval(() => {
       setNow(Date.now());
