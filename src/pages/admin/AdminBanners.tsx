@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 interface Banner {
@@ -15,6 +16,7 @@ interface Banner {
 }
 
 const AdminBanners = () => {
+  const { storeId } = useStore();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Banner | null>(null);
@@ -25,11 +27,13 @@ const AdminBanners = () => {
   });
 
   const fetchData = async () => {
-    const { data } = await supabase.from("banners").select("*").order("sort_order");
+    let query = supabase.from("banners").select("*").order("sort_order");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query;
     if (data) setBanners(data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   const openNew = () => {
     setEditing(null);
@@ -47,10 +51,11 @@ const AdminBanners = () => {
   };
 
   const handleSave = async () => {
-    const payload = {
+    const payload: any = {
       title: form.title, subtitle: form.subtitle, image_url: form.image_url,
       link: form.link, sort_order: parseInt(form.sort_order) || 0, active: form.active,
     };
+    if (!editing && storeId) payload.store_id = storeId;
     if (editing) {
       await supabase.from("banners").update(payload).eq("id", editing.id);
       toast({ title: "Banner atualizado!" });

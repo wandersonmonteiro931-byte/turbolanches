@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 interface Product {
@@ -25,6 +26,7 @@ interface Category {
 }
 
 const AdminProducts = () => {
+  const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -39,15 +41,18 @@ const AdminProducts = () => {
   });
 
   const fetchData = async () => {
-    const [prodRes, catRes] = await Promise.all([
-      supabase.from("products").select("*").order("sort_order").order("name"),
-      supabase.from("categories").select("id, name").order("sort_order"),
-    ]);
+    let prodQuery = supabase.from("products").select("*").order("sort_order").order("name");
+    let catQuery = supabase.from("categories").select("id, name").order("sort_order");
+    if (storeId) {
+      prodQuery = prodQuery.eq("store_id", storeId);
+      catQuery = catQuery.eq("store_id", storeId);
+    }
+    const [prodRes, catRes] = await Promise.all([prodQuery, catQuery]);
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   const openNew = () => {
     setEditing(null);
@@ -67,12 +72,13 @@ const AdminProducts = () => {
   };
 
   const handleSave = async () => {
-    const payload = {
+    const payload: any = {
       name: form.name, description: form.description, price: parseFloat(form.price),
       original_price: form.original_price ? parseFloat(form.original_price) : null,
       image_url: form.image_url, category_id: form.category_id || null,
       active: form.active, popular: form.popular, is_combo: form.is_combo, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
     };
+    if (!editing && storeId) payload.store_id = storeId;
     if (editing) {
       await supabase.from("products").update(payload).eq("id", editing.id);
       toast({ title: "Produto atualizado!" });

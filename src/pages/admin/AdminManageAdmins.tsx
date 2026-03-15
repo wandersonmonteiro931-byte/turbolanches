@@ -1,34 +1,37 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Plus, X, UserCheck, UserX, Trash2 } from "lucide-react";
-import { formatDateTimeBR } from "@/lib/brasiliaTime";
+import { useStore } from "@/contexts/StoreContext";
+import { Shield, Plus, X, Trash2 } from "lucide-react";
 
 interface AdminUser {
   user_id: string;
   role: string;
+  store_id: string | null;
   profile?: {
     full_name: string;
     phone: string;
-    email?: string;
   };
 }
 
 const AdminManageAdmins = () => {
   const { toast } = useToast();
+  const { storeId } = useStore();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(storeId || "");
+  const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
   const [creating, setCreating] = useState(false);
 
   const fetchAdmins = useCallback(async () => {
     setLoading(true);
     const { data: roles } = await supabase
       .from("user_roles")
-      .select("user_id, role")
+      .select("user_id, role, store_id")
       .eq("role", "admin");
 
     if (!roles || roles.length === 0) {
@@ -48,9 +51,10 @@ const AdminManageAdmins = () => {
     );
 
     setAdmins(
-      roles.map((r) => ({
+      roles.map((r: any) => ({
         user_id: r.user_id,
         role: r.role,
+        store_id: r.store_id,
         profile: profileMap.get(r.user_id)
           ? {
               full_name: profileMap.get(r.user_id)!.full_name,
@@ -64,7 +68,14 @@ const AdminManageAdmins = () => {
 
   useEffect(() => {
     fetchAdmins();
+    supabase.from("stores").select("id, name").order("name").then(({ data }) => {
+      if (data) setStores(data);
+    });
   }, [fetchAdmins]);
+
+  useEffect(() => {
+    if (storeId && !selectedStoreId) setSelectedStoreId(storeId);
+  }, [storeId, selectedStoreId]);
 
   const createAdmin = async () => {
     if (!newEmail || !newPassword) {
@@ -73,7 +84,6 @@ const AdminManageAdmins = () => {
     }
     setCreating(true);
     try {
-      // Create user via edge function
       const { data, error } = await supabase.functions.invoke("admin-create-customer", {
         body: { email: newEmail, password: newPassword, full_name: newName, phone: "" },
       });
@@ -83,10 +93,13 @@ const AdminManageAdmins = () => {
       const userId = data?.user?.id;
       if (!userId) throw new Error("Usuário não foi criado");
 
-      // Assign admin role
+      // Assign admin role with store_id
+      const rolePayload: any = { user_id: userId, role: "admin" };
+      if (selectedStoreId) rolePayload.store_id = selectedStoreId;
+
       const { error: roleError } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role: "admin" } as any);
+        .insert(rolePayload);
 
       if (roleError) throw roleError;
 
@@ -119,6 +132,11 @@ const AdminManageAdmins = () => {
 
     toast({ title: "✅ Administrador removido" });
     fetchAdmins();
+  };
+
+  const getStoreName = (sid: string | null) => {
+    if (!sid) return "Sem loja";
+    return stores.find(s => s.id === sid)?.name || sid.slice(0, 8);
   };
 
   if (loading) {
@@ -157,7 +175,7 @@ const AdminManageAdmins = () => {
               <X size={16} className="text-muted-foreground" />
             </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               placeholder="Email *"
               value={newEmail}
@@ -177,6 +195,16 @@ const AdminManageAdmins = () => {
               onChange={(e) => setNewName(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
             />
+            <select
+              value={selectedStoreId}
+              onChange={(e) => setSelectedStoreId(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+            >
+              <option value="">Sem loja específica</option>
+              {stores.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
           <button
             onClick={createAdmin}
@@ -208,7 +236,7 @@ const AdminManageAdmins = () => {
                     {admin.profile?.full_name || "Sem nome"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {admin.profile?.phone || "Sem telefone"} · ID: {admin.user_id.slice(0, 8)}...
+                    {admin.profile?.phone || "Sem telefone"} · Loja: {getStoreName(admin.store_id)}
                   </p>
                 </div>
               </div>
@@ -226,8 +254,9 @@ const AdminManageAdmins = () => {
       <div className="rounded-xl border border-border bg-card p-4">
         <h3 className="text-sm font-bold text-foreground mb-2">💡 Dicas</h3>
         <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
-          <li>Ao criar um administrador, ele terá acesso total ao painel admin.</li>
+          <li>Ao criar um administrador, ele terá acesso total ao painel admin da loja selecionada.</li>
           <li>Remover um admin não exclui a conta do usuário, apenas remove o acesso ao painel.</li>
+          <li>Associe cada admin a uma <strong>loja específica</strong> para isolamento de dados.</li>
           <li>Tenha cuidado ao remover seu próprio acesso de admin.</li>
         </ul>
       </div>
