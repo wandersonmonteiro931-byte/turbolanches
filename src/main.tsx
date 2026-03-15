@@ -32,6 +32,25 @@ const ensureProbe = () => {
 };
 
 ensureProbe();
+
+window.onunhandledrejection = (event) => {
+  const message = event.reason instanceof Error ? event.reason.message : String(event.reason ?? "");
+  if (isProbeError(message)) {
+    event.preventDefault();
+    ensureProbe();
+    return true;
+  }
+  return false;
+};
+
+window.onerror = (message) => {
+  if (isProbeError(String(message ?? ""))) {
+    ensureProbe();
+    return true;
+  }
+  return false;
+};
+
 window.addEventListener(
   "unhandledrejection",
   (event) => {
