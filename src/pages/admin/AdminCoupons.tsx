@@ -48,7 +48,7 @@ function toLocalDate(iso: string | null) {
 
 function couponStatus(c: Coupon): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } {
   if (!c.active) return { label: "Inativo", variant: "secondary" };
-  const now = new Date();
+  const now = nowBrasilia();
   if (c.expires_at && new Date(c.expires_at) < now) return { label: "Expirado", variant: "destructive" };
   if (c.starts_at && new Date(c.starts_at) > now) return { label: "Agendado", variant: "outline" };
   return { label: "Ativo", variant: "default" };
