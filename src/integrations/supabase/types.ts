@@ -928,12 +928,16 @@ export type Database = {
           scheduled_open: string | null
           store_address: string
           store_address_full: string
+          store_display_name: string
           store_lat: number | null
           store_lng: number | null
+          store_logo_url: string
           store_neighborhood: string
           temp_free_delivery_all: boolean
           updated_at: string
           use_schedule: boolean
+          whatsapp_name: string
+          whatsapp_number: string
         }
         Insert: {
           closed_at?: string | null
@@ -953,12 +957,16 @@ export type Database = {
           scheduled_open?: string | null
           store_address?: string
           store_address_full?: string
+          store_display_name?: string
           store_lat?: number | null
           store_lng?: number | null
+          store_logo_url?: string
           store_neighborhood?: string
           temp_free_delivery_all?: boolean
           updated_at?: string
           use_schedule?: boolean
+          whatsapp_name?: string
+          whatsapp_number?: string
         }
         Update: {
           closed_at?: string | null
@@ -978,12 +986,55 @@ export type Database = {
           scheduled_open?: string | null
           store_address?: string
           store_address_full?: string
+          store_display_name?: string
           store_lat?: number | null
           store_lng?: number | null
+          store_logo_url?: string
           store_neighborhood?: string
           temp_free_delivery_all?: boolean
           updated_at?: string
           use_schedule?: boolean
+          whatsapp_name?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          logo_url: string
+          name: string
+          owner_user_id: string
+          slug: string
+          updated_at: string
+          whatsapp_name: string
+          whatsapp_number: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          logo_url?: string
+          name?: string
+          owner_user_id: string
+          slug?: string
+          updated_at?: string
+          whatsapp_name?: string
+          whatsapp_number?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          logo_url?: string
+          name?: string
+          owner_user_id?: string
+          slug?: string
+          updated_at?: string
+          whatsapp_name?: string
+          whatsapp_number?: string
         }
         Relationships: []
       }
