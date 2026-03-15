@@ -241,9 +241,9 @@ const AddressSelector = ({ open, onClose, initialMode = "list" }: Props) => {
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4" onClick={onClose}>
       <div
-        className="w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card p-5 space-y-4 animate-in slide-in-from-bottom-4"
+        className="w-full max-w-md max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl bg-card p-5 space-y-4 animate-in fade-in-0 zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
