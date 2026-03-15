@@ -88,9 +88,14 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCoupons = async () => {
-    if (!storeId) return;
     setLoading(true);
-    const { data, error } = await supabase.from("coupons").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
+    let query = supabase.from("coupons").select("*").order("created_at", { ascending: false });
+
+    if (storeId) {
+      query = query.or(`store_id.eq.${storeId},store_id.is.null`);
+    }
+
+    const { data, error } = await query;
     if (error) console.error("Erro ao carregar cupons:", error.message);
     setCoupons((data as Coupon[]) ?? []);
     setLoading(false);
@@ -129,7 +134,6 @@ const AdminCoupons = () => {
       toast.error("Data de início não pode ser posterior à data de fim");
       return;
     }
-    if (!form.starts_at || !form.expires_at) { toast.error("Datas de início e fim são obrigatórias"); return; }
 
     setSaving(true);
     const payload = {
@@ -319,7 +323,7 @@ const AdminCoupons = () => {
                 <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: fromLocalDate(e.target.value) })} />
               </div>
               <div>
-                <Label>Fim *</Label>
+                <Label>Fim (opcional)</Label>
                 <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: fromLocalDate(e.target.value) })} />
               </div>
             </div>
