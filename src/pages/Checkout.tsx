@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock, QrCode, Tag, X, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock, QrCode } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
