@@ -186,7 +186,12 @@ const Profile = () => {
         </div>
       </div>
 
-      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} initialMode={addrStartMode} />
+      <AddressSelector
+        open={addrOpen}
+        onClose={() => { setAddrOpen(false); setEditAddr(null); }}
+        initialMode={addrStartMode}
+        editAddress={editAddr}
+      />
       <BottomNav />
     </div>
   );
