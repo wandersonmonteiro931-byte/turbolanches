@@ -50,7 +50,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isOpen: storeIsOpen } = useStoreStatus();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, appliedCoupon, couponDiscount } = useCart();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
