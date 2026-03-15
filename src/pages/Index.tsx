@@ -32,7 +32,7 @@ const stagger = {
 const Index = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { isOpen: storeIsOpen } = useStoreStatus();
+  const { isOpen: storeIsOpen, nextOpeningText } = useStoreStatus();
   const { categories, loading: catLoading } = useCategories();
   const { products, loading: prodLoading } = useProducts();
   const { banners } = useBanners();
