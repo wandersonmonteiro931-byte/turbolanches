@@ -1,8 +1,31 @@
 import "./index.css";
 
-try {
-  (globalThis as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
-} catch {}
+const ensureGlobalProbe = () => {
+  try {
+    (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+  } catch {}
+
+  try {
+    Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
+      value: false,
+      writable: true,
+      configurable: true,
+    });
+  } catch {}
+
+  try {
+    (globalThis as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
+  } catch {}
+
+  try {
+    const script = document.createElement("script");
+    script.text = "var __LOVA_FIX_TRIGGER__ = false;";
+    (document.head ?? document.documentElement).prepend(script);
+    script.remove();
+  } catch {}
+};
+
+ensureGlobalProbe();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});
