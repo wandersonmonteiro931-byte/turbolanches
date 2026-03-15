@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, Send, Users, User, Search, Clock, CheckCircle, XCircle, Settings, Save, Plus, Trash2, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
