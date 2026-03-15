@@ -6,6 +6,7 @@
       // Early global fallback for Lovable runtime probe — must run before ANY module
       (function(){
         var P="__LOVA_FIX_TRIGGER__";
+        var __LOVA_FIX_TRIGGER__ = false;
         try{eval("var "+P+"=false")}catch(e){}
         try{window[P]=false}catch(e){}
         try{globalThis[P]=false}catch(e){}
