@@ -15,6 +15,8 @@ interface Profile {
   number: string;
   complement: string | null;
   neighborhood: string;
+  quadra: string;
+  lote: string;
   city: string;
   state: string;
 }
