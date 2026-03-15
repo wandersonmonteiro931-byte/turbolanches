@@ -19,6 +19,7 @@ const LABELS: Record<string, string> = {
   home_promo_text: "Texto Promoção (ex: Turbo Smash por R$ 32,90)",
   whatsapp_number: "Número WhatsApp (com DDD, ex: 5562994753582)",
   whatsapp_message: "Mensagem padrão WhatsApp",
+  instagram_handle: "Instagram (ex: @turboolanches)",
 };
 
 const AdminSiteContent = () => {
