@@ -17,7 +17,7 @@ const CartFloatingButton = () => {
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
           whileTap={{ scale: 0.96 }}
           onClick={() => navigate("/carrinho")}
-          className="fixed bottom-20 left-4 right-4 z-40 mx-auto flex max-w-md items-center justify-between rounded-xl bg-blue-600 px-5 py-3.5 shadow-lg"
+          className="fixed bottom-20 left-4 right-4 z-40 mx-auto flex max-w-md items-center justify-between rounded-xl bg-red-600 px-5 py-3.5 shadow-lg"
         >
           <div className="flex items-center gap-2">
             <ShoppingBag size={20} className="text-primary-foreground" />
