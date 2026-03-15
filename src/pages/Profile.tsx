@@ -111,7 +111,7 @@ const Profile = () => {
               Meus Endereços
             </h3>
             <button
-              onClick={() => setAddrOpen(true)}
+              onClick={() => { setAddrStartMode("add"); setAddrOpen(true); }}
               className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
             >
               <Plus size={14} />
