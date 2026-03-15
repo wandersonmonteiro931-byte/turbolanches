@@ -12,6 +12,7 @@ const Profile = () => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [addrOpen, setAddrOpen] = useState(false);
+  const [addrStartMode, setAddrStartMode] = useState<"list" | "add">("list");
   const { addresses, defaultAddress, setDefault, deleteAddress } = useAddresses();
 
   useEffect(() => {
@@ -110,7 +111,7 @@ const Profile = () => {
               Meus Endereços
             </h3>
             <button
-              onClick={() => setAddrOpen(true)}
+              onClick={() => { setAddrStartMode("add"); setAddrOpen(true); }}
               className="flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80"
             >
               <Plus size={14} />
@@ -162,7 +163,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} />
+      <AddressSelector open={addrOpen} onClose={() => setAddrOpen(false)} initialMode={addrStartMode} />
       <BottomNav />
     </div>
   );

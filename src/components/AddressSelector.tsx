@@ -8,6 +8,7 @@ import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialMode?: "list" | "add";
 }
 
 const emptyForm = {
@@ -23,7 +24,7 @@ const emptyForm = {
   zip_code: "",
 };
 
-const AddressSelector = ({ open, onClose }: Props) => {
+const AddressSelector = ({ open, onClose, initialMode = "list" }: Props) => {
   const { user } = useAuth();
   const { addresses, defaultAddress, setDefault, addAddress, updateAddress, deleteAddress } = useAddresses();
   const { toast } = useToast();
@@ -35,10 +36,11 @@ const AddressSelector = ({ open, onClose }: Props) => {
 
   useEffect(() => {
     if (open) {
-      setMode("list");
+      setMode(initialMode);
       setEditingId(null);
+      if (initialMode === "add") setForm(emptyForm);
     }
-  }, [open]);
+  }, [open, initialMode]);
 
   if (!open) return null;
 
