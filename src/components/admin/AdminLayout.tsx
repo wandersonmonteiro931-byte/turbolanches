@@ -19,6 +19,8 @@ const navItems = [
   { path: "/admin/notificacoes", icon: Bell, label: "Notificações" },
   { path: "/admin/cupons", icon: Ticket, label: "Cupons" },
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
+  { path: "/admin/administradores", icon: Shield, label: "Admins" },
+  { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
 const AdminLayout = () => {
