@@ -89,6 +89,7 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
 };
 
 const AdminOrders = () => {
+  const { storeId } = useStore();
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
