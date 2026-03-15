@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAddresses, CustomerAddress } from "@/hooks/useAddresses";
 import BottomNav from "@/components/BottomNav";
 import AddressSelector from "@/components/AddressSelector";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
