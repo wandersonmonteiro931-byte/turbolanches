@@ -1,43 +1,53 @@
 import "./index.css";
 
+const PROBE_KEY = "__LOVA_FIX_TRIGGER__";
+
+const defineProbeTarget = (target: unknown) => {
+  if (!target || (typeof target !== "object" && typeof target !== "function")) return;
+
+  try {
+    Object.defineProperty(target, PROBE_KEY, {
+      configurable: true,
+      get: () => false,
+      set: () => {},
+    });
+    return;
+  } catch {}
+
+  try {
+    (target as Record<string, unknown>)[PROBE_KEY] = false;
+  } catch {}
+};
+
 const ensureGlobalProbe = () => {
   try {
-    (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+    (0, eval)(`var ${PROBE_KEY} = false;`);
   } catch {}
 
   try {
-    Function("var __LOVA_FIX_TRIGGER__ = false;")();
+    Function(`var ${PROBE_KEY} = false; return ${PROBE_KEY};`)();
   } catch {}
 
-  try {
-    Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
-      value: false,
-      writable: true,
-      configurable: true,
-    });
-  } catch {}
-
-  try {
-    (globalThis as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
-    (window as unknown as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
-    (self as unknown as Record<string, unknown>).__LOVA_FIX_TRIGGER__ = false;
-  } catch {}
+  defineProbeTarget(globalThis);
+  if (typeof window !== "undefined") defineProbeTarget(window);
+  if (typeof self !== "undefined") defineProbeTarget(self);
 
   try {
     const script = document.createElement("script");
-    script.text = "var __LOVA_FIX_TRIGGER__ = false;";
+    script.text = `var ${PROBE_KEY} = false;`;
     (document.head ?? document.documentElement).prepend(script);
     script.remove();
   } catch {}
 };
 
 ensureGlobalProbe();
+queueMicrotask(ensureGlobalProbe);
+setTimeout(ensureGlobalProbe, 0);
 
-// Suppress __LOVA_FIX_TRIGGER__ ReferenceError globally
 const isLovaFixError = (value: unknown) => {
-  if (typeof value === "string") return value.includes("__LOVA_FIX_TRIGGER__");
+  if (typeof value === "string") return value.includes(PROBE_KEY);
   if (value && typeof value === "object" && "message" in value) {
-    return String((value as { message?: unknown }).message ?? "").includes("__LOVA_FIX_TRIGGER__");
+    return String((value as { message?: unknown }).message ?? "").includes(PROBE_KEY);
   }
   return false;
 };
@@ -45,6 +55,7 @@ const isLovaFixError = (value: unknown) => {
 window.addEventListener(
   "unhandledrejection",
   (e) => {
+    ensureGlobalProbe();
     if (isLovaFixError(e.reason)) e.preventDefault();
   },
   { capture: true },
@@ -53,6 +64,7 @@ window.addEventListener(
 window.addEventListener(
   "error",
   (e) => {
+    ensureGlobalProbe();
     if (isLovaFixError((e as ErrorEvent).message) || isLovaFixError((e as ErrorEvent).error)) {
       e.preventDefault();
     }
@@ -61,6 +73,7 @@ window.addEventListener(
 );
 
 window.onunhandledrejection = (e) => {
+  ensureGlobalProbe();
   if (isLovaFixError(e.reason)) {
     e.preventDefault();
     return true;
@@ -69,6 +82,7 @@ window.onunhandledrejection = (e) => {
 };
 
 window.onerror = (message, _source, _lineno, _colno, error) => {
+  ensureGlobalProbe();
   if (isLovaFixError(message) || isLovaFixError(error)) return true;
   return false;
 };

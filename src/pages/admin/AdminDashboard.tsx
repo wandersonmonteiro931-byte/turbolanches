@@ -528,14 +528,15 @@ const AdminDashboard = () => {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
           onClick={toggleStore}
+          disabled={!storeSettings || togglingStore}
           className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
             storeSettings?.is_open
               ? "bg-green-600 text-white hover:bg-green-700"
               : "bg-red-600 text-white hover:bg-red-700"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-60`}
         >
           <Power size={18} />
-          {storeSettings?.is_open ? "LOJA ABERTA" : "ABRIR LOJA"}
+          {togglingStore ? (storeSettings?.is_open ? "FECHANDO..." : "ABRINDO...") : storeSettings?.is_open ? "FECHAR LOJA" : "ABRIR LOJA"}
         </button>
 
         <button
