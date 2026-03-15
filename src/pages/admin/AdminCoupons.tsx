@@ -110,6 +110,7 @@ const AdminCoupons = () => {
       value: c.value,
       active: c.active,
       max_uses: c.max_uses,
+      max_uses_per_customer: c.max_uses_per_customer,
       min_order: c.min_order,
       expires_at: c.expires_at,
       starts_at: c.starts_at,
