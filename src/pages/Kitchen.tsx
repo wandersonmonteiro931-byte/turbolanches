@@ -50,6 +50,21 @@ const Kitchen = () => {
       console.error("[Kitchen] Error fetching orders:", error.message);
     }
     const rows = data ?? [];
+
+    // Detect orders that disappeared (cancelled) between polls
+    const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
+    const currentIds = new Set(rows.map(o => o.id));
+    const disappeared = prevOrdersRef.current.filter(o => !currentIds.has(o.id));
+    if (disappeared.length > 0) {
+      setCancelledAlerts(prev => {
+        const existingIds = new Set(prev.map(a => a.order.id));
+        const newAlerts = disappeared
+          .filter(o => !existingIds.has(o.id))
+          .map(order => ({ order, cancelledAt: Date.now() }));
+        return [...prev, ...newAlerts];
+      });
+    }
+
     setOrders(rows as KitchenOrder[]);
     const ids = rows.map((o) => o.id);
     if (ids.length > 0) {
