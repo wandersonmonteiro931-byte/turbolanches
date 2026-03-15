@@ -306,11 +306,11 @@ const AdminCoupons = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Início *</Label>
-                <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: fromLocalDate(e.target.value) })} />
               </div>
               <div>
                 <Label>Fim *</Label>
-                <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: fromLocalDate(e.target.value) })} />
               </div>
             </div>
 
