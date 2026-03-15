@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Ticket } from "lucide-react";
 import { nowBrasilia, formatDateBR } from "@/lib/brasiliaTime";
+import { useStore } from "@/contexts/StoreContext";
 
 interface Coupon {
   id: string;
