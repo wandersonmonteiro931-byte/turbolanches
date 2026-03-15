@@ -1,18 +1,24 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 
 export function useCategories() {
+  const { storeId } = useStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("categories")
         .select("id, name, icon, image_url, sort_order")
         .eq("active", true)
         .order("sort_order");
+
+      if (storeId) query = query.eq("store_id", storeId);
+
+      const { data } = await query;
       if (data) {
         setCategories(
           data.map((c: any) => ({
@@ -26,38 +32,48 @@ export function useCategories() {
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [storeId]);
 
   return { categories, loading };
 }
 
 export function useProducts() {
+  const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
+      let productsQuery = supabase
+        .from("products")
+        .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count")
+        .order("sort_order")
+        .order("name");
+
+      let addonsQuery = supabase
+        .from("product_addons")
+        .select("id, name, price, product_id, apply_to_all, sort_order")
+        .eq("active", true)
+        .order("sort_order");
+
+      let categoriesQuery = supabase
+        .from("categories")
+        .select("id, name")
+        .eq("active", true);
+
+      if (storeId) {
+        productsQuery = productsQuery.eq("store_id", storeId);
+        addonsQuery = addonsQuery.eq("store_id", storeId);
+        categoriesQuery = categoriesQuery.eq("store_id", storeId);
+      }
+
       const [productsRes, addonsRes, linksRes, categoriesRes] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count")
-          .order("sort_order")
-          .order("name"),
-        supabase
-          .from("product_addons")
-          .select("id, name, price, product_id, apply_to_all, sort_order")
-          .eq("active", true)
-          .order("sort_order"),
-        supabase
-          .from("addon_product_links")
-          .select("addon_id, product_id"),
-        supabase
-          .from("categories")
-          .select("id, name")
-          .eq("active", true),
+        productsQuery,
+        addonsQuery,
+        supabase.from("addon_product_links").select("addon_id, product_id"),
+        categoriesQuery,
       ]);
 
-      // Build a map: addon_id -> list of product_ids it's linked to
       const linksMap = new Map<string, string[]>();
       if (linksRes.data) {
         for (const link of linksRes.data) {
@@ -67,7 +83,6 @@ export function useProducts() {
         }
       }
 
-      // Build per-product addons map
       const addonsMap = new Map<string, ProductAddon[]>();
       const globalAddons: ProductAddon[] = [];
 
@@ -77,12 +92,10 @@ export function useProducts() {
           if (a.apply_to_all) {
             globalAddons.push(addon);
           } else if (a.product_id) {
-            // Legacy: direct product_id reference
             const list = addonsMap.get(a.product_id) || [];
             list.push(addon);
             addonsMap.set(a.product_id, list);
           } else {
-            // New: linked via junction table
             const linkedProducts = linksMap.get(a.id) || [];
             for (const pid of linkedProducts) {
               const list = addonsMap.get(pid) || [];
@@ -122,7 +135,7 @@ export function useProducts() {
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [storeId]);
 
   return { products, loading };
 }
