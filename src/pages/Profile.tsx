@@ -10,6 +10,7 @@ import AddressSelector from "@/components/AddressSelector";
 const Profile = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
   const [addrOpen, setAddrOpen] = useState(false);
   const [addrStartMode, setAddrStartMode] = useState<"list" | "add">("list");
   const { addresses, defaultAddress, setDefault, deleteAddress } = useAddresses();
