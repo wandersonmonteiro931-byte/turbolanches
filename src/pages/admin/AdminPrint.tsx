@@ -34,7 +34,7 @@ const AdminPrint = () => {
       const tplType = resolveType(tipo);
       const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, customer_code").eq("user_id", orderData.user_id).single(),
+        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, street, neighborhood, customer_code").eq("user_id", orderData.user_id).single(),
         supabase.from("receipt_templates" as any).select("*").eq("template_type", tplType).single(),
       ]);
 
