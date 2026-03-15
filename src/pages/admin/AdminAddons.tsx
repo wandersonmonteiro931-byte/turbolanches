@@ -33,6 +33,7 @@ interface AddonLink {
 }
 
 const AdminAddons = () => {
+  const { storeId } = useStore();
   const [addons, setAddons] = useState<Addon[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -46,11 +47,12 @@ const AdminAddons = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
+    if (!storeId) return;
     const [addonsRes, productsRes, linksRes, catsRes] = await Promise.all([
-      supabase.from("product_addons").select("*").order("sort_order").order("name"),
-      supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("active", true).order("name"),
-      supabase.from("addon_product_links").select("addon_id, product_id"),
-      supabase.from("categories").select("id, name").eq("active", true).order("sort_order"),
+      supabase.from("product_addons").select("*").eq("store_id", storeId).order("sort_order").order("name"),
+      supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("store_id", storeId).eq("active", true).order("name"),
+      supabase.from("addon_product_links").select("addon_id, product_id").eq("store_id", storeId),
+      supabase.from("categories").select("id, name").eq("store_id", storeId).eq("active", true).order("sort_order"),
     ]);
     if (addonsRes.data) setAddons(addonsRes.data);
     if (productsRes.data) setProducts(productsRes.data);
@@ -58,7 +60,7 @@ const AdminAddons = () => {
     if (catsRes.data) setCategories(catsRes.data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   // Get addons assigned to a product (global + linked)
   const getAddonsForProduct = (productId: string) => {
