@@ -364,15 +364,14 @@ const AdminOrders = () => {
   };
 
   const formatDateTime = (date: string) => {
-    return new Date(date).toLocaleString("pt-BR", {
+    return formatDateTimeBR(date, {
       day: "2-digit", month: "2-digit", year: "2-digit",
       hour: "2-digit", minute: "2-digit",
     });
   };
 
   const formatTime = (date: string | null) => {
-    if (!date) return null;
-    return new Date(date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return formatTimeBR(date);
   };
 
   const toggleFilter = (arr: string[], val: string, setter: (v: string[]) => void) => {
