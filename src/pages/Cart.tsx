@@ -81,7 +81,7 @@ const Cart = () => {
       if (error || !coupon) { setCouponError("Cupom não encontrado"); return; }
       if (!coupon.active) { setCouponError("Este cupom está inativo"); return; }
       const now = nowBrasilia();
-      if (coupon.starts_at && new Date(coupon.starts_at) < now ? false : coupon.starts_at && new Date(coupon.starts_at) > now) { setCouponError("Este cupom ainda não está válido"); return; }
+      if (coupon.starts_at && new Date(coupon.starts_at) > now) { setCouponError("Este cupom ainda não está válido"); return; }
       if (coupon.expires_at && new Date(coupon.expires_at) < now) { setCouponError("Este cupom expirou"); return; }
       if (coupon.max_uses && coupon.used_count >= coupon.max_uses) { setCouponError("Cupom esgotado"); return; }
       if (coupon.min_order && totalPrice < coupon.min_order) {
