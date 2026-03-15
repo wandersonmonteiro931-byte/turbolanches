@@ -24,7 +24,7 @@ const emptyForm = {
   zip_code: "",
 };
 
-const AddressSelector = ({ open, onClose }: Props) => {
+const AddressSelector = ({ open, onClose, initialMode = "list" }: Props) => {
   const { user } = useAuth();
   const { addresses, defaultAddress, setDefault, addAddress, updateAddress, deleteAddress } = useAddresses();
   const { toast } = useToast();
