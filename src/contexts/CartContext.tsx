@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import type { Product, ProductAddon, CartItem } from "@/data/menu";
 
 const CART_STORAGE_KEY = "turbo-lanches-cart";
+const COUPON_STORAGE_KEY = "turbo-lanches-coupon";
+
+export interface AppliedCoupon {
+  code: string;
+  type: string;
+  value: number;
+}
 
 interface CartContextType {
   items: CartItem[];
@@ -11,6 +18,9 @@ interface CartContextType {
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
+  appliedCoupon: AppliedCoupon | null;
+  setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
+  couponDiscount: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,12 +39,39 @@ function saveCart(items: CartItem[]) {
   } catch {}
 }
 
+function loadCoupon(): AppliedCoupon | null {
+  try {
+    const raw = localStorage.getItem(COUPON_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveCoupon(coupon: AppliedCoupon | null) {
+  try {
+    if (coupon) {
+      localStorage.setItem(COUPON_STORAGE_KEY, JSON.stringify(coupon));
+    } else {
+      localStorage.removeItem(COUPON_STORAGE_KEY);
+    }
+  } catch {}
+}
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>(loadCart);
+  const [appliedCoupon, setAppliedCouponState] = useState<AppliedCoupon | null>(loadCoupon);
 
   useEffect(() => {
     saveCart(items);
   }, [items]);
+
+  useEffect(() => {
+    saveCoupon(appliedCoupon);
+  }, [appliedCoupon]);
+
+  const setAppliedCoupon = useCallback((coupon: AppliedCoupon | null) => {
+    setAppliedCouponState(coupon);
+  }, []);
 
   const addItem = useCallback((product: Product, quantity: number, addons: ProductAddon[], observations: string) => {
     setItems((prev) => [...prev, { product, quantity, selectedAddons: addons, observations }]);
@@ -54,18 +91,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = useCallback(() => {
     setItems([]);
+    setAppliedCouponState(null);
     localStorage.removeItem(CART_STORAGE_KEY);
+    localStorage.removeItem(COUPON_STORAGE_KEY);
   }, []);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  // addon.quantity already includes comboItemCount multiplier (set in ProductDetail)
   const totalPrice = items.reduce((sum, item) => {
     const addonsTotal = item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0);
     return sum + (item.product.price + addonsTotal) * item.quantity;
   }, 0);
 
+  const couponDiscount = appliedCoupon
+    ? appliedCoupon.type === "percentage"
+      ? Math.min(totalPrice * (appliedCoupon.value / 100), totalPrice)
+      : Math.min(appliedCoupon.value, totalPrice)
+    : 0;
+
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, totalItems, totalPrice, appliedCoupon, setAppliedCoupon, couponDiscount }}>
       {children}
     </CartContext.Provider>
   );

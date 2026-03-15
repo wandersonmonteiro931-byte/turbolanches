@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock, QrCode, Tag, X, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, CreditCard, Banknote, MessageSquare, Truck, Store, Clock, QrCode } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +50,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isOpen: storeIsOpen } = useStoreStatus();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, totalPrice, clearCart, appliedCoupon, couponDiscount } = useCart();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig | null>(null);
@@ -61,15 +61,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
 
-  // Coupon state
-  const [couponCode, setCouponCode] = useState("");
-  const [couponLoading, setCouponLoading] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    code: string;
-    type: string;
-    value: number;
-  } | null>(null);
-  const [couponError, setCouponError] = useState("");
+
+
 
   // PIX modal state
   const [showPixModal, setShowPixModal] = useState(false);
@@ -136,66 +129,8 @@ const Checkout = () => {
     // Cart stays intact - user goes back to checkout
   }, []);
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
-    setCouponLoading(true);
-    setCouponError("");
-    try {
-      const { data: coupon, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .ilike("code", couponCode.trim())
-        .single();
 
-      if (error || !coupon) {
-        setCouponError("Cupom não encontrado");
-        return;
-      }
-      if (!coupon.active) {
-        setCouponError("Este cupom está inativo");
-        return;
-      }
-      const now = new Date();
-      if (coupon.starts_at && new Date(coupon.starts_at) > now) {
-        setCouponError("Este cupom ainda não está válido");
-        return;
-      }
-      if (coupon.expires_at && new Date(coupon.expires_at) < now) {
-        setCouponError("Este cupom expirou");
-        return;
-      }
-      if (coupon.max_uses && coupon.used_count >= coupon.max_uses) {
-        setCouponError("Cupom esgotado");
-        return;
-      }
-      if (coupon.min_order && totalPrice < coupon.min_order) {
-        setCouponError(`Pedido mínimo de R$ ${Number(coupon.min_order).toFixed(2).replace(".", ",")}`);
-        return;
-      }
-      if (coupon.first_purchase_only && user) {
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id);
-        if (count && count > 0) {
-          setCouponError("Cupom válido apenas para primeira compra");
-          return;
-        }
-      }
-      setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value });
-      toast.success(`Cupom ${coupon.code} aplicado! 🎉`);
-    } catch {
-      setCouponError("Erro ao validar cupom");
-    } finally {
-      setCouponLoading(false);
-    }
-  };
 
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
-    setCouponError("");
-  };
 
   if (!user) {
     navigate("/auth");
@@ -241,12 +176,8 @@ const Checkout = () => {
 
   const deliveryFee = deliveryType === "pickup" ? 0 : ((isTempFree || isKmFree || isMinOrderFree) ? 0 : rawFee);
 
-  // Coupon discount
-  const couponDiscount = appliedCoupon
-    ? appliedCoupon.type === "percentage"
-      ? Math.min(totalPrice * (appliedCoupon.value / 100), totalPrice)
-      : Math.min(appliedCoupon.value, totalPrice)
-    : 0;
+
+
 
   const grandTotal = totalPrice + deliveryFee - couponDiscount;
 
@@ -608,49 +539,8 @@ const Checkout = () => {
               />
             </div>
 
-            {/* Coupon */}
-            <div className="rounded-xl bg-card p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Tag size={16} className="text-primary" />
-                <h2 className="font-bold text-foreground text-sm">Cupom de desconto</h2>
-              </div>
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 px-3 py-2.5">
-                  <div>
-                    <span className="text-sm font-bold text-primary">{appliedCoupon.code}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {appliedCoupon.type === "percentage"
-                        ? `${appliedCoupon.value}% off`
-                        : `- R$ ${appliedCoupon.value.toFixed(2).replace(".", ",")}`}
-                    </span>
-                  </div>
-                  <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive">
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex gap-2">
-                    <input
-                      value={couponCode}
-                      onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
-                      placeholder="Digite o cupom"
-                      className="flex-1 rounded-lg bg-background px-3 py-2.5 text-sm text-foreground uppercase placeholder:text-muted-foreground placeholder:normal-case focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <button
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCode.trim()}
-                      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 transition-all active:scale-95"
-                    >
-                      {couponLoading ? <Loader2 size={16} className="animate-spin" /> : "Aplicar"}
-                    </button>
-                  </div>
-                  {couponError && (
-                    <p className="mt-1.5 text-xs text-destructive">{couponError}</p>
-                  )}
-                </div>
-              )}
-            </div>
+
+
 
             {/* Summary */}
             <div className="rounded-xl bg-card p-4 space-y-2">
