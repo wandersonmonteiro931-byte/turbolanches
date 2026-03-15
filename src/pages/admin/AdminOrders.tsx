@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, Filter, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
 import { format } from "date-fns";
