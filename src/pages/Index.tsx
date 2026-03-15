@@ -103,7 +103,10 @@ const Index = () => {
       {!storeIsOpen ? (
         <div className="bg-destructive px-4 py-3 text-center">
           <p className="text-sm font-bold text-destructive-foreground">🔴 ESTAMOS FECHADOS NO MOMENTO</p>
-          <div className="flex items-center justify-center gap-2 mt-1">
+          {nextOpeningText && (
+            <p className="mt-1 text-xs font-medium text-destructive-foreground/90">{nextOpeningText}</p>
+          )}
+          <div className="mt-1 flex items-center justify-center gap-2">
             <StoreHours />
           </div>
         </div>

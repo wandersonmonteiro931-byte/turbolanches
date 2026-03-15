@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
+import { formatTimeBR, nowBrasilia } from "@/lib/brasiliaTime";
 
 interface ScheduleDay {
   day_of_week: number;
@@ -9,122 +10,140 @@ interface ScheduleDay {
   is_closed: boolean;
 }
 
-const getBrasiliaTime = () => {
-  const now = new Date();
-  const fmt = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const parts = fmt.formatToParts(now);
-  const h = parts.find((p) => p.type === "hour")!.value;
-  const m = parts.find((p) => p.type === "minute")!.value;
-  const hhmm = `${h}:${m}`;
+const DAY_LABELS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
-  const brDate = new Date(
-    now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
-  );
-  return { hhmm, dayOfWeek: brDate.getDay() };
+const getBrasiliaTime = () => {
+  const now = nowBrasilia();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  return { hhmm: `${hh}:${mm}`, dayOfWeek: now.getDay() };
 };
 
-const toBrasiliaHHMM = (date: Date): string => {
-  const fmt = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const parts = fmt.formatToParts(date);
-  return `${parts.find((p) => p.type === "hour")!.value}:${parts.find((p) => p.type === "minute")!.value}`;
+const hhmmToMinutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const buildNextOpeningText = (
+  schedule: ScheduleDay[],
+  currentDayOfWeek: number,
+  currentHHMM: string,
+): string | null => {
+  const currentMinutes = hhmmToMinutes(currentHHMM);
+
+  for (let offset = 0; offset < 7; offset += 1) {
+    const dayIndex = (currentDayOfWeek + offset) % 7;
+    const daySchedule = schedule.find((item) => item.day_of_week === dayIndex);
+
+    if (!daySchedule || daySchedule.is_closed || !daySchedule.open_time) continue;
+
+    const openHHMM = daySchedule.open_time.slice(0, 5);
+    const openMinutes = hhmmToMinutes(openHHMM);
+
+    if (offset === 0 && openMinutes <= currentMinutes) continue;
+
+    if (offset === 0) return `Abre hoje às ${openHHMM} h`;
+    if (offset === 1) return `Abre amanhã às ${openHHMM} h`;
+    return `Abre ${DAY_LABELS[dayIndex]} às ${openHHMM} h`;
+  }
+
+  return null;
 };
 
 export const useStoreStatus = () => {
   const { storeId } = useStore();
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [nextOpeningText, setNextOpeningText] = useState<string | null>(null);
 
   const checkStatus = async () => {
-    let settingsQuery = supabase
-      .from("store_settings")
-      .select("is_open, use_schedule, closed_at, opened_at")
-      .limit(1);
+    try {
+      let settingsQuery = supabase
+        .from("store_settings")
+        .select("is_open, use_schedule, closed_at, opened_at")
+        .limit(1);
 
-    let scheduleQuery = supabase
-      .from("store_schedule")
-      .select("day_of_week, open_time, close_time, is_closed")
-      .order("day_of_week");
+      let scheduleQuery = supabase
+        .from("store_schedule")
+        .select("day_of_week, open_time, close_time, is_closed")
+        .order("day_of_week");
 
-    if (storeId) {
-      settingsQuery = settingsQuery.eq("store_id", storeId);
-      scheduleQuery = scheduleQuery.eq("store_id", storeId);
-    }
+      if (storeId) {
+        settingsQuery = settingsQuery.eq("store_id", storeId);
+        scheduleQuery = scheduleQuery.eq("store_id", storeId);
+      }
 
-    const [settingsRes, scheduleRes] = await Promise.all([
-      settingsQuery.single(),
-      scheduleQuery,
-    ]);
+      const [settingsRes, scheduleRes] = await Promise.all([settingsQuery.single(), scheduleQuery]);
 
-    const settings = settingsRes.data;
-    const schedule = (scheduleRes.data || []) as ScheduleDay[];
+      const settings = settingsRes.data;
+      const schedule = (scheduleRes.data || []) as ScheduleDay[];
 
-    if (!settings) {
-      setLoading(false);
-      return;
-    }
-
-    const { hhmm, dayOfWeek } = getBrasiliaTime();
-    const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
-
-    const isRecent = (ts: string | null): boolean => {
-      if (!ts) return false;
-      return Date.now() - new Date(ts as string).getTime() < 12 * 60 * 60 * 1000;
-    };
-
-    if (todaySchedule) {
-      if (todaySchedule.is_closed) {
-        const manuallyOpened = settings.is_open === true && isRecent(settings.opened_at);
-        setIsOpen(manuallyOpened);
+      if (!settings) {
+        setNextOpeningText(null);
         setLoading(false);
         return;
       }
 
-      const openT = todaySchedule.open_time?.slice(0, 5);
-      const closeT = todaySchedule.close_time?.slice(0, 5);
+      const { hhmm, dayOfWeek } = getBrasiliaTime();
+      const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
+      const nextText = buildNextOpeningText(schedule, dayOfWeek, hhmm);
 
-      let inTimeWindow = false;
-      if (openT && closeT) {
-        if (closeT <= openT) {
-          inTimeWindow = hhmm >= openT || hhmm <= closeT;
-        } else {
-          inTimeWindow = hhmm >= openT && hhmm <= closeT;
-        }
-      }
+      const setStatus = (open: boolean) => {
+        setIsOpen(open);
+        setNextOpeningText(open ? null : nextText);
+      };
 
-      if (inTimeWindow) {
-        if (settings.is_open === false && isRecent(settings.closed_at)) {
-          const closedHHMM = toBrasiliaHHMM(new Date(settings.closed_at as string));
-          setIsOpen(!(closedHHMM >= openT!));
-        } else {
-          setIsOpen(true);
+      const isRecent = (ts: string | null): boolean => {
+        if (!ts) return false;
+        return Date.now() - new Date(ts).getTime() < 12 * 60 * 60 * 1000;
+      };
+
+      if (todaySchedule) {
+        if (todaySchedule.is_closed) {
+          const manuallyOpened = settings.is_open === true && isRecent(settings.opened_at);
+          setStatus(manuallyOpened);
+          setLoading(false);
+          return;
         }
-      } else {
-        if (settings.is_open === true && isRecent(settings.opened_at)) {
-          const openedHHMM = toBrasiliaHHMM(new Date(settings.opened_at as string));
-          if (closeT && hhmm >= closeT && !(closeT <= openT!)) {
-            setIsOpen(openedHHMM >= closeT);
+
+        const openT = todaySchedule.open_time?.slice(0, 5);
+        const closeT = todaySchedule.close_time?.slice(0, 5);
+
+        let inTimeWindow = false;
+        if (openT && closeT) {
+          if (closeT <= openT) {
+            inTimeWindow = hhmm >= openT || hhmm <= closeT;
           } else {
-            setIsOpen(true);
+            inTimeWindow = hhmm >= openT && hhmm <= closeT;
+          }
+        }
+
+        if (inTimeWindow) {
+          if (settings.is_open === false && isRecent(settings.closed_at)) {
+            const closedHHMM = formatTimeBR(settings.closed_at);
+            setStatus(!(closedHHMM && openT ? closedHHMM >= openT : false));
+          } else {
+            setStatus(true);
+          }
+        } else if (settings.is_open === true && isRecent(settings.opened_at)) {
+          const openedHHMM = formatTimeBR(settings.opened_at);
+          if (closeT && openT && hhmm >= closeT && closeT > openT) {
+            setStatus(Boolean(openedHHMM && openedHHMM >= closeT));
+          } else {
+            setStatus(true);
           }
         } else {
-          setIsOpen(false);
+          setStatus(false);
         }
+      } else {
+        setStatus(settings.is_open);
       }
-    } else {
-      setIsOpen(settings.is_open);
-    }
 
-    setLoading(false);
+      setLoading(false);
+    } catch {
+      setNextOpeningText(null);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -149,5 +168,5 @@ export const useStoreStatus = () => {
     };
   }, [storeId]);
 
-  return { isOpen, loading };
+  return { isOpen, loading, nextOpeningText };
 };
