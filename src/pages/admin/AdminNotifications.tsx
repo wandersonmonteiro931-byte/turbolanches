@@ -56,6 +56,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const AdminNotifications = () => {
   const { user } = useAuth();
+  const { storeId } = useStore();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [targetType, setTargetType] = useState<"all" | "selected">("all");
