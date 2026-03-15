@@ -95,6 +95,20 @@ const Cart = () => {
           .eq("user_id", user.id);
         if (count && count > 0) { setCouponError("Cupom válido apenas para primeira compra"); return; }
       }
+      // Check per-customer usage limit
+      const maxPerCustomer = (coupon as any).max_uses_per_customer;
+      if (maxPerCustomer && user) {
+        const { count } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("coupon_code", coupon.code)
+          .neq("status", "cancelled");
+        if (count !== null && count >= maxPerCustomer) {
+          setCouponError(`Você já usou este cupom ${count}x (limite: ${maxPerCustomer}x)`);
+          return;
+        }
+      }
       setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value });
       toast.success(`Cupom ${coupon.code} aplicado! 🎉`);
     } catch {
