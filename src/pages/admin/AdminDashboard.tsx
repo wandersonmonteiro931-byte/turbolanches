@@ -528,7 +528,7 @@ const AdminDashboard = () => {
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
-          onClick={toggleStore}
+          onClick={() => setShowToggleConfirm(true)}
           disabled={!storeSettings || togglingStore}
           className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
             storeSettings?.is_open
