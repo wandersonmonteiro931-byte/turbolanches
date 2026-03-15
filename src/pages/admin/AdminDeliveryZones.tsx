@@ -6,6 +6,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
+import { useStore } from "@/contexts/StoreContext";
 
 interface DeliveryZone {
   id: string;
@@ -298,6 +299,7 @@ function MaxServingCard({ config, onSaved }: { config: StoreConfig; onSaved: (c:
 // ── Main Component ──────────────────────────────────────────────────
 
 const AdminDeliveryZones = () => {
+  const { storeId } = useStore();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ neighborhood: "", delivery_fee: 0, active: true, distance_km: null as number | null });
@@ -307,7 +309,6 @@ const AdminDeliveryZones = () => {
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE);
   const { state: calcState, start: startCalc, cancel: cancelCalc } = useDeliveryCalculation();
 
-  // Filters
   const [filterKmMin, setFilterKmMin] = useState("");
   const [filterKmMax, setFilterKmMax] = useState("");
   const [filterPriceMin, setFilterPriceMin] = useState("");
@@ -318,13 +319,16 @@ const AdminDeliveryZones = () => {
   const { toast } = useToast();
 
   const fetchZones = async () => {
-    const { data } = await supabase.from("delivery_zones").select("*").order("neighborhood");
+    if (!storeId) return;
+    const { data } = await supabase.from("delivery_zones").select("*").eq("store_id", storeId).order("neighborhood");
     if (data) setZones(data as DeliveryZone[]);
   };
 
   const fetchStoreConfig = async () => {
+    if (!storeId) return;
     const { data } = await supabase.from("store_settings")
       .select("store_address, store_neighborhood, price_per_km, free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active")
+      .eq("store_id", storeId)
       .limit(1).single();
     if (data) {
       const d = data as any;
@@ -341,7 +345,7 @@ const AdminDeliveryZones = () => {
     }
   };
 
-  useEffect(() => { fetchZones(); fetchStoreConfig(); }, []);
+  useEffect(() => { fetchZones(); fetchStoreConfig(); }, [storeId]);
 
   // Auto-refresh zones while calculation is running
   useEffect(() => {
@@ -363,7 +367,7 @@ const AdminDeliveryZones = () => {
 
   const addZone = async () => {
     if (!newZone.neighborhood.trim()) { toast({ title: "Informe o bairro", variant: "destructive" }); return; }
-    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee });
+    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee, store_id: storeId });
     toast({ title: "✅ Região adicionada!" });
     setNewZone({ neighborhood: "", delivery_fee: 0 }); setShowAdd(false); fetchZones();
   };

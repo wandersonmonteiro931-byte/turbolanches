@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, X, Search, Package, Check, ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
 
 interface Addon {
   id: string;
@@ -32,6 +33,7 @@ interface AddonLink {
 }
 
 const AdminAddons = () => {
+  const { storeId } = useStore();
   const [addons, setAddons] = useState<Addon[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,11 +47,12 @@ const AdminAddons = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
+    if (!storeId) return;
     const [addonsRes, productsRes, linksRes, catsRes] = await Promise.all([
-      supabase.from("product_addons").select("*").order("sort_order").order("name"),
-      supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("active", true).order("name"),
-      supabase.from("addon_product_links").select("addon_id, product_id"),
-      supabase.from("categories").select("id, name").eq("active", true).order("sort_order"),
+      supabase.from("product_addons").select("*").eq("store_id", storeId).order("sort_order").order("name"),
+      supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("store_id", storeId).eq("active", true).order("name"),
+      supabase.from("addon_product_links").select("addon_id, product_id").eq("store_id", storeId),
+      supabase.from("categories").select("id, name").eq("store_id", storeId).eq("active", true).order("sort_order"),
     ]);
     if (addonsRes.data) setAddons(addonsRes.data);
     if (productsRes.data) setProducts(productsRes.data);
@@ -57,7 +60,7 @@ const AdminAddons = () => {
     if (catsRes.data) setCategories(catsRes.data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   // Get addons assigned to a product (global + linked)
   const getAddonsForProduct = (productId: string) => {
@@ -108,7 +111,7 @@ const AdminAddons = () => {
       const toAdd = selectedProductIds.filter((pid) => !existingPids.includes(pid));
       if (toAdd.length > 0) {
         await supabase.from("addon_product_links").insert(
-          toAdd.map((pid) => ({ addon_id: addon.id, product_id: pid }))
+          toAdd.map((pid) => ({ addon_id: addon.id, product_id: pid, store_id: storeId }))
         );
       }
       toast({ title: `"${addon.name}" adicionado a ${selectedProductIds.length} produto(s)` });
@@ -137,6 +140,7 @@ const AdminAddons = () => {
       apply_to_all: addonForm.apply_to_all,
       product_id: null as string | null,
       sort_order: editingAddon ? editingAddon.sort_order : addons.length,
+      store_id: storeId,
     };
 
     if (editingAddon) {
@@ -146,10 +150,9 @@ const AdminAddons = () => {
       }
     } else {
       const { data } = await supabase.from("product_addons").insert(payload).select("id").single();
-      // If not global & products selected, link them
       if (data && !addonForm.apply_to_all && selectedProductIds.length > 0) {
         await supabase.from("addon_product_links").insert(
-          selectedProductIds.map((pid) => ({ addon_id: data.id, product_id: pid }))
+          selectedProductIds.map((pid) => ({ addon_id: data.id, product_id: pid, store_id: storeId }))
         );
       }
     }

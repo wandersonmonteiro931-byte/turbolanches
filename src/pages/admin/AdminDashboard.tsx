@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useStore } from "@/contexts/StoreContext";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -82,6 +83,7 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
 };
 
 const AdminDashboard = () => {
+  const { storeId } = useStore();
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
@@ -109,17 +111,17 @@ const AdminDashboard = () => {
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
   const fetchOrders = useCallback(async () => {
-    // Business day: orders from 03:00 of selectedDate to 02:59:59 of next day (Brasília)
+    if (!storeId) return;
     const { start, end } = getBusinessDayRange(selectedDate);
 
     const { data } = await supabase
       .from("orders")
       .select("*")
+      .eq("store_id", storeId)
       .gte("created_at", start)
       .lte("created_at", end)
       .order("created_at", { ascending: false });
     if (data) {
-      // Pedidos PIX só aparecem se pagos (não pendentes/cancelados)
       const filtered = (data as Order[]).filter(o => {
         if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
         return true;
@@ -138,16 +140,17 @@ const AdminDashboard = () => {
         }
       }
     }
-  }, [selectedDate]);
+  }, [selectedDate, storeId]);
 
   const fetchStoreSettings = useCallback(async () => {
-    const { data } = await supabase.from("store_settings").select("*").limit(1).single();
+    if (!storeId) return;
+    const { data } = await supabase.from("store_settings").select("*").eq("store_id", storeId).limit(1).single();
     if (data) {
       setStoreSettings(data as StoreSettings);
       setScheduleOpen(data.scheduled_open || "");
       setScheduleClose(data.scheduled_close || "");
     }
-  }, []);
+  }, [storeId]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
@@ -375,6 +378,7 @@ const AdminDashboard = () => {
       total_liquido: totalLiquido,
       opened_at: storeSettings?.opened_at,
       closed_at: new Date().toISOString(),
+      store_id: storeId,
     }, { onConflict: "report_date" });
 
     if (storeSettings) {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useStore } from "@/contexts/StoreContext";
 
 export interface ReceiptTemplate {
   id: string;
@@ -23,12 +24,15 @@ export interface ReceiptTemplate {
 }
 
 export const useReceiptTemplates = () => {
+  const { storeId } = useStore();
   return useQuery({
-    queryKey: ["receipt_templates"],
+    queryKey: ["receipt_templates", storeId],
+    enabled: !!storeId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("receipt_templates" as any)
         .select("*")
+        .eq("store_id", storeId)
         .order("template_type");
       if (error) throw error;
       return (data as unknown as ReceiptTemplate[]) || [];

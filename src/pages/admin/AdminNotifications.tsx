@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, Send, Users, User, Search, Clock, CheckCircle, XCircle, Settings, Save, Plus, Trash2, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 const AdminNotifications = () => {
   const { user } = useAuth();
+  const { storeId } = useStore();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [targetType, setTargetType] = useState<"all" | "selected">("all");
@@ -103,9 +105,11 @@ const AdminNotifications = () => {
   };
 
   const loadTemplates = async () => {
+    if (!storeId) return;
     const { data } = await supabase
       .from("push_templates")
       .select("*")
+      .eq("store_id", storeId)
       .order("created_at");
     if (data) setTemplates(data as PushTemplate[]);
     setLoadingTemplates(false);
@@ -231,7 +235,7 @@ const AdminNotifications = () => {
     }
     const { data, error } = await supabase
       .from("push_templates")
-      .insert({ trigger_status: newTrigger.trim(), title: newTitle.trim(), body: newBody.trim() })
+      .insert({ trigger_status: newTrigger.trim(), title: newTitle.trim(), body: newBody.trim(), store_id: storeId })
       .select()
       .single();
     if (error) {

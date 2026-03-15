@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Ticket } from "lucide-react";
 import { nowBrasilia, formatDateBR } from "@/lib/brasiliaTime";
+import { useStore } from "@/contexts/StoreContext";
 
 interface Coupon {
   id: string;
@@ -72,6 +73,7 @@ function couponStatus(c: Coupon): { label: string; variant: "default" | "seconda
 }
 
 const AdminCoupons = () => {
+  const { storeId } = useStore();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -84,12 +86,13 @@ const AdminCoupons = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchCoupons = async () => {
-    const { data } = await supabase.from("coupons").select("*").order("created_at", { ascending: false });
+    if (!storeId) return;
+    const { data } = await supabase.from("coupons").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     setCoupons((data as Coupon[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchCoupons(); }, []);
+  useEffect(() => { fetchCoupons(); }, [storeId]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -134,6 +137,7 @@ const AdminCoupons = () => {
       expires_at: form.expires_at,
       starts_at: form.starts_at,
       first_purchase_only: form.first_purchase_only,
+      store_id: storeId,
     };
 
     if (editingId) {

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, Filter, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
 import { format } from "date-fns";
@@ -88,6 +89,7 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
 };
 
 const AdminOrders = () => {
+  const { storeId } = useStore();
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
@@ -115,7 +117,7 @@ const AdminOrders = () => {
   useAlarmSound(hasPendingOrders);
 
   const fetchOrders = useCallback(async () => {
-    // Fetch ALL orders (no limit) - paginated by 1000
+    if (!storeId) return;
     let all: Order[] = [];
     let from = 0;
     const pageSize = 1000;
@@ -125,6 +127,7 @@ const AdminOrders = () => {
       const { data } = await supabase
         .from("orders")
         .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
+        .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -156,7 +159,7 @@ const AdminOrders = () => {
       }
       setProfiles(profileMap);
     }
-  }, []);
+  }, [storeId]);
 
   // Fetch items for product name filter
   const fetchAllItemsForFilter = useCallback(async () => {
