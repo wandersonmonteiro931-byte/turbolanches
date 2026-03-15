@@ -323,8 +323,14 @@ const AdminCoupons = () => {
             </div>
 
             <div>
-              <Label>Limite de usos (opcional)</Label>
+              <Label>Limite total de usos (opcional)</Label>
               <Input type="number" min={0} value={form.max_uses ?? ""} onChange={(e) => setForm({ ...form, max_uses: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite" />
+            </div>
+
+            <div>
+              <Label>Limite de usos por cliente (opcional)</Label>
+              <Input type="number" min={0} value={form.max_uses_per_customer ?? ""} onChange={(e) => setForm({ ...form, max_uses_per_customer: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite — cada cliente usa quantas vezes quiser" />
+              <p className="text-[11px] text-muted-foreground mt-1">Independente de outros requisitos (valor mínimo, primeira compra, etc.)</p>
             </div>
 
             <div>
