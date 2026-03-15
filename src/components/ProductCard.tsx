@@ -15,11 +15,7 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
   const isSoldOut = product.active === false;
 
   const handleClick = () => {
-    if (isSoldOut) {
-      toast.error("Este produto está esgotado no momento.");
-      return;
-    }
-    if (!storeIsOpen) {
+    if (!storeIsOpen && !isSoldOut) {
       toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
       return;
     }
