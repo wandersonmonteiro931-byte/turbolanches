@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
 import type { Product } from "@/data/menu";
 
 interface ProductCardProps {
@@ -15,10 +14,6 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
   const isSoldOut = product.active === false;
 
   const handleClick = () => {
-    if (!storeIsOpen && !isSoldOut) {
-      toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
-      return;
-    }
     navigate(`/produto/${product.id}`);
   };
 
