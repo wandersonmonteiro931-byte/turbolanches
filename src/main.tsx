@@ -34,16 +34,44 @@ const ensureGlobalProbe = () => {
 ensureGlobalProbe();
 
 // Suppress __LOVA_FIX_TRIGGER__ ReferenceError globally
-window.addEventListener("unhandledrejection", (e) => {
-  if (e.reason?.message?.includes?.("__LOVA_FIX_TRIGGER__")) {
-    e.preventDefault();
+const isLovaFixError = (value: unknown) => {
+  if (typeof value === "string") return value.includes("__LOVA_FIX_TRIGGER__");
+  if (value && typeof value === "object" && "message" in value) {
+    return String((value as { message?: unknown }).message ?? "").includes("__LOVA_FIX_TRIGGER__");
   }
-});
-window.addEventListener("error", (e) => {
-  if (e.message?.includes?.("__LOVA_FIX_TRIGGER__")) {
+  return false;
+};
+
+window.addEventListener(
+  "unhandledrejection",
+  (e) => {
+    if (isLovaFixError(e.reason)) e.preventDefault();
+  },
+  { capture: true },
+);
+
+window.addEventListener(
+  "error",
+  (e) => {
+    if (isLovaFixError((e as ErrorEvent).message) || isLovaFixError((e as ErrorEvent).error)) {
+      e.preventDefault();
+    }
+  },
+  { capture: true },
+);
+
+window.onunhandledrejection = (e) => {
+  if (isLovaFixError(e.reason)) {
     e.preventDefault();
+    return true;
   }
-});
+  return false;
+};
+
+window.onerror = (message, _source, _lineno, _colno, error) => {
+  if (isLovaFixError(message) || isLovaFixError(error)) return true;
+  return false;
+};
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});

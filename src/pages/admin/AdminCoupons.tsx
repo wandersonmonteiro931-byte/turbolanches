@@ -323,7 +323,7 @@ const AdminCoupons = () => {
                 <Input type="datetime-local" value={toLocalDate(form.starts_at)} onChange={(e) => setForm({ ...form, starts_at: fromLocalDate(e.target.value) })} />
               </div>
               <div>
-                <Label>Fim *</Label>
+                <Label>Fim (opcional)</Label>
                 <Input type="datetime-local" value={toLocalDate(form.expires_at)} onChange={(e) => setForm({ ...form, expires_at: fromLocalDate(e.target.value) })} />
               </div>
             </div>
