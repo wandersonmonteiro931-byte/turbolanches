@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Ticket } from "lucide-react";
+import { nowBrasilia, formatDateBR } from "@/lib/brasiliaTime";
 
 interface Coupon {
   id: string;
