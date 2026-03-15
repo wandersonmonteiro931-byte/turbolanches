@@ -539,49 +539,8 @@ const Checkout = () => {
               />
             </div>
 
-            {/* Coupon */}
-            <div className="rounded-xl bg-card p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Tag size={16} className="text-primary" />
-                <h2 className="font-bold text-foreground text-sm">Cupom de desconto</h2>
-              </div>
-              {appliedCoupon ? (
-                <div className="flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 px-3 py-2.5">
-                  <div>
-                    <span className="text-sm font-bold text-primary">{appliedCoupon.code}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {appliedCoupon.type === "percentage"
-                        ? `${appliedCoupon.value}% off`
-                        : `- R$ ${appliedCoupon.value.toFixed(2).replace(".", ",")}`}
-                    </span>
-                  </div>
-                  <button onClick={removeCoupon} className="text-muted-foreground hover:text-destructive">
-                    <X size={16} />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex gap-2">
-                    <input
-                      value={couponCode}
-                      onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
-                      placeholder="Digite o cupom"
-                      className="flex-1 rounded-lg bg-background px-3 py-2.5 text-sm text-foreground uppercase placeholder:text-muted-foreground placeholder:normal-case focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <button
-                      onClick={handleApplyCoupon}
-                      disabled={couponLoading || !couponCode.trim()}
-                      className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 transition-all active:scale-95"
-                    >
-                      {couponLoading ? <Loader2 size={16} className="animate-spin" /> : "Aplicar"}
-                    </button>
-                  </div>
-                  {couponError && (
-                    <p className="mt-1.5 text-xs text-destructive">{couponError}</p>
-                  )}
-                </div>
-              )}
-            </div>
+
+
 
             {/* Summary */}
             <div className="rounded-xl bg-card p-4 space-y-2">
