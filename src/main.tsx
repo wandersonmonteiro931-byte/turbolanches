@@ -19,6 +19,11 @@ const ensureProbe = () => {
   } catch {}
 
   try {
+    // Indirect eval runs in global scope and creates a real global `var` binding.
+    (0, eval)(`var ${LOVA_PROBE} = false;`);
+  } catch {}
+
+  try {
     const script = document.createElement("script");
     script.text = "var __LOVA_FIX_TRIGGER__ = false;";
     (document.head ?? document.documentElement).prepend(script);
