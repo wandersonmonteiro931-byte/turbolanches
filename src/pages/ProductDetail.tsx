@@ -60,7 +60,13 @@ const ProductDetail = () => {
 
   const fmt = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
 
+  const isSoldOut = product.active === false;
+
   const handleAdd = () => {
+    if (isSoldOut) {
+      toast.error("Este produto está esgotado no momento.");
+      return;
+    }
     if (!storeIsOpen) {
       toast.error("Loja fechada no momento. Não é possível fazer pedidos.");
       return;
