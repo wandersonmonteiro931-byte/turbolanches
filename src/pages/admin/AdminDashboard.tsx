@@ -102,6 +102,7 @@ const AdminDashboard = () => {
   const [editData, setEditData] = useState<Partial<Order>>({});
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
+  const [togglingStore, setTogglingStore] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -217,24 +218,40 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (!storeSettings) return;
-    const newOpen = !storeSettings.is_open;
+    if (!storeSettings || togglingStore) return;
+
+    const previousSettings = storeSettings;
+    const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
-    const updatePayload: any = {
+    const nextSettings: StoreSettings = {
+      ...previousSettings,
       is_open: newOpen,
-      ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }),
+      opened_at: newOpen ? timestamp : null,
+      closed_at: newOpen ? null : timestamp,
     };
-    // Optimistic update
-    setStoreSettings({ ...storeSettings, is_open: newOpen, ...(newOpen ? { opened_at: timestamp } : { closed_at: timestamp }) });
-    const { error } = await supabase.from("store_settings").update(updatePayload).eq("id", storeSettings.id);
+
+    setTogglingStore(true);
+    setStoreSettings(nextSettings);
+
+    const { error } = await supabase
+      .from("store_settings")
+      .update({
+        is_open: newOpen,
+        opened_at: newOpen ? timestamp : null,
+        closed_at: newOpen ? null : timestamp,
+      })
+      .eq("id", previousSettings.id);
+
     if (error) {
-      // Revert on error
-      setStoreSettings(storeSettings);
+      setStoreSettings(previousSettings);
       toast({ title: "Erro ao alterar status da loja", variant: "destructive" });
+      setTogglingStore(false);
       return;
     }
+
     toast({ title: newOpen ? "Loja aberta!" : "Loja fechada!" });
-    fetchStoreSettings();
+    await fetchStoreSettings();
+    setTogglingStore(false);
   };
 
   const saveSchedule = async () => {
@@ -511,14 +528,15 @@ const AdminDashboard = () => {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
           onClick={toggleStore}
+          disabled={!storeSettings || togglingStore}
           className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
             storeSettings?.is_open
               ? "bg-green-600 text-white hover:bg-green-700"
               : "bg-red-600 text-white hover:bg-red-700"
-          }`}
+          } disabled:cursor-not-allowed disabled:opacity-60`}
         >
           <Power size={18} />
-          {storeSettings?.is_open ? "LOJA ABERTA" : "ABRIR LOJA"}
+          {togglingStore ? (storeSettings?.is_open ? "FECHANDO..." : "ABRINDO...") : storeSettings?.is_open ? "FECHAR LOJA" : "ABRIR LOJA"}
         </button>
 
         <button
