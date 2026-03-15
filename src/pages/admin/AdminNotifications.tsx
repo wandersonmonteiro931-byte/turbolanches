@@ -105,9 +105,11 @@ const AdminNotifications = () => {
   };
 
   const loadTemplates = async () => {
+    if (!storeId) return;
     const { data } = await supabase
       .from("push_templates")
       .select("*")
+      .eq("store_id", storeId)
       .order("created_at");
     if (data) setTemplates(data as PushTemplate[]);
     setLoadingTemplates(false);
