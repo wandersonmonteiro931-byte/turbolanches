@@ -151,6 +151,7 @@ export type Database = {
           first_purchase_only: boolean
           id: string
           max_uses: number | null
+          max_uses_per_customer: number | null
           min_order: number | null
           starts_at: string | null
           store_id: string | null
@@ -167,6 +168,7 @@ export type Database = {
           first_purchase_only?: boolean
           id?: string
           max_uses?: number | null
+          max_uses_per_customer?: number | null
           min_order?: number | null
           starts_at?: string | null
           store_id?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           first_purchase_only?: boolean
           id?: string
           max_uses?: number | null
+          max_uses_per_customer?: number | null
           min_order?: number | null
           starts_at?: string | null
           store_id?: string | null
