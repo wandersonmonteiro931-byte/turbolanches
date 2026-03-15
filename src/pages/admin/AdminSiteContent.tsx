@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pencil, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 interface ContentItem {
@@ -21,17 +22,20 @@ const LABELS: Record<string, string> = {
 };
 
 const AdminSiteContent = () => {
+  const { storeId } = useStore();
   const [items, setItems] = useState<ContentItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const { toast } = useToast();
 
   const fetchData = async () => {
-    const { data } = await supabase.from("site_content").select("*").order("key");
+    let query = supabase.from("site_content").select("*").order("key");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query;
     if (data) setItems(data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   const startEdit = (item: ContentItem) => {
     setEditingId(item.id);
@@ -49,7 +53,9 @@ const AdminSiteContent = () => {
     const key = prompt("Chave do conteúdo (ex: home_new_section):");
     if (!key) return;
     const type = prompt("Tipo: text ou image") || "text";
-    await supabase.from("site_content").insert({ key, value: "", content_type: type });
+    const payload: any = { key, value: "", content_type: type };
+    if (storeId) payload.store_id = storeId;
+    await supabase.from("site_content").insert(payload);
     toast({ title: "Conteúdo criado!" });
     fetchData();
   };

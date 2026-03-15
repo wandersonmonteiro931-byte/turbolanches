@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
 
 interface SiteContent {
   [key: string]: string;
 }
 
 export function useSiteContent() {
+  const { storeId } = useStore();
   const [content, setContent] = useState<SiteContent>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetch = async () => {
-      const { data } = await supabase.from("site_content").select("key, value");
+      let query = supabase.from("site_content").select("key, value");
+      if (storeId) query = query.eq("store_id", storeId);
+
+      const { data } = await query;
       if (data) {
         const map: SiteContent = {};
         for (const item of data) {
@@ -22,7 +27,7 @@ export function useSiteContent() {
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [storeId]);
 
   return { content, loading };
 }

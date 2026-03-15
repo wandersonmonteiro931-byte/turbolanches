@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
+import { useStore } from "@/contexts/StoreContext";
 import PixPaymentModal from "@/components/PixPaymentModal";
 
 interface Profile {
@@ -50,6 +51,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isOpen: storeIsOpen } = useStoreStatus();
+  const { storeId } = useStore();
   const { items, totalPrice, clearCart, appliedCoupon, couponDiscount } = useCart();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
@@ -202,6 +204,8 @@ const Checkout = () => {
       observations: observations || null,
       change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
     };
+
+    if (storeId) orderData.store_id = storeId;
 
     if (deliveryType === "delivery") {
       const quadraLote = [profile.quadra ? `Qd. ${profile.quadra}` : "", profile.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");

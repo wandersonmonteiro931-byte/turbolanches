@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { StoreProvider } from "@/contexts/StoreContext";
 import NotificationBanner from "@/components/NotificationBanner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
@@ -122,7 +123,9 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <AppInner />
+        <StoreProvider>
+          <AppInner />
+        </StoreProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

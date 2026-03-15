@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Plus, Pencil, Trash2, X, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
 
 interface Category {
@@ -14,6 +15,7 @@ interface Category {
 }
 
 const AdminCategories = () => {
+  const { storeId } = useStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
@@ -24,11 +26,13 @@ const AdminCategories = () => {
   const [form, setForm] = useState({ name: "", icon: "", image_url: "", sort_order: "0", active: true });
 
   const fetchData = async () => {
-    const { data } = await supabase.from("categories").select("*").order("sort_order");
+    let query = supabase.from("categories").select("*").order("sort_order");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query;
     if (data) setCategories(data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [storeId]);
 
   const openNew = () => {
     setEditing(null);
@@ -43,10 +47,11 @@ const AdminCategories = () => {
   };
 
   const handleSave = async () => {
-    const payload = {
+    const payload: any = {
       name: form.name, icon: form.icon, image_url: form.image_url || null,
       sort_order: parseInt(form.sort_order) || 0, active: form.active,
     };
+    if (!editing && storeId) payload.store_id = storeId;
     if (editing) {
       await supabase.from("categories").update(payload).eq("id", editing.id);
       toast({ title: "Categoria atualizada!" });

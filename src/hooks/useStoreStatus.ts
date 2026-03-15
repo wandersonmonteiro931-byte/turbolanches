@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
 
 interface ScheduleDay {
   day_of_week: number;
@@ -8,7 +9,6 @@ interface ScheduleDay {
   is_closed: boolean;
 }
 
-/** Get current Brasília time parts */
 const getBrasiliaTime = () => {
   const now = new Date();
   const fmt = new Intl.DateTimeFormat("pt-BR", {
@@ -28,7 +28,6 @@ const getBrasiliaTime = () => {
   return { hhmm, dayOfWeek: brDate.getDay() };
 };
 
-/** Convert a Date to Brasília HH:MM */
 const toBrasiliaHHMM = (date: Date): string => {
   const fmt = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -41,20 +40,29 @@ const toBrasiliaHHMM = (date: Date): string => {
 };
 
 export const useStoreStatus = () => {
+  const { storeId } = useStore();
   const [isOpen, setIsOpen] = useState(true);
   const [loading, setLoading] = useState(true);
 
   const checkStatus = async () => {
+    let settingsQuery = supabase
+      .from("store_settings")
+      .select("is_open, use_schedule, closed_at, opened_at")
+      .limit(1);
+
+    let scheduleQuery = supabase
+      .from("store_schedule")
+      .select("day_of_week, open_time, close_time, is_closed")
+      .order("day_of_week");
+
+    if (storeId) {
+      settingsQuery = settingsQuery.eq("store_id", storeId);
+      scheduleQuery = scheduleQuery.eq("store_id", storeId);
+    }
+
     const [settingsRes, scheduleRes] = await Promise.all([
-      supabase
-        .from("store_settings")
-        .select("is_open, use_schedule, closed_at, opened_at")
-        .limit(1)
-        .single(),
-      supabase
-        .from("store_schedule")
-        .select("day_of_week, open_time, close_time, is_closed")
-        .order("day_of_week"),
+      settingsQuery.single(),
+      scheduleQuery,
     ]);
 
     const settings = settingsRes.data;
@@ -75,7 +83,6 @@ export const useStoreStatus = () => {
 
     if (todaySchedule) {
       if (todaySchedule.is_closed) {
-        // Day marked closed — only open if admin explicitly opened recently
         const manuallyOpened = settings.is_open === true && isRecent(settings.opened_at);
         setIsOpen(manuallyOpened);
         setLoading(false);
@@ -95,25 +102,18 @@ export const useStoreStatus = () => {
       }
 
       if (inTimeWindow) {
-        // WITHIN schedule window → default OPEN
-        // Unless admin manually closed AFTER this window's open_time (and it's recent)
         if (settings.is_open === false && isRecent(settings.closed_at)) {
           const closedHHMM = toBrasiliaHHMM(new Date(settings.closed_at as string));
-          // Only honour manual close if it happened after today's open time
           setIsOpen(!(closedHHMM >= openT!));
         } else {
           setIsOpen(true);
         }
       } else {
-        // OUTSIDE schedule window → default CLOSED
-        // Unless admin manually opened AND that open happened AFTER the last close boundary
         if (settings.is_open === true && isRecent(settings.opened_at)) {
           const openedHHMM = toBrasiliaHHMM(new Date(settings.opened_at as string));
           if (closeT && hhmm >= closeT && !(closeT <= openT!)) {
-            // We're past today's closing time — only honour if opened AFTER close
             setIsOpen(openedHHMM >= closeT);
           } else {
-            // Before today's opening time — honour the manual open
             setIsOpen(true);
           }
         } else {
@@ -121,7 +121,6 @@ export const useStoreStatus = () => {
         }
       }
     } else {
-      // No schedule entry → fall back to manual toggle
       setIsOpen(settings.is_open);
     }
 
@@ -148,7 +147,7 @@ export const useStoreStatus = () => {
       supabase.removeChannel(channel1);
       supabase.removeChannel(channel2);
     };
-  }, []);
+  }, [storeId]);
 
   return { isOpen, loading };
 };
