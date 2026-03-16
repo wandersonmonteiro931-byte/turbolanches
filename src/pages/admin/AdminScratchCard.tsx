@@ -54,6 +54,8 @@ interface ScratchWin {
 
 const AdminScratchCard = () => {
   const { storeId } = useStore();
+  const [rulesText, setRulesText] = useState("");
+  const [rulesLoaded, setRulesLoaded] = useState(false);
   const [settings, setSettings] = useState<ScratchSettings>({
     store_id: null,
     is_enabled: false,
