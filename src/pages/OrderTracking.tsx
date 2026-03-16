@@ -108,10 +108,40 @@ const OrderTracking = () => {
       supabase.from("order_items").select("*").eq("order_id", id),
       supabase.from("store_settings").select("store_address_full").limit(1).single(),
     ]);
-    if (orderRes.data) setOrder(orderRes.data);
+    if (orderRes.data) {
+      setOrder(orderRes.data);
+      // Check scratch eligibility
+      checkScratchEligibility(orderRes.data);
+    }
     if (itemsRes.data) setItems(itemsRes.data);
     if (settingsRes.data) setStoreAddress(settingsRes.data.store_address_full || "");
     setLoading(false);
+  };
+
+  const checkScratchEligibility = async (orderData: any) => {
+    if (!user) return;
+    const { data: settings } = await supabase
+      .from("scratch_settings")
+      .select("is_enabled, min_order_value")
+      .limit(1)
+      .maybeSingle();
+    if (!settings || !(settings as any).is_enabled) return;
+    if (Number(orderData.subtotal) < (settings as any).min_order_value) return;
+    // Check if already scratched
+    const { data: existing } = await supabase
+      .from("scratch_wins")
+      .select("id")
+      .eq("order_id", orderData.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) return;
+    // Check active prizes exist
+    const { data: prizes } = await supabase
+      .from("scratch_prizes")
+      .select("id")
+      .eq("is_active", true)
+      .limit(1);
+    if (prizes && prizes.length > 0) setScratchEligible(true);
   };
 
   useEffect(() => {
