@@ -74,63 +74,106 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
     <AnimatePresence>
       <Dialog>
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="rounded-xl border border-scratch-amber/30 bg-scratch-gradient-soft p-4"
+          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-[26px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-fire-orange/15 p-4 shadow-fire-lg"
         >
-          <div className="mb-2 flex items-center gap-2">
-            <motion.div
-              animate={isEligible ? { scale: [1, 1.08, 1], rotate: [0, -6, 6, 0] } : { y: [0, -2, 0] }}
-              transition={{ duration: isEligible ? 1.8 : 1.4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {isEligible ? (
-                <Sparkles size={18} className="text-scratch-amber" />
-              ) : (
-                <Gift size={18} className="text-scratch-amber" />
-              )}
-            </motion.div>
+          <motion.div
+            className="pointer-events-none absolute -left-8 -top-8 h-24 w-24 rounded-full bg-primary/20 blur-3xl"
+            animate={{ x: [0, 18, -8, 0], y: [0, 12, -10, 0], scale: [1, 1.15, 0.95, 1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-fire-orange/20 blur-3xl"
+            animate={{ x: [0, -12, 10, 0], y: [0, -12, 8, 0], scale: [1, 0.9, 1.12, 1] }}
+            transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="pointer-events-none absolute right-4 top-3 text-lg"
+            animate={{ rotate: [0, 18, -12, 0], y: [0, -4, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            ✨
+          </motion.div>
 
-            <span className="text-sm font-bold text-foreground">
-              {isEligible ? "Raspadinha garantida!" : "Raspadinha Premiada"}
-            </span>
-          </div>
+          <div className="relative">
+            <div className="mb-3 flex items-center gap-3">
+              <motion.div
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-fire-gradient text-primary-foreground shadow-fire"
+                animate={isEligible ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : { y: [0, -4, 0], scale: [1, 1.05, 1] }}
+                transition={{ duration: isEligible ? 1.8 : 1.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {isEligible ? <Sparkles size={20} /> : <Gift size={20} />}
+              </motion.div>
 
-          <DialogTrigger asChild>
-            <button type="button" className="block w-full text-left" aria-label="Ver regras da raspadinha">
-              <div className="relative mb-2 h-2.5 overflow-hidden rounded-full bg-scratch-surface-strong/70">
-                <motion.div
-                  className="bg-scratch-progress relative h-full rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.7, ease: "easeOut" }}
-                >
-                  <motion.div
-                    className="scratch-progress-shine absolute inset-0"
-                    animate={{ x: ["-140%", "220%"] }}
-                    transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
-                  />
-                </motion.div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary/80">Turbo prêmio</p>
+                <p className="text-base font-extrabold text-foreground">
+                  {isEligible ? "Sua raspadinha foi liberada!" : "Desbloqueie sua raspadinha"}
+                </p>
               </div>
 
-              <p className="text-xs text-muted-foreground">
-                {isEligible ? (
-                  <span className="font-semibold text-foreground">
-                    Parabéns! Você já garantiu uma raspadinha premiada! 🎊
-                  </span>
-                ) : (
-                  <>
-                    Faltam <span className="font-bold text-foreground">{fmt(remaining)}</span> para ganhar uma
-                    raspadinha premiada!
-                  </>
-                )}
-              </p>
+              <motion.div
+                className="rounded-full bg-fire-orange/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fire-orange"
+                animate={{ scale: [1, 1.08, 1] }}
+                transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                {isEligible ? "Liberada" : `${Math.round(progressPercent)}%`}
+              </motion.div>
+            </div>
 
-              <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
-                Ver regras
-              </p>
-            </button>
-          </DialogTrigger>
+            <DialogTrigger asChild>
+              <button type="button" className="group block w-full text-left" aria-label="Ver regras da raspadinha">
+                <div className="relative overflow-hidden rounded-[22px] border border-primary/15 bg-background/85 p-3 backdrop-blur-sm">
+                  <motion.div
+                    className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-fire-orange to-primary"
+                    animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                    transition={{ duration: 2.8, repeat: Infinity, ease: "linear" }}
+                    style={{ backgroundSize: "200% 100%" }}
+                  />
+
+                  <div className="relative mb-3 h-4 overflow-hidden rounded-full bg-secondary">
+                    <motion.div
+                      className="relative h-full rounded-full bg-fire-gradient"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                    >
+                      <motion.div
+                        className="scratch-progress-shine absolute inset-0"
+                        animate={{ x: ["-140%", "220%"] }}
+                        transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                      />
+                    </motion.div>
+                  </div>
+
+                  <div className="flex items-end justify-between gap-3">
+                    <p className="text-sm leading-snug text-muted-foreground">
+                      {isEligible ? (
+                        <span className="font-semibold text-foreground">
+                          Parabéns! Seu pedido já garantiu uma raspadinha premiada. 🎉
+                        </span>
+                      ) : (
+                        <>
+                          Faltam <span className="font-extrabold text-foreground">{fmt(remaining)}</span> para liberar
+                          sua raspadinha premiada.
+                        </>
+                      )}
+                    </p>
+
+                    <motion.span
+                      className="shrink-0 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                      whileHover={{ scale: 1.04 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Ver regras
+                    </motion.span>
+                  </div>
+                </div>
+              </button>
+            </DialogTrigger>
+          </div>
         </motion.div>
 
         <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-md">
@@ -142,7 +185,7 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
           </DialogHeader>
 
           <div className="space-y-3 text-sm text-muted-foreground">
-            <div className="rounded-lg border border-border bg-card p-3">
+            <div className="rounded-xl border border-primary/10 bg-card p-3">
               <ul className="space-y-2">
                 <li>• O subtotal dos produtos precisa ser igual ou maior que <span className="font-semibold text-foreground">{fmt(minValue)}</span>.</li>
                 <li>• A taxa de entrega não entra no cálculo da promoção.</li>

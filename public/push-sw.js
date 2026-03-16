@@ -1,8 +1,10 @@
-// SW Version 5 — resilient global probe suppression + immediate update
-var SW_VERSION = "v5";
+// SW Version 6 — resilient global probe suppression + immediate update
+var SW_VERSION = "v6";
+var LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
 var __LOVA_FIX_TRIGGER__ = false;
-try { self.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}
-try { Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch (e) {}
+try { self[LOVA_FIX_KEY] = false; } catch (e) {}
+try { globalThis[LOVA_FIX_KEY] = false; } catch (e) {}
+try { Object.defineProperty(self, LOVA_FIX_KEY, { value: false, writable: true, configurable: true }); } catch (e) {}
 
 function isLovaProbeMessage(message) {
   return typeof message === "string" && message.indexOf("__LOVA_FIX_TRIGGER__") !== -1;
