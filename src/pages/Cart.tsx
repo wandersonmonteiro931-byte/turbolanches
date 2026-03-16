@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { nowBrasilia } from "@/lib/brasiliaTime";
+import ScratchProgressBar from "@/components/ScratchProgressBar";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -250,6 +251,9 @@ const Cart = () => {
             </div>
           )}
         </div>
+
+        {/* Scratch Progress Bar */}
+        <ScratchProgressBar subtotal={totalPrice} />
 
         {/* Summary Card */}
         <div className="mt-4 rounded-xl bg-card p-4 space-y-2">
