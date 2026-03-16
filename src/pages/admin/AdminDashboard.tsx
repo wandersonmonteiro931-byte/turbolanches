@@ -123,16 +123,20 @@ const AdminDashboard = () => {
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
   const fetchOrders = useCallback(async () => {
-    if (!storeId) return;
     const { start, end } = getBusinessDayRange(selectedDate);
 
-    const { data } = await supabase
+    let query = supabase
       .from("orders")
       .select("*")
-      .eq("store_id", storeId)
       .gte("created_at", start)
       .lte("created_at", end)
       .order("created_at", { ascending: false });
+
+    if (storeId) {
+      query = query.eq("store_id", storeId);
+    }
+
+    const { data } = await query;
     if (data) {
       setOrders(data as Order[]);
       const userIds = [...new Set(data.map(o => o.user_id))];
