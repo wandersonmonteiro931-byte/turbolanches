@@ -290,16 +290,58 @@ const AdminScratchCard = () => {
                   <p>• Se o estoque de uma categoria acabar, o sistema busca o próximo disponível.</p>
                 </div>
 
-                {/* Editable customer-facing rules */}
+                {/* Editable how-it-works */}
                 <Card className="border-primary/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-1.5">
-                      <Info size={14} className="text-primary" /> Regras visíveis para o cliente
+                      🎯 Como funciona (visível para o cliente)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Cada linha será exibida como um item nas regras da raspadinha. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para inserir o valor mínimo automaticamente.
+                      Cada linha será um passo numerado. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para o valor mínimo.
+                    </p>
+                    <Textarea
+                      rows={6}
+                      value={howItWorksText}
+                      onChange={(e) => setHowItWorksText(e.target.value)}
+                      placeholder="Um passo por linha..."
+                      className="text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        const arr = howItWorksText.split("\n").map(r => r.trim()).filter(Boolean);
+                        const jsonValue = JSON.stringify(arr);
+                        const { data: existing } = await supabase
+                          .from("site_content").select("id").eq("key", "scratch_how_it_works").maybeSingle();
+                        if (existing) {
+                          await supabase.from("site_content").update({ value: jsonValue }).eq("id", existing.id);
+                        } else {
+                          await supabase.from("site_content").insert({ key: "scratch_how_it_works", value: jsonValue, content_type: "json", store_id: storeId });
+                        }
+                        toast.success("Passos salvos!");
+                        setSaving(false);
+                      }}
+                    >
+                      {saving ? "Salvando..." : "Salvar Como Funciona"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Editable customer-facing rules */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-1.5">
+                      📋 Regras (visíveis para o cliente)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Cada linha será exibida como um item nas regras. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para o valor mínimo.
                     </p>
                     <Textarea
                       rows={10}
@@ -316,22 +358,12 @@ const AdminScratchCard = () => {
                         setSaving(true);
                         const rulesArray = rulesText.split("\n").map(r => r.trim()).filter(Boolean);
                         const jsonValue = JSON.stringify(rulesArray);
-
                         const { data: existing } = await supabase
-                          .from("site_content")
-                          .select("id")
-                          .eq("key", "scratch_rules")
-                          .maybeSingle();
-
+                          .from("site_content").select("id").eq("key", "scratch_rules").maybeSingle();
                         if (existing) {
                           await supabase.from("site_content").update({ value: jsonValue }).eq("id", existing.id);
                         } else {
-                          await supabase.from("site_content").insert({
-                            key: "scratch_rules",
-                            value: jsonValue,
-                            content_type: "json",
-                            store_id: storeId,
-                          });
+                          await supabase.from("site_content").insert({ key: "scratch_rules", value: jsonValue, content_type: "json", store_id: storeId });
                         }
                         toast.success("Regras salvas!");
                         setSaving(false);
