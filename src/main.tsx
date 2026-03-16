@@ -1,14 +1,7 @@
 import "./index.css";
 
-declare global {
-  var __LOVA_FIX_TRIGGER__: boolean | undefined;
-}
-
-try {
-  globalThis.__LOVA_FIX_TRIGGER__ = false;
-} catch {
-  // noop
-}
+// environment compat
+(globalThis as any).__LOVA_FIX_TRIGGER__ = false;
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});
