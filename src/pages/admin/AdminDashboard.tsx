@@ -154,15 +154,67 @@ const AdminDashboard = () => {
     }
   }, [selectedDate, storeId]);
 
+  const applyStoreSettings = useCallback((data: StoreSettings) => {
+    setStoreSettings(data);
+    setScheduleOpen(data.scheduled_open || "");
+    setScheduleClose(data.scheduled_close || "");
+  }, []);
+
   const fetchStoreSettings = useCallback(async () => {
-    if (!storeId) return;
-    const { data } = await supabase.from("store_settings").select("*").eq("store_id", storeId).limit(1).single();
+    if (!storeId) return null;
+
+    const { data } = await supabase
+      .from("store_settings")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
     if (data) {
-      setStoreSettings(data as StoreSettings);
-      setScheduleOpen(data.scheduled_open || "");
-      setScheduleClose(data.scheduled_close || "");
+      const settings = data as StoreSettings;
+      applyStoreSettings(settings);
+      return settings;
     }
-  }, [storeId]);
+
+    return null;
+  }, [applyStoreSettings, storeId]);
+
+  const ensureStoreSettings = useCallback(async () => {
+    if (storeSettings) return storeSettings;
+
+    if (!storeId) {
+      toast({ title: "Carregando dados da loja..." });
+      return null;
+    }
+
+    const existingSettings = await fetchStoreSettings();
+    if (existingSettings) return existingSettings;
+
+    const { data, error } = await supabase
+      .from("store_settings")
+      .insert({ store_id: storeId })
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .single();
+
+    if (error || !data) {
+      toast({ title: "Erro ao carregar configurações da loja", variant: "destructive" });
+      return null;
+    }
+
+    const settings = data as StoreSettings;
+    applyStoreSettings(settings);
+    return settings;
+  }, [applyStoreSettings, fetchStoreSettings, storeId, storeSettings, toast]);
+
+  const requestToggleConfirmation = useCallback(async () => {
+    if (togglingStore) return;
+
+    const settings = await ensureStoreSettings();
+    if (!settings) return;
+
+    setShowToggleConfirm(true);
+  }, [ensureStoreSettings, togglingStore]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
