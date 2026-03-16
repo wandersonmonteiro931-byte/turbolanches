@@ -319,17 +319,18 @@ const AdminDeliveryZones = () => {
   const { toast } = useToast();
 
   const fetchZones = async () => {
-    if (!storeId) return;
-    const { data } = await supabase.from("delivery_zones").select("*").eq("store_id", storeId).order("neighborhood");
+    let query = supabase.from("delivery_zones").select("*").order("neighborhood");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query;
     if (data) setZones(data as DeliveryZone[]);
   };
 
   const fetchStoreConfig = async () => {
-    if (!storeId) return;
-    const { data } = await supabase.from("store_settings")
+    let query = supabase.from("store_settings")
       .select("store_address, store_neighborhood, price_per_km, free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active")
-      .eq("store_id", storeId)
-      .limit(1).single();
+      .limit(1);
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query.maybeSingle();
     if (data) {
       const d = data as any;
       setStoreConfig({
