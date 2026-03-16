@@ -16,7 +16,7 @@ const DEFAULT_RULES = [
 export const SCRATCH_RULES_KEY = "scratch_rules";
 
 export const renderScratchRule = (rule: string, minValueLabel: string): ReactNode[] => {
-  const normalizedRule = rule.replaceAll("o valor mínimo configurado", "{min_value}");
+  const normalizedRule = rule.replace(/o valor mínimo configurado/g, "{min_value}");
   const parts = normalizedRule.split("{min_value}");
 
   return parts.flatMap((part, index) => {
