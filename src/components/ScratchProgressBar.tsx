@@ -64,6 +64,28 @@ const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarP
   if (loading || !settings || !settings.is_enabled) return null;
   if (totalLimit > 0 && totalAwarded >= totalLimit) return null;
 
+  if (hasCoupon) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-[22px] border border-destructive/20 bg-destructive/5 p-3"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+            <Gift size={16} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold text-foreground">Raspadinha indisponível</p>
+            <p className="text-xs text-muted-foreground">
+              Cupons de desconto não podem ser combinados com a raspadinha premiada. Remova o cupom para participar.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
+
   const minValue = settings.min_order_value;
   const isEligible = subtotal >= minValue;
   const remaining = Math.max(0, minValue - subtotal);
