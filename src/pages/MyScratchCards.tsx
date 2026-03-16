@@ -38,6 +38,7 @@ const MyScratchCards = () => {
   const [deliveredOrders, setDeliveredOrders] = useState<EligibleOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [minOrderValue, setMinOrderValue] = useState(0);
 
   useEffect(() => {
