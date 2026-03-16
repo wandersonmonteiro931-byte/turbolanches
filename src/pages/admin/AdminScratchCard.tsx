@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { toast } from "sonner";
