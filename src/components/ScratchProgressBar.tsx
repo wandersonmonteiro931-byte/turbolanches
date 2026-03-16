@@ -13,6 +13,7 @@ import {
 
 interface ScratchProgressBarProps {
   subtotal: number;
+  hasCoupon?: boolean;
 }
 
 const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
