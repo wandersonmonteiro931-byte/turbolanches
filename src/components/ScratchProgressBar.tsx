@@ -16,8 +16,23 @@ interface ScratchProgressBarProps {
   subtotal: number;
   hasCoupon?: boolean;
 }
+const ScratchRulesContent = ({ minValue }: { minValue: number }) => {
+  const { rules } = useScratchRules();
+  const fmt = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+  return (
+    <div className="space-y-3 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-primary/10 bg-card p-3">
+        <ul className="space-y-2">
+          {rules.map((rule, i) => (
+            <li key={i}>• {rule.replace("{min_value}", fmt(minValue))}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
 
-const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarProps) => {
+
   const [settings, setSettings] = useState<{
     is_enabled: boolean;
     min_order_value: number;
