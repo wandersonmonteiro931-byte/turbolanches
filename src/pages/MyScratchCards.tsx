@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Gift, Copy, Check, Clock, Lock, Info, Sparkles } from "lucide-react";
+import { ArrowLeft, Gift, Copy, Check, Clock, Lock, Info, Sparkles, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
