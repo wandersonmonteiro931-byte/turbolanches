@@ -94,10 +94,12 @@ const statusMessages: Record<string, { title: string; subtitle: string; animatio
 const OrderTracking = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [order, setOrder] = useState<OrderData | null>(null);
   const [items, setItems] = useState<OrderItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeAddress, setStoreAddress] = useState("");
+  const [scratchEligible, setScratchEligible] = useState(false);
 
   const fetchOrder = async () => {
     if (!id) return;
