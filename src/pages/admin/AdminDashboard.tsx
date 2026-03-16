@@ -167,7 +167,6 @@ const AdminDashboard = () => {
       .from("store_settings")
       .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
       .eq("store_id", storeId)
-      .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
 
@@ -183,31 +182,27 @@ const AdminDashboard = () => {
   const requestToggleConfirmation = useCallback(async () => {
     if (togglingStore) return;
 
-    // If we already have settings, just open the modal
+    // Already loaded — open modal immediately
     if (storeSettings) {
       setShowToggleConfirm(true);
       return;
     }
 
-    // Try to fetch settings first
+    // Still loading store context — show feedback
+    if (storeLoading || !storeId) {
+      toast({ title: "Aguarde, carregando loja..." });
+      return;
+    }
+
+    // storeId is available but settings weren't fetched yet — fetch now
     const fetched = await fetchStoreSettings();
     if (fetched) {
       setShowToggleConfirm(true);
       return;
     }
 
-    // storeId not ready yet — wait briefly and retry once
-    if (!storeId) {
-      await new Promise(r => setTimeout(r, 1500));
-      const retried = await fetchStoreSettings();
-      if (retried) {
-        setShowToggleConfirm(true);
-        return;
-      }
-    }
-
-    toast({ title: "Não foi possível carregar os dados da loja. Tente novamente.", variant: "destructive" });
-  }, [fetchStoreSettings, storeId, storeSettings, togglingStore, toast]);
+    toast({ title: "Erro ao carregar configurações. Tente novamente.", variant: "destructive" });
+  }, [fetchStoreSettings, storeId, storeLoading, storeSettings, togglingStore, toast]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
