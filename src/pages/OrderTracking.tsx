@@ -520,10 +520,6 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
-        {/* Scratch Card - only after delivery */}
-        {order.status === "delivered" && (
-          <ScratchCard orderId={order.id} orderSubtotal={Number(order.subtotal)} />
-        )}
 
         {/* Back to menu */}
         <motion.div
