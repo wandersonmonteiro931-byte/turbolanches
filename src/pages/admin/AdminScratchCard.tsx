@@ -108,21 +108,30 @@ const AdminScratchCard = () => {
       }
     }
 
-    // Fetch editable rules
+    // Fetch editable rules & how it works
     if (!rulesLoaded) {
-      const { data: rulesData } = await supabase
+      const { data: contentRows } = await supabase
         .from("site_content")
-        .select("value")
-        .eq("key", "scratch_rules")
-        .maybeSingle();
-      if (rulesData?.value) {
-        try {
-          const parsed = JSON.parse(rulesData.value as string);
-          if (Array.isArray(parsed)) setRulesText(parsed.join("\n"));
-        } catch {}
-      } else {
+        .select("key, value")
+        .in("key", ["scratch_rules", "scratch_how_it_works"]);
+
+      let foundRules = false;
+      let foundHow = false;
+
+      if (contentRows) {
+        for (const row of contentRows) {
+          try {
+            const parsed = JSON.parse(row.value as string);
+            if (!Array.isArray(parsed)) continue;
+            if (row.key === "scratch_rules") { setRulesText(parsed.join("\n")); foundRules = true; }
+            if (row.key === "scratch_how_it_works") { setHowItWorksText(parsed.join("\n")); foundHow = true; }
+          } catch {}
+        }
+      }
+
+      if (!foundRules) {
         setRulesText([
-          "O subtotal dos produtos precisa ser igual ou maior que o valor mínimo configurado.",
+          "O subtotal dos produtos precisa ser igual ou maior que {min_value}.",
           "A taxa de entrega não entra no cálculo da promoção.",
           "Pedidos que utilizam cupom de desconto não participam da raspadinha.",
           "A raspadinha só fica disponível quando o pedido for entregue com sucesso.",
@@ -133,6 +142,16 @@ const AdminScratchCard = () => {
           "O desconto do cupom não se aplica à taxa de entrega.",
         ].join("\n"));
       }
+      if (!foundHow) {
+        setHowItWorksText([
+          "Faça um pedido com subtotal a partir de {min_value} (sem contar a taxa de entrega).",
+          "Aguarde seu pedido ser entregue com sucesso.",
+          'Acesse a seção "Presentes" no menu inferior e raspe sua raspadinha virtual!',
+          "Ao raspar, você ganha um cupom de desconto exclusivo para usar no próximo pedido.",
+          "Copie o código do cupom e aplique no carrinho antes de finalizar a compra.",
+        ].join("\n"));
+      }
+
       setRulesLoaded(true);
     }
   }, [storeId]);
