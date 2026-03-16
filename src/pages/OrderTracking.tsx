@@ -128,6 +128,14 @@ const OrderTracking = () => {
       .maybeSingle();
     if (!settings || !(settings as any).is_enabled) return;
     if (Number(orderData.subtotal) < (settings as any).min_order_value) return;
+    // Check if already scratched
+    const { data: existing } = await supabase
+      .from("scratch_wins")
+      .select("id")
+      .eq("order_id", orderData.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existing) setAlreadyScratched(true);
     // Check active prizes exist
     const { data: prizes } = await supabase
       .from("scratch_prizes")
