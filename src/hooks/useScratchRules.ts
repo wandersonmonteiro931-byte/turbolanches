@@ -28,7 +28,7 @@ export const renderScratchRule = (rule: string, minValueLabel: string): ReactNod
           "span",
           {
             key: `min-${index}`,
-            className: "font-semibold text-foreground",
+            className: "font-extrabold text-foreground",
           },
           minValueLabel,
         ),
