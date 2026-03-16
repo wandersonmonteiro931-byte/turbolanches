@@ -57,7 +57,7 @@ const ensureLovaFixTrigger = () => {
 ensureLovaFixTrigger();
 
 if ("serviceWorker" in navigator) {
-  const serviceWorkerUrl = "/push-sw.js?v=7";
+  const serviceWorkerUrl = "/push-sw.js?v=8";
 
   navigator.serviceWorker
     .getRegistrations()
