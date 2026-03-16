@@ -593,7 +593,16 @@ const OrderTracking = () => {
                 <Gift size={24} />
               </motion.div>
               <div className="flex-1">
-                {order.status === "delivered" ? (
+                {alreadyScratched ? (
+                  <>
+                    <p className="text-sm font-extrabold text-foreground">
+                      🎉 Você ganhou uma raspadinha nesse pedido!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Confira o resultado na seção <span className="font-semibold text-primary">Presentes</span>.
+                    </p>
+                  </>
+                ) : order.status === "delivered" ? (
                   <>
                     <motion.p
                       className="text-sm font-extrabold text-foreground"
