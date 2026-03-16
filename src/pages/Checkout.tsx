@@ -181,7 +181,9 @@ const Checkout = () => {
 
 
 
-  const grandTotal = totalPrice + deliveryFee - couponDiscount;
+  // Coupon discount applies only to subtotal, never to delivery fee
+  const safeCouponDiscount = Math.min(couponDiscount, totalPrice);
+  const grandTotal = Math.max(0, totalPrice - safeCouponDiscount) + deliveryFee;
 
   // Estimated time
   const estimatedTime = deliveryType === "pickup"
