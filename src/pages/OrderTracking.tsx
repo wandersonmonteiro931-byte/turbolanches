@@ -122,6 +122,7 @@ const OrderTracking = () => {
 
   const checkScratchEligibility = async (orderData: any) => {
     if (!user) return;
+    if (orderData.coupon_code) return; // Orders with coupons are not eligible
     const { data: settings } = await supabase
       .from("scratch_settings")
       .select("is_enabled, min_order_value")

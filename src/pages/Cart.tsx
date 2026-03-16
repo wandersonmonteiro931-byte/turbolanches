@@ -112,6 +112,7 @@ const Cart = () => {
       }
       setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value });
       toast.success(`Cupom ${coupon.code} aplicado! 🎉`);
+      toast("⚠️ Ao usar um cupom, você não poderá participar da raspadinha premiada neste pedido.", { duration: 5000 });
     } catch {
       setCouponError("Erro ao validar cupom");
     } finally {
