@@ -199,45 +199,113 @@ const MyScratchCards = () => {
               </motion.div>
             ))}
 
-            {/* Pending scratch cards - orders not yet delivered */}
+            {/* Pending scratch cards - orders not yet delivered (same visual as ScratchCard) */}
             {pendingOrders.map((order, i) => (
               <motion.div
                 key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: (deliveredOrders.length + i) * 0.05 }}
-                className="rounded-xl bg-card border border-amber-500/30 p-4 shadow-sm relative overflow-hidden"
+                initial={{ opacity: 0, y: 28, scale: 0.92 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: (deliveredOrders.length + i) * 0.08, ease: "easeOut" }}
+                className="relative overflow-hidden rounded-[28px] border-2 border-primary/25 bg-gradient-to-br from-primary/10 via-card to-fire-orange/10 p-5 shadow-fire-lg"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none" />
-                <div className="relative flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                      <Lock size={18} className="text-amber-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-foreground">
-                        🎁 Raspadinha Premiada
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Pedido #{String(order.order_number).padStart(5, "0")}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="border-amber-500/50 text-amber-600 bg-amber-500/10">
-                    <Clock size={12} className="mr-1" />
-                    Pendente
-                  </Badge>
-                </div>
-                <div className="relative mt-3 rounded-lg bg-amber-500/5 border border-amber-500/15 p-3 text-center">
+                {/* Animated floating blobs */}
+                <motion.div
+                  className="pointer-events-none absolute -left-8 -top-4 h-28 w-28 rounded-full bg-primary/20 blur-3xl"
+                  animate={{ x: [0, 18, -10, 0], y: [0, -12, 8, 0], scale: [1, 1.2, 0.9, 1] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="pointer-events-none absolute -bottom-6 -right-6 h-32 w-32 rounded-full bg-fire-orange/20 blur-3xl"
+                  animate={{ x: [0, -14, 8, 0], y: [0, 10, -10, 0], scale: [1, 0.85, 1.15, 1] }}
+                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fire-yellow/10 blur-2xl"
+                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.3, 0.7, 0.3] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {/* Shimmering top stripe */}
+                <motion.div
+                  className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent"
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                />
+
+                {/* Header */}
+                <div className="relative mb-4 flex items-center gap-3">
                   <motion.div
-                    animate={{ opacity: [0.5, 1, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
+                    animate={{
+                      rotate: [0, -8, 8, -4, 4, 0],
+                      scale: [1, 1.1, 1, 1.05, 1],
+                      y: [0, -3, 0, -1, 0],
+                    }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                   >
-                    <p className="text-sm font-semibold text-amber-700">
-                      ⏳ Aguardando finalizar o pedido para liberar o prêmio.
+                    <Gift size={22} />
+                  </motion.div>
+                  <div className="flex-1">
+                    <motion.h3
+                      className="text-base font-extrabold text-foreground"
+                      animate={{ x: [0, 2, -1, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      🎁 Raspadinha Premiada
+                    </motion.h3>
+                    <p className="text-xs text-muted-foreground">
+                      Pedido #{String(order.order_number).padStart(5, "0")}
                     </p>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  >
+                    <Sparkles size={18} className="text-fire-orange" />
                   </motion.div>
                 </div>
+
+                {/* Locked scratch area */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="relative h-48 w-full overflow-hidden rounded-[22px] border-2 border-primary/15 bg-gradient-to-br from-background via-card to-background"
+                >
+                  {/* Corner decorations */}
+                  <motion.div className="pointer-events-none absolute left-3 top-3 text-xl" animate={{ rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>🎁</motion.div>
+                  <motion.div className="pointer-events-none absolute right-3 top-3 text-xl" animate={{ rotate: [0, -20, 20, 0], scale: [1, 1.15, 1] }} transition={{ duration: 2.3, repeat: Infinity }}>⭐</motion.div>
+                  <motion.div className="pointer-events-none absolute bottom-3 left-3 text-xl" animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 1.8, repeat: Infinity }}>🎀</motion.div>
+                  <motion.div className="pointer-events-none absolute bottom-3 right-3 text-xl" animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 2.1, repeat: Infinity }}>🎊</motion.div>
+
+                  {/* Pulsing dashed border */}
+                  <motion.div
+                    className="pointer-events-none absolute inset-4 rounded-[18px] border-2 border-dashed border-primary/20"
+                    animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.005, 1] }}
+                    transition={{ duration: 1.4, repeat: Infinity }}
+                  />
+
+                  {/* Lock overlay with gradient */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/5 to-fire-orange/5">
+                    <motion.div
+                      className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-fire-orange/20"
+                      animate={{ rotate: [0, -15, 15, 0], scale: [1, 1.08, 0.95, 1] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Lock size={30} className="text-primary" />
+                    </motion.div>
+                    <motion.p
+                      className="text-sm font-extrabold uppercase tracking-[0.1em] text-foreground"
+                      animate={{ opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      ⏳ Aguardando entrega
+                    </motion.p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Será liberada ao finalizar o pedido
+                    </p>
+                  </div>
+                </motion.div>
               </motion.div>
             ))}
 
