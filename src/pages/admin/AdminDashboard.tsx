@@ -180,41 +180,34 @@ const AdminDashboard = () => {
     return null;
   }, [applyStoreSettings, storeId]);
 
-  const ensureStoreSettings = useCallback(async () => {
-    if (storeSettings) return storeSettings;
-
-    if (!storeId) {
-      toast({ title: "Carregando dados da loja..." });
-      return null;
-    }
-
-    const existingSettings = await fetchStoreSettings();
-    if (existingSettings) return existingSettings;
-
-    const { data, error } = await supabase
-      .from("store_settings")
-      .insert({ store_id: storeId })
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
-      .single();
-
-    if (error || !data) {
-      toast({ title: "Erro ao carregar configurações da loja", variant: "destructive" });
-      return null;
-    }
-
-    const settings = data as StoreSettings;
-    applyStoreSettings(settings);
-    return settings;
-  }, [applyStoreSettings, fetchStoreSettings, storeId, storeSettings, toast]);
-
   const requestToggleConfirmation = useCallback(async () => {
     if (togglingStore) return;
 
-    const settings = await ensureStoreSettings();
-    if (!settings) return;
+    // If we already have settings, just open the modal
+    if (storeSettings) {
+      setShowToggleConfirm(true);
+      return;
+    }
 
-    setShowToggleConfirm(true);
-  }, [ensureStoreSettings, togglingStore]);
+    // Try to fetch settings first
+    const fetched = await fetchStoreSettings();
+    if (fetched) {
+      setShowToggleConfirm(true);
+      return;
+    }
+
+    // storeId not ready yet — wait briefly and retry once
+    if (!storeId) {
+      await new Promise(r => setTimeout(r, 1500));
+      const retried = await fetchStoreSettings();
+      if (retried) {
+        setShowToggleConfirm(true);
+        return;
+      }
+    }
+
+    toast({ title: "Não foi possível carregar os dados da loja. Tente novamente.", variant: "destructive" });
+  }, [fetchStoreSettings, storeId, storeSettings, togglingStore, toast]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
@@ -281,12 +274,9 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (togglingStore) return;
+    if (togglingStore || !storeSettings) return;
 
-    const currentSettings = await ensureStoreSettings();
-    if (!currentSettings) return;
-
-    const previousSettings = currentSettings;
+    const previousSettings = storeSettings;
     const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
     const nextSettings: StoreSettings = {
