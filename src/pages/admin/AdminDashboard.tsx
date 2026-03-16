@@ -281,9 +281,12 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (!storeSettings || togglingStore) return;
+    if (togglingStore) return;
 
-    const previousSettings = storeSettings;
+    const currentSettings = await ensureStoreSettings();
+    if (!currentSettings) return;
+
+    const previousSettings = currentSettings;
     const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
     const nextSettings: StoreSettings = {
@@ -294,7 +297,7 @@ const AdminDashboard = () => {
     };
 
     setTogglingStore(true);
-    setStoreSettings(nextSettings);
+    applyStoreSettings(nextSettings);
 
     const { error } = await supabase
       .from("store_settings")
@@ -306,7 +309,7 @@ const AdminDashboard = () => {
       .eq("id", previousSettings.id);
 
     if (error) {
-      setStoreSettings(previousSettings);
+      applyStoreSettings(previousSettings);
       toast({ title: "Erro ao alterar status da loja", variant: "destructive" });
       setTogglingStore(false);
       return;
