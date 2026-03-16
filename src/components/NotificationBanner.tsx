@@ -63,7 +63,10 @@ const NotificationBanner = () => {
     setRegistering(true);
     try {
       if ("serviceWorker" in navigator) {
-        await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+        await navigator.serviceWorker.register(PUSH_SW_URL, {
+          scope: "/",
+          updateViaCache: "none",
+        });
       }
 
       const result = await Notification.requestPermission();
