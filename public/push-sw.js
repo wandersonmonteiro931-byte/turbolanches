@@ -1,5 +1,5 @@
-// SW Version 4 — resilient global probe suppression + immediate update
-var SW_VERSION = "v4";
+// SW Version 5 — resilient global probe suppression + immediate update
+var SW_VERSION = "v5";
 var __LOVA_FIX_TRIGGER__ = false;
 try { self.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}
 try { Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch (e) {}

@@ -1,10 +1,24 @@
 import "./index.css";
 
 // environment compat
+var __LOVA_FIX_TRIGGER__ = false;
 (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
+if (typeof window !== "undefined") {
+  (window as any).__LOVA_FIX_TRIGGER__ = false;
+}
 
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/push-sw.js", { scope: "/" }).catch(() => {});
+  const serviceWorkerUrl = "/push-sw.js?v=5";
+
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister().catch(() => false))))
+    .finally(() => {
+      navigator.serviceWorker.register(serviceWorkerUrl, {
+        scope: "/",
+        updateViaCache: "none",
+      }).catch(() => {});
+    });
 }
 
 async function bootstrap() {
