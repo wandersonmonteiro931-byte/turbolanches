@@ -7,7 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-const PUSH_SW_URL = "/push-sw.js?v10";
+const PUSH_SW_URL = "/push-sw.js?v11";
 const ANDROID_INTERVAL_MS = 5 * 60_000;
 const IOS_INTERVAL_MS = 3 * 60_000;
 

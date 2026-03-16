@@ -3,7 +3,7 @@ import { Bell, X, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 
-const PUSH_SW_URL = "/push-sw.js?v10";
+const PUSH_SW_URL = "/push-sw.js?v11";
 const INTERVAL_MS = 60_000;
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {

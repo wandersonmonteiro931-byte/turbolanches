@@ -1,7 +1,113 @@
 <!doctype html>
 <html lang="pt-BR" translate="no">
   <head>
-    <script>try{var __LOVA_FIX_TRIGGER__=!1}catch(e){}try{window.__LOVA_FIX_TRIGGER__=!1}catch(e){}try{globalThis.__LOVA_FIX_TRIGGER__=!1}catch(e){}try{self.__LOVA_FIX_TRIGGER__=!1}catch(e){}try{Object.defineProperty(globalThis,"__LOVA_FIX_TRIGGER__",{value:!1,writable:!0,configurable:!0})}catch(e){}try{Object.defineProperty(window,"__LOVA_FIX_TRIGGER__",{value:!1,writable:!0,configurable:!0})}catch(e){}try{(0,eval)("var __LOVA_FIX_TRIGGER__=false")}catch(e){};(function(){var P="__LOVA_FIX_TRIGGER__";function c(m){return typeof m==="string"&&m.indexOf(P)!==-1}window.addEventListener("error",function(e){if(c(e&&e.message||"")){e.preventDefault();e.stopImmediatePropagation()}},!0);window.addEventListener("unhandledrejection",function(e){try{var r=e.reason,m=r instanceof Error?r.message:String(r||"");if(c(m)){e.preventDefault();e.stopImmediatePropagation();return!1}}catch(x){}},!0);var _oe=window.onerror;window.onerror=function(m,s,l,co,err){if(c(String(m||""))||c(err&&err.message||""))return!0;return _oe?_oe.apply(this,arguments):!1}})()</script>
+    <script>
+      var __LOVA_FIX_TRIGGER__ = false;
+      (function () {
+        var FIX_KEY = "__LOVA_FIX_TRIGGER__";
+        var BOOTSTRAP_VERSION = "v11";
+        var BOOTSTRAP_STORAGE_KEY = "__lova_bootstrap_fix__";
+        var MODULE_SRC = "/src/main.tsx?bootstrap=" + BOOTSTRAP_VERSION;
+
+        function defineFix(scope) {
+          if (!scope) return;
+          try { scope[FIX_KEY] = false; } catch (e) {}
+          try {
+            Object.defineProperty(scope, FIX_KEY, {
+              value: false,
+              writable: true,
+              configurable: true,
+            });
+          } catch (e) {}
+        }
+
+        defineFix(window);
+        defineFix(globalThis);
+        try { defineFix(self); } catch (e) {}
+        try { (0, eval)("var " + FIX_KEY + " = false"); } catch (e) {}
+
+        function isFixError(value) {
+          return String(value || "").indexOf(FIX_KEY) !== -1;
+        }
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            if (isFixError((event && event.message) || "") || isFixError(event && event.error && event.error.message)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            }
+          },
+          true,
+        );
+
+        window.addEventListener(
+          "unhandledrejection",
+          function (event) {
+            try {
+              var reason = event && event.reason;
+              var message = reason instanceof Error ? reason.message : String(reason || "");
+              if (isFixError(message)) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+              }
+            } catch (e) {}
+          },
+          true,
+        );
+
+        async function clearStaleRuntime() {
+          var storage;
+          try {
+            storage = window.sessionStorage;
+            if (storage.getItem(BOOTSTRAP_STORAGE_KEY) === BOOTSTRAP_VERSION) return;
+            storage.setItem(BOOTSTRAP_STORAGE_KEY, BOOTSTRAP_VERSION);
+          } catch (e) {}
+
+          try {
+            if ("serviceWorker" in navigator) {
+              var registrations = await navigator.serviceWorker.getRegistrations();
+              await Promise.all(registrations.map(function (registration) {
+                return registration.unregister().catch(function () {
+                  return false;
+                });
+              }));
+            }
+          } catch (e) {}
+
+          try {
+            if ("caches" in window) {
+              var keys = await caches.keys();
+              await Promise.all(keys.map(function (key) {
+                return caches.delete(key).catch(function () {
+                  return false;
+                });
+              }));
+            }
+          } catch (e) {}
+        }
+
+        async function boot() {
+          await clearStaleRuntime();
+          var script = document.createElement("script");
+          script.type = "module";
+          script.src = MODULE_SRC;
+          document.body.appendChild(script);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+              void boot();
+            },
+            { once: true },
+          );
+        } else {
+          void boot();
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <!-- TODO: Set the document title to the name of your application -->
     <title>Turbo Lanches</title>
@@ -31,7 +137,5 @@
 
   <body>
     <div id="root"></div>
-    <!-- __LOVA_FIX_TRIGGER__ suppression already handled in <head> -->
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

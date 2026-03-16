@@ -15,7 +15,7 @@ const getInitialPermission = (): NotificationPermission | "unsupported" => {
   return Notification.permission;
 };
 
-const PUSH_SW_URL = "/push-sw.js?v10";
+const PUSH_SW_URL = "/push-sw.js?v11";
 
 const NotificationGate = ({ children }: NotificationGateProps) => {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(getInitialPermission);
