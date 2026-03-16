@@ -193,38 +193,76 @@ const AdminScratchCard = () => {
 
         {/* SETTINGS TAB */}
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Configurações da Raspadinha</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Funcionalidade ativa</Label>
-                <Switch
-                  checked={settings.is_enabled}
-                  onCheckedChange={(v) => setSettings({ ...settings, is_enabled: v })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Valor mínimo da compra (sem frete)</Label>
-                <Input
-                  type="number"
-                  value={settings.min_order_value}
-                  onChange={(e) => setSettings({ ...settings, min_order_value: Number(e.target.value) })}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Mensagem quando acabar os prêmios</Label>
-                <Input
-                  value={settings.fallback_message}
-                  onChange={(e) => setSettings({ ...settings, fallback_message: e.target.value })}
-                />
-              </div>
-              <Button onClick={saveSettings} disabled={saving} className="w-full">
-                {saving ? "Salvando..." : "Salvar Configurações"}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            {/* Stats Cards */}
+            {(() => {
+              const totalPrizes = prizes.reduce((s, p) => s + p.total_quantity, 0);
+              const totalRemaining = prizes.reduce((s, p) => s + p.remaining_quantity, 0);
+              const totalAwarded = totalPrizes - totalRemaining;
+              const totalRedeemed = wins.filter((w) => w.redeemed_at && !w.no_prize).length;
+              return (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <Card>
+                    <CardContent className="pt-4 pb-3 text-center">
+                      <p className="text-2xl font-bold text-primary">{totalAwarded}</p>
+                      <p className="text-xs text-muted-foreground">Distribuídos</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3 text-center">
+                      <p className="text-2xl font-bold text-foreground">{totalPrizes}</p>
+                      <p className="text-xs text-muted-foreground">Limite Total</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3 text-center">
+                      <p className="text-2xl font-bold text-green-600">{totalRedeemed}</p>
+                      <p className="text-xs text-muted-foreground">Resgatados</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3 text-center">
+                      <p className="text-2xl font-bold text-amber-500">{totalRemaining}</p>
+                      <p className="text-xs text-muted-foreground">Restantes</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })()}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Configurações da Raspadinha</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Funcionalidade ativa</Label>
+                  <Switch
+                    checked={settings.is_enabled}
+                    onCheckedChange={(v) => setSettings({ ...settings, is_enabled: v })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Valor mínimo da compra (sem frete)</Label>
+                  <Input
+                    type="number"
+                    value={settings.min_order_value}
+                    onChange={(e) => setSettings({ ...settings, min_order_value: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Mensagem quando acabar os prêmios</Label>
+                  <Input
+                    value={settings.fallback_message}
+                    onChange={(e) => setSettings({ ...settings, fallback_message: e.target.value })}
+                  />
+                </div>
+                <Button onClick={saveSettings} disabled={saving} className="w-full">
+                  {saving ? "Salvando..." : "Salvar Configurações"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* PRIZES TAB */}

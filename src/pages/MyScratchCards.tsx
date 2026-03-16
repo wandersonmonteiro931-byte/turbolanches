@@ -51,10 +51,10 @@ const MyScratchCards = () => {
     type === "percentage" ? `${value}%` : `R$ ${value.toFixed(2).replace(".", ",")}`;
 
   const getStatus = (w: ScratchWin) => {
-    if (w.no_prize) return { label: "Sem prêmio", variant: "secondary" as const };
-    if (w.redeemed_at) return { label: "Resgatado", variant: "default" as const };
-    if (new Date(w.expires_at) < new Date()) return { label: "Expirado", variant: "destructive" as const };
-    return { label: "Disponível", variant: "outline" as const };
+    if (w.no_prize) return { label: "Sem prêmio", variant: "secondary" as const, emoji: "😔" };
+    if (w.redeemed_at) return { label: "Resgatado ✅", variant: "default" as const, emoji: "🎁" };
+    if (new Date(w.expires_at) < new Date()) return { label: "Expirado", variant: "destructive" as const, emoji: "⏰" };
+    return { label: "Disponível", variant: "outline" as const, emoji: "🎉" };
   };
 
   return (
