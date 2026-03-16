@@ -13,7 +13,16 @@ const DEFAULT_RULES = [
   "O desconto do cupom não se aplica à taxa de entrega.",
 ];
 
+const DEFAULT_HOW_IT_WORKS = [
+  "Faça um pedido com subtotal a partir de {min_value} (sem contar a taxa de entrega).",
+  "Aguarde seu pedido ser entregue com sucesso.",
+  "Acesse a seção \"Presentes\" no menu inferior e raspe sua raspadinha virtual!",
+  "Ao raspar, você ganha um cupom de desconto exclusivo para usar no próximo pedido.",
+  "Copie o código do cupom e aplique no carrinho antes de finalizar a compra.",
+];
+
 export const SCRATCH_RULES_KEY = "scratch_rules";
+export const SCRATCH_HOW_IT_WORKS_KEY = "scratch_how_it_works";
 
 export const renderScratchRule = (rule: string, minValueLabel: string): ReactNode[] => {
   const normalizedRule = rule.replace(/o valor mínimo configurado/g, "{min_value}");
@@ -41,30 +50,38 @@ export const renderScratchRule = (rule: string, minValueLabel: string): ReactNod
 
 export const useScratchRules = () => {
   const [rules, setRules] = useState<string[]>(DEFAULT_RULES);
+  const [howItWorks, setHowItWorks] = useState<string[]>(DEFAULT_HOW_IT_WORKS);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchAll = async () => {
       const { data } = await supabase
         .from("site_content")
-        .select("value")
-        .eq("key", SCRATCH_RULES_KEY)
-        .maybeSingle();
+        .select("key, value")
+        .in("key", [SCRATCH_RULES_KEY, SCRATCH_HOW_IT_WORKS_KEY]);
 
-      if (data?.value) {
-        try {
-          const parsed = JSON.parse(data.value as string);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setRules(parsed);
-          }
-        } catch {}
+      if (data) {
+        for (const row of data) {
+          try {
+            const parsed = JSON.parse(row.value as string);
+            if (!Array.isArray(parsed) || parsed.length === 0) continue;
+            if (row.key === SCRATCH_RULES_KEY) setRules(parsed);
+            if (row.key === SCRATCH_HOW_IT_WORKS_KEY) setHowItWorks(parsed);
+          } catch {}
+        }
       }
 
       setLoading(false);
     };
 
-    void fetch();
+    void fetchAll();
   }, []);
 
-  return { rules, loading, defaultRules: DEFAULT_RULES };
+  return {
+    rules,
+    howItWorks,
+    loading,
+    defaultRules: DEFAULT_RULES,
+    defaultHowItWorks: DEFAULT_HOW_IT_WORKS,
+  };
 };

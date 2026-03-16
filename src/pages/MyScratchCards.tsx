@@ -155,6 +155,16 @@ const MyScratchCards = () => {
               exit={{ opacity: 0, height: 0 }}
               className="px-4 pb-4"
             >
+              {/* Como funciona */}
+              <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground">🎯 Como funciona</h4>
+              <ol className="list-decimal list-inside space-y-1.5 text-xs text-muted-foreground mb-3">
+                {scratchHowItWorks.map((step, i) => (
+                  <li key={i}>{renderScratchRule(step, fmt(minOrderValue))}</li>
+                ))}
+              </ol>
+
+              {/* Regras */}
+              <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground">📋 Regras</h4>
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 {scratchRules.map((rule, i) => (
                   <li key={i}>• {renderScratchRule(rule, fmt(minOrderValue))}</li>
