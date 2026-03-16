@@ -100,6 +100,7 @@ const OrderTracking = () => {
   const [loading, setLoading] = useState(true);
   const [storeAddress, setStoreAddress] = useState("");
   const [scratchEligible, setScratchEligible] = useState(false);
+  const [alreadyScratched, setAlreadyScratched] = useState(false);
 
   const fetchOrder = async () => {
     if (!id) return;
@@ -134,7 +135,7 @@ const OrderTracking = () => {
       .eq("order_id", orderData.id)
       .eq("user_id", user.id)
       .maybeSingle();
-    if (existing) return;
+    if (existing) setAlreadyScratched(true);
     // Check active prizes exist
     const { data: prizes } = await supabase
       .from("scratch_prizes")
@@ -592,7 +593,16 @@ const OrderTracking = () => {
                 <Gift size={24} />
               </motion.div>
               <div className="flex-1">
-                {order.status === "delivered" ? (
+                {alreadyScratched ? (
+                  <>
+                    <p className="text-sm font-extrabold text-foreground">
+                      🎉 Você ganhou uma raspadinha nesse pedido!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Confira o resultado na seção <span className="font-semibold text-primary">Presentes</span>.
+                    </p>
+                  </>
+                ) : order.status === "delivered" ? (
                   <>
                     <motion.p
                       className="text-sm font-extrabold text-foreground"
