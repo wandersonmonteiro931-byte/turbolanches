@@ -521,6 +521,11 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
+        {/* Scratch Card - show after delivery or payment confirmation */}
+        {(order.status === "delivered" || order.status === "ready" || order.status === "preparing") && (
+          <ScratchCard orderId={order.id} orderSubtotal={Number(order.subtotal)} />
+        )}
+
         {/* Back to menu */}
         <motion.div
           initial={{ opacity: 0 }}
