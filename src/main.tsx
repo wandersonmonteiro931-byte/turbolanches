@@ -1,7 +1,7 @@
 import "./index.css";
 
 const LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
-const SERVICE_WORKER_VERSION = "v10";
+const SERVICE_WORKER_VERSION = "v11";
 
 type GlobalScopeWithFix = typeof globalThis & {
   [LOVA_FIX_KEY]?: boolean;
@@ -79,24 +79,12 @@ ensureLovaFixTrigger();
 if ("serviceWorker" in navigator) {
   const serviceWorkerUrl = `/push-sw.js?${SERVICE_WORKER_VERSION}`;
 
-  void (async () => {
-    try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.unregister().catch(() => false)));
-
-      if ("caches" in window) {
-        const cacheKeys = await caches.keys();
-        await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey).catch(() => false)));
-      }
-    } finally {
-      navigator.serviceWorker
-        .register(serviceWorkerUrl, {
-          scope: "/",
-          updateViaCache: "none",
-        })
-        .catch(() => {});
-    }
-  })();
+  navigator.serviceWorker
+    .register(serviceWorkerUrl, {
+      scope: "/",
+      updateViaCache: "none",
+    })
+    .catch(() => {});
 }
 
 async function bootstrap() {
