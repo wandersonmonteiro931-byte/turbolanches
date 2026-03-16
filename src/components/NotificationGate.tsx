@@ -15,6 +15,8 @@ const getInitialPermission = (): NotificationPermission | "unsupported" => {
   return Notification.permission;
 };
 
+const PUSH_SW_URL = "/push-sw.js?v=8";
+
 const NotificationGate = ({ children }: NotificationGateProps) => {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(getInitialPermission);
   const [dismissed, setDismissed] = useState(false);
@@ -25,7 +27,10 @@ const NotificationGate = ({ children }: NotificationGateProps) => {
     try {
       // Register service worker first
       if ("serviceWorker" in navigator) {
-        await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
+        await navigator.serviceWorker.register(PUSH_SW_URL, {
+          scope: "/",
+          updateViaCache: "none",
+        });
       }
       const result = await Notification.requestPermission();
       setPermission(result);
