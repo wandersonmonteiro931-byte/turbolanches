@@ -126,12 +126,6 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
             <DialogTrigger asChild>
               <button type="button" className="group block w-full text-left" aria-label="Ver regras da raspadinha">
                 <div className="relative overflow-hidden rounded-[22px] border border-primary/15 bg-background/85 p-3 backdrop-blur-sm">
-                  <motion.div
-                    className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-fire-orange to-primary"
-                    animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
-                    transition={{ duration: 2.8, repeat: Infinity, ease: "linear" }}
-                    style={{ backgroundSize: "200% 100%" }}
-                  />
 
                   <div className="relative mb-3 h-4 overflow-hidden rounded-full bg-secondary">
                     <motion.div
