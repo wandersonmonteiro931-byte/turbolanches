@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, createElement, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_RULES = [
@@ -21,13 +21,20 @@ export const renderScratchRule = (rule: string, minValueLabel: string): ReactNod
 
   return parts.flatMap((part, index) => {
     const nodes: ReactNode[] = [part];
+
     if (index < parts.length - 1) {
       nodes.push(
-        <span key={`min-${index}`} className="font-semibold text-foreground">
-          {minValueLabel}
-        </span>,
+        createElement(
+          "span",
+          {
+            key: `min-${index}`,
+            className: "font-semibold text-foreground",
+          },
+          minValueLabel,
+        ),
       );
     }
+
     return nodes;
   });
 };
@@ -52,8 +59,10 @@ export const useScratchRules = () => {
           }
         } catch {}
       }
+
       setLoading(false);
     };
+
     void fetch();
   }, []);
 
