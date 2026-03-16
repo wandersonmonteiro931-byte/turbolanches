@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchProgressBarProps {
   subtotal: number;
