@@ -253,7 +253,7 @@ const Cart = () => {
         </div>
 
         {/* Scratch Progress Bar */}
-        <ScratchProgressBar subtotal={totalPrice} />
+        <ScratchProgressBar subtotal={totalPrice} hasCoupon={!!appliedCoupon} />
 
         {/* Summary Card */}
         <div className="mt-4 rounded-xl bg-card p-4 space-y-2">
