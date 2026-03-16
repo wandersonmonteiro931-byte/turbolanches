@@ -47,13 +47,19 @@ const AdminAddons = () => {
   const { toast } = useToast();
 
   const fetchData = async () => {
-    if (!storeId) return;
-    const [addonsRes, productsRes, linksRes, catsRes] = await Promise.all([
-      supabase.from("product_addons").select("*").eq("store_id", storeId).order("sort_order").order("name"),
-      supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("store_id", storeId).eq("active", true).order("name"),
-      supabase.from("addon_product_links").select("addon_id, product_id").eq("store_id", storeId),
-      supabase.from("categories").select("id, name").eq("store_id", storeId).eq("active", true).order("sort_order"),
-    ]);
+    const addonsQuery = supabase.from("product_addons").select("*").order("sort_order").order("name");
+    const productsQuery = supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("active", true).order("name");
+    const linksQuery = supabase.from("addon_product_links").select("addon_id, product_id");
+    const catsQuery = supabase.from("categories").select("id, name").eq("active", true).order("sort_order");
+
+    if (storeId) {
+      addonsQuery.eq("store_id", storeId);
+      productsQuery.eq("store_id", storeId);
+      linksQuery.eq("store_id", storeId);
+      catsQuery.eq("store_id", storeId);
+    }
+
+    const [addonsRes, productsRes, linksRes, catsRes] = await Promise.all([addonsQuery, productsQuery, linksQuery, catsQuery]);
     if (addonsRes.data) setAddons(addonsRes.data);
     if (productsRes.data) setProducts(productsRes.data);
     if (linksRes.data) setLinks(linksRes.data);
