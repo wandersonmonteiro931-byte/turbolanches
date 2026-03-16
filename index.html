@@ -5,24 +5,15 @@
       var __LOVA_FIX_TRIGGER__ = false;
       window.__LOVA_FIX_TRIGGER__ = false;
       globalThis.__LOVA_FIX_TRIGGER__ = false;
-    </script>
-    <meta charset="UTF-8" />
-    <script>
-      // Early global fallback for Lovable runtime probe — must run before ANY module
+      try { self.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
+      try { Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e){}
+      try { Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e){}
       (function(){
         var P="__LOVA_FIX_TRIGGER__";
-        var __LOVA_FIX_TRIGGER__ = false;
-        try{eval("var "+P+"=false")}catch(e){}
-        try{window[P]=false}catch(e){}
-        try{globalThis[P]=false}catch(e){}
-        try{self[P]=false}catch(e){}
-        try{Object.defineProperty(globalThis,P,{value:false,writable:true,configurable:true})}catch(e){}
-        try{Object.defineProperty(window,P,{value:false,writable:true,configurable:true})}catch(e){}
         function isLova(m){return typeof m==="string"&&m.indexOf(P)!==-1}
         window.addEventListener("error",function(e){if(isLova(e.message||""))e.preventDefault();},true);
         window.addEventListener("unhandledrejection",function(e){
-          var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");
-          if(isLova(m))e.preventDefault();
+          try{var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");if(isLova(m)){e.preventDefault();e.stopImmediatePropagation();}}catch(x){}
         },true);
         window.onerror=function(m){if(isLova(String(m||"")))return true;};
       })();

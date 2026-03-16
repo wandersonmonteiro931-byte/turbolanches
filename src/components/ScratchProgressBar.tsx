@@ -101,7 +101,6 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
               </motion.div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Turbo prêmio</p>
                 <p className="text-sm font-extrabold text-foreground">
                   {isEligible ? "Sua raspadinha foi liberada!" : "Desbloqueie sua raspadinha"}
                 </p>
