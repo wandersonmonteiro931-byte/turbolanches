@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle, Gift, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatTimeBR } from "@/lib/brasiliaTime";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OrderData {
   id: string;
