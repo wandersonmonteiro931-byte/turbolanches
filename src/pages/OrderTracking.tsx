@@ -28,6 +28,7 @@ interface OrderData {
   delivering_at: string | null;
   delivered_at: string | null;
   updated_at: string;
+  coupon_code: string | null;
 }
 
 function formatTime(dateStr: string | null | undefined): string | null {
