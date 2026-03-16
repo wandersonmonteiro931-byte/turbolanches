@@ -39,7 +39,9 @@ import AdminReceipts from "./pages/admin/AdminReceipts";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminManageAdmins from "./pages/admin/AdminManageAdmins";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
+import AdminScratchCard from "./pages/admin/AdminScratchCard";
 import Kitchen from "./pages/Kitchen";
+import MyScratchCards from "./pages/MyScratchCards";
 
 const queryClient = new QueryClient();
 
