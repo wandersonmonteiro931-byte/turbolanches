@@ -554,7 +554,7 @@ const OrderTracking = () => {
         )}
 
         {/* Scratch card teaser for eligible orders */}
-        {scratchEligible && order.status !== "delivered" && order.status !== "cancelled" && (
+        {scratchEligible && order.status !== "cancelled" && (
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -571,33 +571,70 @@ const OrderTracking = () => {
               animate={{ x: [0, -12, 6, 0], y: [0, 8, -8, 0] }}
               transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
             />
+
+            {/* Shimmering top stripe */}
+            <motion.div
+              className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent"
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+
             <div className="relative flex items-center gap-3">
               <motion.div
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
-                animate={{ rotate: [0, -6, 6, -3, 3, 0], scale: [1, 1.08, 1, 1.04, 1] }}
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
+                animate={{
+                  rotate: [0, -8, 8, -4, 4, 0],
+                  scale: [1, 1.12, 1, 1.06, 1],
+                  y: [0, -3, 0, -1, 0],
+                }}
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Gift size={22} />
+                <Gift size={24} />
               </motion.div>
               <div className="flex-1">
-                <p className="text-sm font-extrabold text-foreground">🎁 Raspadinha Premiada!</p>
-                <p className="text-xs text-muted-foreground">
-                  Ao finalizar este pedido, você ganhará uma raspadinha na seção <span className="font-semibold text-primary">Presentes</span>!
-                </p>
+                {order.status === "delivered" ? (
+                  <>
+                    <motion.p
+                      className="text-sm font-extrabold text-foreground"
+                      animate={{ scale: [1, 1.02, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      🎉 Raspadinha Liberada!
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">
+                      Seu pedido foi entregue! Vá até <span className="font-semibold text-primary">Presentes</span> e raspe agora!
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <motion.p
+                      className="text-sm font-extrabold text-foreground"
+                      animate={{ scale: [1, 1.02, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      🎁 Raspadinha Premiada!
+                    </motion.p>
+                    <p className="text-xs text-muted-foreground">
+                      Ao finalizar este pedido, você ganhará uma raspadinha na seção <span className="font-semibold text-primary">Presentes</span>!
+                    </p>
+                  </>
+                )}
               </div>
               <motion.div
                 animate={{ rotate: [0, 360] }}
                 transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
               >
-                <Sparkles size={16} className="text-fire-orange" />
+                <Sparkles size={18} className="text-fire-orange" />
               </motion.div>
             </div>
             <motion.button
               onClick={() => navigate("/presentes")}
-              className="mt-3 w-full rounded-xl bg-primary/10 border border-primary/20 py-2 text-sm font-bold text-primary"
+              className="mt-3 w-full rounded-xl bg-primary/10 border border-primary/20 py-2.5 text-sm font-bold text-primary"
               whileTap={{ scale: 0.97 }}
+              animate={order.status === "delivered" ? { scale: [1, 1.03, 1] } : {}}
+              transition={order.status === "delivered" ? { duration: 1.5, repeat: Infinity } : {}}
             >
-              Ver Presentes
+              {order.status === "delivered" ? "🎁 Raspar Agora!" : "Ver Presentes"}
             </motion.button>
           </motion.div>
         )}
