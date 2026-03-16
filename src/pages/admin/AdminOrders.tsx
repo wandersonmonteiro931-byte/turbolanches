@@ -117,19 +117,23 @@ const AdminOrders = () => {
   useAlarmSound(hasPendingOrders);
 
   const fetchOrders = useCallback(async () => {
-    if (!storeId) return;
     let all: Order[] = [];
     let from = 0;
     const pageSize = 1000;
     let hasMore = true;
 
     while (hasMore) {
-      const { data } = await supabase
+      let query = supabase
         .from("orders")
         .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
-        .eq("store_id", storeId)
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
+
+      if (storeId) {
+        query = query.eq("store_id", storeId);
+      }
+
+      const { data } = await query;
 
       if (data && data.length > 0) {
         all = [...all, ...data];
@@ -142,23 +146,26 @@ const AdminOrders = () => {
 
     setAllOrders(all);
 
-    // Fetch profiles for all users
     const userIds = [...new Set(all.map((o) => o.user_id))];
-    if (userIds.length > 0) {
-      // Batch fetch profiles in chunks of 100
-      const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
-      for (let i = 0; i < userIds.length; i += 100) {
-        const batch = userIds.slice(i, i + 100);
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, customer_code, full_name, phone")
-          .in("user_id", batch);
-        if (profilesData) {
-          profilesData.forEach((p) => { profileMap[p.user_id] = p; });
-        }
-      }
-      setProfiles(profileMap);
+    if (userIds.length === 0) {
+      setProfiles({});
+      return;
     }
+
+    const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+    for (let i = 0; i < userIds.length; i += 100) {
+      const batch = userIds.slice(i, i + 100);
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, customer_code, full_name, phone")
+        .in("user_id", batch);
+      if (profilesData) {
+        profilesData.forEach((p) => {
+          profileMap[p.user_id] = p;
+        });
+      }
+    }
+    setProfiles(profileMap);
   }, [storeId]);
 
   // Fetch items for product name filter
@@ -184,9 +191,8 @@ const AdminOrders = () => {
     if (filterProductName.length >= 2) {
       const t = setTimeout(fetchAllItemsForFilter, 400);
       return () => clearTimeout(t);
-    } else {
-      setAllItems({});
     }
+    setAllItems({});
   }, [filterProductName, fetchAllItemsForFilter]);
 
   const fetchItems = async (orderId: string) => {
@@ -199,7 +205,7 @@ const AdminOrders = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
+    void fetchOrders();
 
     const channel = supabase
       .channel("admin-orders")
@@ -207,12 +213,14 @@ const AdminOrders = () => {
         if (payload.eventType === "INSERT") {
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
         }
-        fetchOrders();
+        void fetchOrders();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchOrders, toast]);
 
   // Filtered orders
   const filteredOrders = useMemo(() => {
