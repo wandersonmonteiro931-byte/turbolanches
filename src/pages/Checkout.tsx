@@ -581,10 +581,10 @@ const Checkout = () => {
                   <span className="text-green-600 font-bold">RETIRADA 🏪</span>
                 </div>
               )}
-              {couponDiscount > 0 && (
+              {safeCouponDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Desconto ({appliedCoupon?.code})</span>
-                  <span className="text-green-600 font-bold">- R$ {couponDiscount.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-green-600 font-bold">- R$ {safeCouponDiscount.toFixed(2).replace(".", ",")}</span>
                 </div>
               )}
               <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">
