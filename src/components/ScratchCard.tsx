@@ -258,13 +258,17 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
         await supabase.from("scratch_wins").insert(winData);
 
         // Auto-create a valid single-use coupon via secure function
-        await supabase.rpc("create_scratch_coupon", {
+        const { error: couponError } = await supabase.rpc("create_scratch_coupon", {
           _code: code,
           _type: selectedPrize.discount_type,
           _value: selectedPrize.discount_value,
           _expires_at: expiresAt.toISOString(),
-          _store_id: selectedPrize.store_id,
-        });
+          _store_id: selectedPrize.store_id ?? undefined,
+        } as any);
+        if (couponError) {
+          console.error("Erro ao criar cupom:", couponError);
+          toast.error("Erro ao gerar cupom da raspadinha");
+        }
 
         setResult({
           coupon_code: code,
