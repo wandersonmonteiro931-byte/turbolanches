@@ -32,7 +32,7 @@ const ScratchRulesContent = ({ minValue }: { minValue: number }) => {
   );
 };
 
-
+const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarProps) => {
   const [settings, setSettings] = useState<{
     is_enabled: boolean;
     min_order_value: number;
