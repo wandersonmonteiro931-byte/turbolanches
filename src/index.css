@@ -41,6 +41,10 @@
     --fire-yellow: 40 96% 56%;
     --dark-surface: 0 0% 96%;
     --darker-surface: 0 0% 92%;
+    --scratch-amber: 38 95% 56%;
+    --scratch-orange: 24 95% 55%;
+    --scratch-surface: 44 100% 96%;
+    --scratch-surface-strong: 38 92% 90%;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 15%;
@@ -86,6 +90,18 @@
 
   .bg-fire-gradient-soft {
     background: hsl(355, 85%, 52% / 0.08);
+  }
+
+  .bg-scratch-gradient-soft {
+    background: linear-gradient(90deg, hsl(var(--scratch-amber) / 0.14), hsl(var(--scratch-orange) / 0.16));
+  }
+
+  .bg-scratch-progress {
+    background: linear-gradient(90deg, hsl(var(--scratch-amber)), hsl(var(--scratch-orange)));
+  }
+
+  .scratch-progress-shine {
+    background: linear-gradient(110deg, transparent 0%, hsl(var(--primary-foreground) / 0.22) 45%, transparent 90%);
   }
 
   .shadow-fire {

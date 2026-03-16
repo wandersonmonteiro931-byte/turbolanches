@@ -52,6 +52,12 @@ export default {
           red: "hsl(var(--fire-red))",
           yellow: "hsl(var(--fire-yellow))",
         },
+        scratch: {
+          amber: "hsl(var(--scratch-amber))",
+          orange: "hsl(var(--scratch-orange))",
+          surface: "hsl(var(--scratch-surface))",
+          strong: "hsl(var(--scratch-surface-strong))",
+        },
         surface: {
           dark: "hsl(var(--dark-surface))",
           darker: "hsl(var(--darker-surface))",
