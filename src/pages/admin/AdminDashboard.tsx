@@ -48,6 +48,7 @@ interface Order {
   ready_at: string | null;
   payment_confirmed: boolean;
   change_for: number | null;
+  coupon_code: string | null;
 }
 
 interface OrderItem {
