@@ -328,7 +328,12 @@ const AdminDashboard = () => {
     toast({ title: `Pedido atualizado!` });
     await fetchOrders();
 
+    // Mark coupon as used when order is accepted (preparing)
     if (newStatus === "preparing") {
+      const order = orders.find(o => o.id === orderId);
+      if (order?.coupon_code) {
+        await supabase.rpc("increment_coupon_used_count" as any, { _code: order.coupon_code });
+      }
       printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
       printReceipt(orderId, "obrigado");
