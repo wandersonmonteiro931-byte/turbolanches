@@ -74,60 +74,44 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
     <AnimatePresence>
       <Dialog>
         <motion.div
-          initial={{ opacity: 0, y: 12, scale: 0.96 }}
+          initial={{ opacity: 0, y: 10, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="relative overflow-hidden rounded-[26px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-fire-orange/15 p-4 shadow-fire-lg"
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-[22px] border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-fire-orange/12 p-3 shadow-fire"
         >
           <motion.div
-            className="pointer-events-none absolute -left-8 -top-8 h-24 w-24 rounded-full bg-primary/20 blur-3xl"
-            animate={{ x: [0, 18, -8, 0], y: [0, 12, -10, 0], scale: [1, 1.15, 0.95, 1] }}
+            className="pointer-events-none absolute -left-7 -top-7 h-20 w-20 rounded-full bg-primary/15 blur-3xl"
+            animate={{ x: [0, 12, -6, 0], y: [0, 8, -8, 0], scale: [1, 1.08, 0.96, 1] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
-            className="pointer-events-none absolute -bottom-10 -right-8 h-28 w-28 rounded-full bg-fire-orange/20 blur-3xl"
-            animate={{ x: [0, -12, 10, 0], y: [0, -12, 8, 0], scale: [1, 0.9, 1.12, 1] }}
+            className="pointer-events-none absolute -bottom-8 -right-7 h-20 w-20 rounded-full bg-fire-orange/15 blur-3xl"
+            animate={{ x: [0, -10, 8, 0], y: [0, -10, 6, 0], scale: [1, 0.92, 1.08, 1] }}
             transition={{ duration: 4.6, repeat: Infinity, ease: "easeInOut" }}
           />
-          <motion.div
-            className="pointer-events-none absolute right-4 top-3 text-lg"
-            animate={{ rotate: [0, 18, -12, 0], y: [0, -4, 0] }}
-            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-          >
-            ✨
-          </motion.div>
 
           <div className="relative">
-            <div className="mb-3 flex items-center gap-3">
+            <div className="mb-2.5 flex items-center gap-2.5">
               <motion.div
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-fire-gradient text-primary-foreground shadow-fire"
-                animate={isEligible ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : { y: [0, -4, 0], scale: [1, 1.05, 1] }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-fire-gradient text-primary-foreground shadow-fire"
+                animate={isEligible ? { rotate: [0, -8, 8, 0], scale: [1, 1.08, 1] } : { y: [0, -3, 0], scale: [1, 1.04, 1] }}
                 transition={{ duration: isEligible ? 1.8 : 1.5, repeat: Infinity, ease: "easeInOut" }}
               >
-                {isEligible ? <Sparkles size={20} /> : <Gift size={20} />}
+                {isEligible ? <Sparkles size={16} /> : <Gift size={16} />}
               </motion.div>
 
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary/80">Turbo prêmio</p>
-                <p className="text-base font-extrabold text-foreground">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Turbo prêmio</p>
+                <p className="text-sm font-extrabold text-foreground">
                   {isEligible ? "Sua raspadinha foi liberada!" : "Desbloqueie sua raspadinha"}
                 </p>
               </div>
-
-              <motion.div
-                className="rounded-full bg-fire-orange/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-fire-orange"
-                animate={{ scale: [1, 1.08, 1] }}
-                transition={{ duration: 1.3, repeat: Infinity, ease: "easeInOut" }}
-              >
-                {isEligible ? "Liberada" : `${Math.round(progressPercent)}%`}
-              </motion.div>
             </div>
 
             <DialogTrigger asChild>
               <button type="button" className="group block w-full text-left" aria-label="Ver regras da raspadinha">
-                <div className="relative overflow-hidden rounded-[22px] border border-primary/15 bg-background/85 p-3 backdrop-blur-sm">
-
-                  <div className="relative mb-3 h-4 overflow-hidden rounded-full bg-secondary">
+                <div className="relative overflow-hidden rounded-[18px] border border-primary/15 bg-background/85 p-2.5 backdrop-blur-sm">
+                  <div className="relative mb-2.5 h-3 overflow-hidden rounded-full bg-secondary">
                     <motion.div
                       className="relative h-full rounded-full bg-fire-gradient"
                       initial={{ width: 0 }}
@@ -142,8 +126,8 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
                     </motion.div>
                   </div>
 
-                  <div className="flex items-end justify-between gap-3">
-                    <p className="text-sm leading-snug text-muted-foreground">
+                  <div className="flex items-end justify-between gap-2.5">
+                    <p className="text-xs leading-snug text-muted-foreground">
                       {isEligible ? (
                         <span className="font-semibold text-foreground">
                           Parabéns! Seu pedido já garantiu uma raspadinha premiada. 🎉
@@ -157,7 +141,7 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
                     </p>
 
                     <motion.span
-                      className="shrink-0 rounded-full border border-primary/15 bg-primary/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-primary"
+                      className="shrink-0 rounded-full border border-primary/15 bg-primary/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-primary"
                       whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.98 }}
                     >

@@ -3,6 +3,20 @@ import "./index.css";
 const LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
 
 const ensureLovaFixTrigger = () => {
+  const globalScript = `
+    var __LOVA_FIX_TRIGGER__ = false;
+    try { window.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}
+    try { globalThis.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}
+    try { self.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}
+  `;
+
+  if (typeof document !== "undefined" && !document.querySelector('script[data-lova-fix-trigger="true"]')) {
+    const script = document.createElement("script");
+    script.setAttribute("data-lova-fix-trigger", "true");
+    script.text = globalScript;
+    document.head.prepend(script);
+  }
+
   try {
     (globalThis as Record<string, unknown>)[LOVA_FIX_KEY] = false;
   } catch {}
@@ -29,6 +43,12 @@ const ensureLovaFixTrigger = () => {
     } catch {}
   }
 
+  if (typeof self !== "undefined") {
+    try {
+      (self as unknown as Record<string, unknown>)[LOVA_FIX_KEY] = false;
+    } catch {}
+  }
+
   try {
     (0, eval)(`var ${LOVA_FIX_KEY} = false;`);
   } catch {}
@@ -37,7 +57,7 @@ const ensureLovaFixTrigger = () => {
 ensureLovaFixTrigger();
 
 if ("serviceWorker" in navigator) {
-  const serviceWorkerUrl = "/push-sw.js?v=6";
+  const serviceWorkerUrl = "/push-sw.js?v=7";
 
   navigator.serviceWorker
     .getRegistrations()
