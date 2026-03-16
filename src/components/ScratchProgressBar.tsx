@@ -77,7 +77,7 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="rounded-xl border border-amber-300/30 bg-gradient-to-r from-amber-500/10 via-yellow-400/10 to-orange-500/10 p-4"
+          className="rounded-xl border border-scratch-amber/30 bg-scratch-gradient-soft p-4"
         >
           <div className="mb-2 flex items-center gap-2">
             <motion.div
@@ -85,9 +85,9 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
               transition={{ duration: isEligible ? 1.8 : 1.4, repeat: Infinity, ease: "easeInOut" }}
             >
               {isEligible ? (
-                <Sparkles size={18} className="text-amber-500" />
+                <Sparkles size={18} className="text-scratch-amber" />
               ) : (
-                <Gift size={18} className="text-amber-500" />
+                <Gift size={18} className="text-scratch-amber" />
               )}
             </motion.div>
 
@@ -98,15 +98,15 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
 
           <DialogTrigger asChild>
             <button type="button" className="block w-full text-left" aria-label="Ver regras da raspadinha">
-              <div className="relative mb-2 h-2.5 overflow-hidden rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <div className="relative mb-2 h-2.5 overflow-hidden rounded-full bg-scratch-surface-strong/70">
                 <motion.div
-                  className="relative h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                  className="bg-scratch-progress relative h-full rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 0.7, ease: "easeOut" }}
                 >
                   <motion.div
-                    className="absolute inset-0 bg-[linear-gradient(110deg,transparent_0%,rgba(255,255,255,0.22)_45%,transparent_90%)]"
+                    className="scratch-progress-shine absolute inset-0"
                     animate={{ x: ["-140%", "220%"] }}
                     transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
                   />
@@ -115,7 +115,7 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
 
               <p className="text-xs text-muted-foreground">
                 {isEligible ? (
-                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="font-semibold text-foreground">
                     Parabéns! Você já garantiu uma raspadinha premiada! 🎊
                   </span>
                 ) : (

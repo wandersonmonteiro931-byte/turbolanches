@@ -92,6 +92,18 @@
     background: hsl(355, 85%, 52% / 0.08);
   }
 
+  .bg-scratch-gradient-soft {
+    background: linear-gradient(90deg, hsl(var(--scratch-amber) / 0.14), hsl(var(--scratch-orange) / 0.16));
+  }
+
+  .bg-scratch-progress {
+    background: linear-gradient(90deg, hsl(var(--scratch-amber)), hsl(var(--scratch-orange)));
+  }
+
+  .scratch-progress-shine {
+    background: linear-gradient(110deg, transparent 0%, hsl(var(--primary-foreground) / 0.22) 45%, transparent 90%);
+  }
+
   .shadow-fire {
     box-shadow: 0 4px 20px -4px hsl(355, 85%, 52% / 0.3);
   }
