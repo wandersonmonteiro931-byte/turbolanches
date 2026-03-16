@@ -181,7 +181,9 @@ const Checkout = () => {
 
 
 
-  const grandTotal = totalPrice + deliveryFee - couponDiscount;
+  // Coupon discount applies only to subtotal, never to delivery fee
+  const safeCouponDiscount = Math.min(couponDiscount, totalPrice);
+  const grandTotal = Math.max(0, totalPrice - safeCouponDiscount) + deliveryFee;
 
   // Estimated time
   const estimatedTime = deliveryType === "pickup"
@@ -195,7 +197,7 @@ const Checkout = () => {
       user_id: user.id,
       subtotal: totalPrice,
       delivery_fee: deliveryFee,
-      discount: couponDiscount,
+      discount: safeCouponDiscount,
       coupon_code: appliedCoupon?.code || null,
       total: grandTotal,
       status: "pending",
@@ -579,10 +581,10 @@ const Checkout = () => {
                   <span className="text-green-600 font-bold">RETIRADA 🏪</span>
                 </div>
               )}
-              {couponDiscount > 0 && (
+              {safeCouponDiscount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Desconto ({appliedCoupon?.code})</span>
-                  <span className="text-green-600 font-bold">- R$ {couponDiscount.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-green-600 font-bold">- R$ {safeCouponDiscount.toFixed(2).replace(".", ",")}</span>
                 </div>
               )}
               <div className="border-t border-border pt-2 flex justify-between text-lg font-bold">

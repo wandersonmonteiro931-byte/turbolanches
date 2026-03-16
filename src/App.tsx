@@ -91,7 +91,8 @@ const AppInner = () => {
           <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/minhas-raspadinhas" element={<ProtectedRoute><MyScratchCards /></ProtectedRoute>} />
+          <Route path="/presentes" element={<ProtectedRoute><MyScratchCards /></ProtectedRoute>} />
+          <Route path="/minhas-raspadinhas" element={<Navigate to="/presentes" replace />} />
           <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
 
           {/* Admin routes */}

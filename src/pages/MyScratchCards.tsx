@@ -64,8 +64,8 @@ const MyScratchCards = () => {
           <ArrowLeft size={22} className="text-foreground" />
         </button>
         <div className="flex items-center gap-2">
-          <Sparkles size={20} className="text-amber-500" />
-          <h1 className="text-lg font-extrabold text-foreground">Minhas Raspadinhas</h1>
+          <Gift size={20} className="text-primary" />
+          <h1 className="text-lg font-extrabold text-foreground">Presentes</h1>
         </div>
       </header>
 

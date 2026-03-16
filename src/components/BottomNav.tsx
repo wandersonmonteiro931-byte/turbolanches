@@ -1,10 +1,11 @@
-import { Home, Search, FileText, User } from "lucide-react";
+import { Home, Search, FileText, User, Gift } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const tabs = [
   { path: "/", icon: Home, label: "Início" },
   { path: "/busca", icon: Search, label: "Busca" },
+  { path: "/presentes", icon: Gift, label: "Presentes" },
   { path: "/pedidos", icon: FileText, label: "Pedidos" },
   { path: "/perfil", icon: User, label: "Perfil" },
 ];

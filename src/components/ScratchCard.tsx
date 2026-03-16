@@ -256,6 +256,16 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
         };
 
         await supabase.from("scratch_wins").insert(winData);
+
+        // Auto-create a valid single-use coupon via secure function
+        await supabase.rpc("create_scratch_coupon", {
+          _code: code,
+          _type: selectedPrize.discount_type,
+          _value: selectedPrize.discount_value,
+          _expires_at: expiresAt.toISOString(),
+          _store_id: selectedPrize.store_id,
+        });
+
         setResult({
           coupon_code: code,
           discount_type: selectedPrize.discount_type,

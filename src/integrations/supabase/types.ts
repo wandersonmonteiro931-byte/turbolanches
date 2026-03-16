@@ -1395,6 +1395,16 @@ export type Database = {
     }
     Functions: {
       admin_owns_store_row: { Args: { _store_id: string }; Returns: boolean }
+      create_scratch_coupon: {
+        Args: {
+          _code: string
+          _expires_at: string
+          _store_id: string
+          _type: string
+          _value: number
+        }
+        Returns: undefined
+      }
       get_admin_store_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
