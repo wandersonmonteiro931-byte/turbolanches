@@ -593,16 +593,26 @@ const AdminDashboard = () => {
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
-          onClick={() => setShowToggleConfirm(true)}
-          disabled={!storeSettings || togglingStore}
-          className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
+          onClick={requestToggleConfirmation}
+          aria-busy={togglingStore}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold transition-all",
             storeSettings?.is_open
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-red-600 text-white hover:bg-red-700"
-          } disabled:cursor-not-allowed disabled:opacity-60`}
+              ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+            togglingStore && "opacity-70",
+          )}
         >
           <Power size={18} />
-          {togglingStore ? (storeSettings?.is_open ? "FECHANDO..." : "ABRINDO...") : storeSettings?.is_open ? "FECHAR LOJA" : "ABRIR LOJA"}
+          {togglingStore
+            ? storeSettings?.is_open
+              ? "FECHANDO..."
+              : "ABRINDO..."
+            : storeSettings
+              ? storeSettings.is_open
+                ? "FECHAR LOJA"
+                : "ABRIR LOJA"
+              : "ABRIR/FECHAR LOJA"}
         </button>
 
         <button
