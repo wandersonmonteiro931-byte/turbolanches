@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Gift, Copy, Check, Clock, Lock, Info, Sparkles } from "lucide-react";
+import { ArrowLeft, Gift, Copy, Check, Clock, Lock, Info, Sparkles, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ const MyScratchCards = () => {
   const [deliveredOrders, setDeliveredOrders] = useState<EligibleOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [minOrderValue, setMinOrderValue] = useState(0);
 
   useEffect(() => {
@@ -125,28 +126,45 @@ const MyScratchCards = () => {
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
-        {/* Rules section */}
+        {/* Collapsible rules section */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-card to-fire-orange/5 p-4"
+          className="rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 via-card to-fire-orange/5 overflow-hidden"
         >
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Info size={16} className="text-primary" />
+          <button
+            onClick={() => setRulesOpen((prev) => !prev)}
+            className="flex w-full items-center justify-between gap-2 p-4"
+          >
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <Info size={16} className="text-primary" />
+              </div>
+              <h2 className="text-sm font-bold text-foreground">Regras da Raspadinha Premiada</h2>
             </div>
-            <h2 className="text-sm font-bold text-foreground">Regras da Raspadinha Premiada</h2>
-          </div>
-          <ul className="space-y-1.5 text-xs text-muted-foreground">
-            <li>• O subtotal dos produtos precisa ser igual ou maior que <span className="font-semibold text-foreground">{fmt(minOrderValue)}</span>.</li>
-            <li>• A taxa de entrega não entra no cálculo da promoção.</li>
-            <li>• A raspadinha só fica disponível quando o pedido for entregue com sucesso.</li>
-            <li>• Cada pedido elegível dá direito a apenas uma raspadinha.</li>
-            <li>• A promoção depende da disponibilidade de prêmios cadastrados.</li>
-            <li>• Ao raspar, você recebe um cupom de desconto vinculado à sua conta.</li>
-            <li>• O cupom gerado é de uso único e possui validade.</li>
-            <li>• O desconto do cupom não se aplica à taxa de entrega.</li>
-          </ul>
+            <motion.div animate={{ rotate: rulesOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown size={18} className="text-muted-foreground" />
+            </motion.div>
+          </button>
+          {rulesOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="px-4 pb-4"
+            >
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li>• O subtotal dos produtos precisa ser igual ou maior que <span className="font-semibold text-foreground">{fmt(minOrderValue)}</span>.</li>
+                <li>• A taxa de entrega não entra no cálculo da promoção.</li>
+                <li>• A raspadinha só fica disponível quando o pedido for entregue com sucesso.</li>
+                <li>• Cada pedido elegível dá direito a apenas uma raspadinha.</li>
+                <li>• A promoção depende da disponibilidade de prêmios cadastrados.</li>
+                <li>• Ao raspar, você recebe um cupom de desconto vinculado à sua conta.</li>
+                <li>• O cupom gerado é de uso único e possui validade.</li>
+                <li>• O desconto do cupom não se aplica à taxa de entrega.</li>
+              </ul>
+            </motion.div>
+          )}
         </motion.div>
 
         {loading ? (
