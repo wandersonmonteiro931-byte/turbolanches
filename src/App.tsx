@@ -39,7 +39,9 @@ import AdminReceipts from "./pages/admin/AdminReceipts";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminManageAdmins from "./pages/admin/AdminManageAdmins";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
+import AdminScratchCard from "./pages/admin/AdminScratchCard";
 import Kitchen from "./pages/Kitchen";
+import MyScratchCards from "./pages/MyScratchCards";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +91,7 @@ const AppInner = () => {
           <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/minhas-raspadinhas" element={<ProtectedRoute><MyScratchCards /></ProtectedRoute>} />
           <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
 
           {/* Admin routes */}
@@ -107,6 +110,7 @@ const AppInner = () => {
             <Route path="cupons" element={<AdminCoupons />} />
             <Route path="comandas" element={<AdminReceipts />} />
             <Route path="administradores" element={<AdminManageAdmins />} />
+            <Route path="raspadinha" element={<AdminScratchCard />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />

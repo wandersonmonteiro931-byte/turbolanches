@@ -976,6 +976,171 @@ export type Database = {
           },
         ]
       }
+      scratch_prizes: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          name: string
+          remaining_quantity: number
+          store_id: string | null
+          total_quantity: number
+          updated_at: string
+          validity_days: number
+        }
+        Insert: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          remaining_quantity?: number
+          store_id?: string | null
+          total_quantity?: number
+          updated_at?: string
+          validity_days?: number
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          remaining_quantity?: number
+          store_id?: string | null
+          total_quantity?: number
+          updated_at?: string
+          validity_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scratch_prizes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scratch_settings: {
+        Row: {
+          fallback_message: string
+          id: string
+          is_enabled: boolean
+          min_order_value: number
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          fallback_message?: string
+          id?: string
+          is_enabled?: boolean
+          min_order_value?: number
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          fallback_message?: string
+          id?: string
+          is_enabled?: boolean
+          min_order_value?: number
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scratch_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scratch_wins: {
+        Row: {
+          coupon_code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string
+          found_at: string
+          id: string
+          no_prize: boolean
+          order_id: string | null
+          prize_id: string | null
+          redeemed_at: string | null
+          redeemed_order_id: string | null
+          store_id: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at: string
+          found_at?: string
+          id?: string
+          no_prize?: boolean
+          order_id?: string | null
+          prize_id?: string | null
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          store_id?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string
+          found_at?: string
+          id?: string
+          no_prize?: boolean
+          order_id?: string | null
+          prize_id?: string | null
+          redeemed_at?: string | null
+          redeemed_order_id?: string | null
+          store_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scratch_wins_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scratch_wins_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "scratch_prizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scratch_wins_redeemed_order_id_fkey"
+            columns: ["redeemed_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scratch_wins_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_content: {
         Row: {
           content_type: string
