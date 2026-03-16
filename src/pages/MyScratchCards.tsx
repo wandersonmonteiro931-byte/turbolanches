@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import ScratchCard from "@/components/ScratchCard";
-import { useScratchRules } from "@/hooks/useScratchRules";
+import { renderScratchRule, useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchWin {
   id: string;
@@ -157,7 +157,7 @@ const MyScratchCards = () => {
             >
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 {scratchRules.map((rule, i) => (
-                  <li key={i}>• {rule.replace("{min_value}", fmt(minOrderValue))}</li>
+                  <li key={i}>• {renderScratchRule(rule, fmt(minOrderValue))}</li>
                 ))}
               </ul>
             </motion.div>

@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useScratchRules } from "@/hooks/useScratchRules";
+import { renderScratchRule, useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchProgressBarProps {
   subtotal: number;
@@ -24,7 +24,7 @@ const ScratchRulesContent = ({ minValue }: { minValue: number }) => {
       <div className="rounded-xl border border-primary/10 bg-card p-3">
         <ul className="space-y-2">
           {rules.map((rule, i) => (
-            <li key={i}>• {rule.replace("{min_value}", fmt(minValue))}</li>
+            <li key={i}>• {renderScratchRule(rule, fmt(minValue))}</li>
           ))}
         </ul>
       </div>

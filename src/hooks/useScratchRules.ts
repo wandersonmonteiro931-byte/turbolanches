@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { ReactNode, createElement, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const DEFAULT_RULES = [
-  "O subtotal dos produtos precisa ser igual ou maior que o valor mínimo configurado.",
+  "O subtotal dos produtos precisa ser igual ou maior que {min_value}.",
   "A taxa de entrega não entra no cálculo da promoção.",
   "Pedidos que utilizam cupom de desconto não participam da raspadinha.",
   "A raspadinha só fica disponível quando o pedido for entregue com sucesso.",
@@ -14,6 +14,30 @@ const DEFAULT_RULES = [
 ];
 
 export const SCRATCH_RULES_KEY = "scratch_rules";
+
+export const renderScratchRule = (rule: string, minValueLabel: string): ReactNode[] => {
+  const normalizedRule = rule.replace(/o valor mínimo configurado/g, "{min_value}");
+  const parts = normalizedRule.split("{min_value}");
+
+  return parts.flatMap((part, index) => {
+    const nodes: ReactNode[] = [part];
+
+    if (index < parts.length - 1) {
+      nodes.push(
+        createElement(
+          "span",
+          {
+            key: `min-${index}`,
+            className: "font-semibold text-foreground",
+          },
+          minValueLabel,
+        ),
+      );
+    }
+
+    return nodes;
+  });
+};
 
 export const useScratchRules = () => {
   const [rules, setRules] = useState<string[]>(DEFAULT_RULES);
@@ -35,8 +59,10 @@ export const useScratchRules = () => {
           }
         } catch {}
       }
+
       setLoading(false);
     };
+
     void fetch();
   }, []);
 
