@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import ScratchCard from "@/components/ScratchCard";
 import { toast } from "sonner";
 import { formatTimeBR } from "@/lib/brasiliaTime";
 import { motion } from "framer-motion";
@@ -521,10 +520,6 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
-        {/* Scratch Card - only after delivery */}
-        {order.status === "delivered" && (
-          <ScratchCard orderId={order.id} orderSubtotal={Number(order.subtotal)} />
-        )}
 
         {/* Back to menu */}
         <motion.div
