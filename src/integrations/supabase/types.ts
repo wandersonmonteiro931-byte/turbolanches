@@ -1399,7 +1399,7 @@ export type Database = {
         Args: {
           _code: string
           _expires_at: string
-          _store_id: string
+          _store_id?: string
           _type: string
           _value: number
         }
