@@ -97,7 +97,11 @@ const MyScratchCards = () => {
   const getStatus = (w: ScratchWin) => {
     if (w.no_prize) return { label: "Sem prêmio", variant: "secondary" as const };
     if (w.redeemed_at) return { label: "Resgatado ✅", variant: "default" as const };
-    if (new Date(w.expires_at) < new Date()) return { label: "Expirado", variant: "destructive" as const };
+    const now = new Date();
+    const expires = new Date(w.expires_at);
+    if (expires < now) return { label: "CUPOM VENCIDO", variant: "destructive" as const };
+    const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft <= 5) return { label: "CUPOM VENCENDO", variant: "destructive" as const };
     return { label: "Disponível", variant: "outline" as const };
   };
 
