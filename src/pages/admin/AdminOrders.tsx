@@ -218,11 +218,7 @@ const AdminOrders = () => {
   const filteredOrders = useMemo(() => {
     let result = allOrders;
 
-    // Filter PIX pending/cancelled
-    result = result.filter((o) => {
-      if (o.payment_method === "pix" && (o.status === "pending" || o.status === "cancelled")) return false;
-      return true;
-    });
+    // Show all orders — no filtering
 
     // Search
     if (searchQuery.length >= 1) {
