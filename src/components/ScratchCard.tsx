@@ -88,20 +88,33 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     canvas.height = rect.height * 2;
     ctx.scale(2, 2);
 
+    // Vibrant red-to-orange gradient instead of yellow
     const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height);
-    gradient.addColorStop(0, "#FFD700");
-    gradient.addColorStop(0.5, "#FFA500");
-    gradient.addColorStop(1, "#FFD700");
+    gradient.addColorStop(0, "#E11D48");
+    gradient.addColorStop(0.5, "#F97316");
+    gradient.addColorStop(1, "#E11D48");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    ctx.fillStyle = "#B8860B";
-    ctx.font = "bold 18px sans-serif";
+    // Sparkle dots
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    for (let i = 0; i < 30; i++) {
+      const sx = Math.random() * rect.width;
+      const sy = Math.random() * rect.height;
+      const sr = Math.random() * 3 + 1;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 20px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("RASPE AQUI!", rect.width / 2, rect.height / 2 - 10);
-    ctx.font = "12px sans-serif";
-    ctx.fillText("Arraste para revelar", rect.width / 2, rect.height / 2 + 14);
+    ctx.fillText("✨ RASPE AQUI! ✨", rect.width / 2, rect.height / 2 - 12);
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText("Arraste o dedo para revelar", rect.width / 2, rect.height / 2 + 14);
   }, []);
 
   useEffect(() => {
@@ -275,79 +288,111 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
+      initial={{ opacity: 0, y: 28, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-[28px] border border-primary/20 bg-[radial-gradient(circle_at_top_left,hsl(var(--scratch-amber)/0.35),transparent_32%),radial-gradient(circle_at_bottom_right,hsl(var(--primary)/0.18),transparent_35%),linear-gradient(135deg,hsl(var(--card)),hsl(var(--scratch-surface)))] p-5 shadow-fire-lg"
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-[28px] border-2 border-primary/25 bg-gradient-to-br from-primary/10 via-card to-fire-orange/10 p-5 shadow-fire-lg"
     >
+      {/* Animated floating blobs */}
       <motion.div
-        className="pointer-events-none absolute -left-10 top-6 h-20 w-20 rounded-full bg-scratch-amber/25 blur-2xl"
-        animate={{ x: [0, 10, -6, 0], y: [0, -8, 4, 0], scale: [1, 1.08, 0.96, 1] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -left-8 -top-4 h-28 w-28 rounded-full bg-primary/20 blur-3xl"
+        animate={{ x: [0, 18, -10, 0], y: [0, -12, 8, 0], scale: [1, 1.2, 0.9, 1] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="pointer-events-none absolute -right-6 bottom-4 h-24 w-24 rounded-full bg-primary/15 blur-2xl"
-        animate={{ x: [0, -10, 4, 0], y: [0, 6, -6, 0], scale: [1, 0.95, 1.06, 1] }}
-        transition={{ duration: 5.4, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute -bottom-6 -right-6 h-32 w-32 rounded-full bg-fire-orange/20 blur-3xl"
+        animate={{ x: [0, -14, 8, 0], y: [0, 10, -10, 0], scale: [1, 0.85, 1.15, 1] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent"
-        animate={{ opacity: [0.35, 0.9, 0.35] }}
-        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        className="pointer-events-none absolute left-1/2 top-1/2 h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fire-yellow/10 blur-2xl"
+        animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.3, 0.7, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
 
+      {/* Shimmering top stripe */}
+      <motion.div
+        className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent"
+        animate={{ opacity: [0.2, 1, 0.2] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Header */}
       <div className="relative mb-4 flex items-center gap-3">
         <motion.div
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-fire"
-          animate={{ rotate: [0, -10, 10, 0], scale: [1, 1.06, 1] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
+          animate={{
+            rotate: [0, -8, 8, -4, 4, 0],
+            scale: [1, 1.1, 1, 1.05, 1],
+            y: [0, -3, 0, -1, 0],
+          }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         >
-          <Sparkles size={20} />
+          <Gift size={22} />
         </motion.div>
-        <div>
-          <h3 className="text-base font-extrabold text-foreground">
-            {alreadyScratched ? "Sua Raspadinha" : "Você ganhou uma Raspadinha!"}
-          </h3>
+        <div className="flex-1">
+          <motion.h3
+            className="text-base font-extrabold text-foreground"
+            animate={{ x: [0, 2, -1, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {alreadyScratched ? "🎊 Sua Raspadinha" : "🎉 Você ganhou uma Raspadinha!"}
+          </motion.h3>
           <p className="text-xs text-muted-foreground">
-            {revealed ? "Seu prêmio já foi revelado" : "Raspe e descubra seu prêmio agora"}
+            {revealed ? "Prêmio revelado!" : "Raspe e descubra seu prêmio"}
           </p>
         </div>
+        <motion.div
+          animate={{ rotate: [0, 360] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+        >
+          <Sparkles size={18} className="text-fire-orange" />
+        </motion.div>
       </div>
 
       {!revealed ? (
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative h-44 w-full overflow-hidden rounded-[24px] border border-primary/15 bg-[linear-gradient(135deg,hsl(var(--background)),hsl(var(--card)))] p-2"
+          transition={{ delay: 0.1 }}
+          className="relative h-48 w-full overflow-hidden rounded-[22px] border-2 border-primary/15 bg-gradient-to-br from-background via-card to-background"
         >
+          {/* Corner decorations */}
+          <motion.div className="pointer-events-none absolute left-3 top-3 text-xl" animate={{ rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}>🎁</motion.div>
+          <motion.div className="pointer-events-none absolute right-3 top-3 text-xl" animate={{ rotate: [0, -20, 20, 0], scale: [1, 1.15, 1] }} transition={{ duration: 2.3, repeat: Infinity }}>⭐</motion.div>
+          <motion.div className="pointer-events-none absolute bottom-3 left-3 text-xl" animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 1.8, repeat: Infinity }}>🎀</motion.div>
+          <motion.div className="pointer-events-none absolute bottom-3 right-3 text-xl" animate={{ rotate: [0, -15, 15, 0] }} transition={{ duration: 2.1, repeat: Infinity }}>🎊</motion.div>
+
+          {/* Pulsing dashed border */}
           <motion.div
-            className="pointer-events-none absolute inset-3 rounded-[20px] border border-dashed border-primary/15"
-            animate={{ opacity: [0.35, 0.7, 0.35] }}
-            transition={{ duration: 1.6, repeat: Infinity }}
+            className="pointer-events-none absolute inset-4 rounded-[18px] border-2 border-dashed border-primary/20"
+            animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.005, 1] }}
+            transition={{ duration: 1.4, repeat: Infinity }}
           />
+
+          {/* Center content under scratch */}
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
               className="text-center"
-              animate={{ y: [0, -6, 0], scale: [1, 1.03, 1] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+              animate={{ y: [0, -8, 0], scale: [1, 1.04, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
             >
               <motion.div
-                className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-scratch-amber/15 text-primary"
-                animate={{ rotate: [0, -12, 12, 0] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-fire-orange/20 text-primary"
+                animate={{ rotate: [0, -15, 15, 0], scale: [1, 1.08, 0.95, 1] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Gift size={28} />
+                <Gift size={30} />
               </motion.div>
-              <p className="text-sm font-extrabold uppercase tracking-[0.18em] text-foreground">
-                Raspadinha premiada
+              <p className="text-sm font-extrabold uppercase tracking-[0.15em] text-foreground">
+                Prêmio surpresa!
               </p>
-              <p className="mt-1 text-xs text-muted-foreground">Arraste o dedo para revelar</p>
             </motion.div>
           </div>
 
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 h-full w-full cursor-pointer touch-none rounded-[24px]"
+            className="absolute inset-0 h-full w-full cursor-pointer touch-none rounded-[22px]"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -357,58 +402,99 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
       ) : (
         <AnimatePresence>
           <motion.div
-            initial={{ scale: 0.86, opacity: 0, rotate: -2 }}
+            initial={{ scale: 0.8, opacity: 0, rotate: -3 }}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            transition={{ type: "spring", bounce: 0.55, duration: 0.8 }}
-            className="relative overflow-hidden rounded-[24px] border border-primary/15 bg-card p-5 text-center shadow-fire"
+            transition={{ type: "spring", bounce: 0.6, duration: 0.9 }}
+            className="relative overflow-hidden rounded-[22px] border-2 border-primary/15 bg-card p-6 text-center shadow-fire"
           >
+            {/* Animated rainbow top bar */}
             <motion.div
-              className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-scratch-amber via-primary to-scratch-orange"
-              animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              style={{ backgroundSize: "200% 200%" }}
+              className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-primary via-fire-orange to-fire-yellow"
+              animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: "200% 100%" }}
             />
 
             {scratching ? (
-              <div className="py-6">
+              <div className="py-8">
                 <motion.div
-                  animate={{ rotate: 360, scale: [1, 1.15, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.1, ease: "linear" }}
-                  className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary"
+                  animate={{ rotate: 360, scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 0.9, ease: "linear" }}
+                  className="mx-auto mb-3 flex h-18 w-18 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-fire-orange/15 text-primary"
                 >
-                  <Gift size={28} />
+                  <Gift size={32} />
                 </motion.div>
                 <motion.p
-                  className="text-sm font-bold text-foreground"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
+                  className="text-base font-bold text-foreground"
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1, repeat: Infinity }}
                 >
-                  Revelando seu prêmio...
+                  ✨ Revelando... ✨
                 </motion.p>
               </div>
             ) : result ? (
               <>
+                {/* Confetti-like floating emojis */}
+                {["🎉", "🎊", "⭐", "✨", "🎁", "💥"].map((emoji, i) => (
+                  <motion.span
+                    key={i}
+                    className="pointer-events-none absolute text-lg"
+                    style={{ left: `${12 + i * 14}%`, top: "-10%" }}
+                    initial={{ y: -20, opacity: 0, rotate: 0 }}
+                    animate={{
+                      y: ["-10%", "110%"],
+                      opacity: [0, 1, 1, 0],
+                      rotate: [0, 180 + i * 30],
+                      x: [0, (i % 2 === 0 ? 15 : -15)],
+                    }}
+                    transition={{
+                      duration: 2 + i * 0.3,
+                      delay: i * 0.15,
+                      repeat: Infinity,
+                      repeatDelay: 3,
+                      ease: "easeIn",
+                    }}
+                  >
+                    {emoji}
+                  </motion.span>
+                ))}
+
                 <motion.div
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: "spring", bounce: 0.65, duration: 0.9 }}
-                  className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-scratch-amber/15 text-primary"
+                  transition={{ type: "spring", bounce: 0.7, duration: 1 }}
+                  className="mx-auto mb-3 flex h-18 w-18 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-fire-orange/15 text-primary"
                 >
-                  <Sparkles size={30} />
+                  <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    <Sparkles size={34} />
+                  </motion.div>
                 </motion.div>
-                <p className="mb-1 text-xl font-extrabold text-foreground">Parabéns!</p>
-                <p className="mb-4 text-sm text-muted-foreground">
+
+                <motion.p
+                  className="mb-1 text-xl font-extrabold text-foreground"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  🎉 Parabéns! 🎉
+                </motion.p>
+                <motion.p
+                  className="mb-4 text-sm text-muted-foreground"
+                  initial={{ y: 10, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
                   Você ganhou um cupom de{" "}
                   <span className="font-bold text-primary">
                     {formatDiscount(result.discount_type, result.discount_value)}
                   </span>{" "}
-                  de desconto.
-                </p>
+                  de desconto!
+                </motion.p>
                 <motion.div
-                  className="mb-3 flex items-center justify-center gap-2 rounded-2xl border border-primary/10 bg-muted/70 p-3"
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.15 }}
+                  className="mb-3 flex items-center justify-center gap-2 rounded-2xl border-2 border-primary/10 bg-gradient-to-r from-muted/70 to-muted/50 p-3"
+                  initial={{ y: 12, opacity: 0, scale: 0.95 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.35, type: "spring", bounce: 0.4 }}
                 >
                   <span className="font-mono text-lg font-bold tracking-[0.2em] text-foreground">
                     {result.coupon_code}
@@ -417,14 +503,19 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
                     {copied ? <Check size={16} className="text-primary" /> : <Copy size={16} />}
                   </Button>
                 </motion.div>
-                <p className="text-xs text-muted-foreground">
+                <motion.p
+                  className="text-xs text-muted-foreground"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
                   Válido até{" "}
                   {new Date(result.expires_at).toLocaleDateString("pt-BR", {
                     day: "2-digit",
                     month: "long",
                     year: "numeric",
                   })}
-                </p>
+                </motion.p>
               </>
             ) : null}
           </motion.div>
