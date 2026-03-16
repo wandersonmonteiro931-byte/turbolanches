@@ -88,20 +88,33 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     canvas.height = rect.height * 2;
     ctx.scale(2, 2);
 
+    // Vibrant red-to-orange gradient instead of yellow
     const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height);
-    gradient.addColorStop(0, "#FFD700");
-    gradient.addColorStop(0.5, "#FFA500");
-    gradient.addColorStop(1, "#FFD700");
+    gradient.addColorStop(0, "#E11D48");
+    gradient.addColorStop(0.5, "#F97316");
+    gradient.addColorStop(1, "#E11D48");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    ctx.fillStyle = "#B8860B";
-    ctx.font = "bold 18px sans-serif";
+    // Sparkle dots
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
+    for (let i = 0; i < 30; i++) {
+      const sx = Math.random() * rect.width;
+      const sy = Math.random() * rect.height;
+      const sr = Math.random() * 3 + 1;
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 20px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("RASPE AQUI!", rect.width / 2, rect.height / 2 - 10);
-    ctx.font = "12px sans-serif";
-    ctx.fillText("Arraste para revelar", rect.width / 2, rect.height / 2 + 14);
+    ctx.fillText("✨ RASPE AQUI! ✨", rect.width / 2, rect.height / 2 - 12);
+    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText("Arraste o dedo para revelar", rect.width / 2, rect.height / 2 + 14);
   }, []);
 
   useEffect(() => {
