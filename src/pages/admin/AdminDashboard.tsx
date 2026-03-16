@@ -16,6 +16,16 @@ import { useStore } from "@/contexts/StoreContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Order {
   id: string;
@@ -144,15 +154,67 @@ const AdminDashboard = () => {
     }
   }, [selectedDate, storeId]);
 
+  const applyStoreSettings = useCallback((data: StoreSettings) => {
+    setStoreSettings(data);
+    setScheduleOpen(data.scheduled_open || "");
+    setScheduleClose(data.scheduled_close || "");
+  }, []);
+
   const fetchStoreSettings = useCallback(async () => {
-    if (!storeId) return;
-    const { data } = await supabase.from("store_settings").select("*").eq("store_id", storeId).limit(1).single();
+    if (!storeId) return null;
+
+    const { data } = await supabase
+      .from("store_settings")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
     if (data) {
-      setStoreSettings(data as StoreSettings);
-      setScheduleOpen(data.scheduled_open || "");
-      setScheduleClose(data.scheduled_close || "");
+      const settings = data as StoreSettings;
+      applyStoreSettings(settings);
+      return settings;
     }
-  }, [storeId]);
+
+    return null;
+  }, [applyStoreSettings, storeId]);
+
+  const ensureStoreSettings = useCallback(async () => {
+    if (storeSettings) return storeSettings;
+
+    if (!storeId) {
+      toast({ title: "Carregando dados da loja..." });
+      return null;
+    }
+
+    const existingSettings = await fetchStoreSettings();
+    if (existingSettings) return existingSettings;
+
+    const { data, error } = await supabase
+      .from("store_settings")
+      .insert({ store_id: storeId })
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .single();
+
+    if (error || !data) {
+      toast({ title: "Erro ao carregar configurações da loja", variant: "destructive" });
+      return null;
+    }
+
+    const settings = data as StoreSettings;
+    applyStoreSettings(settings);
+    return settings;
+  }, [applyStoreSettings, fetchStoreSettings, storeId, storeSettings, toast]);
+
+  const requestToggleConfirmation = useCallback(async () => {
+    if (togglingStore) return;
+
+    const settings = await ensureStoreSettings();
+    if (!settings) return;
+
+    setShowToggleConfirm(true);
+  }, [ensureStoreSettings, togglingStore]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
@@ -219,9 +281,12 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (!storeSettings || togglingStore) return;
+    if (togglingStore) return;
 
-    const previousSettings = storeSettings;
+    const currentSettings = await ensureStoreSettings();
+    if (!currentSettings) return;
+
+    const previousSettings = currentSettings;
     const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
     const nextSettings: StoreSettings = {
@@ -232,7 +297,7 @@ const AdminDashboard = () => {
     };
 
     setTogglingStore(true);
-    setStoreSettings(nextSettings);
+    applyStoreSettings(nextSettings);
 
     const { error } = await supabase
       .from("store_settings")
@@ -244,7 +309,7 @@ const AdminDashboard = () => {
       .eq("id", previousSettings.id);
 
     if (error) {
-      setStoreSettings(previousSettings);
+      applyStoreSettings(previousSettings);
       toast({ title: "Erro ao alterar status da loja", variant: "destructive" });
       setTogglingStore(false);
       return;
@@ -528,16 +593,26 @@ const AdminDashboard = () => {
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <button
-          onClick={() => setShowToggleConfirm(true)}
-          disabled={!storeSettings || togglingStore}
-          className={`flex items-center gap-2 rounded-lg px-5 py-3 font-bold text-sm transition-all ${
+          onClick={requestToggleConfirmation}
+          aria-busy={togglingStore}
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold transition-all",
             storeSettings?.is_open
-              ? "bg-green-600 text-white hover:bg-green-700"
-              : "bg-red-600 text-white hover:bg-red-700"
-          } disabled:cursor-not-allowed disabled:opacity-60`}
+              ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              : "bg-primary text-primary-foreground hover:bg-primary/90",
+            togglingStore && "opacity-70",
+          )}
         >
           <Power size={18} />
-          {togglingStore ? (storeSettings?.is_open ? "FECHANDO..." : "ABRINDO...") : storeSettings?.is_open ? "FECHAR LOJA" : "ABRIR LOJA"}
+          {togglingStore
+            ? storeSettings?.is_open
+              ? "FECHANDO..."
+              : "ABRINDO..."
+            : storeSettings
+              ? storeSettings.is_open
+                ? "FECHAR LOJA"
+                : "ABRIR LOJA"
+              : "ABRIR/FECHAR LOJA"}
         </button>
 
         <button
@@ -704,43 +779,43 @@ const AdminDashboard = () => {
       )}
 
       {/* Toggle Store Confirmation Modal */}
-      {showToggleConfirm && storeSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+      <AlertDialog open={showToggleConfirm} onOpenChange={setShowToggleConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <Power size={24} className={storeSettings.is_open ? "text-red-500" : "text-green-500"} />
-              <h3 className="text-lg font-bold text-foreground">
-                {storeSettings.is_open ? "Fechar a loja?" : "Abrir a loja?"}
-              </h3>
+              <Power size={24} className={storeSettings?.is_open ? "text-destructive" : "text-primary"} />
+              <AlertDialogTitle>
+                {storeSettings?.is_open ? "Fechar a loja?" : "Abrir a loja?"}
+              </AlertDialogTitle>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {storeSettings.is_open
-                ? "A loja será fechada manualmente. Clientes não poderão fazer pedidos até que você abra novamente."
-                : "A loja será aberta manualmente, mesmo fora do horário programado. Clientes poderão fazer pedidos."}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowToggleConfirm(false)}
-                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={async () => {
-                  setShowToggleConfirm(false);
+            <AlertDialogDescription>
+              {storeSettings?.is_open
+                ? "A loja será fechada manualmente agora, independentemente do horário ou do dia cadastrado."
+                : "A loja será aberta manualmente agora, independentemente do horário ou do dia cadastrado."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={togglingStore}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void (async () => {
                   await toggleStore();
-                }}
-                disabled={togglingStore}
-                className={`flex-1 rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-60 ${
-                  storeSettings.is_open ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"
-                }`}
-              >
-                {storeSettings.is_open ? "Sim, fechar" : "Sim, abrir"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                  setShowToggleConfirm(false);
+                })();
+              }}
+              disabled={togglingStore}
+              className={cn(
+                storeSettings?.is_open
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+            >
+              {storeSettings?.is_open ? "Sim, fechar" : "Sim, abrir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
