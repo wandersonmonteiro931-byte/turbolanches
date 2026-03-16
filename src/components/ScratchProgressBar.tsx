@@ -17,16 +17,33 @@ interface ScratchProgressBarProps {
   hasCoupon?: boolean;
 }
 const ScratchRulesContent = ({ minValue }: { minValue: number }) => {
-  const { rules } = useScratchRules();
+  const { rules, howItWorks } = useScratchRules();
   const fmt = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+  const fmtLabel = fmt(minValue);
   return (
-    <div className="space-y-3 text-sm text-muted-foreground">
-      <div className="rounded-xl border border-primary/10 bg-card p-3">
-        <ul className="space-y-2">
-          {rules.map((rule, i) => (
-            <li key={i}>• {renderScratchRule(rule, fmt(minValue))}</li>
-          ))}
-        </ul>
+    <div className="space-y-4 text-sm text-muted-foreground">
+      {/* Como funciona */}
+      <div>
+        <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-foreground">🎯 Como funciona</h4>
+        <div className="rounded-xl border border-primary/10 bg-card p-3">
+          <ol className="list-decimal list-inside space-y-1.5">
+            {howItWorks.map((step, i) => (
+              <li key={i} className="text-xs">{renderScratchRule(step, fmtLabel)}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {/* Regras */}
+      <div>
+        <h4 className="mb-1.5 text-xs font-bold uppercase tracking-wider text-foreground">📋 Regras</h4>
+        <div className="rounded-xl border border-primary/10 bg-card p-3">
+          <ul className="space-y-1.5">
+            {rules.map((rule, i) => (
+              <li key={i} className="text-xs">• {renderScratchRule(rule, fmtLabel)}</li>
+            ))}
+          </ul>
+        </div>
       </div>
     </div>
   );

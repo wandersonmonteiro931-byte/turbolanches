@@ -41,7 +41,7 @@ const MyScratchCards = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [minOrderValue, setMinOrderValue] = useState(0);
-  const { rules: scratchRules } = useScratchRules();
+  const { rules: scratchRules, howItWorks: scratchHowItWorks } = useScratchRules();
 
   useEffect(() => {
     if (!user) return;
@@ -142,7 +142,7 @@ const MyScratchCards = () => {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                 <Info size={16} className="text-primary" />
               </div>
-              <h2 className="text-sm font-bold text-foreground">Regras da Raspadinha Premiada</h2>
+              <h2 className="text-sm font-bold text-foreground">Como funciona & Regras</h2>
             </div>
             <motion.div animate={{ rotate: rulesOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
               <ChevronDown size={18} className="text-muted-foreground" />
@@ -155,6 +155,16 @@ const MyScratchCards = () => {
               exit={{ opacity: 0, height: 0 }}
               className="px-4 pb-4"
             >
+              {/* Como funciona */}
+              <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground">🎯 Como funciona</h4>
+              <ol className="list-decimal list-inside space-y-1.5 text-xs text-muted-foreground mb-3">
+                {scratchHowItWorks.map((step, i) => (
+                  <li key={i}>{renderScratchRule(step, fmt(minOrderValue))}</li>
+                ))}
+              </ol>
+
+              {/* Regras */}
+              <h4 className="mb-1 text-[11px] font-bold uppercase tracking-wider text-foreground">📋 Regras</h4>
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 {scratchRules.map((rule, i) => (
                   <li key={i}>• {renderScratchRule(rule, fmt(minOrderValue))}</li>

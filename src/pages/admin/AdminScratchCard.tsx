@@ -55,6 +55,7 @@ interface ScratchWin {
 const AdminScratchCard = () => {
   const { storeId } = useStore();
   const [rulesText, setRulesText] = useState("");
+  const [howItWorksText, setHowItWorksText] = useState("");
   const [rulesLoaded, setRulesLoaded] = useState(false);
   const [settings, setSettings] = useState<ScratchSettings>({
     store_id: null,
@@ -107,21 +108,30 @@ const AdminScratchCard = () => {
       }
     }
 
-    // Fetch editable rules
+    // Fetch editable rules & how it works
     if (!rulesLoaded) {
-      const { data: rulesData } = await supabase
+      const { data: contentRows } = await supabase
         .from("site_content")
-        .select("value")
-        .eq("key", "scratch_rules")
-        .maybeSingle();
-      if (rulesData?.value) {
-        try {
-          const parsed = JSON.parse(rulesData.value as string);
-          if (Array.isArray(parsed)) setRulesText(parsed.join("\n"));
-        } catch {}
-      } else {
+        .select("key, value")
+        .in("key", ["scratch_rules", "scratch_how_it_works"]);
+
+      let foundRules = false;
+      let foundHow = false;
+
+      if (contentRows) {
+        for (const row of contentRows) {
+          try {
+            const parsed = JSON.parse(row.value as string);
+            if (!Array.isArray(parsed)) continue;
+            if (row.key === "scratch_rules") { setRulesText(parsed.join("\n")); foundRules = true; }
+            if (row.key === "scratch_how_it_works") { setHowItWorksText(parsed.join("\n")); foundHow = true; }
+          } catch {}
+        }
+      }
+
+      if (!foundRules) {
         setRulesText([
-          "O subtotal dos produtos precisa ser igual ou maior que o valor mínimo configurado.",
+          "O subtotal dos produtos precisa ser igual ou maior que {min_value}.",
           "A taxa de entrega não entra no cálculo da promoção.",
           "Pedidos que utilizam cupom de desconto não participam da raspadinha.",
           "A raspadinha só fica disponível quando o pedido for entregue com sucesso.",
@@ -132,6 +142,16 @@ const AdminScratchCard = () => {
           "O desconto do cupom não se aplica à taxa de entrega.",
         ].join("\n"));
       }
+      if (!foundHow) {
+        setHowItWorksText([
+          "Faça um pedido com subtotal a partir de {min_value} (sem contar a taxa de entrega).",
+          "Aguarde seu pedido ser entregue com sucesso.",
+          'Acesse a seção "Presentes" no menu inferior e raspe sua raspadinha virtual!',
+          "Ao raspar, você ganha um cupom de desconto exclusivo para usar no próximo pedido.",
+          "Copie o código do cupom e aplique no carrinho antes de finalizar a compra.",
+        ].join("\n"));
+      }
+
       setRulesLoaded(true);
     }
   }, [storeId]);
@@ -270,16 +290,58 @@ const AdminScratchCard = () => {
                   <p>• Se o estoque de uma categoria acabar, o sistema busca o próximo disponível.</p>
                 </div>
 
-                {/* Editable customer-facing rules */}
+                {/* Editable how-it-works */}
                 <Card className="border-primary/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-1.5">
-                      <Info size={14} className="text-primary" /> Regras visíveis para o cliente
+                      🎯 Como funciona (visível para o cliente)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <p className="text-xs text-muted-foreground">
-                      Cada linha será exibida como um item nas regras da raspadinha. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para inserir o valor mínimo automaticamente.
+                      Cada linha será um passo numerado. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para o valor mínimo.
+                    </p>
+                    <Textarea
+                      rows={6}
+                      value={howItWorksText}
+                      onChange={(e) => setHowItWorksText(e.target.value)}
+                      placeholder="Um passo por linha..."
+                      className="text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        const arr = howItWorksText.split("\n").map(r => r.trim()).filter(Boolean);
+                        const jsonValue = JSON.stringify(arr);
+                        const { data: existing } = await supabase
+                          .from("site_content").select("id").eq("key", "scratch_how_it_works").maybeSingle();
+                        if (existing) {
+                          await supabase.from("site_content").update({ value: jsonValue }).eq("id", existing.id);
+                        } else {
+                          await supabase.from("site_content").insert({ key: "scratch_how_it_works", value: jsonValue, content_type: "json", store_id: storeId });
+                        }
+                        toast.success("Passos salvos!");
+                        setSaving(false);
+                      }}
+                    >
+                      {saving ? "Salvando..." : "Salvar Como Funciona"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Editable customer-facing rules */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-1.5">
+                      📋 Regras (visíveis para o cliente)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Cada linha será exibida como um item nas regras. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para o valor mínimo.
                     </p>
                     <Textarea
                       rows={10}
@@ -296,22 +358,12 @@ const AdminScratchCard = () => {
                         setSaving(true);
                         const rulesArray = rulesText.split("\n").map(r => r.trim()).filter(Boolean);
                         const jsonValue = JSON.stringify(rulesArray);
-
                         const { data: existing } = await supabase
-                          .from("site_content")
-                          .select("id")
-                          .eq("key", "scratch_rules")
-                          .maybeSingle();
-
+                          .from("site_content").select("id").eq("key", "scratch_rules").maybeSingle();
                         if (existing) {
                           await supabase.from("site_content").update({ value: jsonValue }).eq("id", existing.id);
                         } else {
-                          await supabase.from("site_content").insert({
-                            key: "scratch_rules",
-                            value: jsonValue,
-                            content_type: "json",
-                            store_id: storeId,
-                          });
+                          await supabase.from("site_content").insert({ key: "scratch_rules", value: jsonValue, content_type: "json", store_id: storeId });
                         }
                         toast.success("Regras salvas!");
                         setSaving(false);
