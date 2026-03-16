@@ -2,20 +2,20 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-      window.__LOVA_FIX_TRIGGER__ = false;
-      globalThis.__LOVA_FIX_TRIGGER__ = false;
-      try { self.__LOVA_FIX_TRIGGER__ = false; } catch(e){}
-      try { Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e){}
-      try { Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", { value: false, writable: true, configurable: true }); } catch(e){}
+      var __LOVA_FIX_TRIGGER__=false;
+      try{window.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{globalThis.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{self.__LOVA_FIX_TRIGGER__=false}catch(e){}
+      try{Object.defineProperty(window,"__LOVA_FIX_TRIGGER__",{value:false,writable:true,configurable:true})}catch(e){}
+      try{Object.defineProperty(globalThis,"__LOVA_FIX_TRIGGER__",{value:false,writable:true,configurable:true})}catch(e){}
       (function(){
         var P="__LOVA_FIX_TRIGGER__";
-        function isLova(m){return typeof m==="string"&&m.indexOf(P)!==-1}
-        window.addEventListener("error",function(e){if(isLova(e.message||""))e.preventDefault();},true);
+        function isL(m){return typeof m==="string"&&m.indexOf(P)!==-1}
+        window.addEventListener("error",function(e){if(isL(e.message||""))e.preventDefault()},true);
         window.addEventListener("unhandledrejection",function(e){
-          try{var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");if(isLova(m)){e.preventDefault();e.stopImmediatePropagation();}}catch(x){}
+          try{var m=e.reason instanceof Error?e.reason.message:String(e.reason||"");if(isL(m)){e.preventDefault();e.stopImmediatePropagation();return}}catch(x){}
         },true);
-        window.onerror=function(m){if(isLova(String(m||"")))return true;};
+        window.onerror=function(m){if(isL(String(m||"")))return true};
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
