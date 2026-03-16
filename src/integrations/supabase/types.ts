@@ -986,6 +986,7 @@ export type Database = {
           name: string
           remaining_quantity: number
           store_id: string | null
+          tier: string
           total_quantity: number
           updated_at: string
           validity_days: number
@@ -999,6 +1000,7 @@ export type Database = {
           name: string
           remaining_quantity?: number
           store_id?: string | null
+          tier?: string
           total_quantity?: number
           updated_at?: string
           validity_days?: number
@@ -1012,6 +1014,7 @@ export type Database = {
           name?: string
           remaining_quantity?: number
           store_id?: string | null
+          tier?: string
           total_quantity?: number
           updated_at?: string
           validity_days?: number
