@@ -127,7 +127,7 @@ const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
               </p>
 
               <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/80">
-                Toque na barra para ver as regras
+                Ver regras
               </p>
             </button>
           </DialogTrigger>
