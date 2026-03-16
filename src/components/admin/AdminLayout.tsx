@@ -20,6 +20,7 @@ const navItems = [
   { path: "/admin/cupons", icon: Ticket, label: "Cupons" },
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
   { path: "/admin/administradores", icon: Shield, label: "Admins" },
+  { path: "/admin/raspadinha", icon: Sparkles, label: "Raspadinha" },
   { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
