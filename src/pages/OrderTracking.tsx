@@ -239,6 +239,71 @@ const OrderTracking = () => {
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
+        {/* Scratch card teaser - TOP of page */}
+        {scratchEligible && order.status !== "cancelled" && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="relative overflow-hidden rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/8 via-card to-fire-orange/8 p-5 shadow-fire"
+          >
+            <motion.div
+              className="pointer-events-none absolute -left-6 -top-6 h-20 w-20 rounded-full bg-primary/15 blur-3xl"
+              animate={{ x: [0, 14, -8, 0], y: [0, -10, 6, 0], scale: [1, 1.15, 0.9, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="pointer-events-none absolute -bottom-6 -right-6 h-20 w-20 rounded-full bg-fire-orange/15 blur-3xl"
+              animate={{ x: [0, -12, 6, 0], y: [0, 8, -8, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="pointer-events-none absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent"
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <div className="relative flex items-center gap-3">
+              <motion.div
+                className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
+                animate={{ rotate: [0, -8, 8, -4, 4, 0], scale: [1, 1.12, 1, 1.06, 1], y: [0, -3, 0, -1, 0] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Gift size={24} />
+              </motion.div>
+              <div className="flex-1">
+                {alreadyScratched ? (
+                  <>
+                    <p className="text-sm font-extrabold text-foreground">🎉 Você ganhou uma raspadinha nesse pedido!</p>
+                    <p className="text-xs text-muted-foreground">Confira o resultado na seção <span className="font-semibold text-primary">Presentes</span>.</p>
+                  </>
+                ) : order.status === "delivered" ? (
+                  <>
+                    <motion.p className="text-sm font-extrabold text-foreground" animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 2, repeat: Infinity }}>🎉 Raspadinha Liberada!</motion.p>
+                    <p className="text-xs text-muted-foreground">Seu pedido foi entregue! Vá até <span className="font-semibold text-primary">Presentes</span> e raspe agora!</p>
+                  </>
+                ) : (
+                  <>
+                    <motion.p className="text-sm font-extrabold text-foreground" animate={{ scale: [1, 1.02, 1] }} transition={{ duration: 2, repeat: Infinity }}>🎁 Raspadinha Premiada!</motion.p>
+                    <p className="text-xs text-muted-foreground">Ao finalizar este pedido, você ganhará uma raspadinha na seção <span className="font-semibold text-primary">Presentes</span>!</p>
+                  </>
+                )}
+              </div>
+              <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 6, repeat: Infinity, ease: "linear" }}>
+                <Sparkles size={18} className="text-fire-orange" />
+              </motion.div>
+            </div>
+            <motion.button
+              onClick={() => navigate("/presentes")}
+              className="mt-3 w-full rounded-xl bg-primary/10 border border-primary/20 py-2.5 text-sm font-bold text-primary"
+              whileTap={{ scale: 0.97 }}
+              animate={order.status === "delivered" && !alreadyScratched ? { scale: [1, 1.03, 1] } : {}}
+              transition={order.status === "delivered" && !alreadyScratched ? { duration: 1.5, repeat: Infinity } : {}}
+            >
+              {alreadyScratched ? "Ver Presentes" : order.status === "delivered" ? "🎁 Raspar Agora!" : "Ver Presentes"}
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* Status Hero */}
         <motion.div
           key={order.status}
