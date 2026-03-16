@@ -274,12 +274,9 @@ const AdminDashboard = () => {
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
-    if (togglingStore) return;
+    if (togglingStore || !storeSettings) return;
 
-    const currentSettings = await ensureStoreSettings();
-    if (!currentSettings) return;
-
-    const previousSettings = currentSettings;
+    const previousSettings = storeSettings;
     const newOpen = !previousSettings.is_open;
     const timestamp = new Date().toISOString();
     const nextSettings: StoreSettings = {
