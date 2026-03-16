@@ -523,8 +523,55 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
+        {/* Scratch card teaser for eligible orders */}
+        {scratchEligible && order.status !== "delivered" && order.status !== "cancelled" && (
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="relative overflow-hidden rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/8 via-card to-fire-orange/8 p-5 shadow-fire"
+          >
+            <motion.div
+              className="pointer-events-none absolute -left-6 -top-6 h-20 w-20 rounded-full bg-primary/15 blur-3xl"
+              animate={{ x: [0, 14, -8, 0], y: [0, -10, 6, 0], scale: [1, 1.15, 0.9, 1] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="pointer-events-none absolute -bottom-6 -right-6 h-20 w-20 rounded-full bg-fire-orange/15 blur-3xl"
+              animate={{ x: [0, -12, 6, 0], y: [0, 8, -8, 0] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <div className="relative flex items-center gap-3">
+              <motion.div
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-fire-orange text-primary-foreground shadow-fire"
+                animate={{ rotate: [0, -6, 6, -3, 3, 0], scale: [1, 1.08, 1, 1.04, 1] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Gift size={22} />
+              </motion.div>
+              <div className="flex-1">
+                <p className="text-sm font-extrabold text-foreground">🎁 Raspadinha Premiada!</p>
+                <p className="text-xs text-muted-foreground">
+                  Ao finalizar este pedido, você ganhará uma raspadinha na seção <span className="font-semibold text-primary">Presentes</span>!
+                </p>
+              </div>
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              >
+                <Sparkles size={16} className="text-fire-orange" />
+              </motion.div>
+            </div>
+            <motion.button
+              onClick={() => navigate("/presentes")}
+              className="mt-3 w-full rounded-xl bg-primary/10 border border-primary/20 py-2 text-sm font-bold text-primary"
+              whileTap={{ scale: 0.97 }}
+            >
+              Ver Presentes
+            </motion.button>
+          </motion.div>
+        )}
 
-        {/* Back to menu */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
