@@ -106,6 +106,34 @@ const AdminScratchCard = () => {
         }
       }
     }
+
+    // Fetch editable rules
+    if (!rulesLoaded) {
+      const { data: rulesData } = await supabase
+        .from("site_content")
+        .select("value")
+        .eq("key", "scratch_rules")
+        .maybeSingle();
+      if (rulesData?.value) {
+        try {
+          const parsed = JSON.parse(rulesData.value as string);
+          if (Array.isArray(parsed)) setRulesText(parsed.join("\n"));
+        } catch {}
+      } else {
+        setRulesText([
+          "O subtotal dos produtos precisa ser igual ou maior que o valor mínimo configurado.",
+          "A taxa de entrega não entra no cálculo da promoção.",
+          "Pedidos que utilizam cupom de desconto não participam da raspadinha.",
+          "A raspadinha só fica disponível quando o pedido for entregue com sucesso.",
+          "Cada pedido elegível dá direito a apenas uma raspadinha.",
+          "A promoção depende da disponibilidade de prêmios cadastrados.",
+          "Ao raspar, você recebe um cupom de desconto vinculado à sua conta.",
+          "O cupom gerado é de uso único e possui validade.",
+          "O desconto do cupom não se aplica à taxa de entrega.",
+        ].join("\n"));
+      }
+      setRulesLoaded(true);
+    }
   }, [storeId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
