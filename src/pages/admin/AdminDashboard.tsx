@@ -161,14 +161,16 @@ const AdminDashboard = () => {
   }, []);
 
   const fetchStoreSettings = useCallback(async () => {
-    if (!storeId) return null;
-
-    const { data } = await supabase
+    let query = supabase
       .from("store_settings")
       .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
-      .eq("store_id", storeId)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (storeId) {
+      query = query.eq("store_id", storeId);
+    }
+
+    const { data } = await query.maybeSingle();
 
     if (data) {
       const settings = data as StoreSettings;
@@ -188,13 +190,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Still loading store context — show feedback
-    if (storeLoading || !storeId) {
-      toast({ title: "Aguarde, carregando loja..." });
-      return;
-    }
-
-    // storeId is available but settings weren't fetched yet — fetch now
+    // Fetch settings now (works even without storeId by falling back to first row)
     const fetched = await fetchStoreSettings();
     if (fetched) {
       setShowToggleConfirm(true);
@@ -202,7 +198,7 @@ const AdminDashboard = () => {
     }
 
     toast({ title: "Erro ao carregar configurações. Tente novamente.", variant: "destructive" });
-  }, [fetchStoreSettings, storeId, storeLoading, storeSettings, togglingStore, toast]);
+  }, [fetchStoreSettings, storeSettings, togglingStore, toast]);
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
