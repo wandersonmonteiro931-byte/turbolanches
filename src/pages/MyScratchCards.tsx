@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import ScratchCard from "@/components/ScratchCard";
-import { useScratchRules } from "@/hooks/useScratchRules";
+import { renderScratchRule, useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchWin {
   id: string;
