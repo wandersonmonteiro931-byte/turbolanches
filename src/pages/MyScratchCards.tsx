@@ -49,6 +49,7 @@ const MyScratchCards = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [minOrderValue, setMinOrderValue] = useState(0);
+  const { rules: scratchRules } = useScratchRules();
 
   useEffect(() => {
     if (!user) return;
