@@ -15,7 +15,7 @@ import AddressSelector from "@/components/AddressSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
-import logoTurboTransparent from "@/assets/logo-turbo-transparent.png";
+import footerLogo from "@/assets/footer-logo-source.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -335,9 +335,9 @@ const Index = () => {
 
       <footer className="mx-auto mt-10 max-w-md border-t border-border px-4 pb-24 pt-6 text-center">
         <img
-          src={logoTurboTransparent}
-          alt="Logotipo Turbo Lanches"
-          className="mx-auto h-16 w-auto object-contain"
+          src={footerLogo}
+          alt="Novo logotipo Turbo Lanches"
+          className="mx-auto h-auto w-full max-w-[280px] object-contain"
           loading="lazy"
         />
         <p className="mt-3 text-sm font-semibold text-muted-foreground">© 2026 Turbo Lanches — Todos os direitos reservados.</p>
