@@ -9,6 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import ScratchCard from "@/components/ScratchCard";
+import { useScratchRules } from "@/hooks/useScratchRules";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
+import BottomNav from "@/components/BottomNav";
+import ScratchCard from "@/components/ScratchCard";
 
 interface ScratchWin {
   id: string;
