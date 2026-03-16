@@ -3,113 +3,18 @@
   <head>
     <script>
       var __LOVA_FIX_TRIGGER__ = false;
-      (function () {
-        var FIX_KEY = "__LOVA_FIX_TRIGGER__";
-        var BOOTSTRAP_VERSION = "v11";
-        var BOOTSTRAP_STORAGE_KEY = "__lova_bootstrap_fix__";
-        var MODULE_SRC = "/src/main.tsx?bootstrap=" + BOOTSTRAP_VERSION;
-
-        function defineFix(scope) {
-          if (!scope) return;
-          try { scope[FIX_KEY] = false; } catch (e) {}
-          try {
-            Object.defineProperty(scope, FIX_KEY, {
-              value: false,
-              writable: true,
-              configurable: true,
-            });
-          } catch (e) {}
-        }
-
-        defineFix(window);
-        defineFix(globalThis);
-        try { defineFix(self); } catch (e) {}
-        try { (0, eval)("var " + FIX_KEY + " = false"); } catch (e) {}
-
-        function isFixError(value) {
-          return String(value || "").indexOf(FIX_KEY) !== -1;
-        }
-
-        window.addEventListener(
-          "error",
-          function (event) {
-            if (isFixError((event && event.message) || "") || isFixError(event && event.error && event.error.message)) {
-              event.preventDefault();
-              event.stopImmediatePropagation();
-            }
-          },
-          true,
-        );
-
-        window.addEventListener(
-          "unhandledrejection",
-          function (event) {
-            try {
-              var reason = event && event.reason;
-              var message = reason instanceof Error ? reason.message : String(reason || "");
-              if (isFixError(message)) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-              }
-            } catch (e) {}
-          },
-          true,
-        );
-
-        async function clearStaleRuntime() {
-          var storage;
-          try {
-            storage = window.sessionStorage;
-            if (storage.getItem(BOOTSTRAP_STORAGE_KEY) === BOOTSTRAP_VERSION) return;
-            storage.setItem(BOOTSTRAP_STORAGE_KEY, BOOTSTRAP_VERSION);
-          } catch (e) {}
-
-          try {
-            if ("serviceWorker" in navigator) {
-              var registrations = await navigator.serviceWorker.getRegistrations();
-              await Promise.all(registrations.map(function (registration) {
-                return registration.unregister().catch(function () {
-                  return false;
-                });
-              }));
-            }
-          } catch (e) {}
-
-          try {
-            if ("caches" in window) {
-              var keys = await caches.keys();
-              await Promise.all(keys.map(function (key) {
-                return caches.delete(key).catch(function () {
-                  return false;
-                });
-              }));
-            }
-          } catch (e) {}
-        }
-
-        async function boot() {
-          await clearStaleRuntime();
-          var script = document.createElement("script");
-          script.type = "module";
-          script.src = MODULE_SRC;
-          document.body.appendChild(script);
-        }
-
-        if (document.readyState === "loading") {
-          document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-              void boot();
-            },
-            { once: true },
-          );
-        } else {
-          void boot();
-        }
+      (function(){
+        var K="__LOVA_FIX_TRIGGER__";
+        function d(s){if(!s)return;try{s[K]=false}catch(e){}try{Object.defineProperty(s,K,{value:false,writable:true,configurable:true})}catch(e){}}
+        d(window);d(globalThis);try{d(self)}catch(e){}
+        try{(0,eval)("var "+K+"=false")}catch(e){}
+        function f(v){return String(v||"").indexOf(K)!==-1}
+        window.addEventListener("error",function(e){if(f(e&&e.message)||f(e&&e.error&&e.error.message)){e.preventDefault();e.stopImmediatePropagation()}},true);
+        window.addEventListener("unhandledrejection",function(e){try{var r=e.reason,m=r instanceof Error?r.message:String(r||"");if(f(m)){e.preventDefault();e.stopImmediatePropagation()}}catch(x){}},true);
+        var _oe=window.onerror;window.onerror=function(m,s,l,c,err){if(f(String(m||""))||f(err&&err.message||""))return true;return _oe?_oe.apply(this,arguments):false};
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <!-- TODO: Set the document title to the name of your application -->
     <title>Turbo Lanches</title>
     <meta name="description" content="Hamburgueria Delivery">
     <link rel="manifest" href="/manifest.json">
@@ -119,23 +24,18 @@
     <meta name="author" content="Lovable" />
     <meta name="google" content="notranslate" />
     <meta http-equiv="Content-Language" content="pt-BR" />
-
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/08da1939-61ca-417a-b443-28a06aaf6f19/id-preview-9435ee7f--142217df-7b74-4aba-9869-6311f0113744.lovable.app-1771898464098.png">
-
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/08da1939-61ca-417a-b443-28a06aaf6f19/id-preview-9435ee7f--142217df-7b74-4aba-9869-6311f0113744.lovable.app-1771898464098.png">
     <meta property="og:title" content="Turbo Lanches">
-  <meta name="twitter:title" content="Turbo Lanches">
-  <meta property="og:description" content="Hamburgueria Delivery">
-  <meta name="twitter:description" content="Hamburgueria Delivery">
-</head>
-
+    <meta name="twitter:title" content="Turbo Lanches">
+    <meta property="og:description" content="Hamburgueria Delivery">
+    <meta name="twitter:description" content="Hamburgueria Delivery">
+  </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

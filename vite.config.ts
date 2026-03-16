@@ -15,16 +15,10 @@ export default defineConfig(() => ({
   define: {
     __LOVA_FIX_TRIGGER__: "false",
   },
-  build: {
-    rollupOptions: {
-      output: {
-        intro: "var __LOVA_FIX_TRIGGER__ = false;",
-      },
-    },
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
 }));
