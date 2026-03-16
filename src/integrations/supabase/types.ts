@@ -1413,6 +1413,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_coupon_used_count: {
+        Args: { _code: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
