@@ -157,7 +157,7 @@ const MyScratchCards = () => {
             >
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 {scratchRules.map((rule, i) => (
-                  <li key={i}>• {rule.replace("{min_value}", fmt(minOrderValue))}</li>
+                  <li key={i}>• {renderScratchRule(rule, fmt(minOrderValue))}</li>
                 ))}
               </ul>
             </motion.div>
