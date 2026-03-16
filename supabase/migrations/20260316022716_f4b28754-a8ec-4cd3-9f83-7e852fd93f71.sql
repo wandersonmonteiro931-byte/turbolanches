@@ -1,0 +1,2 @@
+ALTER TABLE public.scratch_prizes ADD COLUMN IF NOT EXISTS tier text NOT NULL DEFAULT 'regular';
+COMMENT ON COLUMN public.scratch_prizes.tier IS 'Prize tier: premium (first 2 wins) or regular (subsequent wins)';

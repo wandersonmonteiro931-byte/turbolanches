@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus, Gift, Trophy, Settings } from "lucide-react";
+import { Pencil, Trash2, Plus, Gift, Trophy, Settings, Info } from "lucide-react";
 import { formatTimeBR } from "@/lib/brasiliaTime";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -33,6 +33,7 @@ interface ScratchPrize {
   validity_days: number;
   is_active: boolean;
   store_id: string | null;
+  tier: string;
 }
 
 interface ScratchWin {
@@ -67,25 +68,21 @@ const AdminScratchCard = () => {
   const [saving, setSaving] = useState(false);
 
   const fetchData = useCallback(async () => {
-    // Settings
     let settingsQ = supabase.from("scratch_settings").select("*").limit(1);
     if (storeId) settingsQ = settingsQ.eq("store_id", storeId);
     const { data: sData } = await settingsQ.maybeSingle();
     if (sData) setSettings(sData as any);
 
-    // Prizes
     let prizesQ = supabase.from("scratch_prizes").select("*").order("created_at", { ascending: false });
     if (storeId) prizesQ = prizesQ.eq("store_id", storeId);
     const { data: pData } = await prizesQ;
     if (pData) setPrizes(pData as any[]);
 
-    // Wins
     let winsQ = supabase.from("scratch_wins").select("*").order("found_at", { ascending: false });
     if (storeId) winsQ = winsQ.eq("store_id", storeId);
     const { data: wData } = await winsQ;
     if (wData) {
       setWins(wData as any[]);
-      // Fetch profiles and order values
       const userIds = [...new Set((wData as any[]).map((w: any) => w.user_id))];
       const orderIds = [...new Set((wData as any[]).filter((w: any) => w.order_id).map((w: any) => w.order_id))];
 
@@ -146,6 +143,7 @@ const AdminScratchCard = () => {
         remaining_quantity: editPrize.remaining_quantity,
         validity_days: editPrize.validity_days,
         is_active: editPrize.is_active,
+        tier: editPrize.tier || "regular",
       }).eq("id", editPrize.id);
     } else {
       await supabase.from("scratch_prizes").insert({
@@ -157,6 +155,7 @@ const AdminScratchCard = () => {
         remaining_quantity: editPrize.remaining_quantity ?? editPrize.total_quantity ?? 0,
         validity_days: editPrize.validity_days || 7,
         is_active: editPrize.is_active ?? true,
+        tier: editPrize.tier || "regular",
       });
     }
     toast.success("Prêmio salvo!");
@@ -176,12 +175,14 @@ const AdminScratchCard = () => {
   const formatCurrency = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
+  const tierLabel = (tier: string) => tier === "premium" ? "Premium" : "Regular";
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="settings" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="settings" className="gap-1.5">
-            <Settings size={14} /> Configurações
+            <Settings size={14} /> Config
           </TabsTrigger>
           <TabsTrigger value="prizes" className="gap-1.5">
             <Gift size={14} /> Prêmios
@@ -194,7 +195,6 @@ const AdminScratchCard = () => {
         {/* SETTINGS TAB */}
         <TabsContent value="settings">
           <div className="space-y-4">
-            {/* Stats Cards */}
             {(() => {
               const totalPrizes = prizes.reduce((s, p) => s + p.total_quantity, 0);
               const totalRemaining = prizes.reduce((s, p) => s + p.remaining_quantity, 0);
@@ -202,30 +202,10 @@ const AdminScratchCard = () => {
               const totalRedeemed = wins.filter((w) => w.redeemed_at && !w.no_prize).length;
               return (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Card>
-                    <CardContent className="pt-4 pb-3 text-center">
-                      <p className="text-2xl font-bold text-primary">{totalAwarded}</p>
-                      <p className="text-xs text-muted-foreground">Distribuídos</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3 text-center">
-                      <p className="text-2xl font-bold text-foreground">{totalPrizes}</p>
-                      <p className="text-xs text-muted-foreground">Limite Total</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3 text-center">
-                      <p className="text-2xl font-bold text-green-600">{totalRedeemed}</p>
-                      <p className="text-xs text-muted-foreground">Resgatados</p>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardContent className="pt-4 pb-3 text-center">
-                      <p className="text-2xl font-bold text-amber-500">{totalRemaining}</p>
-                      <p className="text-xs text-muted-foreground">Restantes</p>
-                    </CardContent>
-                  </Card>
+                  <Card><CardContent className="pt-4 pb-3 text-center"><p className="text-2xl font-bold text-primary">{totalAwarded}</p><p className="text-xs text-muted-foreground">Distribuídos</p></CardContent></Card>
+                  <Card><CardContent className="pt-4 pb-3 text-center"><p className="text-2xl font-bold text-foreground">{totalPrizes}</p><p className="text-xs text-muted-foreground">Limite Total</p></CardContent></Card>
+                  <Card><CardContent className="pt-4 pb-3 text-center"><p className="text-2xl font-bold text-green-600">{totalRedeemed}</p><p className="text-xs text-muted-foreground">Resgatados</p></CardContent></Card>
+                  <Card><CardContent className="pt-4 pb-3 text-center"><p className="text-2xl font-bold text-scratch-amber">{totalRemaining}</p><p className="text-xs text-muted-foreground">Restantes</p></CardContent></Card>
                 </div>
               );
             })()}
@@ -237,26 +217,28 @@ const AdminScratchCard = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <Label>Funcionalidade ativa</Label>
-                  <Switch
-                    checked={settings.is_enabled}
-                    onCheckedChange={(v) => setSettings({ ...settings, is_enabled: v })}
-                  />
+                  <Switch checked={settings.is_enabled} onCheckedChange={(v) => setSettings({ ...settings, is_enabled: v })} />
                 </div>
                 <div className="space-y-1">
                   <Label>Valor mínimo da compra (sem frete)</Label>
-                  <Input
-                    type="number"
-                    value={settings.min_order_value}
-                    onChange={(e) => setSettings({ ...settings, min_order_value: Number(e.target.value) })}
-                  />
+                  <Input type="number" value={settings.min_order_value} onChange={(e) => setSettings({ ...settings, min_order_value: Number(e.target.value) })} />
                 </div>
                 <div className="space-y-1">
                   <Label>Mensagem quando acabar os prêmios</Label>
-                  <Input
-                    value={settings.fallback_message}
-                    onChange={(e) => setSettings({ ...settings, fallback_message: e.target.value })}
-                  />
+                  <Input value={settings.fallback_message} onChange={(e) => setSettings({ ...settings, fallback_message: e.target.value })} />
                 </div>
+
+                {/* Rules info box */}
+                <div className="rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-foreground mb-1">
+                    <Info size={14} /> Regras automáticas
+                  </div>
+                  <p>• Toda raspadinha <span className="font-semibold text-foreground">sempre</span> terá um prêmio.</p>
+                  <p>• As <span className="font-semibold text-foreground">2 primeiras vezes</span> que um cliente ganha, recebe prêmios <Badge variant="default" className="text-[10px] px-1.5 py-0">Premium</Badge>.</p>
+                  <p>• A partir da 3ª vez, recebe prêmios <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Regular</Badge>.</p>
+                  <p>• Se o estoque de uma categoria acabar, o sistema busca o próximo disponível.</p>
+                </div>
+
                 <Button onClick={saveSettings} disabled={saving} className="w-full">
                   {saving ? "Salvando..." : "Salvar Configurações"}
                 </Button>
@@ -283,6 +265,7 @@ const AdminScratchCard = () => {
                         remaining_quantity: 50,
                         validity_days: 7,
                         is_active: true,
+                        tier: "regular",
                       })
                     }
                   >
@@ -297,18 +280,24 @@ const AdminScratchCard = () => {
                     <div className="space-y-3">
                       <div>
                         <Label>Nome do cupom</Label>
-                        <Input
-                          value={editPrize.name || ""}
-                          onChange={(e) => setEditPrize({ ...editPrize, name: e.target.value })}
-                          placeholder="DESCONTO10"
-                        />
+                        <Input value={editPrize.name || ""} onChange={(e) => setEditPrize({ ...editPrize, name: e.target.value })} placeholder="DESCONTO10" />
+                      </div>
+                      <div>
+                        <Label>Categoria do prêmio</Label>
+                        <Select value={editPrize.tier || "regular"} onValueChange={(v) => setEditPrize({ ...editPrize, tier: v })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="premium">⭐ Premium (1ª e 2ª vez)</SelectItem>
+                            <SelectItem value="regular">🎯 Regular (3ª vez em diante)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Premium = prêmios melhores para as 2 primeiras raspadinhas do cliente
+                        </p>
                       </div>
                       <div>
                         <Label>Tipo de desconto</Label>
-                        <Select
-                          value={editPrize.discount_type || "percentage"}
-                          onValueChange={(v) => setEditPrize({ ...editPrize, discount_type: v })}
-                        >
+                        <Select value={editPrize.discount_type || "percentage"} onValueChange={(v) => setEditPrize({ ...editPrize, discount_type: v })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="percentage">Percentual (%)</SelectItem>
@@ -318,11 +307,7 @@ const AdminScratchCard = () => {
                       </div>
                       <div>
                         <Label>Valor do desconto</Label>
-                        <Input
-                          type="number"
-                          value={editPrize.discount_value || 0}
-                          onChange={(e) => setEditPrize({ ...editPrize, discount_value: Number(e.target.value) })}
-                        />
+                        <Input type="number" value={editPrize.discount_value || 0} onChange={(e) => setEditPrize({ ...editPrize, discount_value: Number(e.target.value) })} />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -342,26 +327,15 @@ const AdminScratchCard = () => {
                         </div>
                         <div>
                           <Label>Restantes</Label>
-                          <Input
-                            type="number"
-                            value={editPrize.remaining_quantity ?? 0}
-                            onChange={(e) => setEditPrize({ ...editPrize, remaining_quantity: Number(e.target.value) })}
-                          />
+                          <Input type="number" value={editPrize.remaining_quantity ?? 0} onChange={(e) => setEditPrize({ ...editPrize, remaining_quantity: Number(e.target.value) })} />
                         </div>
                       </div>
                       <div>
                         <Label>Validade após encontrar (dias)</Label>
-                        <Input
-                          type="number"
-                          value={editPrize.validity_days || 7}
-                          onChange={(e) => setEditPrize({ ...editPrize, validity_days: Number(e.target.value) })}
-                        />
+                        <Input type="number" value={editPrize.validity_days || 7} onChange={(e) => setEditPrize({ ...editPrize, validity_days: Number(e.target.value) })} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Switch
-                          checked={editPrize.is_active ?? true}
-                          onCheckedChange={(v) => setEditPrize({ ...editPrize, is_active: v })}
-                        />
+                        <Switch checked={editPrize.is_active ?? true} onCheckedChange={(v) => setEditPrize({ ...editPrize, is_active: v })} />
                         <Label>Ativo</Label>
                       </div>
                       <div className="flex gap-2 pt-2">
@@ -386,6 +360,7 @@ const AdminScratchCard = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome</TableHead>
+                        <TableHead>Categoria</TableHead>
                         <TableHead>Desconto</TableHead>
                         <TableHead>Estoque</TableHead>
                         <TableHead>Validade</TableHead>
@@ -398,13 +373,14 @@ const AdminScratchCard = () => {
                         <TableRow key={p.id}>
                           <TableCell className="font-medium">{p.name}</TableCell>
                           <TableCell>
-                            {p.discount_type === "percentage"
-                              ? `${p.discount_value}%`
-                              : formatCurrency(p.discount_value)}
+                            <Badge variant={p.tier === "premium" ? "default" : "secondary"} className="text-[10px]">
+                              {p.tier === "premium" ? "⭐ Premium" : "🎯 Regular"}
+                            </Badge>
                           </TableCell>
                           <TableCell>
-                            {p.remaining_quantity}/{p.total_quantity}
+                            {p.discount_type === "percentage" ? `${p.discount_value}%` : formatCurrency(p.discount_value)}
                           </TableCell>
+                          <TableCell>{p.remaining_quantity}/{p.total_quantity}</TableCell>
                           <TableCell>{p.validity_days} dias</TableCell>
                           <TableCell>
                             <Badge variant={p.is_active ? "default" : "secondary"}>
@@ -413,14 +389,7 @@ const AdminScratchCard = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setEditPrize(p);
-                                  setPrizeDialogOpen(true);
-                                }}
-                              >
+                              <Button variant="ghost" size="icon" onClick={() => { setEditPrize(p); setPrizeDialogOpen(true); }}>
                                 <Pencil size={14} />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => deletePrize(p.id)}>
@@ -462,48 +431,33 @@ const AdminScratchCard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {wins.map((w) => {
-                        const prize = prizes.find((p) => p.id === w.prize_id);
-                        return (
-                          <TableRow key={w.id}>
-                            <TableCell>{profiles[w.user_id] || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">
-                              {w.no_prize ? "Sem prêmio" : w.coupon_code}
-                            </TableCell>
-                            <TableCell>
-                              {w.no_prize
-                                ? "—"
-                                : w.discount_type === "percentage"
-                                ? `${w.discount_value}%`
-                                : formatCurrency(w.discount_value)}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {new Date(w.found_at).toLocaleDateString("pt-BR")} {formatTimeBR(w.found_at)}
-                            </TableCell>
-                            <TableCell>
-                              {w.order_id && orderValues[w.order_id]
-                                ? formatCurrency(orderValues[w.order_id])
-                                : "—"}
-                            </TableCell>
-                            <TableCell>
-                              {w.no_prize ? (
-                                <Badge variant="secondary">Sem prêmio</Badge>
-                              ) : w.redeemed_at ? (
-                                <Badge className="bg-green-600">Resgatado</Badge>
-                              ) : new Date(w.expires_at) < new Date() ? (
-                                <Badge variant="destructive">Expirado</Badge>
-                              ) : (
-                                <Badge variant="outline">Não resgatado</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {w.redeemed_at
-                                ? `${new Date(w.redeemed_at).toLocaleDateString("pt-BR")} ${formatTimeBR(w.redeemed_at)}`
-                                : "—"}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {wins.map((w) => (
+                        <TableRow key={w.id}>
+                          <TableCell>{profiles[w.user_id] || "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{w.coupon_code}</TableCell>
+                          <TableCell>
+                            {w.discount_type === "percentage" ? `${w.discount_value}%` : formatCurrency(w.discount_value)}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {new Date(w.found_at).toLocaleDateString("pt-BR")} {formatTimeBR(w.found_at)}
+                          </TableCell>
+                          <TableCell>
+                            {w.order_id && orderValues[w.order_id] ? formatCurrency(orderValues[w.order_id]) : "—"}
+                          </TableCell>
+                          <TableCell>
+                            {w.redeemed_at ? (
+                              <Badge className="bg-green-600">Resgatado</Badge>
+                            ) : new Date(w.expires_at) < new Date() ? (
+                              <Badge variant="destructive">Expirado</Badge>
+                            ) : (
+                              <Badge variant="outline">Não resgatado</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {w.redeemed_at ? `${new Date(w.redeemed_at).toLocaleDateString("pt-BR")} ${formatTimeBR(w.redeemed_at)}` : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>

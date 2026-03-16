@@ -16,8 +16,6 @@ interface WinResult {
   discount_type: string;
   discount_value: number;
   expires_at: string;
-  no_prize: boolean;
-  fallback_message?: string;
 }
 
 const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
@@ -39,10 +37,9 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
   const checkEligibility = async () => {
     if (!user || !orderId) { setLoading(false); return; }
 
-    // Check if already scratched
     const { data: existing } = await supabase
       .from("scratch_wins")
-      .select("id, coupon_code, discount_type, discount_value, expires_at, no_prize")
+      .select("id, coupon_code, discount_type, discount_value, expires_at")
       .eq("order_id", orderId)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -55,7 +52,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
       return;
     }
 
-    // Check settings
     const { data: settings } = await supabase
       .from("scratch_settings")
       .select("*")
@@ -67,16 +63,14 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
       return;
     }
 
-    // Check if prizes are still available
-    const { data: prizes } = await supabase
+    // Check if at least one active prize exists (stock doesn't matter — always award)
+    const { data: anyPrize } = await supabase
       .from("scratch_prizes")
-      .select("remaining_quantity")
+      .select("id")
       .eq("is_active", true)
-      .gt("remaining_quantity", 0);
+      .limit(1);
 
-    const hasStock = prizes && prizes.length > 0;
-
-    if (orderSubtotal >= (settings as any).min_order_value && hasStock) {
+    if (orderSubtotal >= (settings as any).min_order_value && anyPrize && anyPrize.length > 0) {
       setEligible(true);
     }
 
@@ -105,7 +99,7 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("🎁 RASPE AQUI!", rect.width / 2, rect.height / 2 - 10);
+    ctx.fillText("RASPE AQUI!", rect.width / 2, rect.height / 2 - 10);
     ctx.font = "12px sans-serif";
     ctx.fillText("Arraste para revelar", rect.width / 2, rect.height / 2 + 14);
   }, []);
@@ -156,70 +150,104 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     setScratchting(true);
 
     try {
-      const { data: prizes } = await supabase
-        .from("scratch_prizes")
-        .select("*")
-        .eq("is_active", true)
-        .gt("remaining_quantity", 0);
+      // Count how many previous wins this user has (not counting this order)
+      const { count: previousWins } = await supabase
+        .from("scratch_wins")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
 
-      const { data: settings } = await supabase
-        .from("scratch_settings")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
+      const winCount = previousWins ?? 0;
+      const isPremiumEligible = winCount < 2;
 
-      if (prizes && prizes.length > 0) {
-        const prize = prizes[Math.floor(Math.random() * prizes.length)] as any;
-        const code = `${prize.name}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + prize.validity_days);
+      // Try to get a prize from the appropriate tier
+      let selectedPrize: any = null;
 
-        await supabase
+      if (isPremiumEligible) {
+        // First 2 wins: try premium prizes first
+        const { data: premiumPrizes } = await supabase
           .from("scratch_prizes")
-          .update({ remaining_quantity: prize.remaining_quantity - 1 })
-          .eq("id", prize.id);
+          .select("*")
+          .eq("is_active", true)
+          .eq("tier", "premium")
+          .gt("remaining_quantity", 0);
 
-        const winData = {
-          user_id: user.id,
-          prize_id: prize.id,
-          order_id: orderId,
-          store_id: prize.store_id,
-          coupon_code: code,
-          discount_type: prize.discount_type,
-          discount_value: prize.discount_value,
-          expires_at: expiresAt.toISOString(),
-          no_prize: false,
-        };
+        if (premiumPrizes && premiumPrizes.length > 0) {
+          selectedPrize = premiumPrizes[Math.floor(Math.random() * premiumPrizes.length)];
+        }
+      }
 
-        await supabase.from("scratch_wins").insert(winData);
-        setResult({
-          coupon_code: code,
-          discount_type: prize.discount_type,
-          discount_value: prize.discount_value,
-          expires_at: expiresAt.toISOString(),
-          no_prize: false,
-        });
-      } else {
+      // If no premium prize found (or not eligible), try regular
+      if (!selectedPrize) {
+        const { data: regularPrizes } = await supabase
+          .from("scratch_prizes")
+          .select("*")
+          .eq("is_active", true)
+          .eq("tier", "regular")
+          .gt("remaining_quantity", 0);
+
+        if (regularPrizes && regularPrizes.length > 0) {
+          selectedPrize = regularPrizes[Math.floor(Math.random() * regularPrizes.length)];
+        }
+      }
+
+      // Fallback: any active prize with stock
+      if (!selectedPrize) {
+        const { data: anyPrizes } = await supabase
+          .from("scratch_prizes")
+          .select("*")
+          .eq("is_active", true)
+          .gt("remaining_quantity", 0);
+
+        if (anyPrizes && anyPrizes.length > 0) {
+          selectedPrize = anyPrizes[Math.floor(Math.random() * anyPrizes.length)];
+        }
+      }
+
+      // Last resort: pick lowest-value active prize even if stock is 0
+      if (!selectedPrize) {
+        const { data: fallbackPrizes } = await supabase
+          .from("scratch_prizes")
+          .select("*")
+          .eq("is_active", true)
+          .order("discount_value", { ascending: true })
+          .limit(1);
+
+        if (fallbackPrizes && fallbackPrizes.length > 0) {
+          selectedPrize = fallbackPrizes[0];
+        }
+      }
+
+      if (selectedPrize) {
+        const code = `${selectedPrize.name}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + selectedPrize.validity_days);
+
+        // Decrement stock only if > 0
+        if (selectedPrize.remaining_quantity > 0) {
+          await supabase
+            .from("scratch_prizes")
+            .update({ remaining_quantity: selectedPrize.remaining_quantity - 1 })
+            .eq("id", selectedPrize.id);
+        }
+
         const winData = {
           user_id: user.id,
-          prize_id: null,
+          prize_id: selectedPrize.id,
           order_id: orderId,
-          store_id: (settings as any)?.store_id || null,
-          coupon_code: "SEM_PREMIO",
-          discount_type: "fixed",
-          discount_value: 0,
+          store_id: selectedPrize.store_id,
+          coupon_code: code,
+          discount_type: selectedPrize.discount_type,
+          discount_value: selectedPrize.discount_value,
           expires_at: expiresAt.toISOString(),
-          no_prize: true,
+          no_prize: false,
         };
+
         await supabase.from("scratch_wins").insert(winData);
         setResult({
-          coupon_code: "",
-          discount_type: "fixed",
-          discount_value: 0,
+          coupon_code: code,
+          discount_type: selectedPrize.discount_type,
+          discount_value: selectedPrize.discount_value,
           expires_at: expiresAt.toISOString(),
-          no_prize: true,
-          fallback_message: (settings as any)?.fallback_message,
         });
       }
     } catch (err) {
@@ -249,10 +277,10 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl bg-gradient-to-br from-amber-400/20 via-yellow-300/10 to-orange-400/20 border border-amber-300/30 p-5 shadow-lg"
+      className="rounded-2xl border border-scratch-amber/30 bg-scratch-gradient-soft p-5 shadow-lg"
     >
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles size={20} className="text-amber-500" />
+        <Sparkles size={20} className="text-scratch-amber" />
         <h3 className="font-extrabold text-foreground text-base">
           {alreadyScratched ? "Sua Raspadinha" : "🎉 Você ganhou uma Raspadinha!"}
         </h3>
@@ -292,19 +320,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
               >
                 🎁
               </motion.div>
-            ) : result?.no_prize ? (
-              <>
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="text-5xl block mb-3"
-                >
-                  😔
-                </motion.span>
-                <p className="text-sm text-muted-foreground">
-                  {result.fallback_message || "Os prêmios acabaram! Tente na próxima promoção."}
-                </p>
-              </>
             ) : result ? (
               <>
                 <motion.span
