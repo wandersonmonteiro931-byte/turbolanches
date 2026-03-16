@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { toast } from "sonner";
@@ -53,6 +54,8 @@ interface ScratchWin {
 
 const AdminScratchCard = () => {
   const { storeId } = useStore();
+  const [rulesText, setRulesText] = useState("");
+  const [rulesLoaded, setRulesLoaded] = useState(false);
   const [settings, setSettings] = useState<ScratchSettings>({
     store_id: null,
     is_enabled: false,
@@ -102,6 +105,34 @@ const AdminScratchCard = () => {
           setOrderValues(map);
         }
       }
+    }
+
+    // Fetch editable rules
+    if (!rulesLoaded) {
+      const { data: rulesData } = await supabase
+        .from("site_content")
+        .select("value")
+        .eq("key", "scratch_rules")
+        .maybeSingle();
+      if (rulesData?.value) {
+        try {
+          const parsed = JSON.parse(rulesData.value as string);
+          if (Array.isArray(parsed)) setRulesText(parsed.join("\n"));
+        } catch {}
+      } else {
+        setRulesText([
+          "O subtotal dos produtos precisa ser igual ou maior que o valor mínimo configurado.",
+          "A taxa de entrega não entra no cálculo da promoção.",
+          "Pedidos que utilizam cupom de desconto não participam da raspadinha.",
+          "A raspadinha só fica disponível quando o pedido for entregue com sucesso.",
+          "Cada pedido elegível dá direito a apenas uma raspadinha.",
+          "A promoção depende da disponibilidade de prêmios cadastrados.",
+          "Ao raspar, você recebe um cupom de desconto vinculado à sua conta.",
+          "O cupom gerado é de uso único e possui validade.",
+          "O desconto do cupom não se aplica à taxa de entrega.",
+        ].join("\n"));
+      }
+      setRulesLoaded(true);
     }
   }, [storeId]);
 
@@ -238,6 +269,58 @@ const AdminScratchCard = () => {
                   <p>• A partir da 3ª vez, recebe prêmios <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Regular</Badge>.</p>
                   <p>• Se o estoque de uma categoria acabar, o sistema busca o próximo disponível.</p>
                 </div>
+
+                {/* Editable customer-facing rules */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-1.5">
+                      <Info size={14} className="text-primary" /> Regras visíveis para o cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Cada linha será exibida como um item nas regras da raspadinha. Use <code className="bg-muted px-1 rounded">{"{min_value}"}</code> para inserir o valor mínimo automaticamente.
+                    </p>
+                    <Textarea
+                      rows={10}
+                      value={rulesText}
+                      onChange={(e) => setRulesText(e.target.value)}
+                      placeholder="Uma regra por linha..."
+                      className="text-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        const rulesArray = rulesText.split("\n").map(r => r.trim()).filter(Boolean);
+                        const jsonValue = JSON.stringify(rulesArray);
+
+                        const { data: existing } = await supabase
+                          .from("site_content")
+                          .select("id")
+                          .eq("key", "scratch_rules")
+                          .maybeSingle();
+
+                        if (existing) {
+                          await supabase.from("site_content").update({ value: jsonValue }).eq("id", existing.id);
+                        } else {
+                          await supabase.from("site_content").insert({
+                            key: "scratch_rules",
+                            value: jsonValue,
+                            content_type: "json",
+                            store_id: storeId,
+                          });
+                        }
+                        toast.success("Regras salvas!");
+                        setSaving(false);
+                      }}
+                    >
+                      {saving ? "Salvando..." : "Salvar Regras"}
+                    </Button>
+                  </CardContent>
+                </Card>
 
                 <Button onClick={saveSettings} disabled={saving} className="w-full">
                   {saving ? "Salvando..." : "Salvar Configurações"}

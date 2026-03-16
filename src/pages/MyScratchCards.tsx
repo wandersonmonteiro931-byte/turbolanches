@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import ScratchCard from "@/components/ScratchCard";
+import { useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchWin {
   id: string;
@@ -40,6 +41,7 @@ const MyScratchCards = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [minOrderValue, setMinOrderValue] = useState(0);
+  const { rules: scratchRules } = useScratchRules();
 
   useEffect(() => {
     if (!user) return;
@@ -154,14 +156,9 @@ const MyScratchCards = () => {
               className="px-4 pb-4"
             >
               <ul className="space-y-1.5 text-xs text-muted-foreground">
-                <li>• O subtotal dos produtos precisa ser igual ou maior que <span className="font-semibold text-foreground">{fmt(minOrderValue)}</span>.</li>
-                <li>• A taxa de entrega não entra no cálculo da promoção.</li>
-                <li>• A raspadinha só fica disponível quando o pedido for entregue com sucesso.</li>
-                <li>• Cada pedido elegível dá direito a apenas uma raspadinha.</li>
-                <li>• A promoção depende da disponibilidade de prêmios cadastrados.</li>
-                <li>• Ao raspar, você recebe um cupom de desconto vinculado à sua conta.</li>
-                <li>• O cupom gerado é de uso único e possui validade.</li>
-                <li>• O desconto do cupom não se aplica à taxa de entrega.</li>
+                {scratchRules.map((rule, i) => (
+                  <li key={i}>• {rule.replace("{min_value}", fmt(minOrderValue))}</li>
+                ))}
               </ul>
             </motion.div>
           )}

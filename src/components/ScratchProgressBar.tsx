@@ -10,11 +10,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useScratchRules } from "@/hooks/useScratchRules";
 
 interface ScratchProgressBarProps {
   subtotal: number;
   hasCoupon?: boolean;
 }
+const ScratchRulesContent = ({ minValue }: { minValue: number }) => {
+  const { rules } = useScratchRules();
+  const fmt = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+  return (
+    <div className="space-y-3 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-primary/10 bg-card p-3">
+        <ul className="space-y-2">
+          {rules.map((rule, i) => (
+            <li key={i}>• {rule.replace("{min_value}", fmt(minValue))}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+};
 
 const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarProps) => {
   const [settings, setSettings] = useState<{
@@ -184,18 +200,7 @@ const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarP
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <div className="rounded-xl border border-primary/10 bg-card p-3">
-              <ul className="space-y-2">
-                <li>• O subtotal dos produtos precisa ser igual ou maior que <span className="font-semibold text-foreground">{fmt(minValue)}</span>.</li>
-                <li>• A taxa de entrega não entra no cálculo da promoção.</li>
-                <li>• A raspadinha só fica disponível quando o pedido for entregue com sucesso.</li>
-                <li>• Cada pedido elegível dá direito a apenas uma raspadinha.</li>
-                <li>• A promoção depende da disponibilidade de prêmios cadastrados.</li>
-                <li>• Ao raspar, você recebe um cupom de desconto vinculado à sua conta.</li>
-              </ul>
-            </div>
-          </div>
+          <ScratchRulesContent minValue={minValue} />
         </DialogContent>
       </Dialog>
     </AnimatePresence>
