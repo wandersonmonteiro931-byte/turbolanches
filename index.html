@@ -1,7 +1,11 @@
 <!doctype html>
 <html lang="pt-BR" translate="no">
   <head>
-    <script>window.__LOVA_FIX_TRIGGER__=false;</script>
+    <script>
+      var __LOVA_FIX_TRIGGER__ = false;
+      window.__LOVA_FIX_TRIGGER__ = false;
+      globalThis.__LOVA_FIX_TRIGGER__ = false;
+    </script>
     <meta charset="UTF-8" />
     <script>
       // Early global fallback for Lovable runtime probe — must run before ANY module
