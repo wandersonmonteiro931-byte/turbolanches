@@ -16,7 +16,7 @@ interface ScratchProgressBarProps {
   hasCoupon?: boolean;
 }
 
-const ScratchProgressBar = ({ subtotal }: ScratchProgressBarProps) => {
+const ScratchProgressBar = ({ subtotal, hasCoupon = false }: ScratchProgressBarProps) => {
   const [settings, setSettings] = useState<{
     is_enabled: boolean;
     min_order_value: number;
