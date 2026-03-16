@@ -28,6 +28,7 @@ interface OrderData {
   delivering_at: string | null;
   delivered_at: string | null;
   updated_at: string;
+  coupon_code: string | null;
 }
 
 function formatTime(dateStr: string | null | undefined): string | null {
@@ -121,6 +122,7 @@ const OrderTracking = () => {
 
   const checkScratchEligibility = async (orderData: any) => {
     if (!user) return;
+    if (orderData.coupon_code) return; // Orders with coupons are not eligible
     const { data: settings } = await supabase
       .from("scratch_settings")
       .select("is_enabled, min_order_value")
