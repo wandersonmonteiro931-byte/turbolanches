@@ -142,7 +142,7 @@ const MyScratchCards = () => {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                 <Info size={16} className="text-primary" />
               </div>
-              <h2 className="text-sm font-bold text-foreground">Como funciona | Regras</h2>
+              <h2 className="text-sm font-bold text-foreground">Como funciona?</h2>
             </div>
             <motion.div animate={{ rotate: rulesOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
               <ChevronDown size={18} className="text-muted-foreground" />

@@ -57,17 +57,24 @@ const ensureLovaFixTrigger = () => {
 ensureLovaFixTrigger();
 
 if ("serviceWorker" in navigator) {
-  const serviceWorkerUrl = "/push-sw.js?v=8";
+  const serviceWorkerUrl = "/push-sw.js?v=9";
 
-  navigator.serviceWorker
-    .getRegistrations()
-    .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister().catch(() => false))))
-    .finally(() => {
+  void (async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister().catch(() => false)));
+
+      if ("caches" in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey).catch(() => false)));
+      }
+    } finally {
       navigator.serviceWorker.register(serviceWorkerUrl, {
         scope: "/",
         updateViaCache: "none",
       }).catch(() => {});
-    });
+    }
+  })();
 }
 
 async function bootstrap() {
