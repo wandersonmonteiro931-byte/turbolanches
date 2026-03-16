@@ -252,6 +252,9 @@ const Cart = () => {
           )}
         </div>
 
+        {/* Scratch Progress Bar */}
+        <ScratchProgressBar subtotal={totalPrice} />
+
         {/* Summary Card */}
         <div className="mt-4 rounded-xl bg-card p-4 space-y-2">
           <h3 className="text-sm font-bold text-foreground mb-2">Resumo do pedido</h3>

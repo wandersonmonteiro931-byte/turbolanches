@@ -29,7 +29,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
   const [revealed, setRevealed] = useState(false);
   const [result, setResult] = useState<WinResult | null>(null);
   const [copied, setCopied] = useState(false);
-  const [scratchProgress, setScratchProgress] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
 
@@ -68,7 +67,16 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
       return;
     }
 
-    if (orderSubtotal >= (settings as any).min_order_value) {
+    // Check if prizes are still available
+    const { data: prizes } = await supabase
+      .from("scratch_prizes")
+      .select("remaining_quantity")
+      .eq("is_active", true)
+      .gt("remaining_quantity", 0);
+
+    const hasStock = prizes && prizes.length > 0;
+
+    if (orderSubtotal >= (settings as any).min_order_value && hasStock) {
       setEligible(true);
     }
 
@@ -86,7 +94,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     canvas.height = rect.height * 2;
     ctx.scale(2, 2);
 
-    // Gold gradient scratch surface
     const gradient = ctx.createLinearGradient(0, 0, rect.width, rect.height);
     gradient.addColorStop(0, "#FFD700");
     gradient.addColorStop(0.5, "#FFA500");
@@ -94,7 +101,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, rect.width, rect.height);
 
-    // Text
     ctx.fillStyle = "#B8860B";
     ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "center";
@@ -117,22 +123,20 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     if (!ctx) return;
 
     const rect = canvas.getBoundingClientRect();
-    const cx = (x - rect.left);
-    const cy = (y - rect.top);
+    const cx = x - rect.left;
+    const cy = y - rect.top;
 
     ctx.globalCompositeOperation = "destination-out";
     ctx.beginPath();
     ctx.arc(cx, cy, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    // Calculate progress
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     let transparent = 0;
     for (let i = 3; i < imageData.data.length; i += 4) {
       if (imageData.data[i] === 0) transparent++;
     }
     const progress = transparent / (imageData.data.length / 4);
-    setScratchProgress(progress);
 
     if (progress > 0.4 && !revealed) {
       revealPrize();
@@ -152,7 +156,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
     setScratchting(true);
 
     try {
-      // Get available prizes
       const { data: prizes } = await supabase
         .from("scratch_prizes")
         .select("*")
@@ -166,19 +169,16 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
         .maybeSingle();
 
       if (prizes && prizes.length > 0) {
-        // Random pick
         const prize = prizes[Math.floor(Math.random() * prizes.length)] as any;
         const code = `${prize.name}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + prize.validity_days);
 
-        // Decrement stock
         await supabase
           .from("scratch_prizes")
           .update({ remaining_quantity: prize.remaining_quantity - 1 })
           .eq("id", prize.id);
 
-        // Record win
         const winData = {
           user_id: user.id,
           prize_id: prize.id,
@@ -200,7 +200,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
           no_prize: false,
         });
       } else {
-        // No prizes available
         const expiresAt = new Date();
         const winData = {
           user_id: user.id,
@@ -261,7 +260,6 @@ const ScratchCard = ({ orderId, orderSubtotal }: ScratchCardProps) => {
 
       {!revealed ? (
         <div className="relative w-full h-40 rounded-xl overflow-hidden bg-card border border-border">
-          {/* Prize content behind canvas */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <Gift size={32} className="mx-auto text-primary mb-2" />
