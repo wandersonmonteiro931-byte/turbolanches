@@ -376,8 +376,15 @@ const AdminDashboard = () => {
       return;
     }
 
+    // Mark coupons as used for all accepted orders
+    const couponOrders = toAccept.filter(o => o.coupon_code);
+    for (const order of couponOrders) {
+      await supabase.rpc("increment_coupon_used_count" as any, { _code: order.coupon_code });
+    }
+
+    // Print receipts with shorter delays (800ms between each)
     toAccept.forEach((order, i) => {
-      setTimeout(() => printReceipt(order.id, "pedido"), i * 2000);
+      setTimeout(() => printReceipt(order.id, "pedido"), i * 800);
     });
 
     toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
