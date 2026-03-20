@@ -1,5 +1,5 @@
-// SW Version 14 — resilient global probe suppression + immediate update
-var SW_VERSION = "v14";
+// SW Version 15 — resilient global probe suppression + immediate update
+var SW_VERSION = "v15";
 var LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
 var __LOVA_FIX_TRIGGER__ = false;
 try { self[LOVA_FIX_KEY] = false; } catch (e) {}
