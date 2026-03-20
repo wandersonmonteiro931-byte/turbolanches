@@ -47,29 +47,15 @@ const ReviewModal = ({ open, onClose, onSubmitted, orderId, userId, orderNumber,
 
     setSubmitting(true);
 
-    // Collect unique product_ids (may be null for manual orders)
-    const productIds = [...new Set(
-      orderItems.map((i) => i.product_id).filter(Boolean) as string[]
-    )];
-
-    const fallbackProductId = "00000000-0000-0000-0000-000000000000";
-
-    // If we have product IDs, create one review per product; otherwise one review with the first available or a dummy
-    const targets = productIds.length > 0 ? productIds : [null];
-
-    const rows = targets.map((pid) => ({
+    const rows = [{
       user_id: userId,
-      product_id: pid || orderItems[0]?.product_id || fallbackProductId,
+      product_id: orderItems.find((i) => i.product_id)?.product_id || null,
       order_id: orderId,
       rating,
-      comment: comment.trim() || null,
+      comment: comment.trim() || "Avaliação geral do pedido",
       tags: selectedTags,
-      visible: false, // Only visible after admin approval
-    }));
-
-    if (targets.length === 1 && !productIds.length) {
-      rows[0].comment = comment.trim() || "Avaliação geral do pedido";
-    }
+      visible: false,
+    }];
 
     const { error } = await supabase.from("reviews").insert(rows);
 
