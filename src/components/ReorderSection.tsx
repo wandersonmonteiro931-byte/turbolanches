@@ -27,7 +27,7 @@ interface LastOrder {
 
 export default function ReorderSection() {
   const { user } = useAuth();
-  const { addItem } = useCart();
+  const { addItem, clearCart, setAppliedCoupon } = useCart();
   const navigate = useNavigate();
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
   const [loading, setLoading] = useState(true);
