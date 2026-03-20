@@ -116,6 +116,7 @@ const AppInner = () => {
             <Route path="administradores" element={<AdminManageAdmins />} />
             <Route path="raspadinha" element={<AdminScratchCard />} />
             <Route path="avaliacoes" element={<AdminReviews />} />
+            <Route path="precificacao" element={<AdminPricing />} />
             <Route path="ia" element={<AdminAiControl />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
