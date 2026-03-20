@@ -3,10 +3,18 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
 const lovaFixBootstrap = [
-  "var __LOVA_FIX_TRIGGER__ = false;",
-  "try { window.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}",
-  "try { globalThis.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}",
-  "try { self.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}",
+  "(function () {",
+  "  var K = '__LOVA_FIX_TRIGGER__';",
+  "  function d(target) {",
+  "    if (!target) return;",
+  "    try { target[K] = false; } catch (e) {}",
+  "    try { Object.defineProperty(target, K, { value: false, writable: true, configurable: true }); } catch (e) {}",
+  "  }",
+  "  try { d(window); } catch (e) {}",
+  "  try { d(globalThis); } catch (e) {}",
+  "  try { d(self); } catch (e) {}",
+  "  try { (0, eval)('var ' + K + '=false'); } catch (e) {}",
+  "})();",
 ].join("\n");
 
 // https://vitejs.dev/config/
@@ -39,7 +47,7 @@ export default defineConfig(() => ({
   build: {
     rollupOptions: {
       output: {
-        intro: "var __LOVA_FIX_TRIGGER__ = false;",
+        intro: `${lovaFixBootstrap}\nvar __LOVA_FIX_TRIGGER__ = false;`,
       },
     },
   },
