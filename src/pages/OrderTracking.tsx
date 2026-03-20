@@ -690,12 +690,14 @@ const OrderTracking = () => {
       {user && order && (
         <ReviewModal
           open={showReview}
-          onClose={() => {
-            setShowReview(false);
+          onClose={() => setShowReview(false)}
+          onSubmitted={() => {
             setAlreadyReviewed(true);
+            setShowReview(false);
           }}
           orderId={order.id}
           userId={user.id}
+          orderNumber={order.order_number}
           orderItems={items.map((i) => ({
             product_id: i.product_id || null,
             product_name: i.product_name,

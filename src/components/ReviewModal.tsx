@@ -15,17 +15,23 @@ const quickTags = [
 interface ReviewModalProps {
   open: boolean;
   onClose: () => void;
+  onSubmitted?: () => void;
   orderId: string;
   userId: string;
+  orderNumber?: number;
   orderItems: { product_id: string | null; product_name: string }[];
 }
 
-const ReviewModal = ({ open, onClose, orderId, userId, orderItems }: ReviewModalProps) => {
+const ReviewModal = ({ open, onClose, onSubmitted, orderId, userId, orderNumber, orderItems }: ReviewModalProps) => {
   const [rating, setRating] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
   const [comment, setComment] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const displayItems = orderItems.length > 0
+    ? orderItems
+    : [{ product_id: null, product_name: orderNumber ? `Pedido #${String(orderNumber).padStart(5, "0")}` : "Avaliação geral do pedido" }];
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -46,18 +52,24 @@ const ReviewModal = ({ open, onClose, orderId, userId, orderItems }: ReviewModal
       orderItems.map((i) => i.product_id).filter(Boolean) as string[]
     )];
 
+    const fallbackProductId = "00000000-0000-0000-0000-000000000000";
+
     // If we have product IDs, create one review per product; otherwise one review with the first available or a dummy
     const targets = productIds.length > 0 ? productIds : [null];
 
     const rows = targets.map((pid) => ({
       user_id: userId,
-      product_id: pid || orderItems[0]?.product_id || "00000000-0000-0000-0000-000000000000",
+      product_id: pid || orderItems[0]?.product_id || fallbackProductId,
       order_id: orderId,
       rating,
       comment: comment.trim() || null,
       tags: selectedTags,
       visible: false, // Only visible after admin approval
     }));
+
+    if (targets.length === 1 && !productIds.length) {
+      rows[0].comment = comment.trim() || "Avaliação geral do pedido";
+    }
 
     const { error } = await supabase.from("reviews").insert(rows);
 
@@ -69,6 +81,7 @@ const ReviewModal = ({ open, onClose, orderId, userId, orderItems }: ReviewModal
 
     toast.success("Obrigado pela sua avaliação! ❤️");
     setSubmitting(false);
+    onSubmitted?.();
     onClose();
   };
 
@@ -167,7 +180,7 @@ const ReviewModal = ({ open, onClose, orderId, userId, orderItems }: ReviewModal
             <div className="mt-3 mb-4">
               <p className="text-xs text-muted-foreground font-medium mb-1.5">Itens do pedido:</p>
               <div className="flex flex-wrap gap-1.5">
-                {orderItems.map((item, i) => (
+                {displayItems.map((item, i) => (
                   <span
                     key={i}
                     className="inline-block rounded-lg bg-muted px-2 py-1 text-xs font-medium text-foreground"

@@ -17,7 +17,7 @@ import {
 interface Review {
   id: string;
   user_id: string;
-  product_id: string;
+  product_id: string | null;
   order_id: string | null;
   rating: number;
   comment: string | null;
@@ -51,12 +51,14 @@ const AdminReviews = () => {
 
     // Fetch profiles and products
     const userIds = [...new Set(data.map((r) => r.user_id))];
-    const productIds = [...new Set(data.map((r) => r.product_id))];
+    const productIds = [...new Set(data.map((r) => r.product_id).filter(Boolean))] as string[];
     const orderIds = [...new Set(data.map((r) => r.order_id).filter(Boolean))] as string[];
 
     const [profilesRes, productsRes, ordersRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name").in("user_id", userIds),
-      supabase.from("products").select("id, name").in("id", productIds),
+      productIds.length > 0
+        ? supabase.from("products").select("id, name").in("id", productIds)
+        : Promise.resolve({ data: [] }),
       orderIds.length > 0
         ? supabase.from("orders").select("id, order_number").in("id", orderIds)
         : Promise.resolve({ data: [] }),
@@ -77,7 +79,11 @@ const AdminReviews = () => {
       visible: r.visible ?? true,
       admin_response: (r as any).admin_response || "",
       profile_name: profileMap[r.user_id] || "Cliente",
-      product_name: productMap[r.product_id] || "Produto removido",
+      product_name: r.product_id
+        ? productMap[r.product_id] || "Produto removido"
+        : r.order_id
+          ? `Avaliação do pedido #${String(orderMap[r.order_id] || "").padStart(5, "0")}`
+          : "Avaliação geral do pedido",
       order_number: r.order_id ? orderMap[r.order_id] || null : null,
     }));
 
