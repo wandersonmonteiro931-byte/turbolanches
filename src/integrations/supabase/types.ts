@@ -964,8 +964,8 @@ export type Database = {
           comment: string | null
           created_at: string
           id: string
-          order_id: string | null
-          product_id: string
+          order_id: string
+          product_id: string | null
           rating: number
           store_id: string | null
           tags: string[] | null
@@ -977,8 +977,8 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          order_id?: string | null
-          product_id: string
+          order_id: string
+          product_id?: string | null
           rating: number
           store_id?: string | null
           tags?: string[] | null
@@ -990,8 +990,8 @@ export type Database = {
           comment?: string | null
           created_at?: string
           id?: string
-          order_id?: string | null
-          product_id?: string
+          order_id?: string
+          product_id?: string | null
           rating?: number
           store_id?: string | null
           tags?: string[] | null
@@ -1004,13 +1004,6 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
