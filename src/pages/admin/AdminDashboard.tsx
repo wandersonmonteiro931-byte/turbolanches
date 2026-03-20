@@ -104,7 +104,6 @@ const AdminDashboard = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [showCloseDay, setShowCloseDay] = useState(false);
-  const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(getTodayBusinessDay());
