@@ -30,9 +30,9 @@ export const useReceiptTemplates = () => {
     enabled: !!storeId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("receipt_templates" as any)
+        .from("receipt_templates")
         .select("*")
-        .eq("store_id", storeId)
+        .eq("store_id", storeId!)
         .order("template_type");
       if (error) throw error;
       return (data as unknown as ReceiptTemplate[]) || [];
@@ -40,19 +40,33 @@ export const useReceiptTemplates = () => {
   });
 };
 
+const EDITABLE_FIELDS = [
+  "store_name", "label", "custom_message", "footer_message", "body_template",
+  "show_customer_code", "show_max_delivery_time", "show_driver_field",
+  "show_troco", "show_obs", "show_payment_info", "show_totals_detail",
+  "items_font_size", "label_font_size",
+] as const;
+
 export const useUpdateReceiptTemplate = () => {
   const queryClient = useQueryClient();
+  const { storeId } = useStore();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<ReceiptTemplate> & { id: string }) => {
+    mutationFn: async (template: Partial<ReceiptTemplate> & { id: string }) => {
+      const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      for (const key of EDITABLE_FIELDS) {
+        if (key in template) {
+          payload[key] = (template as any)[key];
+        }
+      }
       const { error } = await supabase
-        .from("receipt_templates" as any)
-        .update({ ...updates, updated_at: new Date().toISOString() } as any)
-        .eq("id", id);
+        .from("receipt_templates")
+        .update(payload)
+        .eq("id", template.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receipt_templates"] });
+      queryClient.invalidateQueries({ queryKey: ["receipt_templates", storeId] });
       toast.success("Comanda salva com sucesso!");
     },
     onError: (err: any) => {
