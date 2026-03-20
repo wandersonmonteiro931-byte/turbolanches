@@ -41,25 +41,22 @@ const ReviewModal = ({ open, onClose, orderId, userId, orderItems }: ReviewModal
 
     setSubmitting(true);
 
-    // Create one review per product (or one for the order if no products)
-    const productIds = orderItems
-      .map((i) => i.product_id)
-      .filter(Boolean) as string[];
-    const targets = productIds.length > 0 ? productIds : [orderItems[0]?.product_id].filter(Boolean) as string[];
+    // Collect unique product_ids (may be null for manual orders)
+    const productIds = [...new Set(
+      orderItems.map((i) => i.product_id).filter(Boolean) as string[]
+    )];
 
-    if (targets.length === 0) {
-      toast.error("Nenhum produto para avaliar");
-      setSubmitting(false);
-      return;
-    }
+    // If we have product IDs, create one review per product; otherwise one review with the first available or a dummy
+    const targets = productIds.length > 0 ? productIds : [null];
 
     const rows = targets.map((pid) => ({
       user_id: userId,
-      product_id: pid,
+      product_id: pid || orderItems[0]?.product_id || "00000000-0000-0000-0000-000000000000",
       order_id: orderId,
       rating,
       comment: comment.trim() || null,
       tags: selectedTags,
+      visible: false, // Only visible after admin approval
     }));
 
     const { error } = await supabase.from("reviews").insert(rows);
