@@ -145,12 +145,6 @@ const CompleteProfile = () => {
 
       if (sessionRefreshError) throw sessionRefreshError;
 
-      const { error } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
       toast.success("Perfil completo! 🔥");
       navigate("/perfil");
     } catch (error: any) {
