@@ -376,6 +376,82 @@ export type Database = {
           },
         ]
       }
+      extra_costs: {
+        Row: {
+          cost_type: string
+          created_at: string
+          id: string
+          name: string
+          store_id: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          cost_type?: string
+          created_at?: string
+          id?: string
+          name: string
+          store_id?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          cost_type?: string
+          created_at?: string
+          id?: string
+          name?: string
+          store_id?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "extra_costs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredients: {
+        Row: {
+          cost_per_unit: number
+          created_at: string
+          id: string
+          name: string
+          store_id: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          name: string
+          store_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_unit?: number
+          created_at?: string
+          id?: string
+          name?: string
+          store_id?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           addons_json: Json | null
@@ -584,6 +660,55 @@ export type Database = {
           },
           {
             foreignKeyName: "product_addons_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          product_id: string
+          quantity: number
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          product_id: string
+          quantity?: number
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          product_id?: string
+          quantity?: number
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_ingredients_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
