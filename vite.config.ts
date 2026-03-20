@@ -19,14 +19,14 @@ export default defineConfig(() => ({
     },
   },
   plugins: [
-    react(),
+    ...react(),
     {
       name: "lova-fix-trigger-bootstrap",
       transformIndexHtml() {
         return [
           {
             tag: "script",
-            injectTo: "head-prepend",
+            injectTo: "head-prepend" as const,
             children: lovaFixBootstrap,
           },
         ];
