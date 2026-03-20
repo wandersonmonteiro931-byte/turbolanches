@@ -90,15 +90,39 @@ export default function ReorderSection() {
         .map((i) => i.product_id)
         .filter(Boolean) as string[];
 
-      const { data: currentProducts } = productIds.length > 0
-        ? await supabase
+      const addonIds = lastOrder.items.flatMap((item) =>
+        Array.isArray(item.addons_json)
+          ? item.addons_json
+              .map((addon: any) => addon?.id)
+              .filter((addonId: unknown): addonId is string => typeof addonId === "string" && addonId.length > 0)
+          : [],
+      );
+
+      const productRequest = productIds.length > 0
+        ? supabase
             .from("products")
             .select("id, name, description, price, original_price, image_url, category_id, popular, active")
             .in("id", productIds)
-        : { data: [] };
+        : Promise.resolve({ data: [] });
+
+      const addonRequest = addonIds.length > 0
+        ? supabase
+            .from("product_addons")
+            .select("id, name, price, active")
+            .in("id", addonIds)
+        : Promise.resolve({ data: [] });
+
+      const [{ data: currentProducts }, { data: currentAddons }] = await Promise.all([
+        productRequest,
+        addonRequest,
+      ]);
 
       const productMap = new Map(
         (currentProducts || []).map((p: any) => [p.id, p])
+      );
+
+      const addonMap = new Map(
+        (currentAddons || []).map((addon: any) => [addon.id, addon])
       );
 
       let addedCount = 0;
@@ -135,12 +159,27 @@ export default function ReorderSection() {
         if (dbProduct && !dbProduct.active) continue;
 
         const addons: ProductAddon[] = Array.isArray(item.addons_json)
-          ? item.addons_json.map((a: any) => ({
-              id: a.id || crypto.randomUUID(),
-              name: a.name,
-              price: a.price || 0,
-              quantity: a.quantity || 1,
-            }))
+          ? item.addons_json
+              .filter((addon: any) => {
+                if (!addon?.id) return true;
+                const currentAddon = addonMap.get(addon.id);
+                return !currentAddon || currentAddon.active !== false;
+              })
+              .map((addon: any) => {
+                const currentAddon = addon?.id ? addonMap.get(addon.id) : null;
+
+                return {
+                  id: currentAddon?.id || addon.id || crypto.randomUUID(),
+                  name: currentAddon?.name || addon.name,
+                  price:
+                    typeof currentAddon?.price === "number"
+                      ? currentAddon.price
+                      : typeof addon?.price === "number"
+                        ? addon.price
+                        : 0,
+                  quantity: addon.quantity || 1,
+                };
+              })
           : [];
 
         addItem(product, item.quantity, addons, item.observations || "");
