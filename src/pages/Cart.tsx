@@ -5,8 +5,8 @@ import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { nowBrasilia } from "@/lib/brasiliaTime";
 import ScratchProgressBar from "@/components/ScratchProgressBar";
+import { validateCouponForOrder } from "@/lib/couponValidation";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -72,46 +72,25 @@ const Cart = () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     setCouponError("");
-    try {
-      const { data: coupon, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .ilike("code", couponCode.trim())
-        .single();
 
-      if (error || !coupon) { setCouponError("Cupom não encontrado"); return; }
-      if (!coupon.active) { setCouponError("Este cupom está inativo"); return; }
-      const now = nowBrasilia();
-      if (coupon.starts_at && new Date(coupon.starts_at) > now) { setCouponError("Este cupom ainda não está válido"); return; }
-      if (coupon.expires_at && new Date(coupon.expires_at) < now) { setCouponError("Este cupom expirou"); return; }
-      if (coupon.max_uses && coupon.used_count >= coupon.max_uses) { setCouponError("Cupom esgotado"); return; }
-      if (coupon.min_order && totalPrice < coupon.min_order) {
-        setCouponError(`Pedido mínimo de R$ ${Number(coupon.min_order).toFixed(2).replace(".", ",")}`);
+    try {
+      const validation = await validateCouponForOrder({
+        couponCode,
+        totalPrice,
+        userId: user?.id,
+      });
+
+      if (!validation.valid || !validation.coupon) {
+        setCouponError(validation.error ?? "Erro ao validar cupom");
         return;
       }
-      if (coupon.first_purchase_only && user) {
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id);
-        if (count && count > 0) { setCouponError("Cupom válido apenas para primeira compra"); return; }
-      }
-      // Check per-customer usage limit
-      const maxPerCustomer = (coupon as any).max_uses_per_customer;
-      if (maxPerCustomer && user) {
-        const { count } = await supabase
-          .from("orders")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("coupon_code", coupon.code)
-          .neq("status", "cancelled");
-        if (count !== null && count >= maxPerCustomer) {
-          setCouponError(`Você já usou este cupom ${count}x (limite: ${maxPerCustomer}x)`);
-          return;
-        }
-      }
-      setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value });
-      toast.success(`Cupom ${coupon.code} aplicado! 🎉`);
+
+      setAppliedCoupon({
+        code: validation.coupon.code,
+        type: validation.coupon.type,
+        value: validation.coupon.value,
+      });
+      toast.success(`Cupom ${validation.coupon.code} aplicado! 🎉`);
       toast("⚠️ Ao usar um cupom, você não poderá participar da raspadinha premiada neste pedido.", { duration: 5000 });
     } catch {
       setCouponError("Erro ao validar cupom");

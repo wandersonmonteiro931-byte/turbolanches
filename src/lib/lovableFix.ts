@@ -1,5 +1,6 @@
 const LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
 const CLEANUP_SESSION_KEY = "__turbo_push_sw_cleanup__";
+let probeSuppressionInstalled = false;
 
 declare global {
   var __LOVA_FIX_TRIGGER__: boolean | undefined;
@@ -24,15 +25,56 @@ function defineOnTarget(target: unknown) {
   } catch {}
 }
 
+function getProbeMessage(value: unknown): string {
+  if (typeof value === "string") return value;
+
+  if (value && typeof value === "object") {
+    const maybeMessage = "message" in value ? value.message : undefined;
+    if (typeof maybeMessage === "string") return maybeMessage;
+  }
+
+  try {
+    return String(value ?? "");
+  } catch {
+    return "";
+  }
+}
+
+function isLovaProbeMessage(value: unknown) {
+  return getProbeMessage(value).includes(LOVA_FIX_KEY);
+}
+
+function installProbeSuppression() {
+  if (probeSuppressionInstalled || typeof window === "undefined") return;
+
+  window.addEventListener(
+    "error",
+    (event) => {
+      if (!isLovaProbeMessage(event.message) && !isLovaProbeMessage(event.error)) return;
+      event.preventDefault();
+    },
+    true,
+  );
+
+  window.addEventListener(
+    "unhandledrejection",
+    (event) => {
+      if (!isLovaProbeMessage(event.reason)) return;
+      event.preventDefault();
+    },
+    true,
+  );
+
+  probeSuppressionInstalled = true;
+}
+
 export function ensureLovaFixTrigger() {
   defineOnTarget(globalThis);
 
   if (typeof window !== "undefined") defineOnTarget(window);
   if (typeof self !== "undefined") defineOnTarget(self);
 
-  try {
-    (0, eval)(`var ${LOVA_FIX_KEY} = false;`);
-  } catch {}
+  installProbeSuppression();
 
   return false;
 }
