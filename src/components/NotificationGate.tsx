@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Bell, X } from "lucide-react";
+import { PUSH_SW_URL } from "@/lib/pwa";
 
 interface NotificationGateProps {
   children: React.ReactNode;
@@ -14,8 +15,6 @@ const getInitialPermission = (): NotificationPermission | "unsupported" => {
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
   return Notification.permission;
 };
-
-const PUSH_SW_URL = "/push-sw.js?v11";
 
 const NotificationGate = ({ children }: NotificationGateProps) => {
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">(getInitialPermission);
