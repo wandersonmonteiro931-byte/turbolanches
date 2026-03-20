@@ -17,8 +17,6 @@ const lovaFixBootstrap = [
   "})();",
 ].join("\n");
 
-const lovaFixExpression = "(globalThis.__LOVA_FIX_TRIGGER__ ?? false)";
-
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
   server: {
@@ -44,14 +42,7 @@ export default defineConfig(() => ({
     },
   ],
   define: {
-    __LOVA_FIX_TRIGGER__: lovaFixExpression,
-  },
-  optimizeDeps: {
-    esbuildOptions: {
-      define: {
-        __LOVA_FIX_TRIGGER__: lovaFixExpression,
-      },
-    },
+    __LOVA_FIX_TRIGGER__: "false",
   },
   build: {
     rollupOptions: {
