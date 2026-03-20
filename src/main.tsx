@@ -1,13 +1,15 @@
 import "./index.css";
 import { createRoot } from "react-dom/client";
 import { cleanupLegacyPushServiceWorkers, ensureLovaFixTrigger } from "@/lib/lovableFix";
-import { PUSH_SW_URL } from "@/lib/pwa";
+import { PUSH_SW_URL, shouldEnableServiceWorker } from "@/lib/pwa";
 import App from "./App.tsx";
 
 ensureLovaFixTrigger();
-void cleanupLegacyPushServiceWorkers(PUSH_SW_URL);
+const enableServiceWorker = shouldEnableServiceWorker();
 
-if ("serviceWorker" in navigator) {
+void cleanupLegacyPushServiceWorkers(enableServiceWorker ? PUSH_SW_URL : null);
+
+if (enableServiceWorker && "serviceWorker" in navigator) {
   navigator.serviceWorker
     .register(PUSH_SW_URL, {
       scope: "/",

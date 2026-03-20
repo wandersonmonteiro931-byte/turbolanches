@@ -338,7 +338,7 @@ const Index = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.5 }}
-            className="mt-8 rounded-[calc(var(--radius)+0.75rem)] border border-border bg-card px-4 pb-8 pt-1 sm:pb-6"
+            className="mt-8 mb-4 rounded-[calc(var(--radius)+0.75rem)] border border-border bg-card px-4 pb-6 pt-1 sm:mb-0"
           >
             <h2 className="text-xl font-extrabold text-foreground">⭐ Avaliações dos Clientes</h2>
             <StoreReviews compact />
