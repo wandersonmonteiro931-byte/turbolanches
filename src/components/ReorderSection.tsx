@@ -12,9 +12,41 @@ interface LastOrderItem {
   quantity: number;
   unit_price: number;
   observations: string | null;
-  addons_json: any;
+  addons_json: unknown;
   product_id: string | null;
 }
+
+interface CurrentProductRow {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  image_url: string | null;
+  category_id: string | null;
+  popular: boolean;
+  active: boolean;
+}
+
+interface CurrentAddonRow {
+  id: string;
+  name: string;
+  price: number;
+  active: boolean;
+}
+
+interface StoredAddon {
+  id?: string;
+  name?: string;
+  price?: number;
+  quantity?: number;
+}
+
+const isStoredAddon = (value: unknown): value is StoredAddon =>
+  Boolean(value) && typeof value === "object";
+
+const getStoredAddons = (value: unknown): StoredAddon[] =>
+  Array.isArray(value) ? value.filter(isStoredAddon) : [];
 
 interface LastOrder {
   id: string;
@@ -94,44 +126,63 @@ export default function ReorderSection() {
         .map((i) => i.product_id)
         .filter(Boolean) as string[];
 
-      const addonIds = lastOrder.items.flatMap((item) =>
-        Array.isArray(item.addons_json)
-          ? item.addons_json
-              .map((addon: any) => addon?.id)
-              .filter((addonId: unknown): addonId is string => typeof addonId === "string" && addonId.length > 0)
-          : [],
+      const normalizedItems = lastOrder.items.map((item) => ({
+        ...item,
+        addons: getStoredAddons(item.addons_json),
+      }));
+
+      const addonIds = normalizedItems.flatMap((item) =>
+        item.addons
+          .map((addon) => addon.id)
+          .filter((addonId): addonId is string => typeof addonId === "string" && addonId.length > 0),
       );
 
-      const productRequest = productIds.length > 0
+      const uniqueProductNames = [...new Set(normalizedItems.map((item) => item.product_name.trim()).filter(Boolean))];
+
+      const productByIdRequest = productIds.length > 0
         ? supabase
             .from("products")
             .select("id, name, description, price, original_price, image_url, category_id, popular, active")
             .in("id", productIds)
-        : Promise.resolve({ data: [] });
+        : Promise.resolve({ data: [] as CurrentProductRow[] });
+
+      const productByNameRequest = uniqueProductNames.length > 0
+        ? supabase
+            .from("products")
+            .select("id, name, description, price, original_price, image_url, category_id, popular, active")
+            .in("name", uniqueProductNames)
+        : Promise.resolve({ data: [] as CurrentProductRow[] });
 
       const addonRequest = addonIds.length > 0
         ? supabase
             .from("product_addons")
             .select("id, name, price, active")
             .in("id", addonIds)
-        : Promise.resolve({ data: [] });
+        : Promise.resolve({ data: [] as CurrentAddonRow[] });
 
-      const [{ data: currentProducts }, { data: currentAddons }] = await Promise.all([
-        productRequest,
+      const [{ data: currentProductsById }, { data: currentProductsByName }, { data: currentAddons }] = await Promise.all([
+        productByIdRequest,
+        productByNameRequest,
         addonRequest,
       ]);
 
       const productMap = new Map(
-        (currentProducts || []).map((p: any) => [p.id, p])
+        ([...(currentProductsByName || []), ...(currentProductsById || [])] as CurrentProductRow[]).map((p) => [p.id, p])
+      );
+
+      const productNameMap = new Map(
+        ([...(currentProductsByName || []), ...(currentProductsById || [])] as CurrentProductRow[]).map((p) => [p.name.trim().toLowerCase(), p])
       );
 
       const addonMap = new Map(
-        (currentAddons || []).map((addon: any) => [addon.id, addon])
+        (currentAddons || []).map((addon) => [addon.id, addon])
       );
 
       let addedCount = 0;
-      for (const item of lastOrder.items) {
-        const dbProduct = item.product_id ? productMap.get(item.product_id) : null;
+      for (const item of normalizedItems) {
+        const dbProduct = item.product_id
+          ? productMap.get(item.product_id)
+          : productNameMap.get(item.product_name.trim().toLowerCase()) || null;
 
         // Use current DB price, not the historical order price
         const product: Product = dbProduct
@@ -163,19 +214,19 @@ export default function ReorderSection() {
 
         if (dbProduct && !dbProduct.active) continue;
 
-        const addons: ProductAddon[] = Array.isArray(item.addons_json)
-          ? item.addons_json
-              .filter((addon: any) => {
+        const addons: ProductAddon[] = item.addons.length > 0
+          ? item.addons
+              .filter((addon) => {
                 if (!addon?.id) return true;
                 const currentAddon = addonMap.get(addon.id);
                 return !currentAddon || currentAddon.active !== false;
               })
-              .map((addon: any) => {
+              .map((addon) => {
                 const currentAddon = addon?.id ? addonMap.get(addon.id) : null;
 
                 return {
                   id: currentAddon?.id || addon.id || crypto.randomUUID(),
-                  name: currentAddon?.name || addon.name,
+                   name: currentAddon?.name || addon.name || "Adicional",
                   price:
                     typeof currentAddon?.price === "number"
                       ? currentAddon.price

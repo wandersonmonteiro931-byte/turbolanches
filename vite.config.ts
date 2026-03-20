@@ -5,6 +5,8 @@ import path from "path";
 const lovaFixBootstrap = [
   "(function () {",
   "  var K = '__LOVA_FIX_TRIGGER__';",
+  "  try { (0, eval)('var __LOVA_FIX_TRIGGER__ = false;'); } catch (e) {}",
+  "  try { if (typeof globalThis !== 'undefined' && typeof globalThis.__LOVA_FIX_TRIGGER__ === 'undefined') globalThis.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}",
   "  function d(target) {",
   "    if (!target) return;",
   "    try { target[K] = false; } catch (e) {}",
