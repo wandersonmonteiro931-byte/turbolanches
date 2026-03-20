@@ -31,6 +31,14 @@ type ToolResult = {
   data?: unknown;
 };
 
+// Helper: builds a filter that matches store_id = X OR store_id IS NULL (legacy)
+function storeFilter(query: any, storeId: string | null) {
+  if (storeId) {
+    return query.or(`store_id.eq.${storeId},store_id.is.null`);
+  }
+  return query.is("store_id", null);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -79,11 +87,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Acesso permitido apenas para administradores." }, 403);
     }
 
-    const fallbackStoreId = await getFallbackStoreId(admin);
-    const storeId = adminRole.store_id ?? fallbackStoreId;
-    if (!storeId) {
-      return jsonResponse({ error: "Nenhuma loja vinculada ao administrador." }, 400);
-    }
+    // storeId may be null for legacy setups — that's OK, we use IS NULL filters
+    const storeId: string | null = adminRole.store_id ?? await getFallbackStoreId(admin);
 
     const body = await req.json().catch(() => null);
     const incomingMessages = Array.isArray(body?.messages) ? body.messages : [];
@@ -175,37 +180,37 @@ async function getFallbackStoreId(admin: ReturnType<typeof createClient>) {
   return data?.id ?? null;
 }
 
-async function loadSystemContext(admin: ReturnType<typeof createClient>, storeId: string) {
+async function loadSystemContext(admin: ReturnType<typeof createClient>, storeId: string | null) {
+  const settingsQuery = storeFilter(
+    admin.from("store_settings").select("id, is_open, use_schedule, store_display_name, whatsapp_name, whatsapp_number, store_logo_url, prep_time_minutes, delivery_time_minutes, pickup_time_minutes"),
+    storeId
+  ).limit(1).maybeSingle();
+
+  const scratchQuery = storeFilter(
+    admin.from("scratch_settings").select("id, is_enabled, min_order_value, fallback_message"),
+    storeId
+  ).limit(1).maybeSingle();
+
+  const receiptQuery = storeFilter(
+    admin.from("receipt_templates").select("template_type, label, custom_message, footer_message, updated_at"),
+    storeId
+  ).order("template_type");
+
+  const siteQuery = storeFilter(
+    admin.from("site_content").select("key, value, content_type, updated_at"),
+    storeId
+  ).order("key").limit(20);
+
+  const ordersQuery = storeId
+    ? admin.from("orders").select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at").or(`store_id.eq.${storeId},store_id.is.null`).order("created_at", { ascending: false }).limit(8)
+    : admin.from("orders").select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at").is("store_id", null).order("created_at", { ascending: false }).limit(8);
+
   const [storeSettingsRes, scratchSettingsRes, receiptTemplatesRes, siteContentRes, recentOrdersRes] = await Promise.all([
-    admin
-      .from("store_settings")
-      .select("id, is_open, use_schedule, store_display_name, whatsapp_name, whatsapp_number, store_logo_url, prep_time_minutes, delivery_time_minutes, pickup_time_minutes")
-      .eq("store_id", storeId)
-      .limit(1)
-      .maybeSingle(),
-    admin
-      .from("scratch_settings")
-      .select("id, is_enabled, min_order_value, fallback_message")
-      .eq("store_id", storeId)
-      .limit(1)
-      .maybeSingle(),
-    admin
-      .from("receipt_templates")
-      .select("template_type, label, custom_message, footer_message, updated_at")
-      .eq("store_id", storeId)
-      .order("template_type"),
-    admin
-      .from("site_content")
-      .select("key, value, content_type, updated_at")
-      .eq("store_id", storeId)
-      .order("key")
-      .limit(20),
-    admin
-      .from("orders")
-      .select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: false })
-      .limit(8),
+    settingsQuery,
+    scratchQuery,
+    receiptQuery,
+    siteQuery,
+    ordersQuery,
   ]);
 
   return {
@@ -393,7 +398,7 @@ async function executeTool({
   rawArguments,
 }: {
   admin: ReturnType<typeof createClient>;
-  storeId: string;
+  storeId: string | null;
   toolName: string;
   rawArguments: string;
 }): Promise<ToolResult> {
@@ -419,35 +424,38 @@ async function executeTool({
   }
 }
 
-async function readSystemArea(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function findRowByStore(admin: ReturnType<typeof createClient>, table: string, storeId: string | null, extraFilters?: (q: any) => any) {
+  let query = admin.from(table).select("id");
+  query = storeFilter(query, storeId);
+  if (extraFilters) query = extraFilters(query);
+  const { data } = await query.limit(1).maybeSingle();
+  return data?.id as string | null;
+}
+
+async function readSystemArea(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const area = String(args.area || "");
 
   if (area === "store_settings") {
-    const { data } = await admin
-      .from("store_settings")
-      .select("id, is_open, use_schedule, store_display_name, whatsapp_name, whatsapp_number, store_logo_url, prep_time_minutes, delivery_time_minutes, pickup_time_minutes")
-      .eq("store_id", storeId)
-      .limit(1)
-      .maybeSingle();
+    const { data } = await storeFilter(
+      admin.from("store_settings").select("id, is_open, use_schedule, store_display_name, whatsapp_name, whatsapp_number, store_logo_url, prep_time_minutes, delivery_time_minutes, pickup_time_minutes"),
+      storeId
+    ).limit(1).maybeSingle();
     return { ok: true, summary: "Configurações da loja lidas.", data };
   }
 
   if (area === "scratch_settings") {
-    const { data } = await admin
-      .from("scratch_settings")
-      .select("id, is_enabled, min_order_value, fallback_message")
-      .eq("store_id", storeId)
-      .limit(1)
-      .maybeSingle();
+    const { data } = await storeFilter(
+      admin.from("scratch_settings").select("id, is_enabled, min_order_value, fallback_message"),
+      storeId
+    ).limit(1).maybeSingle();
     return { ok: true, summary: "Regras da raspadinha lidas.", data };
   }
 
   if (area === "receipt_templates") {
-    let query = admin
-      .from("receipt_templates")
-      .select("template_type, label, custom_message, footer_message, body_template, items_font_size, label_font_size, updated_at")
-      .eq("store_id", storeId)
-      .order("template_type");
+    let query = storeFilter(
+      admin.from("receipt_templates").select("template_type, label, custom_message, footer_message, body_template, items_font_size, label_font_size, updated_at"),
+      storeId
+    ).order("template_type");
 
     if (typeof args.template_type === "string" && args.template_type) {
       query = query.eq("template_type", args.template_type);
@@ -458,11 +466,10 @@ async function readSystemArea(admin: ReturnType<typeof createClient>, storeId: s
   }
 
   if (area === "site_content") {
-    let query = admin
-      .from("site_content")
-      .select("key, value, content_type, updated_at")
-      .eq("store_id", storeId)
-      .order("key");
+    let query = storeFilter(
+      admin.from("site_content").select("key, value, content_type, updated_at"),
+      storeId
+    ).order("key");
 
     if (typeof args.key === "string" && args.key) {
       query = query.eq("key", args.key);
@@ -473,12 +480,11 @@ async function readSystemArea(admin: ReturnType<typeof createClient>, storeId: s
   }
 
   if (area === "recent_orders") {
-    let query = admin
-      .from("orders")
-      .select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: false })
-      .limit(10);
+    let query = storeId
+      ? admin.from("orders").select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at").or(`store_id.eq.${storeId},store_id.is.null`)
+      : admin.from("orders").select("order_number, status, total, payment_method, delivery_type, coupon_code, created_at").is("store_id", null);
+    
+    query = query.order("created_at", { ascending: false }).limit(10);
 
     if (typeof args.order_number === "number") {
       query = query.eq("order_number", args.order_number);
@@ -491,21 +497,13 @@ async function readSystemArea(admin: ReturnType<typeof createClient>, storeId: s
   throw new Error("Área de leitura inválida.");
 }
 
-async function toggleStoreOpen(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function toggleStoreOpen(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   if (typeof args.is_open !== "boolean") {
     throw new Error("is_open deve ser boolean.");
   }
 
-  const { data: settings } = await admin
-    .from("store_settings")
-    .select("id")
-    .eq("store_id", storeId)
-    .limit(1)
-    .maybeSingle();
-
-  if (!settings?.id) {
-    throw new Error("Configuração da loja não encontrada.");
-  }
+  const rowId = await findRowByStore(admin, "store_settings", storeId);
+  if (!rowId) throw new Error("Configuração da loja não encontrada.");
 
   const timestamp = new Date().toISOString();
   const payload = {
@@ -514,7 +512,7 @@ async function toggleStoreOpen(admin: ReturnType<typeof createClient>, storeId: 
     closed_at: args.is_open ? null : timestamp,
   };
 
-  const { error } = await admin.from("store_settings").update(payload).eq("id", settings.id);
+  const { error } = await admin.from("store_settings").update(payload).eq("id", rowId);
   if (error) throw error;
 
   return {
@@ -524,16 +522,10 @@ async function toggleStoreOpen(admin: ReturnType<typeof createClient>, storeId: 
   };
 }
 
-async function updateStoreSettings(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function updateStoreSettings(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const allowedKeys = [
-    "store_display_name",
-    "whatsapp_name",
-    "whatsapp_number",
-    "store_logo_url",
-    "prep_time_minutes",
-    "delivery_time_minutes",
-    "pickup_time_minutes",
-    "use_schedule",
+    "store_display_name", "whatsapp_name", "whatsapp_number", "store_logo_url",
+    "prep_time_minutes", "delivery_time_minutes", "pickup_time_minutes", "use_schedule",
   ] as const;
 
   const payload = pickDefined(args, allowedKeys);
@@ -541,18 +533,10 @@ async function updateStoreSettings(admin: ReturnType<typeof createClient>, store
     throw new Error("Nenhum campo válido foi informado para store_settings.");
   }
 
-  const { data: settings } = await admin
-    .from("store_settings")
-    .select("id")
-    .eq("store_id", storeId)
-    .limit(1)
-    .maybeSingle();
+  const rowId = await findRowByStore(admin, "store_settings", storeId);
+  if (!rowId) throw new Error("Configuração da loja não encontrada.");
 
-  if (!settings?.id) {
-    throw new Error("Configuração da loja não encontrada.");
-  }
-
-  const { error } = await admin.from("store_settings").update(payload).eq("id", settings.id);
+  const { error } = await admin.from("store_settings").update(payload).eq("id", rowId);
   if (error) throw error;
 
   return {
@@ -562,22 +546,14 @@ async function updateStoreSettings(admin: ReturnType<typeof createClient>, store
   };
 }
 
-async function upsertSiteContent(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function upsertSiteContent(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const key = String(args.key || "").trim();
   const value = String(args.value || "");
   const contentType = args.content_type === "image" ? "image" : "text";
 
-  if (!key) {
-    throw new Error("A chave do conteúdo é obrigatória.");
-  }
+  if (!key) throw new Error("A chave do conteúdo é obrigatória.");
 
-  const { data: existing } = await admin
-    .from("site_content")
-    .select("id")
-    .eq("store_id", storeId)
-    .eq("key", key)
-    .limit(1)
-    .maybeSingle();
+  const rowId = await findRowByStore(admin, "site_content", storeId, (q: any) => q.eq("key", key));
 
   const payload = {
     key,
@@ -587,127 +563,65 @@ async function upsertSiteContent(admin: ReturnType<typeof createClient>, storeId
     store_id: storeId,
   };
 
-  if (existing?.id) {
-    const { error } = await admin.from("site_content").update(payload).eq("id", existing.id);
+  if (rowId) {
+    const { error } = await admin.from("site_content").update(payload).eq("id", rowId);
     if (error) throw error;
   } else {
     const { error } = await admin.from("site_content").insert(payload);
     if (error) throw error;
   }
 
-  return {
-    ok: true,
-    summary: `Conteúdo \`${key}\` salvo em tempo real.`,
-    data: payload,
-  };
+  return { ok: true, summary: `Conteúdo \`${key}\` salvo em tempo real.`, data: payload };
 }
 
-async function updateReceiptTemplate(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function updateReceiptTemplate(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const templateType = String(args.template_type || "").trim();
-  if (!templateType) {
-    throw new Error("template_type é obrigatório.");
-  }
+  if (!templateType) throw new Error("template_type é obrigatório.");
 
-  const allowedKeys = [
-    "store_name",
-    "label",
-    "custom_message",
-    "footer_message",
-    "body_template",
-    "items_font_size",
-    "label_font_size",
-  ] as const;
+  const allowedKeys = ["store_name", "label", "custom_message", "footer_message", "body_template", "items_font_size", "label_font_size"] as const;
   const payload = pickDefined(args, allowedKeys);
-  if (Object.keys(payload).length === 0) {
-    throw new Error("Nenhum campo válido foi informado para a comanda.");
-  }
+  if (Object.keys(payload).length === 0) throw new Error("Nenhum campo válido foi informado para a comanda.");
 
-  const { data: template } = await admin
-    .from("receipt_templates")
-    .select("id")
-    .eq("store_id", storeId)
-    .eq("template_type", templateType)
-    .limit(1)
-    .maybeSingle();
+  const rowId = await findRowByStore(admin, "receipt_templates", storeId, (q: any) => q.eq("template_type", templateType));
+  if (!rowId) throw new Error(`Comanda ${templateType} não encontrada.`);
 
-  if (!template?.id) {
-    throw new Error(`Comanda ${templateType} não encontrada.`);
-  }
-
-  const { error } = await admin
-    .from("receipt_templates")
-    .update({ ...payload, updated_at: new Date().toISOString() })
-    .eq("id", template.id);
+  const { error } = await admin.from("receipt_templates").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", rowId);
   if (error) throw error;
 
-  return {
-    ok: true,
-    summary: `Comanda ${templateType} atualizada em tempo real.`,
-    data: payload,
-  };
+  return { ok: true, summary: `Comanda ${templateType} atualizada em tempo real.`, data: payload };
 }
 
-async function updateScratchSettings(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function updateScratchSettings(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const allowedKeys = ["is_enabled", "min_order_value", "fallback_message"] as const;
   const payload = pickDefined(args, allowedKeys);
-  if (Object.keys(payload).length === 0) {
-    throw new Error("Nenhum campo válido foi informado para a raspadinha.");
-  }
+  if (Object.keys(payload).length === 0) throw new Error("Nenhum campo válido foi informado para a raspadinha.");
 
-  const { data: existing } = await admin
-    .from("scratch_settings")
-    .select("id")
-    .eq("store_id", storeId)
-    .limit(1)
-    .maybeSingle();
+  const rowId = await findRowByStore(admin, "scratch_settings", storeId);
 
-  if (existing?.id) {
-    const { error } = await admin
-      .from("scratch_settings")
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
+  if (rowId) {
+    const { error } = await admin.from("scratch_settings").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", rowId);
     if (error) throw error;
   } else {
-    const { error } = await admin
-      .from("scratch_settings")
-      .insert({ ...payload, store_id: storeId, updated_at: new Date().toISOString() });
+    const { error } = await admin.from("scratch_settings").insert({ ...payload, store_id: storeId, updated_at: new Date().toISOString() });
     if (error) throw error;
   }
 
-  return {
-    ok: true,
-    summary: `Regras da raspadinha atualizadas: ${Object.keys(payload).join(", ")}.`,
-    data: payload,
-  };
+  return { ok: true, summary: `Regras da raspadinha atualizadas: ${Object.keys(payload).join(", ")}.`, data: payload };
 }
 
-async function upsertCoupon(admin: ReturnType<typeof createClient>, storeId: string, args: Record<string, unknown>) {
+async function upsertCoupon(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
   const code = String(args.code || "").trim().toUpperCase();
-  if (!code) {
-    throw new Error("O código do cupom é obrigatório.");
-  }
+  if (!code) throw new Error("O código do cupom é obrigatório.");
 
   const allowedKeys = ["value", "type", "min_order", "max_uses", "active", "starts_at", "expires_at"] as const;
   const payload = pickDefined(args, allowedKeys);
-  const { data: existing } = await admin
-    .from("coupons")
-    .select("id")
-    .eq("store_id", storeId)
-    .eq("code", code)
-    .limit(1)
-    .maybeSingle();
 
-  if (existing?.id) {
-    const { error } = await admin
-      .from("coupons")
-      .update({ ...payload, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
+  const rowId = await findRowByStore(admin, "coupons", storeId, (q: any) => q.eq("code", code));
+
+  if (rowId) {
+    const { error } = await admin.from("coupons").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", rowId);
     if (error) throw error;
-    return {
-      ok: true,
-      summary: `Cupom ${code} atualizado em tempo real.`,
-      data: payload,
-    };
+    return { ok: true, summary: `Cupom ${code} atualizado em tempo real.`, data: payload };
   }
 
   const insertPayload = {
@@ -726,11 +640,7 @@ async function upsertCoupon(admin: ReturnType<typeof createClient>, storeId: str
   const { error } = await admin.from("coupons").insert(insertPayload);
   if (error) throw error;
 
-  return {
-    ok: true,
-    summary: `Cupom ${code} criado em tempo real.`,
-    data: insertPayload,
-  };
+  return { ok: true, summary: `Cupom ${code} criado em tempo real.`, data: insertPayload };
 }
 
 function safeParseArguments(rawArguments: string) {
@@ -745,9 +655,7 @@ function safeParseArguments(rawArguments: string) {
 function pickDefined<T extends readonly string[]>(source: Record<string, unknown>, keys: T) {
   const result: Record<string, unknown> = {};
   for (const key of keys) {
-    if (source[key] !== undefined) {
-      result[key] = source[key];
-    }
+    if (source[key] !== undefined) result[key] = source[key];
   }
   return result;
 }
@@ -760,9 +668,6 @@ function extractBearerToken(header: string | null) {
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      ...corsHeaders,
-      "Content-Type": "application/json",
-    },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
