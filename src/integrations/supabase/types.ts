@@ -57,6 +57,33 @@ export type Database = {
           },
         ]
       }
+      ai_chat_messages: {
+        Row: {
+          actions: string[] | null
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          actions?: string[] | null
+          content: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          actions?: string[] | null
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           active: boolean
