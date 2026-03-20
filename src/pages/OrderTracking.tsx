@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { formatTimeBR } from "@/lib/brasiliaTime";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import ReviewModal from "@/components/ReviewModal";
 
 interface OrderData {
   id: string;
