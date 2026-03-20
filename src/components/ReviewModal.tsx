@@ -67,6 +67,10 @@ const ReviewModal = ({ open, onClose, onSubmitted, orderId, userId, orderNumber,
       visible: false, // Only visible after admin approval
     }));
 
+    if (targets.length === 1 && !productIds.length) {
+      rows[0].comment = comment.trim() || "Avaliação geral do pedido";
+    }
+
     const { error } = await supabase.from("reviews").insert(rows);
 
     if (error) {
