@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
