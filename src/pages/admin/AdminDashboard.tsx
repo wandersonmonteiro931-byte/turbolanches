@@ -103,9 +103,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState("");
-  const [scheduleClose, setScheduleClose] = useState("");
+  const [showCloseDay, setShowCloseDay] = useState(false);
   const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
