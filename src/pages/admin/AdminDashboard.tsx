@@ -266,7 +266,9 @@ const AdminDashboard = () => {
     if (togglingStore || !storeSettings) return;
 
     const previousSettings = storeSettings;
-    const newOpen = !previousSettings.is_open;
+    // Use the actual visible status (customerSeesOpen) instead of the DB flag
+    const currentlyOpen = customerSeesOpen;
+    const newOpen = !currentlyOpen;
     const timestamp = new Date().toISOString();
     const nextSettings: StoreSettings = {
       ...previousSettings,
