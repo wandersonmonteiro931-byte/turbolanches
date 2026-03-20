@@ -79,10 +79,10 @@ export function ensureLovaFixTrigger() {
   return false;
 }
 
-export async function cleanupLegacyPushServiceWorkers(currentPushUrl: string) {
+export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | null) {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-  const currentMarker = `${window.location.origin}${currentPushUrl}`;
+  const currentMarker = `${window.location.origin}${currentPushUrl ?? "::cleanup-all-push-sw"}`;
   if (sessionStorage.getItem(CLEANUP_SESSION_KEY) === currentMarker) return;
 
   sessionStorage.setItem(CLEANUP_SESSION_KEY, currentMarker);
@@ -94,7 +94,7 @@ export async function cleanupLegacyPushServiceWorkers(currentPushUrl: string) {
       registrations.map(async (registration) => {
         const scriptUrl = registration.active?.scriptURL || registration.waiting?.scriptURL || registration.installing?.scriptURL || "";
         if (!scriptUrl.includes("/push-sw.js")) return;
-        if (scriptUrl.includes(currentPushUrl)) return;
+        if (currentPushUrl && scriptUrl.includes(currentPushUrl)) return;
 
         try {
           await registration.unregister();
