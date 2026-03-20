@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useStore } from "@/contexts/StoreContext";
 import PixPaymentModal from "@/components/PixPaymentModal";
+import { validateCouponForOrder } from "@/lib/couponValidation";
 
 interface Profile {
   full_name: string;
@@ -246,6 +247,20 @@ const Checkout = () => {
       toast.error("A loja está fechada no momento");
       return;
     }
+
+    if (appliedCoupon) {
+      const validation = await validateCouponForOrder({
+        couponCode: appliedCoupon.code,
+        totalPrice,
+        userId: user.id,
+      });
+
+      if (!validation.valid) {
+        toast.error(validation.error ?? "Este cupom não pode mais ser utilizado");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
