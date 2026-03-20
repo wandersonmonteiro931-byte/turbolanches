@@ -42,6 +42,7 @@ import AdminManageAdmins from "./pages/admin/AdminManageAdmins";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
 import AdminScratchCard from "./pages/admin/AdminScratchCard";
 import AdminReviews from "./pages/admin/AdminReviews";
+import AdminPricing from "./pages/admin/AdminPricing";
 import Kitchen from "./pages/Kitchen";
 import MyScratchCards from "./pages/MyScratchCards";
 
