@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
+import ProductRecipeEditor from "@/components/admin/pricing/ProductRecipeEditor";
 
 interface Product {
   id: string;
