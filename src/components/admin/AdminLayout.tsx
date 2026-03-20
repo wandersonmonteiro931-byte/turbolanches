@@ -21,6 +21,7 @@ const navItems = [
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
   { path: "/admin/administradores", icon: Shield, label: "Admins" },
   { path: "/admin/raspadinha", icon: Sparkles, label: "Raspadinha" },
+  { path: "/admin/ia", icon: Bot, label: "IA do Sistema" },
   { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
