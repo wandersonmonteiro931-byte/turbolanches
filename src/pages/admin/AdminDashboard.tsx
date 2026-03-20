@@ -588,6 +588,23 @@ const AdminDashboard = () => {
     <div className="space-y-4">
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        {/* Status indicator - what customers see */}
+        <div className={cn(
+          "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
+          customerSeesOpen
+            ? "border-green-500 bg-green-500/10 text-green-600"
+            : "border-red-500 bg-red-500/10 text-red-600",
+        )}>
+          <span className={cn(
+            "h-3 w-3 rounded-full animate-pulse",
+            customerSeesOpen ? "bg-green-500" : "bg-red-500",
+          )} />
+          {customerSeesOpen ? "LOJA ABERTA" : "LOJA FECHADA"}
+          {!customerSeesOpen && nextOpeningText && (
+            <span className="ml-1 text-xs font-normal text-muted-foreground">({nextOpeningText})</span>
+          )}
+        </div>
+
         <button
           onClick={requestToggleConfirmation}
           aria-busy={togglingStore}
