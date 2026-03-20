@@ -632,13 +632,6 @@ const AdminDashboard = () => {
           Novo Pedido
         </button>
 
-        <button
-          onClick={() => setShowSchedule(!showSchedule)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Settings size={16} />
-          Horários
-        </button>
 
         <button
           onClick={acceptAllPending}
