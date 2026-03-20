@@ -1,14 +1,21 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Bot, Loader2, Sparkles, Terminal, Wrench } from "lucide-react";
+import { Bot, Loader2, Plus, Sparkles, Terminal, Trash2, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
   actions?: string[];
+};
+
+const WELCOME_MSG: ChatMessage = {
+  role: "assistant",
+  content:
+    "Sou a IA de correção do sistema. Posso interpretar comandos do painel, ler dados da loja e executar ajustes administrativos em tempo real quando possível.",
 };
 
 const quickCommands = [
@@ -21,17 +28,54 @@ const quickCommands = [
 const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-ai-control`;
 
 const AdminAiControl = () => {
-  const { session } = useAuth();
+  const { session, user } = useAuth();
   const { toast } = useToast();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content:
-        "Sou a IA de correção do sistema. Posso interpretar comandos do painel, ler dados da loja e executar ajustes administrativos em tempo real quando possível.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MSG]);
   const [isLoading, setIsLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Load history on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("ai_chat_messages")
+      .select("role, content, actions")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setMessages([
+            WELCOME_MSG,
+            ...data.map((m: any) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              actions: m.actions?.length ? m.actions : undefined,
+            })),
+          ]);
+        }
+        setHistoryLoaded(true);
+      });
+  }, [user?.id]);
+
+  // Auto-scroll
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, isLoading]);
+
+  const persistMessage = useCallback(
+    async (role: string, content: string, actions?: string[]) => {
+      if (!user?.id) return;
+      await supabase.from("ai_chat_messages").insert({
+        user_id: user.id,
+        role,
+        content,
+        actions: actions || [],
+      });
+    },
+    [user?.id],
+  );
 
   const canSend = useMemo(() => !!input.trim() && !!session?.access_token && !isLoading, [input, session, isLoading]);
 
@@ -39,10 +83,13 @@ const AdminAiControl = () => {
     const content = (preset ?? input).trim();
     if (!content || !session?.access_token || isLoading) return;
 
-    const nextMessages = [...messages, { role: "user" as const, content }];
+    const userMsg: ChatMessage = { role: "user", content };
+    const nextMessages = [...messages, userMsg];
     setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
+
+    await persistMessage("user", content);
 
     try {
       const response = await fetch(endpoint, {
@@ -53,29 +100,37 @@ const AdminAiControl = () => {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
-          messages: nextMessages.map(({ role, content: messageContent }) => ({ role, content: messageContent })),
+          messages: nextMessages.map(({ role, content: c }) => ({ role, content: c })),
         }),
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data?.error || "Não foi possível executar o comando agora.");
-      }
+      if (!response.ok) throw new Error(data?.error || "Não foi possível executar o comando agora.");
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data?.message || "Concluído.",
-          actions: Array.isArray(data?.actions) ? data.actions : [],
-        },
-      ]);
+      const assistantActions = Array.isArray(data?.actions) ? data.actions : [];
+      const assistantContent = data?.message || "Concluído.";
+
+      const assistantMsg: ChatMessage = {
+        role: "assistant",
+        content: assistantContent,
+        actions: assistantActions.length ? assistantActions : undefined,
+      };
+
+      setMessages((prev) => [...prev, assistantMsg]);
+      await persistMessage("assistant", assistantContent, assistantActions);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro inesperado ao falar com a IA.";
       toast({ title: message, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearHistory = async () => {
+    if (!user?.id) return;
+    await supabase.from("ai_chat_messages").delete().eq("user_id", user.id);
+    setMessages([WELCOME_MSG]);
+    toast({ title: "Histórico limpo com sucesso." });
   };
 
   return (
@@ -101,12 +156,30 @@ const AdminAiControl = () => {
 
       <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-          <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Bot size={16} className="text-primary" />
-            Conversa com a IA
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Bot size={16} className="text-primary" />
+              Conversa com a IA
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={clearHistory}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <Trash2 size={12} />
+                Limpar
+              </button>
+              <button
+                onClick={() => setMessages([WELCOME_MSG])}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+              >
+                <Plus size={12} />
+                Nova conversa
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-3 max-h-[55vh] overflow-auto pr-1">
+          <div ref={scrollRef} className="space-y-3 max-h-[55vh] overflow-auto pr-1">
             {messages.map((message, index) => (
               <div
                 key={`${message.role}-${index}`}
