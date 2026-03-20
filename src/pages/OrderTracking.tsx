@@ -150,8 +150,21 @@ const OrderTracking = () => {
     if (prizes && prizes.length > 0) setScratchEligible(true);
   };
 
+  // Check if already reviewed
+  const checkReviewStatus = async () => {
+    if (!user || !id) return;
+    const { data } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("order_id", id)
+      .eq("user_id", user.id)
+      .limit(1);
+    if (data && data.length > 0) setAlreadyReviewed(true);
+  };
+
   useEffect(() => {
     fetchOrder();
+    checkReviewStatus();
 
     const channel = supabase
       .channel(`order-${id}`)
@@ -166,7 +179,11 @@ const OrderTracking = () => {
         if (newStatus === "preparing") toast.info("✅ Pedido aceito! Estão preparando...");
         if (newStatus === "ready") toast.info("📦 Seu pedido está pronto!");
         if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
-        if (newStatus === "delivered") toast.success("🎉 Pedido entregue! Bom apetite!");
+        if (newStatus === "delivered") {
+          toast.success("🎉 Pedido entregue! Bom apetite!");
+          // Auto-open review after 2s
+          setTimeout(() => setShowReview(true), 2000);
+        }
         if (newStatus === "cancelled") toast.error("😔 Pedido recusado pela loja.");
       })
       .subscribe();
