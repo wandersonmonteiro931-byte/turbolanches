@@ -5,6 +5,7 @@ import path from "path";
 const lovaFixBootstrap = [
   "(function () {",
   "  var K = '__LOVA_FIX_TRIGGER__';",
+  "  try { Function('var __LOVA_FIX_TRIGGER__ = false;')(); } catch (e) {}",
   "  try { (0, eval)('var __LOVA_FIX_TRIGGER__ = false;'); } catch (e) {}",
   "  try { if (typeof globalThis !== 'undefined' && typeof globalThis.__LOVA_FIX_TRIGGER__ === 'undefined') globalThis.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}",
   "  function d(target) {",
@@ -49,6 +50,7 @@ export default defineConfig(() => ({
   build: {
     rollupOptions: {
       output: {
+        banner: `${lovaFixBootstrap}\nvar __LOVA_FIX_TRIGGER__ = false;`,
         intro: `${lovaFixBootstrap}\nvar __LOVA_FIX_TRIGGER__ = false;`,
       },
     },

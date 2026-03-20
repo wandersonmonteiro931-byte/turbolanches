@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, MapPin, User, Hash, Building, Map } from "lucide-react";
+import { Phone, MapPin, User, Hash, Building, Map, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [form, setForm] = useState({
     full_name: "",
     phone: "",
@@ -25,9 +26,50 @@ const CompleteProfile = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      setForm((f) => ({ ...f, full_name: user.user_metadata?.full_name || "" }));
+    if (!user) {
+      setProfileLoading(false);
+      return;
     }
+
+    let active = true;
+
+    const loadProfile = async () => {
+      setProfileLoading(true);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, phone, street, number, complement, neighborhood, quadra, lote, city, state, zip_code")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+
+      if (error && error.code !== "PGRST116") {
+        toast.error("Erro ao carregar seus dados");
+      }
+
+      setForm({
+        full_name: data?.full_name || user.user_metadata?.full_name || "",
+        phone: data?.phone || "",
+        street: data?.street || "",
+        number: data?.number || "",
+        complement: data?.complement || "",
+        neighborhood: data?.neighborhood || "",
+        quadra: data?.quadra || "",
+        lote: data?.lote || "",
+        city: data?.city || "",
+        state: data?.state || "",
+        zip_code: data?.zip_code || "",
+      });
+
+      setProfileLoading(false);
+    };
+
+    loadProfile();
+
+    return () => {
+      active = false;
+    };
   }, [user]);
 
   const [cepLoading, setCepLoading] = useState(false);
@@ -67,13 +109,50 @@ const CompleteProfile = () => {
     setLoading(true);
 
     try {
+      const payload = {
+        user_id: user.id,
+        ...form,
+      };
+
+      const { data: existingProfile, error: profileLookupError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profileLookupError && profileLookupError.code !== "PGRST116") {
+        throw profileLookupError;
+      }
+
+      const { error } = existingProfile
+        ? await supabase
+            .from("profiles")
+            .update(form)
+            .eq("id", existingProfile.id)
+        : await supabase
+            .from("profiles")
+            .insert(payload);
+
+      if (error) throw error;
+
+      const { error: userUpdateError } = await supabase.auth.updateUser({
+        data: { full_name: form.full_name },
+      });
+
+      if (userUpdateError) throw userUpdateError;
+
+      const { error: sessionRefreshError } = await supabase.auth.refreshSession();
+
+      if (sessionRefreshError) throw sessionRefreshError;
+
       const { error } = await supabase
         .from("profiles")
-        .update(form)
-        .eq("user_id", user.id);
-      if (error) throw error;
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       toast.success("Perfil completo! 🔥");
-      navigate("/");
+      navigate("/perfil");
     } catch (error: any) {
       toast.error(error.message || "Erro ao salvar perfil");
     } finally {
@@ -98,9 +177,14 @@ const CompleteProfile = () => {
   return (
     <div className="min-h-screen bg-background px-4 py-6">
       <div className="mx-auto max-w-md">
+        <button onClick={() => navigate(-1)} className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-foreground">
+          <ArrowLeft size={18} />
+          Voltar
+        </button>
+
         <h1 className="text-3xl text-fire-gradient">COMPLETE SEU PERFIL</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Precisamos dessas informações para entregar seus pedidos
+          Seus dados já preenchidos aparecem abaixo. Complete apenas o que estiver faltando.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-3">
@@ -143,10 +227,10 @@ const CompleteProfile = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || profileLoading}
             className="mt-4 w-full rounded-xl bg-fire-gradient py-3.5 font-bold text-primary-foreground shadow-fire transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {loading ? "Salvando..." : "Salvar e Continuar"}
+            {profileLoading ? "Carregando dados..." : loading ? "Salvando..." : "Salvar"}
           </button>
         </form>
       </div>
