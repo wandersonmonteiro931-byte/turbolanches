@@ -30,9 +30,9 @@ export const useReceiptTemplates = () => {
     enabled: !!storeId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("receipt_templates" as any)
+        .from("receipt_templates")
         .select("*")
-        .eq("store_id", storeId)
+        .eq("store_id", storeId!)
         .order("template_type");
       if (error) throw error;
       return (data as unknown as ReceiptTemplate[]) || [];
