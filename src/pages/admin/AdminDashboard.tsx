@@ -595,7 +595,7 @@ const AdminDashboard = () => {
           aria-busy={togglingStore}
           className={cn(
             "flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold transition-all",
-            storeSettings?.is_open
+            customerSeesOpen
               ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
               : "bg-primary text-primary-foreground hover:bg-primary/90",
             togglingStore && "opacity-70",
@@ -603,14 +603,12 @@ const AdminDashboard = () => {
         >
           <Power size={18} />
           {togglingStore
-            ? storeSettings?.is_open
+            ? customerSeesOpen
               ? "FECHANDO..."
               : "ABRINDO..."
-            : storeSettings
-              ? storeSettings.is_open
-                ? "FECHAR LOJA"
-                : "ABRIR LOJA"
-              : "ABRIR/FECHAR LOJA"}
+            : customerSeesOpen
+              ? "FECHAR LOJA"
+              : "ABRIR LOJA"}
         </button>
 
         <button
