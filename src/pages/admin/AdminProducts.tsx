@@ -161,6 +161,9 @@ const AdminProducts = () => {
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" placeholder="Ex: 4 (4 sanduíches)" />
                 </div>
               )}
+              {editing && (
+                <ProductRecipeEditor productId={editing.id} />
+              )}
               <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
             </div>
           </div>
