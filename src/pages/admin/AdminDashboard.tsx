@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
-  Truck, X, Check, Printer, Store, StoreIcon, Power, Settings,
+  Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
@@ -103,9 +103,6 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("pending");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState("");
-  const [scheduleClose, setScheduleClose] = useState("");
   const [showCloseDay, setShowCloseDay] = useState(false);
   const [now, setNow] = useState(Date.now());
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -159,8 +156,6 @@ const AdminDashboard = () => {
 
   const applyStoreSettings = useCallback((data: StoreSettings) => {
     setStoreSettings(data);
-    setScheduleOpen(data.scheduled_open || "");
-    setScheduleClose(data.scheduled_close || "");
   }, []);
 
   const fetchStoreSettings = useCallback(async () => {
@@ -304,16 +299,6 @@ const AdminDashboard = () => {
     setTogglingStore(false);
   };
 
-  const saveSchedule = async () => {
-    if (!storeSettings) return;
-    await supabase.from("store_settings").update({
-      use_schedule: true,
-      scheduled_open: scheduleOpen || null,
-      scheduled_close: scheduleClose || null,
-    }).eq("id", storeSettings.id);
-    setShowSchedule(false);
-    toast({ title: "⏰ Horários salvos!" });
-  };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
@@ -636,13 +621,6 @@ const AdminDashboard = () => {
           Novo Pedido
         </button>
 
-        <button
-          onClick={() => setShowSchedule(!showSchedule)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Settings size={16} />
-          Horários
-        </button>
 
         <button
           onClick={acceptAllPending}
@@ -737,32 +715,6 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Schedule Modal */}
-      {showSchedule && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <h3 className="font-bold text-foreground text-sm">⏰ Horários Programados</h3>
-          <div className="flex items-center gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground">Abertura</label>
-              <input type="time" value={scheduleOpen} onChange={e => setScheduleOpen(e.target.value)}
-                className="block rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Fechamento</label>
-              <input type="time" value={scheduleClose} onChange={e => setScheduleClose(e.target.value)}
-                className="block rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <button onClick={saveSchedule} className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
-              Salvar
-            </button>
-          </div>
-          {storeSettings?.use_schedule && storeSettings.scheduled_open && (
-            <p className="text-xs text-muted-foreground">
-              Ativo: {storeSettings.scheduled_open} às {storeSettings.scheduled_close}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Close Day Confirmation */}
       {showCloseDay && (
