@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,13 +28,16 @@ interface LastOrder {
 export default function ReorderSection() {
   const { user } = useAuth();
   const { addItem } = useCart();
+  const navigate = useNavigate();
   const [lastOrder, setLastOrder] = useState<LastOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [hasPendingReview, setHasPendingReview] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setLoading(false);
+      setHasPendingReview(false);
       return;
     }
 
@@ -48,31 +52,40 @@ export default function ReorderSection() {
 
       if (!orders || orders.length === 0) {
         setLoading(false);
+        setHasPendingReview(false);
         return;
       }
 
       const order = orders[0];
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("product_name, quantity, unit_price, observations, addons_json, product_id")
-        .eq("order_id", order.id);
+      const [{ data: items }, { data: existingReview }] = await Promise.all([
+        supabase
+          .from("order_items")
+          .select("product_name, quantity, unit_price, observations, addons_json, product_id")
+          .eq("order_id", order.id),
+        supabase
+          .from("reviews")
+          .select("id")
+          .eq("order_id", order.id)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
 
       setLastOrder({
         ...order,
         items: (items || []) as LastOrderItem[],
       });
+      setHasPendingReview(!existingReview);
       setLoading(false);
     };
 
     fetchLastOrder();
   }, [user]);
 
-  if (!user || loading || !lastOrder || lastOrder.items.length === 0) return null;
+  if (!user || loading || !lastOrder) return null;
 
   const handleReorder = async () => {
     setAdding(true);
     try {
-      // Fetch current products to get up-to-date prices and images
       const productIds = lastOrder.items
         .map((i) => i.product_id)
         .filter(Boolean) as string[];
@@ -152,29 +165,57 @@ export default function ReorderSection() {
       month: "2-digit",
     });
 
+  const formattedOrderNumber = String(lastOrder.order_number).padStart(5, "0");
+
   return (
     <div className="mt-5">
-      <h2 className="text-sm font-bold text-foreground mb-2">Pedir de novo</h2>
-      <button
-        onClick={handleReorder}
-        disabled={adding}
-        className="flex w-full items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-all active:scale-[0.98] disabled:opacity-60"
-      >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <RefreshCw size={18} className="text-primary" />
+      {hasPendingReview && (
+        <div className="mb-3 rounded-2xl border border-border bg-background px-3 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <Star size={18} className="fill-primary text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">Avalie seu último pedido</p>
+              <p className="text-xs text-muted-foreground break-words">
+                O pedido #{formattedOrderNumber} ainda não foi avaliado.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/pedido/${lastOrder.id}`)}
+              className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground active:scale-[0.98]"
+            >
+              Avaliar
+            </button>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">
-            Pedido #{String(lastOrder.order_number).padStart(5, "0")} • {formatDate(lastOrder.created_at)}
-          </p>
-          <p className="text-xs text-muted-foreground truncate">
-            {lastOrder.items.map((i) => `${i.quantity}x ${i.product_name}`).join(", ")}
-          </p>
-        </div>
-        <span className="shrink-0 rounded-lg bg-fire-gradient px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm">
-          {adding ? "..." : "Repetir"}
-        </span>
-      </button>
+      )}
+
+      {lastOrder.items.length > 0 && (
+        <>
+          <h2 className="mb-2 text-sm font-bold text-foreground">Pedir de novo</h2>
+          <button
+            onClick={handleReorder}
+            disabled={adding}
+            className="flex w-full items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition-all active:scale-[0.98] disabled:opacity-60"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <RefreshCw size={18} className="text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">
+                Pedido #{formattedOrderNumber} • {formatDate(lastOrder.created_at)}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {lastOrder.items.map((i) => `${i.quantity}x ${i.product_name}`).join(", ")}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-lg bg-fire-gradient px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm">
+              {adding ? "..." : "Repetir"}
+            </span>
+          </button>
+        </>
+      )}
     </div>
   );
 }
