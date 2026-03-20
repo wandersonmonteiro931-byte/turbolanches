@@ -113,6 +113,7 @@ const AppInner = () => {
             <Route path="comandas" element={<AdminReceipts />} />
             <Route path="administradores" element={<AdminManageAdmins />} />
             <Route path="raspadinha" element={<AdminScratchCard />} />
+            <Route path="ia" element={<AdminAiControl />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
