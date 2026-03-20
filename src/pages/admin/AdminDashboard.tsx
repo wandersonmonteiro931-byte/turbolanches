@@ -299,16 +299,6 @@ const AdminDashboard = () => {
     setTogglingStore(false);
   };
 
-  const saveSchedule = async () => {
-    if (!storeSettings) return;
-    await supabase.from("store_settings").update({
-      use_schedule: true,
-      scheduled_open: scheduleOpen || null,
-      scheduled_close: scheduleClose || null,
-    }).eq("id", storeSettings.id);
-    setShowSchedule(false);
-    toast({ title: "⏰ Horários salvos!" });
-  };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
     const updateData: any = { status: newStatus };
