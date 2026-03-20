@@ -715,32 +715,6 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Schedule Modal */}
-      {showSchedule && (
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <h3 className="font-bold text-foreground text-sm">⏰ Horários Programados</h3>
-          <div className="flex items-center gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground">Abertura</label>
-              <input type="time" value={scheduleOpen} onChange={e => setScheduleOpen(e.target.value)}
-                className="block rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Fechamento</label>
-              <input type="time" value={scheduleClose} onChange={e => setScheduleClose(e.target.value)}
-                className="block rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <button onClick={saveSchedule} className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
-              Salvar
-            </button>
-          </div>
-          {storeSettings?.use_schedule && storeSettings.scheduled_open && (
-            <p className="text-xs text-muted-foreground">
-              Ativo: {storeSettings.scheduled_open} às {storeSettings.scheduled_close}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* Close Day Confirmation */}
       {showCloseDay && (
