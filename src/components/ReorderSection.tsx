@@ -86,6 +86,10 @@ export default function ReorderSection() {
   const handleReorder = async () => {
     setAdding(true);
     try {
+      // Clear cart and remove any coupons/discounts — reorder is items-only
+      clearCart();
+      setAppliedCoupon(null);
+
       const productIds = lastOrder.items
         .map((i) => i.product_id)
         .filter(Boolean) as string[];
@@ -129,6 +133,7 @@ export default function ReorderSection() {
       for (const item of lastOrder.items) {
         const dbProduct = item.product_id ? productMap.get(item.product_id) : null;
 
+        // Use current DB price, not the historical order price
         const product: Product = dbProduct
           ? {
               id: dbProduct.id,
@@ -187,7 +192,7 @@ export default function ReorderSection() {
       }
 
       if (addedCount > 0) {
-        toast.success(`${addedCount} item(ns) adicionado(s) ao carrinho! A taxa de entrega será calculada com os valores atuais.`);
+        toast.success(`${addedCount} item(ns) adicionado(s) ao carrinho com preços atuais! Cupons e descontos anteriores foram removidos.`);
       } else {
         toast.error("Nenhum item disponível para repetir.");
       }
