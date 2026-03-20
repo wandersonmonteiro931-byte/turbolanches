@@ -228,6 +228,7 @@ const Checkout = () => {
 
     const orderItems = items.map((item) => ({
       order_id: order.id,
+      product_id: item.product.id,
       product_name: item.product.name,
       quantity: item.quantity,
       unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0),
