@@ -39,6 +39,7 @@ function formatTime(dateStr: string | null | undefined): string | null {
 
 interface OrderItemData {
   id: string;
+  product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
