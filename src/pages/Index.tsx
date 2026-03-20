@@ -343,6 +343,7 @@ const Index = () => {
             <h2 className="text-xl font-extrabold text-foreground">⭐ Avaliações dos Clientes</h2>
             <StoreReviews compact />
           </motion.div>
+          <div className="h-6" />
         </div>
       </motion.div>
 
