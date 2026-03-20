@@ -72,7 +72,7 @@ export const useUpdateReceiptTemplate = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receipt_templates", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["receipt_templates"] });
       toast.success("Comanda salva com sucesso!");
     },
     onError: (err: any) => {
