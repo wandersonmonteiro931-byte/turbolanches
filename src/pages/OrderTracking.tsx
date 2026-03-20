@@ -643,6 +643,33 @@ const OrderTracking = () => {
 
 
 
+        {/* Review Button */}
+        {order.status === "delivered" && user && !alreadyReviewed && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.68 }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setShowReview(true)}
+              className="w-full rounded-xl bg-amber-500 py-3.5 text-sm font-bold text-white shadow-sm"
+            >
+              ⭐ Avaliar Pedido
+            </motion.button>
+          </motion.div>
+        )}
+
+        {order.status === "delivered" && alreadyReviewed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-2"
+          >
+            <p className="text-sm font-semibold text-muted-foreground">✅ Avaliação enviada — obrigado!</p>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -657,6 +684,23 @@ const OrderTracking = () => {
           </button>
         </motion.div>
       </div>
+
+      {/* Review Modal */}
+      {user && order && (
+        <ReviewModal
+          open={showReview}
+          onClose={() => {
+            setShowReview(false);
+            setAlreadyReviewed(true);
+          }}
+          orderId={order.id}
+          userId={user.id}
+          orderItems={items.map((i) => ({
+            product_id: i.product_id || null,
+            product_name: i.product_name,
+          }))}
+        />
+      )}
     </div>
   );
 };

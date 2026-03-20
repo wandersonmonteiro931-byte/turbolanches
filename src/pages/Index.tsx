@@ -331,6 +331,17 @@ const Index = () => {
               })}
             </div>
           )}
+
+          {/* Customer Reviews Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="mt-8 text-xl font-extrabold text-foreground">⭐ Avaliações dos Clientes</h2>
+            <StoreReviews compact />
+          </motion.div>
         </div>
       </motion.div>
 
