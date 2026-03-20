@@ -96,6 +96,7 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
 
 const AdminDashboard = () => {
   const { storeId, loading: storeLoading } = useStore();
+  const { isOpen: customerSeesOpen, nextOpeningText } = useStoreStatus();
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
