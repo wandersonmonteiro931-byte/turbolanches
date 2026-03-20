@@ -748,13 +748,13 @@ const AdminDashboard = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <Power size={24} className={storeSettings?.is_open ? "text-destructive" : "text-primary"} />
+              <Power size={24} className={customerSeesOpen ? "text-destructive" : "text-primary"} />
               <AlertDialogTitle>
-                {storeSettings?.is_open ? "Fechar a loja?" : "Abrir a loja?"}
+                {customerSeesOpen ? "Fechar a loja?" : "Abrir a loja?"}
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription>
-              {storeSettings?.is_open
+              {customerSeesOpen
                 ? "A loja será fechada manualmente agora, independentemente do horário ou do dia cadastrado."
                 : "A loja será aberta manualmente agora, independentemente do horário ou do dia cadastrado."}
             </AlertDialogDescription>
@@ -771,12 +771,12 @@ const AdminDashboard = () => {
               }}
               disabled={togglingStore}
               className={cn(
-                storeSettings?.is_open
+                customerSeesOpen
                   ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   : "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
-              {storeSettings?.is_open ? "Sim, fechar" : "Sim, abrir"}
+              {customerSeesOpen ? "Sim, fechar" : "Sim, abrir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
