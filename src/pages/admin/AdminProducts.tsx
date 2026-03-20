@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
+import ProductRecipeEditor from "@/components/admin/pricing/ProductRecipeEditor";
 
 interface Product {
   id: string;
@@ -159,6 +160,9 @@ const AdminProducts = () => {
                     onChange={(e) => setForm({ ...form, combo_item_count: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" placeholder="Ex: 4 (4 sanduíches)" />
                 </div>
+              )}
+              {editing && (
+                <ProductRecipeEditor productId={editing.id} />
               )}
               <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
             </div>
