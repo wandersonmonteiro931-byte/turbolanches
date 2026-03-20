@@ -960,31 +960,43 @@ export type Database = {
       }
       reviews: {
         Row: {
+          admin_response: string | null
           comment: string | null
           created_at: string
           id: string
           order_id: string | null
           product_id: string
           rating: number
+          store_id: string | null
+          tags: string[] | null
           user_id: string
+          visible: boolean | null
         }
         Insert: {
+          admin_response?: string | null
           comment?: string | null
           created_at?: string
           id?: string
           order_id?: string | null
           product_id: string
           rating: number
+          store_id?: string | null
+          tags?: string[] | null
           user_id: string
+          visible?: boolean | null
         }
         Update: {
+          admin_response?: string | null
           comment?: string | null
           created_at?: string
           id?: string
           order_id?: string | null
           product_id?: string
           rating?: number
+          store_id?: string | null
+          tags?: string[] | null
           user_id?: string
+          visible?: boolean | null
         }
         Relationships: [
           {
@@ -999,6 +1011,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
         ]

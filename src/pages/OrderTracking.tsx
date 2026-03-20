@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { formatTimeBR } from "@/lib/brasiliaTime";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import ReviewModal from "@/components/ReviewModal";
 
 interface OrderData {
   id: string;
@@ -38,6 +39,7 @@ function formatTime(dateStr: string | null | undefined): string | null {
 
 interface OrderItemData {
   id: string;
+  product_id: string | null;
   product_name: string;
   quantity: number;
   unit_price: number;
@@ -102,6 +104,8 @@ const OrderTracking = () => {
   const [storeAddress, setStoreAddress] = useState("");
   const [scratchEligible, setScratchEligible] = useState(false);
   const [alreadyScratched, setAlreadyScratched] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
   const fetchOrder = async () => {
     if (!id) return;
@@ -147,8 +151,21 @@ const OrderTracking = () => {
     if (prizes && prizes.length > 0) setScratchEligible(true);
   };
 
+  // Check if already reviewed
+  const checkReviewStatus = async () => {
+    if (!user || !id) return;
+    const { data } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("order_id", id)
+      .eq("user_id", user.id)
+      .limit(1);
+    if (data && data.length > 0) setAlreadyReviewed(true);
+  };
+
   useEffect(() => {
     fetchOrder();
+    checkReviewStatus();
 
     const channel = supabase
       .channel(`order-${id}`)
@@ -163,7 +180,11 @@ const OrderTracking = () => {
         if (newStatus === "preparing") toast.info("✅ Pedido aceito! Estão preparando...");
         if (newStatus === "ready") toast.info("📦 Seu pedido está pronto!");
         if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
-        if (newStatus === "delivered") toast.success("🎉 Pedido entregue! Bom apetite!");
+        if (newStatus === "delivered") {
+          toast.success("🎉 Pedido entregue! Bom apetite!");
+          // Auto-open review after 2s
+          setTimeout(() => setShowReview(true), 2000);
+        }
         if (newStatus === "cancelled") toast.error("😔 Pedido recusado pela loja.");
       })
       .subscribe();
@@ -623,6 +644,33 @@ const OrderTracking = () => {
 
 
 
+        {/* Review Button */}
+        {order.status === "delivered" && user && !alreadyReviewed && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.68 }}
+          >
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setShowReview(true)}
+              className="w-full rounded-xl bg-amber-500 py-3.5 text-sm font-bold text-white shadow-sm"
+            >
+              ⭐ Avaliar Pedido
+            </motion.button>
+          </motion.div>
+        )}
+
+        {order.status === "delivered" && alreadyReviewed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-2"
+          >
+            <p className="text-sm font-semibold text-muted-foreground">✅ Avaliação enviada — obrigado!</p>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -637,6 +685,23 @@ const OrderTracking = () => {
           </button>
         </motion.div>
       </div>
+
+      {/* Review Modal */}
+      {user && order && (
+        <ReviewModal
+          open={showReview}
+          onClose={() => {
+            setShowReview(false);
+            setAlreadyReviewed(true);
+          }}
+          orderId={order.id}
+          userId={user.id}
+          orderItems={items.map((i) => ({
+            product_id: i.product_id || null,
+            product_name: i.product_name,
+          }))}
+        />
+      )}
     </div>
   );
 };
