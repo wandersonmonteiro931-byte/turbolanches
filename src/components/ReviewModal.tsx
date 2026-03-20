@@ -60,7 +60,8 @@ const ReviewModal = ({ open, onClose, onSubmitted, orderId, userId, orderNumber,
     const { error } = await supabase.from("reviews").insert(rows);
 
     if (error) {
-      toast.error("Erro ao enviar avaliação");
+      console.error("Review insert error:", error);
+      toast.error("Erro ao enviar avaliação: " + error.message);
       setSubmitting(false);
       return;
     }
