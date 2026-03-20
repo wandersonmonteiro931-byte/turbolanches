@@ -157,8 +157,6 @@ const AdminDashboard = () => {
 
   const applyStoreSettings = useCallback((data: StoreSettings) => {
     setStoreSettings(data);
-    setScheduleOpen(data.scheduled_open || "");
-    setScheduleClose(data.scheduled_close || "");
   }, []);
 
   const fetchStoreSettings = useCallback(async () => {
