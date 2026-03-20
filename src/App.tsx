@@ -23,6 +23,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAiControl from "./pages/admin/AdminAiControl";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
@@ -112,6 +113,7 @@ const AppInner = () => {
             <Route path="comandas" element={<AdminReceipts />} />
             <Route path="administradores" element={<AdminManageAdmins />} />
             <Route path="raspadinha" element={<AdminScratchCard />} />
+            <Route path="ia" element={<AdminAiControl />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
