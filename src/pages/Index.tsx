@@ -98,6 +98,7 @@ const Index = () => {
   const whatsappMessage = content.whatsapp_message || "Olá! Gostaria de fazer um pedido.";
   const instagramHandle = content.instagram_handle || "@turboolanches";
   const instagramUser = instagramHandle.replace(/^@/, "");
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -354,7 +355,7 @@ const Index = () => {
           className="mx-auto h-auto w-full max-w-[280px] object-contain"
           loading="lazy"
         />
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">© 2026 Turbo Lanches — Todos os direitos reservados.</p>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">© {currentYear} Turbo Lanches — Todos os direitos reservados.</p>
       </footer>
 
       <AddressSelector open={addrSelectorOpen} onClose={() => setAddrSelectorOpen(false)} />
