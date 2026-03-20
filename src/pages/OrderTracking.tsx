@@ -103,6 +103,8 @@ const OrderTracking = () => {
   const [storeAddress, setStoreAddress] = useState("");
   const [scratchEligible, setScratchEligible] = useState(false);
   const [alreadyScratched, setAlreadyScratched] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [alreadyReviewed, setAlreadyReviewed] = useState(false);
 
   const fetchOrder = async () => {
     if (!id) return;
