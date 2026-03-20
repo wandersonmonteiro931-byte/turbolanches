@@ -27,13 +27,19 @@ export const useReceiptTemplates = () => {
   const { storeId } = useStore();
   return useQuery({
     queryKey: ["receipt_templates", storeId],
-    enabled: !!storeId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("receipt_templates")
         .select("*")
-        .eq("store_id", storeId!)
         .order("template_type");
+
+      if (storeId) {
+        query = query.or(`store_id.eq.${storeId},store_id.is.null`);
+      } else {
+        query = query.is("store_id", null);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data as unknown as ReceiptTemplate[]) || [];
     },
@@ -66,7 +72,7 @@ export const useUpdateReceiptTemplate = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["receipt_templates", storeId] });
+      queryClient.invalidateQueries({ queryKey: ["receipt_templates"] });
       toast.success("Comanda salva com sucesso!");
     },
     onError: (err: any) => {
