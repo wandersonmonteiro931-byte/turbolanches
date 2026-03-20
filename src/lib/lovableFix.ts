@@ -25,6 +25,22 @@ function defineOnTarget(target: unknown) {
   } catch {}
 }
 
+function ensureIdentifierBinding() {
+  try {
+    if (typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "undefined") {
+      globalThis.__LOVA_FIX_TRIGGER__ = false;
+    }
+  } catch {}
+
+  try {
+    Function("var __LOVA_FIX_TRIGGER__ = false;")();
+  } catch {}
+
+  try {
+    (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+  } catch {}
+}
+
 function getProbeMessage(value: unknown): string {
   if (typeof value === "string") return value;
 
@@ -69,10 +85,13 @@ function installProbeSuppression() {
 }
 
 export function ensureLovaFixTrigger() {
+  ensureIdentifierBinding();
   defineOnTarget(globalThis);
 
   if (typeof window !== "undefined") defineOnTarget(window);
   if (typeof self !== "undefined") defineOnTarget(self);
+
+  ensureIdentifierBinding();
 
   installProbeSuppression();
 

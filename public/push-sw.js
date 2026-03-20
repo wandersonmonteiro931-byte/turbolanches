@@ -1,7 +1,8 @@
-// SW Version 20 — resilient global probe suppression + immediate update
-var SW_VERSION = "v20";
+// SW Version 21 — resilient global probe suppression + immediate update
+var SW_VERSION = "v21";
 var LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
 var __LOVA_FIX_TRIGGER__ = false;
+try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
 try { self[LOVA_FIX_KEY] = false; } catch (e) {}
 try { globalThis[LOVA_FIX_KEY] = false; } catch (e) {}
 try { Object.defineProperty(self, LOVA_FIX_KEY, { value: false, writable: true, configurable: true }); } catch (e) {}
