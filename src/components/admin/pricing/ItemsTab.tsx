@@ -30,7 +30,7 @@ const ItemsTab = () => {
     let categoriesQuery = supabase.from("categories").select("id, name, sort_order").order("sort_order").order("name");
     let productsQuery = supabase
       .from("products")
-      .select("id, name, price, category_id, active, sort_order")
+      .select("id, name, price, manual_cost, category_id, active, sort_order")
       .order("sort_order")
       .order("name");
     let ingredientsQuery = supabase.from("ingredients").select("id, cost_per_unit");
@@ -181,6 +181,7 @@ const ItemsTab = () => {
                       <th className="py-3 pl-4 pr-2 font-medium text-muted-foreground">Item</th>
                       <th className="px-2 py-3 text-right font-medium text-muted-foreground">Venda</th>
                       <th className="px-2 py-3 text-right font-medium text-muted-foreground">Ingredientes</th>
+                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Custo direto</th>
                       <th className="px-2 py-3 text-right font-medium text-muted-foreground">Extras</th>
                       <th className="px-2 py-3 text-right font-medium text-muted-foreground">Custo total</th>
                       <th className="px-2 py-3 text-right font-medium text-muted-foreground">Lucro</th>
@@ -203,11 +204,18 @@ const ItemsTab = () => {
                                   <span>{row.active ? "Ativo" : "Oculto"}</span>
                                   <span>•</span>
                                   <span>{row.ingredientCount} ingrediente(s)</span>
+                                  {row.manualCost > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <span>Custo direto</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </td>
                             <td className="px-2 py-3 text-right text-foreground">{formatCurrency(row.price)}</td>
                             <td className={`px-2 py-3 text-right ${emphasisClass}`}>{formatCurrency(row.ingredientCost)}</td>
+                            <td className={`px-2 py-3 text-right ${row.manualCost > 0 ? "text-foreground" : "text-muted-foreground"}`}>{formatCurrency(row.manualCost)}</td>
                             <td className="px-2 py-3 text-right text-muted-foreground">{formatCurrency(row.extraCost)}</td>
                             <td className={`px-2 py-3 text-right font-medium ${emphasisClass}`}>{formatCurrency(row.totalCost)}</td>
                             <td className={`px-2 py-3 text-right ${row.profit < 0 ? "text-destructive" : "text-foreground"}`}>
@@ -228,7 +236,7 @@ const ItemsTab = () => {
                           </tr>
                           {isExpanded && (
                             <tr key={`${row.id}-editor`} className="border-b border-border/50 bg-muted/10 last:border-b-0">
-                              <td colSpan={8} className="p-4">
+                              <td colSpan={9} className="p-4">
                                 <ProductRecipeEditor productId={row.id} onChange={() => void fetchData()} />
                               </td>
                             </tr>

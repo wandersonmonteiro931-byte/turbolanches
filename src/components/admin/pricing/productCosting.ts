@@ -10,6 +10,7 @@ export interface PricingProduct {
   id: string;
   name: string;
   price: number;
+  manual_cost?: number | null;
   category_id: string | null;
   active: boolean;
   sort_order?: number | null;
@@ -41,6 +42,7 @@ export interface ProductCostRow {
   price: number;
   active: boolean;
   ingredientCost: number;
+  manualCost: number;
   extraCost: number;
   totalCost: number;
   profit: number;
@@ -88,9 +90,10 @@ export const buildProductCostRows = ({
           return sum + Number(line.quantity || 0) * unitCost;
         }, 0),
       );
+      const manualCost = roundMoney(Number(product.manual_cost || 0));
 
       const extraCost = roundMoney(totalFixedExtra + (Number(product.price || 0) * totalPercentExtra) / 100);
-      const totalCost = roundMoney(ingredientCost + extraCost);
+      const totalCost = roundMoney(ingredientCost + manualCost + extraCost);
       const profit = roundMoney(Number(product.price || 0) - totalCost);
       const margin = Number(product.price || 0) > 0 ? roundMoney((profit / Number(product.price)) * 100) : 0;
 
@@ -103,6 +106,7 @@ export const buildProductCostRows = ({
         price: Number(product.price || 0),
         active: Boolean(product.active),
         ingredientCost,
+        manualCost,
         extraCost,
         totalCost,
         profit,
