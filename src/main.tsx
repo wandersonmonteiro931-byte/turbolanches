@@ -7,17 +7,38 @@ declare global {
   interface Window {
     __LOVA_FIX_TRIGGER__?: boolean;
   }
-
-  var __LOVA_FIX_TRIGGER__: boolean | undefined;
 }
 
-if (typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "undefined") {
-  globalThis.__LOVA_FIX_TRIGGER__ = false;
-}
+type FixTriggerTarget = typeof globalThis & {
+  __LOVA_FIX_TRIGGER__?: boolean;
+};
 
-if (typeof window !== "undefined" && typeof window.__LOVA_FIX_TRIGGER__ === "undefined") {
-  window.__LOVA_FIX_TRIGGER__ = false;
-}
+const bootstrapFixTrigger = () => {
+  const targets = [
+    typeof globalThis !== "undefined" ? (globalThis as FixTriggerTarget) : null,
+    typeof window !== "undefined" ? (window as FixTriggerTarget) : null,
+    typeof self !== "undefined" ? (self as FixTriggerTarget) : null,
+  ].filter(Boolean) as FixTriggerTarget[];
+
+  for (const target of targets) {
+    if (typeof target.__LOVA_FIX_TRIGGER__ === "undefined") {
+      target.__LOVA_FIX_TRIGGER__ = false;
+    }
+  }
+
+  const rootTarget = typeof globalThis !== "undefined" ? (globalThis as FixTriggerTarget) : null;
+  if (!rootTarget) return;
+
+  try {
+    Object.defineProperty(rootTarget, "__LOVA_FIX_TRIGGER__", {
+      configurable: true,
+      writable: true,
+      value: rootTarget.__LOVA_FIX_TRIGGER__ ?? false,
+    });
+  } catch {}
+};
+
+bootstrapFixTrigger();
 
 const enableServiceWorker = shouldEnableServiceWorker();
 
