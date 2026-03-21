@@ -673,6 +673,58 @@ export type Database = {
           },
         ]
       }
+      product_combo_items: {
+        Row: {
+          component_product_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          sort_order: number
+          store_id: string | null
+        }
+        Insert: {
+          component_product_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          sort_order?: number
+          store_id?: string | null
+        }
+        Update: {
+          component_product_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          sort_order?: number
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_combo_items_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_combo_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_combo_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_ingredients: {
         Row: {
           created_at: string

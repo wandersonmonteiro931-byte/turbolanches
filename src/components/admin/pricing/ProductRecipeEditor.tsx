@@ -10,7 +10,7 @@ import {
   getCompatibleMeasurementUnits,
   getDefaultMeasurementUnit,
 } from "./measurement";
-import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
+import { formatCurrency, formatMoneyInput, parseRoundedMoney, roundMoney } from "./pricingMoney";
 import ProductIngredientSelector from "./ProductIngredientSelector";
 
 interface Ingredient {
@@ -29,10 +29,31 @@ interface RecipeLine {
   cost?: number;
 }
 
+interface ComboProductOption {
+  id: string;
+  name: string;
+  active: boolean;
+  is_combo: boolean;
+}
+
+interface ComboLine {
+  id?: string;
+  component_product_id: string;
+  quantity: number;
+}
+
+interface ProductCostMapEntry {
+  name: string;
+  baseCost: number;
+  isCombo?: boolean;
+}
+
 interface Props {
   productId: string;
   onChange?: (payload: ProductRecipeEditorChange) => void;
   allowBulkIngredientSelection?: boolean;
+  enableComboComponents?: boolean;
+  productCostMap?: Record<string, ProductCostMapEntry>;
 }
 
 export interface ProductRecipeEditorChange {
@@ -43,27 +64,61 @@ export interface ProductRecipeEditorChange {
     ingredient_id: string;
     quantity: number;
   }>;
+  comboLines?: Array<{
+    id?: string;
+    component_product_id: string;
+    quantity: number;
+  }>;
 }
 
-const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection = false }: Props) => {
+const ProductRecipeEditor = ({
+  productId,
+  onChange,
+  allowBulkIngredientSelection = false,
+  enableComboComponents = false,
+  productCostMap,
+}: Props) => {
   const { storeId } = useStore();
   const { toast } = useToast();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [lines, setLines] = useState<RecipeLine[]>([]);
+  const [comboProducts, setComboProducts] = useState<ComboProductOption[]>([]);
+  const [comboLines, setComboLines] = useState<ComboLine[]>([]);
   const [adding, setAdding] = useState(false);
   const [selectedIngId, setSelectedIngId] = useState("");
   const [qty, setQty] = useState("1");
+  const [isComboProduct, setIsComboProduct] = useState(false);
+  const [selectedComboProductId, setSelectedComboProductId] = useState("");
+  const [comboQty, setComboQty] = useState("1");
   const [manualCostInput, setManualCostInput] = useState("");
   const [savedManualCost, setSavedManualCost] = useState(0);
   const [savingManualCost, setSavingManualCost] = useState(false);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
   const [selectionDrafts, setSelectionDrafts] = useState<Record<string, string>>({});
+  const [comboQuantityDrafts, setComboQuantityDrafts] = useState<Record<string, string>>({});
   const [entryUnits, setEntryUnits] = useState<Record<string, IngredientMeasureUnit>>({});
 
   const ingredientMap = useMemo(() => new Map(ingredients.map((ingredient) => [ingredient.id, ingredient])), [ingredients]);
+  const comboProductMap = useMemo(() => new Map(comboProducts.map((product) => [product.id, product])), [comboProducts]);
   const selectedIngredientUnitOptions = useMemo(
     () => (selectedIngId ? getCompatibleMeasurementUnits(ingredientMap.get(selectedIngId)?.unit) : ["unidade"]),
     [ingredientMap, selectedIngId],
+  );
+  const comboDisplayLines = useMemo(
+    () =>
+      comboLines.map((line) => {
+        const product = comboProductMap.get(line.component_product_id);
+        const costEntry = productCostMap?.[line.component_product_id];
+        const unitCost = Number(costEntry?.baseCost || 0);
+
+        return {
+          ...line,
+          name: product?.name || costEntry?.name || "Item removido",
+          unitCost,
+          cost: roundMoney(unitCost * Number(line.quantity || 0)),
+        };
+      }),
+    [comboLines, comboProductMap, productCostMap],
   );
 
   const getIngredientBaseUnit = (ingredientId: string, lookup = ingredientMap): IngredientMeasureUnit =>
@@ -88,6 +143,13 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
       quantity: line.quantity,
     }));
 
+  const serializeComboLines = (nextLines: ComboLine[]) =>
+    nextLines.map((line) => ({
+      id: line.id,
+      component_product_id: line.component_product_id,
+      quantity: line.quantity,
+    }));
+
   const enrichLine = (
     line: { id?: string; ingredient_id: string; quantity: number },
     lookup = ingredientMap,
@@ -105,34 +167,58 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     };
   };
 
-  const emitChange = (nextLines: RecipeLine[], nextManualCost: number) => {
+  const emitChange = (nextLines: RecipeLine[], nextManualCost: number, nextComboLines: ComboLine[] = comboLines) => {
     onChange?.({
       productId,
       manualCost: nextManualCost,
       lines: serializeLines(nextLines),
+      comboLines: serializeComboLines(nextComboLines),
     });
   };
 
   const fetchData = async () => {
     let ingredientsQuery = supabase.from("ingredients").select("id, name, unit, cost_per_unit").order("name");
     let linesQuery = supabase.from("product_ingredients").select("id, ingredient_id, quantity").eq("product_id", productId);
-    const productQuery = supabase.from("products").select("manual_cost").eq("id", productId).maybeSingle();
+    let comboProductsQuery = supabase
+      .from("products")
+      .select("id, name, active, is_combo")
+      .neq("id", productId)
+      .order("name");
+    let comboLinesQuery = supabase
+      .from("product_combo_items")
+      .select("id, component_product_id, quantity")
+      .eq("product_id", productId)
+      .order("sort_order")
+      .order("created_at");
+    const productQuery = supabase.from("products").select("manual_cost, is_combo").eq("id", productId).maybeSingle();
 
     if (storeId) {
       ingredientsQuery = ingredientsQuery.eq("store_id", storeId);
       linesQuery = linesQuery.eq("store_id", storeId);
+      comboProductsQuery = comboProductsQuery.eq("store_id", storeId);
+      comboLinesQuery = comboLinesQuery.eq("store_id", storeId);
     }
 
-    const [ingRes, linesRes, productRes] = await Promise.all([ingredientsQuery, linesQuery, productQuery]);
+    const [ingRes, linesRes, productRes, comboProductsRes, comboLinesRes] = await Promise.all([
+      ingredientsQuery,
+      linesQuery,
+      productQuery,
+      comboProductsQuery,
+      comboLinesQuery,
+    ]);
     const nextIngredients = (ingRes.data || []) as Ingredient[];
     const nextIngredientMap = new Map(nextIngredients.map((ingredient) => [ingredient.id, ingredient]));
-    const nextManualCost = Number(((productRes.data as { manual_cost?: number | null } | null)?.manual_cost) || 0);
+    const productData = (productRes.data as { manual_cost?: number | null; is_combo?: boolean | null } | null) || null;
+    const nextManualCost = Number(productData?.manual_cost || 0);
+    const nextIsComboProduct = enableComboComponents && Boolean(productData?.is_combo);
     const nextEntryUnits = nextIngredients.reduce<Record<string, IngredientMeasureUnit>>((drafts, ingredient) => {
       drafts[ingredient.id] = getDefaultMeasurementUnit(ingredient.unit);
       return drafts;
     }, {});
 
     setIngredients(nextIngredients);
+    setComboProducts((comboProductsRes.data || []) as ComboProductOption[]);
+    setIsComboProduct(nextIsComboProduct);
     setEntryUnits(nextEntryUnits);
     setSavedManualCost(nextManualCost);
     setManualCostInput(formatMoneyInput(nextManualCost));
@@ -153,6 +239,21 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
         return drafts;
       }, {}),
     );
+
+    const nextComboLines = ((comboLinesRes.data || []) as Array<{ id: string; component_product_id: string; quantity: number }>).map(
+      (line) => ({
+        id: line.id,
+        component_product_id: line.component_product_id,
+        quantity: Number(line.quantity || 0),
+      }),
+    );
+    setComboLines(nextComboLines);
+    setComboQuantityDrafts(
+      nextComboLines.reduce<Record<string, string>>((drafts, line) => {
+        if (line.id) drafts[line.id] = String(line.quantity);
+        return drafts;
+      }, {}),
+    );
   };
 
   useEffect(() => {
@@ -160,7 +261,11 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
   }, [productId, storeId]);
 
   const totalCost = useMemo(() => lines.reduce((sum, line) => sum + (line.cost || 0), 0), [lines]);
-  const combinedCost = useMemo(() => totalCost + savedManualCost, [savedManualCost, totalCost]);
+  const comboComponentCost = useMemo(
+    () => comboDisplayLines.reduce((sum, line) => sum + Number(line.cost || 0), 0),
+    [comboDisplayLines],
+  );
+  const combinedCost = useMemo(() => totalCost + savedManualCost + comboComponentCost, [comboComponentCost, savedManualCost, totalCost]);
 
   const insertIngredientLine = async (ingredientId: string, rawQuantity?: string) => {
     const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
@@ -202,7 +307,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     }));
     setQuantityDrafts((current) => ({ ...current, [data.id]: formatMeasurementQuantityInput(enteredQuantity) }));
     setSelectionDrafts((current) => ({ ...current, [ingredientId]: formatMeasurementQuantityInput(enteredQuantity) }));
-    emitChange(nextLines, savedManualCost);
+    emitChange(nextLines, savedManualCost, comboLines);
 
     return nextLine;
   };
@@ -238,7 +343,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
 
     setSavedManualCost(parsedValue);
     setManualCostInput(formatMoneyInput(parsedValue));
-    emitChange(lines, parsedValue);
+    emitChange(lines, parsedValue, comboLines);
   };
 
   const handleAdd = async () => {
@@ -283,7 +388,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
       delete nextUnits[ingredientId];
       return nextUnits;
     });
-    emitChange(nextLines, savedManualCost);
+    emitChange(nextLines, savedManualCost, comboLines);
   };
 
   const saveLineQuantity = async (line: RecipeLine, rawValue: string | undefined) => {
@@ -418,7 +523,108 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
         return nextUnits;
       });
     }
-    emitChange(nextLines, savedManualCost);
+    emitChange(nextLines, savedManualCost, comboLines);
+  };
+
+  const addComboLine = async () => {
+    if (!selectedComboProductId || !isComboProduct) return;
+
+    const existingLine = comboLines.find((line) => line.component_product_id === selectedComboProductId);
+    if (existingLine) {
+      toast({ title: "Item já adicionado", description: "Edite a quantidade do item já vinculado ao combo." });
+      return;
+    }
+
+    const quantity = Number.parseFloat(comboQty || "1");
+    if (!Number.isFinite(quantity) || quantity <= 0) return;
+
+    const payload: any = {
+      product_id: productId,
+      component_product_id: selectedComboProductId,
+      quantity,
+      sort_order: comboLines.length,
+    };
+    if (storeId) payload.store_id = storeId;
+
+    const { data, error } = await supabase
+      .from("product_combo_items")
+      .insert(payload)
+      .select("id, component_product_id, quantity")
+      .single();
+
+    if (error) {
+      toast({ title: "Não foi possível adicionar o item", description: error.message });
+      return;
+    }
+
+    if (!data) return;
+
+    const nextComboLines = [
+      ...comboLines,
+      {
+        id: data.id,
+        component_product_id: data.component_product_id,
+        quantity: Number(data.quantity || 0),
+      },
+    ];
+
+    setComboLines(nextComboLines);
+    setComboQuantityDrafts((current) => ({ ...current, [data.id]: String(Number(data.quantity || 0)) }));
+    setSelectedComboProductId("");
+    setComboQty("1");
+    emitChange(lines, savedManualCost, nextComboLines);
+  };
+
+  const saveComboQuantity = async (lineId: string | undefined) => {
+    if (!lineId) return;
+
+    const line = comboLines.find((currentLine) => currentLine.id === lineId);
+    if (!line) return;
+
+    const quantity = Number.parseFloat(comboQuantityDrafts[lineId] ?? "");
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setComboQuantityDrafts((current) => ({ ...current, [lineId]: String(line.quantity) }));
+      return;
+    }
+
+    if (quantity === line.quantity) {
+      setComboQuantityDrafts((current) => ({ ...current, [lineId]: String(quantity) }));
+      return;
+    }
+
+    const nextComboLines = comboLines.map((currentLine) =>
+      currentLine.id === lineId ? { ...currentLine, quantity } : currentLine,
+    );
+    setComboLines(nextComboLines);
+    setComboQuantityDrafts((current) => ({ ...current, [lineId]: String(quantity) }));
+
+    const { error } = await supabase.from("product_combo_items").update({ quantity }).eq("id", lineId);
+    if (error) {
+      toast({ title: "Não foi possível salvar o item do combo", description: error.message });
+      await fetchData();
+      return;
+    }
+
+    emitChange(lines, savedManualCost, nextComboLines);
+  };
+
+  const removeComboLine = async (lineId: string | undefined) => {
+    if (!lineId) return;
+
+    const { error } = await supabase.from("product_combo_items").delete().eq("id", lineId);
+    if (error) {
+      toast({ title: "Não foi possível remover o item do combo", description: error.message });
+      return;
+    }
+
+    const nextComboLines = comboLines.filter((line) => line.id !== lineId);
+    setComboLines(nextComboLines);
+    setComboQuantityDrafts((current) => {
+      const nextDrafts = { ...current };
+      delete nextDrafts[lineId];
+      return nextDrafts;
+    });
+    emitChange(lines, savedManualCost, nextComboLines);
   };
 
   return (
@@ -449,6 +655,100 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
           />
         </div>
       </div>
+
+      {isComboProduct && (
+        <div className="space-y-3 rounded-lg border border-border bg-background p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">Itens do combo</p>
+              <p className="text-xs text-muted-foreground">
+                O combo usa automaticamente o custo dos itens vinculados; se o custo do sanduíche mudar, o combo acompanha.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-primary">Subtotal do combo: {formatCurrency(comboComponentCost)}</span>
+          </div>
+
+          {comboDisplayLines.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground">Nenhum item vinculado ao combo ainda.</p>
+          ) : (
+            <div className="space-y-2">
+              {comboDisplayLines.map((line) => (
+                <div
+                  key={line.id}
+                  className="grid gap-2 rounded-lg border border-border bg-card p-3 text-xs lg:grid-cols-[minmax(0,1fr)_110px_120px_40px] lg:items-center"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-foreground">{line.name}</p>
+                    <p className="text-muted-foreground">Custo unitário: {formatCurrency(line.unitCost)}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] text-muted-foreground">Quantidade</p>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={line.id ? comboQuantityDrafts[line.id] ?? String(line.quantity) : String(line.quantity)}
+                      onChange={(event) => {
+                        if (!line.id) return;
+                        setComboQuantityDrafts((current) => ({ ...current, [line.id as string]: event.target.value }));
+                      }}
+                      onBlur={() => void saveComboQuantity(line.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-[11px] text-muted-foreground">Subtotal</p>
+                    <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground">
+                      {formatCurrency(line.cost)}
+                    </div>
+                  </div>
+                  <button onClick={() => void removeComboLine(line.id)} className="mt-5 text-muted-foreground hover:text-destructive sm:mt-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px_auto]">
+            <select
+              value={selectedComboProductId}
+              onChange={(event) => setSelectedComboProductId(event.target.value)}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            >
+              <option value="">Selecione o item do combo</option>
+              {comboProducts.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                  {product.is_combo ? " (combo)" : ""}
+                  {product.active ? "" : " • oculto"}
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              value={comboQty}
+              onChange={(event) => setComboQty(event.target.value)}
+              placeholder="Qtd."
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+            />
+            <button
+              onClick={() => void addComboLine()}
+              className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground"
+            >
+              <Plus size={14} /> Adicionar item
+            </button>
+          </div>
+        </div>
+      )}
 
       {allowBulkIngredientSelection && (
         <ProductIngredientSelector
