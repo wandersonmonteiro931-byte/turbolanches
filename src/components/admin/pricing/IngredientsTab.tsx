@@ -28,7 +28,7 @@ interface Ingredient {
 }
 
 interface IngredientForm {
-  name: "",
+  name: string;
   calculationMode: IngredientCalculationMode;
   unit: IngredientMeasureUnit;
   referencePrice: string;
