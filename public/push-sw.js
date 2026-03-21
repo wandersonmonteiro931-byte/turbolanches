@@ -1,7 +1,17 @@
-// SW Version 28 — standard service worker + immediate update
-var SW_VERSION = "v28";
+// SW Version 29 — standard service worker + immediate update
+var SW_VERSION = "v29";
 
-self.__LOVA_FIX_TRIGGER__ = self.__LOVA_FIX_TRIGGER__ || false;
+try {
+  if (typeof self.__LOVA_FIX_TRIGGER__ === "undefined") {
+    Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", {
+      value: false,
+      configurable: true,
+      writable: true,
+    });
+  }
+} catch (e) {
+  self.__LOVA_FIX_TRIGGER__ = false;
+}
 
 self.addEventListener("install", function () {
   self.skipWaiting();
