@@ -1083,6 +1083,114 @@ export type Database = {
           },
         ]
       }
+      restock_items: {
+        Row: {
+          checked: boolean
+          created_at: string
+          estimated_total: number | null
+          id: string
+          ingredient_id: string | null
+          ingredient_name: string
+          last_price: number
+          quantity: number
+          restock_list_id: string
+          sort_order: number
+          store_id: string | null
+          unit: string
+        }
+        Insert: {
+          checked?: boolean
+          created_at?: string
+          estimated_total?: number | null
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name?: string
+          last_price?: number
+          quantity?: number
+          restock_list_id: string
+          sort_order?: number
+          store_id?: string | null
+          unit?: string
+        }
+        Update: {
+          checked?: boolean
+          created_at?: string
+          estimated_total?: number | null
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name?: string
+          last_price?: number
+          quantity?: number
+          restock_list_id?: string
+          sort_order?: number
+          store_id?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restock_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restock_items_restock_list_id_fkey"
+            columns: ["restock_list_id"]
+            isOneToOne: false
+            referencedRelation: "restock_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restock_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restock_lists: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          notes: string
+          status: string
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string
+          status?: string
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string
+          status?: string
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restock_lists_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           admin_response: string | null

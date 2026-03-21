@@ -4,21 +4,27 @@
     <script>
       var __LOVA_FIX_TRIGGER__ = false;
       try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
-      try { (0, eval)("var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
+      try { (0, eval)("this.__LOVA_FIX_TRIGGER__ = false; var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
       (function () {
         var K = "__LOVA_FIX_TRIGGER__";
-        var PUSH_SW_URL = "/push-sw.js?v22";
+        var PUSH_SW_URL = "/push-sw.js?v23";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         function d(s) {
           if (!s) return;
           try { s[K] = false; } catch (e) {}
-          try { Object.defineProperty(s, K, { value: false, writable: true, configurable: true }); } catch (e) {}
+          try {
+            Object.defineProperty(s, K, {
+              configurable: true,
+              get: function () { return false; },
+              set: function () {},
+            });
+          } catch (e) {}
         }
-        d(window);
-        d(globalThis);
+        try { d(window); } catch (e) {}
+        try { d(globalThis); } catch (e) {}
         try { d(self); } catch (e) {}
         try { window[K] = false; globalThis[K] = false; } catch (e) {}
-        try { (0, eval)("var " + K + "=false"); } catch (e) {}
+        try { (0, eval)("this." + K + "=false; var " + K + "=false"); } catch (e) {}
         function f(v) { return String(v || "").indexOf(K) !== -1; }
         window.addEventListener("error", function (e) {
           if (f(e && e.message) || f(e && e.error && e.error.message)) {
@@ -77,6 +83,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=22"></script>
+    <script type="module" src="/src/main.tsx?v=23"></script>
   </body>
 </html>
