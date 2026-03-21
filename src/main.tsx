@@ -22,14 +22,18 @@ const bootstrapFixTrigger = () => {
     typeof self !== "undefined" ? (self as FixTriggerTarget) : null,
   ].filter(Boolean) as FixTriggerTarget[];
 
+  currentValue = targets.find((target) => typeof target.__LOVA_FIX_TRIGGER__ === "boolean")?.__LOVA_FIX_TRIGGER__ ?? false;
+
   for (const target of targets) {
     try {
       Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
         configurable: true,
-        writable: true,
-        value: typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue,
+        get: () => currentValue,
+        set: (nextValue) => {
+          currentValue = Boolean(nextValue);
+        },
       });
-      currentValue = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
+      target.__LOVA_FIX_TRIGGER__ = currentValue;
     } catch {
       target.__LOVA_FIX_TRIGGER__ = typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue;
       currentValue = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
