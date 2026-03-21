@@ -177,12 +177,11 @@ const IngredientsTab = () => {
 
     if (form.calculationMode !== "pacote") {
       const referencePrice = parseRoundedMoney(form.referencePrice);
-      const quantity = Number.parseFloat(form.purchaseQuantity);
 
-      if (!Number.isFinite(referencePrice) || referencePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
+      if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
         toast({
           title: "Preencha os campos do cálculo",
-          description: `Informe o valor por ${form.calculationMode} e a quantidade comprada para salvar.`,
+          description: `Informe o valor por ${form.calculationMode} para salvar.`,
         });
         return;
       }
@@ -364,34 +363,8 @@ const IngredientsTab = () => {
                   onBlur={(event) => setForm((current) => ({ ...current, referencePrice: formatMoneyInput(event.target.value) }))}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <input
-                    placeholder="Quantidade comprada"
-                    type="number"
-                    step="0.01"
-                    value={form.purchaseQuantity}
-                    onChange={(event) => setForm({ ...form, purchaseQuantity: event.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                  {purchaseUnitOptions.length > 1 ? (
-                    <select
-                      value={form.purchaseUnit}
-                      onChange={(event) => setForm({ ...form, purchaseUnit: normalizeIngredientUnit(event.target.value) })}
-                      className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                    >
-                      {purchaseUnitOptions.map((unit) => (
-                        <option key={unit} value={unit}>{unit}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground">
-                      {purchaseUnitOptions[0]}
-                    </div>
-                  )}
-                </div>
                 <div className="space-y-1 rounded-lg border border-border bg-background p-3 text-sm">
-                  <p className="text-muted-foreground">Quantidade convertida em {form.calculationMode}: <span className="font-semibold text-foreground">{convertedPurchaseQuantity?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="text-muted-foreground">Total gasto: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
+                  <p className="text-muted-foreground">Valor informado por {form.calculationMode}: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
                   <p className="font-bold text-primary">Valor salvo por {form.calculationMode}: {formatCurrency(resolvedCostPerUnit ?? 0)}</p>
                 </div>
               </div>

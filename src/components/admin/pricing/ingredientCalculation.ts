@@ -137,17 +137,11 @@ export const computeCalculationSummary = (config: IngredientCalculationConfig) =
   }
 
   const referencePrice = parseNumber(config.reference_price);
-  const purchaseQuantity = parseNumber(config.purchase_quantity);
-  const convertedPurchaseQuantity =
-    purchaseQuantity !== null ? convertQuantityToMode(purchaseQuantity, config.purchase_unit, config.mode) : null;
-  const totalSpent = referencePrice !== null && convertedPurchaseQuantity !== null
-    ? roundMoney(referencePrice * convertedPurchaseQuantity)
-    : null;
 
   return {
-    convertedPurchaseQuantity,
-    totalSpent,
-    totalUnits: convertedPurchaseQuantity,
+    convertedPurchaseQuantity: null,
+    totalSpent: referencePrice !== null ? roundMoney(referencePrice) : null,
+    totalUnits: null,
     resolvedCostPerUnit: referencePrice !== null ? roundMoney(referencePrice) : null,
   };
 };

@@ -36,6 +36,10 @@ const bootstrapFixTrigger = () => {
       value: rootTarget.__LOVA_FIX_TRIGGER__ ?? false,
     });
   } catch {}
+
+  try {
+    (0, eval)("var __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;");
+  } catch {}
 };
 
 bootstrapFixTrigger();
