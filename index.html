@@ -2,42 +2,51 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ =
-        typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "boolean"
-          ? globalThis.__LOVA_FIX_TRIGGER__
-          : false;
-
       (function () {
-        var currentValue = typeof __LOVA_FIX_TRIGGER__ === "boolean" ? __LOVA_FIX_TRIGGER__ : false;
+        var root = null;
+
+        try {
+          root = typeof globalThis !== "undefined" ? globalThis : null;
+        } catch (error) {}
+
+        if (!root) {
+          try {
+            root = Function("return this")();
+          } catch (error) {}
+        }
+
+        var currentValue = root && typeof root.__LOVA_FIX_TRIGGER__ === "boolean" ? root.__LOVA_FIX_TRIGGER__ : false;
 
         function ensureTarget(target) {
           if (!target) return;
 
           try {
             Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
-              value: typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue,
               configurable: true,
-              writable: true,
+              get: function () {
+                return currentValue;
+              },
+              set: function (nextValue) {
+                currentValue = !!nextValue;
+              },
             });
-            currentValue = !!target.__LOVA_FIX_TRIGGER__;
-            __LOVA_FIX_TRIGGER__ = currentValue;
-          } catch (e) {
+            target.__LOVA_FIX_TRIGGER__ = currentValue;
+          } catch (error) {
             try {
-              target.__LOVA_FIX_TRIGGER__ = typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue;
-              currentValue = !!target.__LOVA_FIX_TRIGGER__;
-              __LOVA_FIX_TRIGGER__ = currentValue;
+              target.__LOVA_FIX_TRIGGER__ = currentValue;
             } catch (innerError) {}
           }
         }
 
-        ensureTarget(typeof globalThis !== "undefined" ? globalThis : null);
+        ensureTarget(root);
+
         if (typeof window !== "undefined") ensureTarget(window);
         if (typeof self !== "undefined") ensureTarget(self);
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v34";
+        var PUSH_SW_URL = "/push-sw.js?v35";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -76,6 +85,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=34"></script>
+    <script type="module" src="/src/main.tsx?v=35"></script>
   </body>
 </html>
