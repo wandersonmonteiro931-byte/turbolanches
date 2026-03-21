@@ -45,7 +45,9 @@ const ProfitDashboard = () => {
       let ingredientsQuery = supabase.from("ingredients").select("id, cost_per_unit");
       let productIngredientsQuery = supabase.from("product_ingredients").select("product_id, ingredient_id, quantity");
       let comboComponentsQuery = supabase.from("product_combo_items").select("product_id, component_product_id, quantity, sort_order");
-      let extraCostsQuery = supabase.from("extra_costs").select("cost_type, value");
+      let extraCostsQuery = supabase
+        .from("extra_costs")
+        .select("cost_type, value, division_mode, days_duration, items_per_day, preset_key, sort_order, notes, name");
 
       if (storeId) {
         categoriesQuery = categoriesQuery.eq("store_id", storeId);

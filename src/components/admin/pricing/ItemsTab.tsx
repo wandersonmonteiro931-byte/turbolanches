@@ -50,7 +50,9 @@ const ItemsTab = () => {
     let comboComponentsQuery = supabase
       .from("product_combo_items")
       .select("id, product_id, component_product_id, quantity, sort_order");
-    let extraCostsQuery = supabase.from("extra_costs").select("cost_type, value");
+    let extraCostsQuery = supabase
+      .from("extra_costs")
+      .select("cost_type, value, division_mode, days_duration, items_per_day, preset_key, sort_order, notes, name");
 
     if (storeId) {
       categoriesQuery = categoriesQuery.eq("store_id", storeId);

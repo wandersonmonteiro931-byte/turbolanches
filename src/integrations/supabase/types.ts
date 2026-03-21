@@ -380,8 +380,14 @@ export type Database = {
         Row: {
           cost_type: string
           created_at: string
+          days_duration: number | null
+          division_mode: string
           id: string
+          items_per_day: number | null
           name: string
+          notes: string
+          preset_key: string | null
+          sort_order: number
           store_id: string | null
           updated_at: string
           value: number
@@ -389,8 +395,14 @@ export type Database = {
         Insert: {
           cost_type?: string
           created_at?: string
+          days_duration?: number | null
+          division_mode?: string
           id?: string
+          items_per_day?: number | null
           name: string
+          notes?: string
+          preset_key?: string | null
+          sort_order?: number
           store_id?: string | null
           updated_at?: string
           value?: number
@@ -398,8 +410,14 @@ export type Database = {
         Update: {
           cost_type?: string
           created_at?: string
+          days_duration?: number | null
+          division_mode?: string
           id?: string
+          items_per_day?: number | null
           name?: string
+          notes?: string
+          preset_key?: string | null
+          sort_order?: number
           store_id?: string | null
           updated_at?: string
           value?: number

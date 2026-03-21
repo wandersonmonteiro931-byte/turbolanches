@@ -1,0 +1,202 @@
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useStore } from "@/contexts/StoreContext";
+import { formatCurrency, formatMoneyInput, parseLocaleNumber, parseRoundedMoney } from "./pricingMoney";
+
+interface ExtraCost {
+  id: string;
+  name: string;
+  cost_type: string;
+  value: number;
+}
+
+const ExtraCostsTab = () => {
+  const { storeId } = useStore();
+  const { toast } = useToast();
+  const [items, setItems] = useState<ExtraCost[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<ExtraCost | null>(null);
+  const [form, setForm] = useState({ name: "", cost_type: "fixed", value: "" });
+  const [search, setSearch] = useState("");
+  const [filterType, setFilterType] = useState("all");
+
+  const fetchData = async () => {
+    let q = supabase.from("extra_costs").select("*").order("name");
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    if (data) setItems(data as ExtraCost[]);
+  };
+
+  useEffect(() => { fetchData(); }, [storeId]);
+
+  const filteredItems = useMemo(() => {
+    return items.filter((item) => {
+      const matchesSearch = !search.trim() || item.name.toLowerCase().includes(search.trim().toLowerCase());
+      const matchesType = filterType === "all" || item.cost_type === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [filterType, items, search]);
+
+  const openNew = () => {
+    setEditing(null);
+    setForm({ name: "", cost_type: "fixed", value: "" });
+    setShowForm(true);
+  };
+
+  const openEdit = (c: ExtraCost) => {
+    setEditing(c);
+    setForm({
+      name: c.name,
+      cost_type: c.cost_type,
+      value: c.cost_type === "fixed" ? formatMoneyInput(c.value) : String(c.value),
+    });
+    setShowForm(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+
+    const parsedValue = form.cost_type === "fixed"
+      ? parseRoundedMoney(form.value)
+      : parseLocaleNumber(form.value);
+
+    if (parsedValue === null) {
+      toast({
+        title: "Valor inválido",
+        description: form.cost_type === "fixed" ? "Informe um valor no formato R$ 0,00." : "Informe um percentual válido.",
+      });
+      return;
+    }
+
+    const payload: any = {
+      name: form.name.trim(),
+      cost_type: form.cost_type,
+      value: form.cost_type === "fixed" ? parsedValue : Number(parsedValue.toFixed(2)),
+    };
+
+    if (!editing && storeId) payload.store_id = storeId;
+
+    const { error } = editing
+      ? await supabase.from("extra_costs").update(payload).eq("id", editing.id)
+      : await supabase.from("extra_costs").insert(payload);
+
+    if (error) {
+      toast({ title: "Não foi possível salvar", description: error.message });
+      return;
+    }
+
+    if (editing) {
+      toast({ title: "Custo atualizado!" });
+    } else {
+      toast({ title: "Custo criado!" });
+    }
+    setShowForm(false);
+    void fetchData();
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("extra_costs").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Não foi possível remover", description: error.message });
+      return;
+    }
+    toast({ title: "Custo removido!" });
+    void fetchData();
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">{filteredItems.length} de {items.length} custos extras</p>
+        <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
+          <Plus size={16} /> Novo
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          placeholder="Pesquisar custo extra"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+        />
+        <select
+          value={filterType}
+          onChange={(event) => setFilterType(event.target.value)}
+          className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+        >
+          <option value="all">Todos os tipos</option>
+          <option value="fixed">Fixo (R$)</option>
+          <option value="percentage">Percentual (%)</option>
+        </select>
+      </div>
+
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-card p-5 shadow-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground">{editing ? "Editar" : "Novo"} Custo Extra</h3>
+              <button onClick={() => setShowForm(false)} className="rounded-lg p-2 hover:bg-accent"><X size={24} className="text-muted-foreground" /></button>
+            </div>
+            <input placeholder="Nome (ex: Embalagem)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+            <select value={form.cost_type} onChange={(e) => setForm({ ...form, cost_type: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
+              <option value="fixed">Fixo (R$)</option>
+              <option value="percentage">Percentual (%)</option>
+            </select>
+            <input
+              placeholder={form.cost_type === "fixed" ? "R$ 0,00" : "Percentual (%)"}
+              type="text"
+              inputMode="decimal"
+              value={form.value}
+              onChange={(e) => setForm({ ...form, value: e.target.value })}
+              onBlur={(e) => {
+                if (form.cost_type !== "fixed") return;
+                setForm((current) => ({ ...current, value: formatMoneyInput(e.target.value) }));
+              }}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            />
+            <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-auto rounded-xl border border-border bg-card">
+        {filteredItems.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">Nenhum custo extra encontrado.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="py-3 pl-4 pr-2 font-medium text-muted-foreground">Nome</th>
+                <th className="px-2 py-3 font-medium text-muted-foreground">Tipo</th>
+                <th className="px-2 py-3 text-right font-medium text-muted-foreground">Valor</th>
+                <th className="py-3 pl-2 pr-4 text-right font-medium text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((c) => (
+                <tr key={c.id} className="border-b border-border/50 last:border-b-0">
+                  <td className="py-3 pl-4 pr-2 font-medium text-foreground">{c.name}</td>
+                  <td className="px-2 py-3 text-muted-foreground">{c.cost_type === "fixed" ? "Fixo (R$)" : "Percentual (%)"}</td>
+                  <td className="px-2 py-3 text-right text-foreground">
+                    {c.cost_type === "fixed" ? formatCurrency(Number(c.value)) : `${Number(c.value).toFixed(1)}%`}
+                  </td>
+                  <td className="py-3 pl-2 pr-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                      <button onClick={() => handleDelete(c.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ExtraCostsTab;
