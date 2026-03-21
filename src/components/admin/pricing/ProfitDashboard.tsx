@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
+import { formatCurrency } from "./pricingMoney";
 
 interface Product {
   id: string;
@@ -106,11 +107,11 @@ const ProfitDashboard = () => {
             {rows.map((r, i) => (
               <tr key={i} className="border-b border-border/50">
                 <td className="py-2 pr-2 text-foreground font-medium truncate max-w-[120px]">{r.name}</td>
-                <td className="py-2 px-2 text-right text-foreground">R$ {r.price.toFixed(2)}</td>
-                <td className="py-2 px-2 text-right text-muted-foreground">R$ {r.ingredientCost.toFixed(2)}</td>
-                <td className="py-2 px-2 text-right text-muted-foreground">R$ {r.extraCost.toFixed(2)}</td>
-                <td className="py-2 px-2 text-right text-foreground">R$ {r.totalCost.toFixed(2)}</td>
-                <td className={`py-2 px-2 text-right ${marginColor(r.margin)}`}>R$ {r.profit.toFixed(2)}</td>
+                <td className="py-2 px-2 text-right text-foreground">{formatCurrency(r.price)}</td>
+                <td className="py-2 px-2 text-right text-muted-foreground">{formatCurrency(r.ingredientCost)}</td>
+                <td className="py-2 px-2 text-right text-muted-foreground">{formatCurrency(r.extraCost)}</td>
+                <td className="py-2 px-2 text-right text-foreground">{formatCurrency(r.totalCost)}</td>
+                <td className={`py-2 px-2 text-right ${marginColor(r.margin)}`}>{formatCurrency(r.profit)}</td>
                 <td className={`py-2 pl-2 text-right ${marginColor(r.margin)}`}>{r.margin.toFixed(1)}%</td>
               </tr>
             ))}

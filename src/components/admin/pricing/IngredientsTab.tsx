@@ -17,6 +17,7 @@ import {
   type IngredientCalculationConfig,
   type IngredientMeasureUnit,
 } from "./ingredientCalculation";
+import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
 
 interface Ingredient {
   id: string;
@@ -66,11 +67,11 @@ const buildFormFromIngredient = (item: Ingredient): IngredientForm => {
     name: item.name,
     calculationMode: config.mode,
     unit: config.mode === "pacote" ? config.package_content_unit : storedUnit,
-    referencePrice: config.reference_price,
+    referencePrice: formatMoneyInput(config.reference_price),
     purchaseQuantity: config.purchase_quantity,
     purchaseUnit: config.purchase_unit,
     packageQuantity: config.package_quantity,
-    packagePrice: config.package_price,
+    packagePrice: formatMoneyInput(config.package_price),
     unitsPerPackage: config.units_per_package,
     packageContentUnit: config.package_content_unit,
   };
@@ -197,7 +198,7 @@ const IngredientsTab = () => {
     }
 
     if (form.calculationMode !== "pacote") {
-      const referencePrice = Number.parseFloat(form.referencePrice);
+      const referencePrice = parseRoundedMoney(form.referencePrice);
       const quantity = Number.parseFloat(form.purchaseQuantity);
 
       if (!Number.isFinite(referencePrice) || referencePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
@@ -209,21 +210,35 @@ const IngredientsTab = () => {
       }
     }
 
+    const roundedCostPerUnit = parseRoundedMoney(resolvedCostPerUnit ?? 0) ?? 0;
+    const persistedCalculationConfig = {
+      ...calculationConfig,
+      reference_price: formatMoneyInput(calculationConfig.reference_price),
+      package_price: formatMoneyInput(calculationConfig.package_price),
+    };
+
     const payload: any = {
       name: form.name.trim(),
       unit: savedUnit,
-      cost_per_unit: resolvedCostPerUnit ?? 0,
+      cost_per_unit: roundedCostPerUnit,
       calculation_mode: form.calculationMode,
-      calculation_config: calculationConfig,
+      calculation_config: persistedCalculationConfig,
     };
 
     if (!editing) payload.store_id = storeId;
 
+    const { error } = editing
+      ? await supabase.from("ingredients").update(payload).eq("id", editing.id)
+      : await supabase.from("ingredients").insert(payload);
+
+    if (error) {
+      toast({ title: "Não foi possível salvar", description: error.message });
+      return;
+    }
+
     if (editing) {
-      await supabase.from("ingredients").update(payload).eq("id", editing.id);
       toast({ title: "Ingrediente atualizado!" });
     } else {
-      await supabase.from("ingredients").insert(payload);
       toast({ title: "Ingrediente criado!" });
     }
 
@@ -233,7 +248,11 @@ const IngredientsTab = () => {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("ingredients").delete().eq("id", id);
+    const { error } = await supabase.from("ingredients").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Não foi possível remover", description: error.message });
+      return;
+    }
     toast({ title: "Ingrediente removido!" });
     await fetchIngredients();
   };
@@ -340,11 +359,12 @@ const IngredientsTab = () => {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
                 <input
-                  placeholder="Valor pago por pacote (R$)"
-                  type="number"
-                  step="0.01"
+                  placeholder="R$ 0,00"
+                  type="text"
+                  inputMode="decimal"
                   value={form.packagePrice}
                   onChange={(event) => setForm({ ...form, packagePrice: event.target.value })}
+                  onBlur={(event) => setForm((current) => ({ ...current, packagePrice: formatMoneyInput(event.target.value) }))}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
                 <input
@@ -356,20 +376,21 @@ const IngredientsTab = () => {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
                 <div className="space-y-1 rounded-lg border border-border bg-background p-3 text-sm">
-                  <p className="text-muted-foreground">Total pago: <span className="font-semibold text-foreground">R$ {totalSpent?.toFixed(2) ?? "0.00"}</span></p>
+                  <p className="text-muted-foreground">Total pago: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
                   <p className="text-muted-foreground">Total de {form.packageContentUnit}: <span className="font-semibold text-foreground">{totalUnits?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="font-bold text-primary">Valor por {form.packageContentUnit}: R$ {resolvedCostPerUnit?.toFixed(4) ?? "0.0000"}</p>
+                  <p className="font-bold text-primary">Valor por {form.packageContentUnit}: {formatCurrency(resolvedCostPerUnit ?? 0)}</p>
                 </div>
               </div>
             ) : (
               <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cálculo por {form.calculationMode}</p>
                 <input
-                  placeholder={`Valor por ${form.calculationMode} (R$)`}
-                  type="number"
-                  step="0.01"
+                  placeholder="R$ 0,00"
+                  type="text"
+                  inputMode="decimal"
                   value={form.referencePrice}
                   onChange={(event) => setForm({ ...form, referencePrice: event.target.value })}
+                  onBlur={(event) => setForm((current) => ({ ...current, referencePrice: formatMoneyInput(event.target.value) }))}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
@@ -399,15 +420,15 @@ const IngredientsTab = () => {
                 </div>
                 <div className="space-y-1 rounded-lg border border-border bg-background p-3 text-sm">
                   <p className="text-muted-foreground">Quantidade convertida em {form.calculationMode}: <span className="font-semibold text-foreground">{convertedPurchaseQuantity?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="text-muted-foreground">Total gasto: <span className="font-semibold text-foreground">R$ {totalSpent?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="font-bold text-primary">Valor salvo por {form.calculationMode}: R$ {resolvedCostPerUnit?.toFixed(4) ?? "0.0000"}</p>
+                  <p className="text-muted-foreground">Total gasto: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
+                  <p className="font-bold text-primary">Valor salvo por {form.calculationMode}: {formatCurrency(resolvedCostPerUnit ?? 0)}</p>
                 </div>
               </div>
             )}
 
             <div className="rounded-lg border border-border bg-background p-3 text-sm">
               <p className="text-muted-foreground">Valor que será salvo por {savedUnit}:</p>
-              <p className="text-base font-bold text-foreground">R$ {(resolvedCostPerUnit ?? 0).toFixed(4)}</p>
+              <p className="text-base font-bold text-foreground">{formatCurrency(resolvedCostPerUnit ?? 0)}</p>
             </div>
 
             <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
@@ -428,7 +449,7 @@ const IngredientsTab = () => {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-foreground">{item.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  R$ {Number(item.cost_per_unit).toFixed(4)} / {normalizeIngredientUnit(item.unit)}
+                  {formatCurrency(Number(item.cost_per_unit))} / {normalizeIngredientUnit(item.unit)}
                   {normalizeCalculationMode(item.calculation_mode ?? normalizeIngredientUnit(item.unit)) === "pacote" ? " • cálculo por pacote" : ""}
                 </p>
               </div>

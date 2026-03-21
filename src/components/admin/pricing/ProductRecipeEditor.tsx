@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
+import { formatCurrency } from "./pricingMoney";
 
 interface Ingredient {
   id: string;
@@ -91,7 +92,7 @@ const ProductRecipeEditor = ({ productId }: Props) => {
     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-semibold text-foreground">Ficha Técnica</label>
-        <span className="text-xs font-bold text-primary">Custo: R$ {totalCost.toFixed(2)}</span>
+        <span className="text-xs font-bold text-primary">Custo: {formatCurrency(totalCost)}</span>
       </div>
 
       {lines.length === 0 && !adding && (
@@ -101,7 +102,7 @@ const ProductRecipeEditor = ({ productId }: Props) => {
       {lines.map((l) => (
         <div key={l.id} className="flex items-center gap-2 text-xs">
           <span className="flex-1 text-foreground">{l.name} — {l.quantity} {l.unit}</span>
-          <span className="text-muted-foreground">R$ {(l.cost || 0).toFixed(2)}</span>
+          <span className="text-muted-foreground">{formatCurrency(l.cost || 0)}</span>
           <button onClick={() => handleRemove(l.id)} className="text-muted-foreground hover:text-destructive"><Trash2 size={14} /></button>
         </div>
       ))}
@@ -110,7 +111,7 @@ const ProductRecipeEditor = ({ productId }: Props) => {
         <div className="space-y-2">
           <select value={selectedIngId} onChange={(e) => setSelectedIngId(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
             <option value="">Selecione ingrediente</option>
-            {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} (R$ {Number(i.cost_per_unit).toFixed(2)}/{i.unit})</option>)}
+            {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} ({formatCurrency(Number(i.cost_per_unit))}/{i.unit})</option>)}
           </select>
           <input type="number" step="0.01" placeholder="Quantidade" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
           <div className="flex gap-2">
