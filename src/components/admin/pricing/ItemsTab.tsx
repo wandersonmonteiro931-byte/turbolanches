@@ -14,6 +14,7 @@ import ProductRecipeEditor, { type ProductRecipeEditorChange } from "./ProductRe
 import {
   buildProductCostRows,
   type PricingCategory,
+  type PricingComboComponent,
   type PricingExtraCost,
   type PricingIngredient,
   type PricingProduct,
@@ -27,6 +28,7 @@ const ItemsTab = () => {
   const [products, setProducts] = useState<PricingProduct[]>([]);
   const [ingredients, setIngredients] = useState<PricingIngredient[]>([]);
   const [productIngredients, setProductIngredients] = useState<PricingProductIngredient[]>([]);
+  const [comboComponents, setComboComponents] = useState<PricingComboComponent[]>([]);
   const [extraCosts, setExtraCosts] = useState<PricingExtraCost[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -40,11 +42,14 @@ const ItemsTab = () => {
     let categoriesQuery = supabase.from("categories").select("id, name, sort_order").order("sort_order").order("name");
     let productsQuery = supabase
       .from("products")
-      .select("id, name, price, manual_cost, category_id, active, sort_order")
+      .select("id, name, price, manual_cost, category_id, active, sort_order, is_combo, combo_item_count")
       .order("sort_order")
       .order("name");
     let ingredientsQuery = supabase.from("ingredients").select("id, cost_per_unit");
     let productIngredientsQuery = supabase.from("product_ingredients").select("id, product_id, ingredient_id, quantity");
+    let comboComponentsQuery = supabase
+      .from("product_combo_items")
+      .select("id, product_id, component_product_id, quantity, sort_order");
     let extraCostsQuery = supabase.from("extra_costs").select("cost_type, value");
 
     if (storeId) {
@@ -52,14 +57,16 @@ const ItemsTab = () => {
       productsQuery = productsQuery.eq("store_id", storeId);
       ingredientsQuery = ingredientsQuery.eq("store_id", storeId);
       productIngredientsQuery = productIngredientsQuery.eq("store_id", storeId);
+      comboComponentsQuery = comboComponentsQuery.eq("store_id", storeId);
       extraCostsQuery = extraCostsQuery.eq("store_id", storeId);
     }
 
-    const [categoriesRes, productsRes, ingredientsRes, productIngredientsRes, extraCostsRes] = await Promise.all([
+    const [categoriesRes, productsRes, ingredientsRes, productIngredientsRes, comboComponentsRes, extraCostsRes] = await Promise.all([
       categoriesQuery,
       productsQuery,
       ingredientsQuery,
       productIngredientsQuery,
+      comboComponentsQuery,
       extraCostsQuery,
     ]);
 
@@ -67,6 +74,7 @@ const ItemsTab = () => {
     setProducts((productsRes.data || []) as PricingProduct[]);
     setIngredients((ingredientsRes.data || []) as PricingIngredient[]);
     setProductIngredients((productIngredientsRes.data || []) as PricingProductIngredient[]);
+    setComboComponents((comboComponentsRes.data || []) as PricingComboComponent[]);
     setExtraCosts((extraCostsRes.data || []) as PricingExtraCost[]);
     setLoading(false);
   };
@@ -82,9 +90,10 @@ const ItemsTab = () => {
         products,
         ingredients,
         productIngredients,
+        comboComponents,
         extraCosts,
       }),
-    [categories, extraCosts, ingredients, productIngredients, products],
+    [categories, comboComponents, extraCosts, ingredients, productIngredients, products],
   );
 
   const filteredRows = useMemo(() => {
@@ -128,7 +137,20 @@ const ItemsTab = () => {
     [editingRow, rows],
   );
 
-  const handleRecipeChange = ({ productId, manualCost, lines }: ProductRecipeEditorChange) => {
+  const productCostMap = useMemo(
+    () =>
+      rows.reduce<Record<string, { name: string; baseCost: number; isCombo: boolean }>>((map, row) => {
+        map[row.id] = {
+          name: row.name,
+          baseCost: row.baseCost,
+          isCombo: row.isCombo,
+        };
+        return map;
+      }, {}),
+    [rows],
+  );
+
+  const handleRecipeChange = ({ productId, manualCost, lines, comboLines }: ProductRecipeEditorChange) => {
     setProducts((current) =>
       current.map((product) => (product.id === productId ? { ...product, manual_cost: manualCost } : product)),
     );
@@ -136,6 +158,16 @@ const ItemsTab = () => {
       ...current.filter((line) => line.product_id !== productId),
       ...lines.map((line) => ({ ...line, product_id: productId })),
     ]);
+    if (comboLines) {
+      setComboComponents((current) => [
+        ...current.filter((line) => line.product_id !== productId),
+        ...comboLines.map((line, index) => ({
+          ...line,
+          product_id: productId,
+          sort_order: index,
+        })),
+      ]);
+    }
   };
 
   return (
@@ -241,6 +273,8 @@ const ItemsTab = () => {
                 productId={activeEditingRow.id}
                 onChange={handleRecipeChange}
                 allowBulkIngredientSelection
+                enableComboComponents={activeEditingRow.isCombo}
+                productCostMap={productCostMap}
               />
             </>
           )}

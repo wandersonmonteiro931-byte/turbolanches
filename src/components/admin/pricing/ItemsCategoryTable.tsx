@@ -64,6 +64,12 @@ const ItemsCategoryTable = ({
                       <span>{row.active ? "Ativo" : "Oculto"}</span>
                       <span>•</span>
                       <span>{row.ingredientCount} ingrediente(s)</span>
+                      {row.isCombo && row.comboComponentCount > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>{row.comboComponentCount} item(ns) no combo</span>
+                        </>
+                      )}
                       {row.manualCost > 0 && (
                         <>
                           <span>•</span>

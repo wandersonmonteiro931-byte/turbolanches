@@ -5,6 +5,7 @@ import { formatCurrency } from "./pricingMoney";
 import {
   buildProductCostRows,
   type PricingCategory,
+  type PricingComboComponent,
   type PricingExtraCost,
   type PricingIngredient,
   type PricingProduct,
@@ -26,22 +27,28 @@ const ProfitDashboard = () => {
 
   useEffect(() => {
     const load = async () => {
-      let productsQuery = supabase.from("products").select("id, name, price, manual_cost, category_id, active, sort_order").eq("active", true);
+      let productsQuery = supabase
+        .from("products")
+        .select("id, name, price, manual_cost, category_id, active, sort_order, is_combo, combo_item_count")
+        .eq("active", true);
       let ingredientsQuery = supabase.from("ingredients").select("id, cost_per_unit");
       let productIngredientsQuery = supabase.from("product_ingredients").select("product_id, ingredient_id, quantity");
+      let comboComponentsQuery = supabase.from("product_combo_items").select("product_id, component_product_id, quantity, sort_order");
       let extraCostsQuery = supabase.from("extra_costs").select("cost_type, value");
 
       if (storeId) {
         productsQuery = productsQuery.eq("store_id", storeId);
         ingredientsQuery = ingredientsQuery.eq("store_id", storeId);
         productIngredientsQuery = productIngredientsQuery.eq("store_id", storeId);
+        comboComponentsQuery = comboComponentsQuery.eq("store_id", storeId);
         extraCostsQuery = extraCostsQuery.eq("store_id", storeId);
       }
 
-      const [prodRes, ingRes, piRes, ecRes] = await Promise.all([
+      const [prodRes, ingRes, piRes, comboRes, ecRes] = await Promise.all([
         productsQuery,
         ingredientsQuery,
         productIngredientsQuery,
+        comboComponentsQuery,
         extraCostsQuery,
       ]);
 
@@ -50,6 +57,7 @@ const ProfitDashboard = () => {
         products: (prodRes.data || []) as PricingProduct[],
         ingredients: (ingRes.data || []) as PricingIngredient[],
         productIngredients: (piRes.data || []) as PricingProductIngredient[],
+        comboComponents: (comboRes.data || []) as PricingComboComponent[],
         extraCosts: (ecRes.data || []) as PricingExtraCost[],
       }).map((row) => ({
         name: row.name,
