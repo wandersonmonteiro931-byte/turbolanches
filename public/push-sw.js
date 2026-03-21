@@ -1,5 +1,5 @@
-// SW Version 31 — standard service worker + immediate update
-var SW_VERSION = "v31";
+// SW Version 32 — standard service worker + immediate update
+var SW_VERSION = "v32";
 var __LOVA_FIX_TRIGGER__ = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ !== "undefined"
   ? self.__LOVA_FIX_TRIGGER__
   : false;
@@ -15,6 +15,13 @@ try {
 } catch (e) {
   self.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
 }
+
+try {
+  Function(
+    "value",
+    "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {} try { self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
+  )(__LOVA_FIX_TRIGGER__);
+} catch (e) {}
 
 self.addEventListener("install", function () {
   self.skipWaiting();

@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ItemsCategoryTable from "./ItemsCategoryTable";
-import type { ProductRecipeEditorChange } from "./ProductRecipeEditor";
+import ProductRecipeEditor, { type ProductRecipeEditorChange } from "./ProductRecipeEditor";
 import {
   buildProductCostRows,
   type PricingCategory,
@@ -24,7 +31,7 @@ const ItemsTab = () => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingRow, setEditingRow] = useState<ProductCostRow | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -115,6 +122,11 @@ const ItemsTab = () => {
 
   const lowMarginCount = useMemo(() => filteredRows.filter((row) => row.margin < 30).length, [filteredRows]);
   const withoutCostCount = useMemo(() => filteredRows.filter((row) => row.totalCost <= 0).length, [filteredRows]);
+
+  const activeEditingRow = useMemo(
+    () => (editingRow ? rows.find((row) => row.id === editingRow.id) ?? editingRow : null),
+    [editingRow, rows],
+  );
 
   const handleRecipeChange = ({ productId, manualCost, lines }: ProductRecipeEditorChange) => {
     setProducts((current) =>
@@ -207,13 +219,33 @@ const ItemsTab = () => {
               key={categoryName}
               categoryName={categoryName}
               rows={categoryRows as ProductCostRow[]}
-              expandedId={expandedId}
-              onToggleExpanded={(id) => setExpandedId((current) => (current === id ? null : id))}
-              onRecipeChange={handleRecipeChange}
+              onEdit={(row) => setEditingRow(row)}
             />
           ))}
         </div>
       )}
+
+      <Dialog open={!!activeEditingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          {activeEditingRow && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Precificação de {activeEditingRow.name}</DialogTitle>
+                <DialogDescription>
+                  Marque vários ingredientes para este item e ajuste as quantidades sem sair da lista.
+                </DialogDescription>
+              </DialogHeader>
+
+              <ProductRecipeEditor
+                key={activeEditingRow.id}
+                productId={activeEditingRow.id}
+                onChange={handleRecipeChange}
+                allowBulkIngredientSelection
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

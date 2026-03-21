@@ -1,5 +1,4 @@
-import { Fragment } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -8,24 +7,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import ProductRecipeEditor, { type ProductRecipeEditorChange } from "./ProductRecipeEditor";
 import { formatCurrency } from "./pricingMoney";
 import type { ProductCostRow } from "./productCosting";
 
 interface ItemsCategoryTableProps {
   categoryName: string;
   rows: ProductCostRow[];
-  expandedId: string | null;
-  onToggleExpanded: (id: string) => void;
-  onRecipeChange: (payload: ProductRecipeEditorChange) => void;
+  onEdit: (row: ProductCostRow) => void;
 }
 
 const ItemsCategoryTable = ({
   categoryName,
   rows,
-  expandedId,
-  onToggleExpanded,
-  onRecipeChange,
+  onEdit,
 }: ItemsCategoryTableProps) => {
   const averageMargin = rows.length > 0 ? rows.reduce((sum, row) => sum + row.margin, 0) / rows.length : 0;
 
@@ -59,60 +53,49 @@ const ItemsCategoryTable = ({
         </TableHeader>
         <TableBody>
           {rows.map((row) => {
-            const isExpanded = expandedId === row.id;
             const emphasisClass = row.totalCost <= 0 ? "text-destructive" : "text-foreground";
 
             return (
-              <Fragment key={row.id}>
-                <TableRow className="align-top">
-                  <TableCell className="py-3 pl-4 pr-2">
-                    <div className="space-y-1">
-                      <p className="font-medium text-foreground">{row.name}</p>
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>{row.active ? "Ativo" : "Oculto"}</span>
-                        <span>•</span>
-                        <span>{row.ingredientCount} ingrediente(s)</span>
-                        {row.manualCost > 0 && (
-                          <>
-                            <span>•</span>
-                            <span>Custo direto</span>
-                          </>
-                        )}
-                      </div>
+              <TableRow key={row.id} className="align-top">
+                <TableCell className="py-3 pl-4 pr-2">
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">{row.name}</p>
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>{row.active ? "Ativo" : "Oculto"}</span>
+                      <span>•</span>
+                      <span>{row.ingredientCount} ingrediente(s)</span>
+                      {row.manualCost > 0 && (
+                        <>
+                          <span>•</span>
+                          <span>Custo direto</span>
+                        </>
+                      )}
                     </div>
-                  </TableCell>
-                  <TableCell className="px-2 py-3 text-right text-foreground">{formatCurrency(row.price)}</TableCell>
-                  <TableCell className={`px-2 py-3 text-right ${emphasisClass}`}>{formatCurrency(row.ingredientCost)}</TableCell>
-                  <TableCell className={`px-2 py-3 text-right ${row.manualCost > 0 ? "text-foreground" : "text-muted-foreground"}`}>
-                    {formatCurrency(row.manualCost)}
-                  </TableCell>
-                  <TableCell className="px-2 py-3 text-right text-muted-foreground">{formatCurrency(row.extraCost)}</TableCell>
-                  <TableCell className={`px-2 py-3 text-right font-medium ${emphasisClass}`}>{formatCurrency(row.totalCost)}</TableCell>
-                  <TableCell className={`px-2 py-3 text-right ${row.profit < 0 ? "text-destructive" : "text-foreground"}`}>
-                    {formatCurrency(row.profit)}
-                  </TableCell>
-                  <TableCell className={`px-2 py-3 text-right ${row.margin < 30 ? "text-destructive" : "text-primary"}`}>
-                    {row.margin.toFixed(1)}%
-                  </TableCell>
-                  <TableCell className="py-3 pl-2 pr-4 text-right">
-                    <button
-                      onClick={() => onToggleExpanded(row.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground"
-                    >
-                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      {isExpanded ? "Fechar" : "Editar"}
-                    </button>
-                  </TableCell>
-                </TableRow>
-
-                {isExpanded && (
-                  <TableRow className="bg-muted/10 hover:bg-muted/10">
-                    <TableCell colSpan={9} className="p-4">
-                      <ProductRecipeEditor productId={row.id} onChange={onRecipeChange} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </Fragment>
+                  </div>
+                </TableCell>
+                <TableCell className="px-2 py-3 text-right text-foreground">{formatCurrency(row.price)}</TableCell>
+                <TableCell className={`px-2 py-3 text-right ${emphasisClass}`}>{formatCurrency(row.ingredientCost)}</TableCell>
+                <TableCell className={`px-2 py-3 text-right ${row.manualCost > 0 ? "text-foreground" : "text-muted-foreground"}`}>
+                  {formatCurrency(row.manualCost)}
+                </TableCell>
+                <TableCell className="px-2 py-3 text-right text-muted-foreground">{formatCurrency(row.extraCost)}</TableCell>
+                <TableCell className={`px-2 py-3 text-right font-medium ${emphasisClass}`}>{formatCurrency(row.totalCost)}</TableCell>
+                <TableCell className={`px-2 py-3 text-right ${row.profit < 0 ? "text-destructive" : "text-foreground"}`}>
+                  {formatCurrency(row.profit)}
+                </TableCell>
+                <TableCell className={`px-2 py-3 text-right ${row.margin < 30 ? "text-destructive" : "text-primary"}`}>
+                  {row.margin.toFixed(1)}%
+                </TableCell>
+                <TableCell className="py-3 pl-2 pr-4 text-right">
+                  <button
+                    onClick={() => onEdit(row)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground"
+                  >
+                    <Pencil size={14} />
+                    Editar
+                  </button>
+                </TableCell>
+              </TableRow>
             );
           })}
         </TableBody>

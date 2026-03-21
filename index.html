@@ -17,7 +17,9 @@
           ? !!root.__LOVA_FIX_TRIGGER__
           : false;
 
-        __LOVA_FIX_TRIGGER__ = currentValue;
+        try {
+          __LOVA_FIX_TRIGGER__ = currentValue;
+        } catch (e) {}
 
         function ensureTarget(target) {
           if (!target) return;
@@ -38,11 +40,18 @@
         ensureTarget(root);
         if (typeof window !== "undefined") ensureTarget(window);
         if (typeof self !== "undefined") ensureTarget(self);
+
+        try {
+          Function(
+            "value",
+            "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {} try { this.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
+          )(currentValue);
+        } catch (e) {}
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v31";
+        var PUSH_SW_URL = "/push-sw.js?v32";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -81,6 +90,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=31"></script>
+    <script type="module" src="/src/main.tsx?v=32"></script>
   </body>
 </html>
