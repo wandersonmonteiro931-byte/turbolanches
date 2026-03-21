@@ -1,4 +1,4 @@
-export const SW_VERSION = "v23";
+export const SW_VERSION = "v24";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 export const shouldEnableServiceWorker = () => {
