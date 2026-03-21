@@ -3,7 +3,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
-import { formatCurrency } from "./pricingMoney";
+import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
 
 interface Ingredient {
   id: string;
@@ -34,21 +34,28 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
   const [adding, setAdding] = useState(false);
   const [selectedIngId, setSelectedIngId] = useState("");
   const [qty, setQty] = useState("1");
+  const [manualCostInput, setManualCostInput] = useState("");
+  const [savedManualCost, setSavedManualCost] = useState(0);
+  const [savingManualCost, setSavingManualCost] = useState(false);
 
   const fetchData = async () => {
     let ingredientsQuery = supabase.from("ingredients").select("id, name, unit, cost_per_unit").order("name");
     let linesQuery = supabase.from("product_ingredients").select("id, ingredient_id, quantity").eq("product_id", productId);
+    const productQuery = supabase.from("products").select("manual_cost").eq("id", productId).maybeSingle();
 
     if (storeId) {
       ingredientsQuery = ingredientsQuery.eq("store_id", storeId);
       linesQuery = linesQuery.eq("store_id", storeId);
     }
 
-    const [ingRes, linesRes] = await Promise.all([ingredientsQuery, linesQuery]);
+    const [ingRes, linesRes, productRes] = await Promise.all([ingredientsQuery, linesQuery, productQuery]);
     const nextIngredients = (ingRes.data || []) as Ingredient[];
     const ingredientMap = new Map(nextIngredients.map((ingredient) => [ingredient.id, ingredient]));
+    const nextManualCost = Number(((productRes.data as { manual_cost?: number | null } | null)?.manual_cost) || 0);
 
     setIngredients(nextIngredients);
+    setSavedManualCost(nextManualCost);
+    setManualCostInput(formatMoneyInput(nextManualCost));
     setLines(
       ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) => {
         const ingredient = ingredientMap.get(line.ingredient_id);
@@ -71,6 +78,41 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
   }, [productId, storeId]);
 
   const totalCost = useMemo(() => lines.reduce((sum, line) => sum + (line.cost || 0), 0), [lines]);
+  const combinedCost = useMemo(() => totalCost + savedManualCost, [savedManualCost, totalCost]);
+
+  const handleManualCostSave = async (rawValue: string) => {
+    const parsedValue = rawValue.trim() ? parseRoundedMoney(rawValue) : 0;
+
+    if (parsedValue === null) {
+      toast({ title: "Custo inválido", description: "Informe um valor no formato R$ 0,00." });
+      setManualCostInput(formatMoneyInput(savedManualCost));
+      return;
+    }
+
+    if (parsedValue === savedManualCost) {
+      setManualCostInput(formatMoneyInput(parsedValue));
+      return;
+    }
+
+    setSavingManualCost(true);
+
+    const { error } = await supabase
+      .from("products")
+      .update({ manual_cost: parsedValue } as any)
+      .eq("id", productId);
+
+    setSavingManualCost(false);
+
+    if (error) {
+      toast({ title: "Não foi possível salvar o custo", description: error.message });
+      setManualCostInput(formatMoneyInput(savedManualCost));
+      return;
+    }
+
+    setSavedManualCost(parsedValue);
+    setManualCostInput(formatMoneyInput(parsedValue));
+    onChange?.();
+  };
 
   const handleAdd = async () => {
     if (!selectedIngId) return;
@@ -155,9 +197,28 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
       <div className="flex items-center justify-between">
         <div>
           <label className="text-sm font-semibold text-foreground">Ficha Técnica</label>
-          <p className="text-xs text-muted-foreground">Altere a quantidade e o custo atualiza na hora.</p>
+          <p className="text-xs text-muted-foreground">Altere ingredientes ou informe custo direto para itens sem ingredientes.</p>
         </div>
-        <span className="text-xs font-bold text-primary">Custo: {formatCurrency(totalCost)}</span>
+        <span className="text-xs font-bold text-primary">Custo: {formatCurrency(combinedCost)}</span>
+      </div>
+
+      <div className="grid gap-3 rounded-lg border border-border bg-background p-3 text-xs sm:grid-cols-[minmax(0,1fr)_160px] sm:items-end">
+        <div>
+          <p className="font-medium text-foreground">Custo direto do item</p>
+          <p className="text-muted-foreground">Use para bebidas e produtos sem ingredientes.</p>
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] text-muted-foreground">{savingManualCost ? "Salvando..." : "Salva ao sair do campo"}</p>
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="R$ 0,00"
+            value={manualCostInput}
+            onChange={(event) => setManualCostInput(event.target.value)}
+            onBlur={(event) => void handleManualCostSave(event.target.value)}
+            className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          />
+        </div>
       </div>
 
       {lines.length === 0 && !adding && (

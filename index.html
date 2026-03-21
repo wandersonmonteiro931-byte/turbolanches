@@ -2,37 +2,52 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
       (function () {
-        var targets = [];
-        if (typeof globalThis !== "undefined") targets.push(globalThis);
-        if (typeof window !== "undefined") targets.push(window);
-        if (typeof self !== "undefined") targets.push(self);
+        var root = typeof globalThis !== "undefined"
+          ? globalThis
+          : typeof window !== "undefined"
+            ? window
+            : typeof self !== "undefined"
+              ? self
+              : this;
 
-        targets.forEach(function (target) {
-          if (typeof target.__LOVA_FIX_TRIGGER__ === "undefined") {
-            target.__LOVA_FIX_TRIGGER__ = false;
-          }
-        });
+        function ensureTarget(target) {
+          if (!target) return;
 
-        try {
-          if (typeof globalThis !== "undefined") {
-            Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
-              value: false,
+          try {
+            Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
+              value: target.__LOVA_FIX_TRIGGER__ ?? false,
               configurable: true,
               writable: true,
             });
+          } catch (e) {
+            try {
+              target.__LOVA_FIX_TRIGGER__ = target.__LOVA_FIX_TRIGGER__ ?? false;
+            } catch (innerError) {}
           }
-        } catch (e) {}
+        }
+
+        ensureTarget(root);
+        if (typeof window !== "undefined") ensureTarget(window);
+        if (typeof self !== "undefined") ensureTarget(self);
 
         try {
-          (0, eval)("var __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;");
-        } catch (e) {}
+          Function(
+            "value",
+            "try { globalThis.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+              "try { window.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+              "try { self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+              "var __LOVA_FIX_TRIGGER__ = value;\n" +
+              "return __LOVA_FIX_TRIGGER__;",
+          )(root && typeof root.__LOVA_FIX_TRIGGER__ !== "undefined" ? root.__LOVA_FIX_TRIGGER__ : false);
+        } catch (e) {
+          var __LOVA_FIX_TRIGGER__ = false;
+        }
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v29";
+        var PUSH_SW_URL = "/push-sw.js?v30";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -71,6 +86,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=29"></script>
+    <script type="module" src="/src/main.tsx?v=30"></script>
   </body>
 </html>

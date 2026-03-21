@@ -4,7 +4,7 @@ import path from "path";
 
 export default defineConfig(() => ({
   define: {
-    __LOVA_FIX_TRIGGER__: "false",
+    __LOVA_FIX_TRIGGER__: "globalThis.__LOVA_FIX_TRIGGER__ ?? false",
   },
   server: {
     host: "::",

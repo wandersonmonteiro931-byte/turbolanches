@@ -16,6 +16,11 @@ type FixTriggerTarget = typeof globalThis & {
 };
 
 const bootstrapFixTrigger = () => {
+  const currentValue =
+    typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ !== "undefined"
+      ? globalThis.__LOVA_FIX_TRIGGER__
+      : false;
+
   const targets = [
     typeof globalThis !== "undefined" ? (globalThis as FixTriggerTarget) : null,
     typeof window !== "undefined" ? (window as FixTriggerTarget) : null,
@@ -27,19 +32,26 @@ const bootstrapFixTrigger = () => {
       Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
         configurable: true,
         writable: true,
-        value: target.__LOVA_FIX_TRIGGER__ ?? false,
+        value: target.__LOVA_FIX_TRIGGER__ ?? currentValue,
       });
     } catch {
-      target.__LOVA_FIX_TRIGGER__ = target.__LOVA_FIX_TRIGGER__ ?? false;
+      target.__LOVA_FIX_TRIGGER__ = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
     }
   }
 
   if (typeof globalThis === "undefined") return;
 
-  globalThis.__LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;
+  globalThis.__LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? currentValue;
 
   try {
-    (0, eval)("var __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;");
+    Function(
+      "value",
+      "try { globalThis.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+        "try { window.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+        "try { self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}\n" +
+        "var __LOVA_FIX_TRIGGER__ = value;\n" +
+        "return __LOVA_FIX_TRIGGER__;",
+    )(globalThis.__LOVA_FIX_TRIGGER__);
   } catch {}
 };
 
