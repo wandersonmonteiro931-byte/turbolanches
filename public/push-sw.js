@@ -6,8 +6,20 @@ try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
 try { (0, eval)("this.__LOVA_FIX_TRIGGER__ = false; var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
 try { self[LOVA_FIX_KEY] = false; } catch (e) {}
 try { globalThis[LOVA_FIX_KEY] = false; } catch (e) {}
-try { Object.defineProperty(self, LOVA_FIX_KEY, { value: false, writable: true, configurable: true }); } catch (e) {}
-try { Object.defineProperty(globalThis, LOVA_FIX_KEY, { value: false, writable: true, configurable: true }); } catch (e) {}
+try {
+  Object.defineProperty(self, LOVA_FIX_KEY, {
+    configurable: true,
+    get: function () { return false; },
+    set: function () {},
+  });
+} catch (e) {}
+try {
+  Object.defineProperty(globalThis, LOVA_FIX_KEY, {
+    configurable: true,
+    get: function () { return false; },
+    set: function () {},
+  });
+} catch (e) {}
 
 function isLovaProbeMessage(message) {
   return typeof message === "string" && message.indexOf("__LOVA_FIX_TRIGGER__") !== -1;
@@ -41,7 +53,6 @@ self.addEventListener(
   true,
 );
 
-// Activate immediately, replacing old service worker
 self.addEventListener("install", function () {
   self.skipWaiting();
 });
@@ -50,9 +61,7 @@ self.addEventListener("activate", function (event) {
   event.waitUntil(self.clients.claim());
 });
 
-// ---- Fetch handler (required for PWA installability) ----
 self.addEventListener("fetch", function (event) {
-  // Network-first strategy: try network, fallback to cache
   event.respondWith(
     fetch(event.request).catch(function () {
       return caches.match(event.request);
@@ -60,7 +69,6 @@ self.addEventListener("fetch", function (event) {
   );
 });
 
-// ---- Push notifications ----
 self.addEventListener("push", function (event) {
   event.waitUntil(
     (function () {
