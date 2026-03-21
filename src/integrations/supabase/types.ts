@@ -416,6 +416,8 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          calculation_config: Json
+          calculation_mode: string
           cost_per_unit: number
           created_at: string
           id: string
@@ -425,6 +427,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calculation_config?: Json
+          calculation_mode?: string
           cost_per_unit?: number
           created_at?: string
           id?: string
@@ -434,6 +438,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calculation_config?: Json
+          calculation_mode?: string
           cost_per_unit?: number
           created_at?: string
           id?: string
