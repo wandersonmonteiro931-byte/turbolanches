@@ -1,57 +1,5 @@
-// SW Version 24 — resilient global probe suppression + immediate update
-var SW_VERSION = "v24";
-var LOVA_FIX_KEY = "__LOVA_FIX_TRIGGER__";
-var __LOVA_FIX_TRIGGER__ = false;
-try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
-try { (0, eval)("this.__LOVA_FIX_TRIGGER__ = false; var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
-try { self[LOVA_FIX_KEY] = false; } catch (e) {}
-try { globalThis[LOVA_FIX_KEY] = false; } catch (e) {}
-try {
-  Object.defineProperty(self, LOVA_FIX_KEY, {
-    configurable: true,
-    get: function () { return false; },
-    set: function () {},
-  });
-} catch (e) {}
-try {
-  Object.defineProperty(globalThis, LOVA_FIX_KEY, {
-    configurable: true,
-    get: function () { return false; },
-    set: function () {},
-  });
-} catch (e) {}
-
-function isLovaProbeMessage(message) {
-  return typeof message === "string" && message.indexOf("__LOVA_FIX_TRIGGER__") !== -1;
-}
-
-self.addEventListener(
-  "error",
-  function (event) {
-    if (isLovaProbeMessage((event && event.message) || "")) {
-      event.preventDefault();
-    }
-  },
-  true,
-);
-
-self.addEventListener(
-  "unhandledrejection",
-  function (event) {
-    var message = "";
-    try {
-      message = event && event.reason && event.reason.message
-        ? event.reason.message
-        : String((event && event.reason) || "");
-    } catch (e) {
-      message = "";
-    }
-    if (isLovaProbeMessage(message)) {
-      event.preventDefault();
-    }
-  },
-  true,
-);
+// SW Version 25 — standard service worker + immediate update
+var SW_VERSION = "v25";
 
 self.addEventListener("install", function () {
   self.skipWaiting();
@@ -117,10 +65,7 @@ self.addEventListener("notificationclick", function (event) {
       .then(function (windowClients) {
         for (var i = 0; i < windowClients.length; i++) {
           var client = windowClients[i];
-          if (
-            client.url.indexOf(self.location.origin) !== -1 &&
-            "focus" in client
-          ) {
+          if (client.url.indexOf(self.location.origin) !== -1 && "focus" in client) {
             client.navigate(url);
             return client.focus();
           }

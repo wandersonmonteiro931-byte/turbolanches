@@ -19,7 +19,6 @@ const EMPTY_FORM = {
   unit: "unidade",
   cost_per_unit: "",
   qty_purchased: "",
-  use_package: false,
   package_quantity: "",
   package_price: "",
   units_per_package: "",
@@ -95,30 +94,35 @@ const IngredientsTab = () => {
   const packageQuantity = parseFloat(form.package_quantity);
   const packagePrice = parseFloat(form.package_price);
   const unitsPerPackage = parseFloat(form.units_per_package);
-  const totalUnitsFromPackage =
-    !Number.isNaN(packageQuantity) && !Number.isNaN(unitsPerPackage)
-      ? packageQuantity * unitsPerPackage
-      : null;
-  const totalPackagePaid =
-    !Number.isNaN(packageQuantity) && !Number.isNaN(packagePrice)
-      ? packageQuantity * packagePrice
-      : null;
-  const calculatedPackageUnitCost =
-    totalUnitsFromPackage && totalPackagePaid !== null && totalUnitsFromPackage > 0
-      ? totalPackagePaid / totalUnitsFromPackage
-      : null;
+
+  const totalPackagesPaid = !Number.isNaN(packageQuantity) && !Number.isNaN(packagePrice)
+    ? packageQuantity * packagePrice
+    : null;
+
+  const totalUnits = !Number.isNaN(packageQuantity) && !Number.isNaN(unitsPerPackage)
+    ? packageQuantity * unitsPerPackage
+    : null;
+
+  const calculatedPackageUnitCost = totalPackagesPaid !== null && totalUnits !== null && totalUnits > 0
+    ? totalPackagesPaid / totalUnits
+    : null;
+
+  const manualTotalSpent = (() => {
+    const quantity = parseFloat(form.qty_purchased);
+    const costPerUnit = parseFloat(form.cost_per_unit);
+    if (Number.isNaN(quantity) || Number.isNaN(costPerUnit)) return null;
+    return quantity * costPerUnit;
+  })();
+
+  const resolvedCostPerUnit = calculatedPackageUnitCost ?? (parseFloat(form.cost_per_unit) || 0);
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
 
-    const resolvedCost = form.use_package && calculatedPackageUnitCost !== null
-      ? calculatedPackageUnitCost
-      : parseFloat(form.cost_per_unit) || 0;
-
     const payload: { name: string; unit: string; cost_per_unit: number; store_id?: string | null } = {
       name: form.name.trim(),
       unit: form.unit,
-      cost_per_unit: resolvedCost,
+      cost_per_unit: resolvedCostPerUnit,
     };
 
     if (!editing) payload.store_id = storeId;
@@ -141,13 +145,6 @@ const IngredientsTab = () => {
     toast({ title: "Ingrediente removido!" });
     await fetchIngredients();
   };
-
-  const totalSpent = (() => {
-    const quantity = parseFloat(form.qty_purchased);
-    const costPerUnit = parseFloat(form.cost_per_unit);
-    if (Number.isNaN(quantity) || Number.isNaN(costPerUnit)) return null;
-    return quantity * costPerUnit;
-  })();
 
   return (
     <div className="mt-4 space-y-4">
@@ -194,7 +191,7 @@ const IngredientsTab = () => {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm space-y-3 rounded-xl bg-card p-5 shadow-lg max-h-[90vh] overflow-y-auto">
+          <div className="max-h-[90vh] w-full max-w-sm space-y-3 overflow-y-auto rounded-xl bg-card p-5 shadow-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">{editing ? "Editar" : "Novo"} Ingrediente</h3>
               <button onClick={() => setShowForm(false)}>
@@ -219,81 +216,71 @@ const IngredientsTab = () => {
               ))}
             </select>
 
-            <label className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm font-medium text-foreground">
-              <input
-                type="checkbox"
-                checked={form.use_package}
-                onChange={(event) => setForm({ ...form, use_package: event.target.checked })}
-                className="h-4 w-4 rounded border-border"
-              />
-              <Package size={16} className="text-primary" />
-              Usar cálculo por pacote
-            </label>
-
-            {form.use_package ? (
-              <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Opção de pacote</p>
-                <input
-                  placeholder="Quantidade comprada"
-                  type="number"
-                  step="0.01"
-                  value={form.package_quantity}
-                  onChange={(event) => setForm({ ...form, package_quantity: event.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-                <input
-                  placeholder="Valor pago no pacote (R$)"
-                  type="number"
-                  step="0.01"
-                  value={form.package_price}
-                  onChange={(event) => setForm({ ...form, package_price: event.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-                <input
-                  placeholder={`Quantas ${form.unit} vem no pacote`}
-                  type="number"
-                  step="0.01"
-                  value={form.units_per_package}
-                  onChange={(event) => setForm({ ...form, units_per_package: event.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
-
-                <div className="rounded-lg border border-border bg-background p-3 text-sm space-y-1">
-                  <p className="text-muted-foreground">Total pago: <span className="font-semibold text-foreground">R$ {totalPackagePaid?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="text-muted-foreground">Total de unidades: <span className="font-semibold text-foreground">{totalUnitsFromPackage?.toFixed(2) ?? "0.00"} {form.unit}</span></p>
-                  <p className="font-bold text-primary">Valor por {form.unit}: R$ {calculatedPackageUnitCost?.toFixed(4) ?? "0.0000"}</p>
-                </div>
+            <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
+              <div className="flex items-center gap-2">
+                <Package size={16} className="text-primary" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cálculo por pacote</p>
               </div>
-            ) : (
-              <>
-                <input
-                  placeholder="Custo por unidade (R$)"
-                  type="number"
-                  step="0.01"
-                  value={form.cost_per_unit}
-                  onChange={(event) => setForm({ ...form, cost_per_unit: event.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
+              <input
+                placeholder="Quantidade comprada"
+                type="number"
+                step="0.01"
+                value={form.package_quantity}
+                onChange={(event) => setForm({ ...form, package_quantity: event.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+              <input
+                placeholder="Valor pago em cada pacote (R$)"
+                type="number"
+                step="0.01"
+                value={form.package_price}
+                onChange={(event) => setForm({ ...form, package_price: event.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+              <input
+                placeholder={`Quantas ${form.unit} vem em cada pacote`}
+                type="number"
+                step="0.01"
+                value={form.units_per_package}
+                onChange={(event) => setForm({ ...form, units_per_package: event.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+              <div className="space-y-1 rounded-lg border border-border bg-background p-3 text-sm">
+                <p className="text-muted-foreground">Total pago: <span className="font-semibold text-foreground">R$ {totalPackagesPaid?.toFixed(2) ?? "0.00"}</span></p>
+                <p className="text-muted-foreground">Total de {form.unit}: <span className="font-semibold text-foreground">{totalUnits?.toFixed(2) ?? "0.00"}</span></p>
+                <p className="font-bold text-primary">Valor por {form.unit}: R$ {calculatedPackageUnitCost?.toFixed(4) ?? "0.0000"}</p>
+              </div>
+            </div>
 
-                <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Calculadora automática</p>
-                  <input
-                    placeholder={`Quantidade comprada (${form.unit})`}
-                    type="number"
-                    step="0.01"
-                    value={form.qty_purchased}
-                    onChange={(event) => setForm({ ...form, qty_purchased: event.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                  <p className="text-sm text-muted-foreground">Ex.: 3 kg × R$ 35,00 = R$ 105,00</p>
-                  {totalSpent !== null && (
-                    <p className="text-sm font-bold text-primary">Total gasto: R$ {totalSpent.toFixed(2)}</p>
-                  )}
-                </div>
-              </>
-            )}
+            <input
+              placeholder="Custo por unidade (R$)"
+              type="number"
+              step="0.01"
+              value={form.cost_per_unit}
+              onChange={(event) => setForm({ ...form, cost_per_unit: event.target.value })}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            />
 
-            {!form.use_package && null}
+            <div className="space-y-2 rounded-lg border border-border bg-muted/40 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cálculo direto</p>
+              <input
+                placeholder={`Quantidade comprada (${form.unit})`}
+                type="number"
+                step="0.01"
+                value={form.qty_purchased}
+                onChange={(event) => setForm({ ...form, qty_purchased: event.target.value })}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+              />
+              <p className="text-sm text-muted-foreground">Ex.: 3 kg × R$ 35,00 = R$ 105,00</p>
+              {manualTotalSpent !== null && (
+                <p className="text-sm font-bold text-primary">Total gasto: R$ {manualTotalSpent.toFixed(2)}</p>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-background p-3 text-sm">
+              <p className="text-muted-foreground">Valor que será salvo por {form.unit}:</p>
+              <p className="text-base font-bold text-foreground">R$ {resolvedCostPerUnit.toFixed(4)}</p>
+            </div>
 
             <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">
               Salvar
