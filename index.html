@@ -4,9 +4,10 @@
     <script>
       var __LOVA_FIX_TRIGGER__ = false;
       try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
+      try { (0, eval)("var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
       (function () {
         var K = "__LOVA_FIX_TRIGGER__";
-        var PUSH_SW_URL = "/push-sw.js?v21";
+        var PUSH_SW_URL = "/push-sw.js?v22";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         function d(s) {
           if (!s) return;
@@ -76,6 +77,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=21"></script>
+    <script type="module" src="/src/main.tsx?v=22"></script>
   </body>
 </html>
