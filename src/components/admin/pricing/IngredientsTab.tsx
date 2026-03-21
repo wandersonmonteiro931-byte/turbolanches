@@ -255,8 +255,8 @@ const IngredientsTab = () => {
           <div className="max-h-[90vh] w-full max-w-sm space-y-3 overflow-y-auto rounded-xl bg-card p-5 shadow-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">{editing ? "Editar" : "Novo"} Ingrediente</h3>
-              <button onClick={() => setShowForm(false)}>
-                <X size={20} className="text-muted-foreground" />
+              <button onClick={() => setShowForm(false)} className="rounded-lg p-2 hover:bg-accent">
+                <X size={24} className="text-muted-foreground" />
               </button>
             </div>
 

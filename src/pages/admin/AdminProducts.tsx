@@ -125,7 +125,7 @@ const AdminProducts = () => {
           <div className="w-full max-w-md rounded-xl bg-card p-5 shadow-lg max-h-[90vh] overflow-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-foreground">{editing ? "Editar Produto" : "Novo Produto"}</h3>
-              <button onClick={() => setShowForm(false)}><X size={20} className="text-muted-foreground" /></button>
+              <button onClick={() => setShowForm(false)} className="rounded-lg p-2 hover:bg-accent"><X size={24} className="text-muted-foreground" /></button>
             </div>
             <div className="space-y-3">
               <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />

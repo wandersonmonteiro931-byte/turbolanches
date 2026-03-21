@@ -10,6 +10,9 @@ export default defineConfig(() => ({
       overlay: false,
     },
   },
+  define: {
+    __LOVA_FIX_TRIGGER__: "globalThis.__LOVA_FIX_TRIGGER__",
+  },
   plugins: [...react()],
   resolve: {
     alias: {
