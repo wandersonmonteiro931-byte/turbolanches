@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronUp, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
-import ProductRecipeEditor from "./ProductRecipeEditor";
-import { formatCurrency } from "./pricingMoney";
+import ItemsCategoryTable from "./ItemsCategoryTable";
+import type { ProductRecipeEditorChange } from "./ProductRecipeEditor";
 import {
   buildProductCostRows,
   type PricingCategory,
@@ -17,7 +17,10 @@ import {
 const ItemsTab = () => {
   const { storeId } = useStore();
   const [categories, setCategories] = useState<PricingCategory[]>([]);
-  const [rows, setRows] = useState<ProductCostRow[]>([]);
+  const [products, setProducts] = useState<PricingProduct[]>([]);
+  const [ingredients, setIngredients] = useState<PricingIngredient[]>([]);
+  const [productIngredients, setProductIngredients] = useState<PricingProductIngredient[]>([]);
+  const [extraCosts, setExtraCosts] = useState<PricingExtraCost[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -53,23 +56,29 @@ const ItemsTab = () => {
       extraCostsQuery,
     ]);
 
-    const nextCategories = (categoriesRes.data || []) as PricingCategory[];
-    const nextRows = buildProductCostRows({
-      categories: nextCategories,
-      products: (productsRes.data || []) as PricingProduct[],
-      ingredients: (ingredientsRes.data || []) as PricingIngredient[],
-      productIngredients: (productIngredientsRes.data || []) as PricingProductIngredient[],
-      extraCosts: (extraCostsRes.data || []) as PricingExtraCost[],
-    });
-
-    setCategories(nextCategories);
-    setRows(nextRows);
+    setCategories((categoriesRes.data || []) as PricingCategory[]);
+    setProducts((productsRes.data || []) as PricingProduct[]);
+    setIngredients((ingredientsRes.data || []) as PricingIngredient[]);
+    setProductIngredients((productIngredientsRes.data || []) as PricingProductIngredient[]);
+    setExtraCosts((extraCostsRes.data || []) as PricingExtraCost[]);
     setLoading(false);
   };
 
   useEffect(() => {
     void fetchData();
   }, [storeId]);
+
+  const rows = useMemo(
+    () =>
+      buildProductCostRows({
+        categories,
+        products,
+        ingredients,
+        productIngredients,
+        extraCosts,
+      }),
+    [categories, extraCosts, ingredients, productIngredients, products],
+  );
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -104,23 +113,53 @@ const ItemsTab = () => {
     [categories],
   );
 
+  const lowMarginCount = useMemo(() => filteredRows.filter((row) => row.margin < 30).length, [filteredRows]);
+  const withoutCostCount = useMemo(() => filteredRows.filter((row) => row.totalCost <= 0).length, [filteredRows]);
+
+  const handleRecipeChange = ({ productId, manualCost, lines }: ProductRecipeEditorChange) => {
+    setProducts((current) =>
+      current.map((product) => (product.id === productId ? { ...product, manual_cost: manualCost } : product)),
+    );
+    setProductIngredients((current) => [
+      ...current.filter((line) => line.product_id !== productId),
+      ...lines.map((line) => ({ ...line, product_id: productId })),
+    ]);
+  };
+
   return (
     <div className="mt-4 space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">{filteredRows.length} de {rows.length} itens do cardápio</p>
-          <p className="text-xs text-muted-foreground">Edite a ficha técnica e o custo salva automaticamente, inclusive para bebidas.</p>
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{filteredRows.length} de {rows.length} itens do cardápio</p>
+            <p className="text-xs text-muted-foreground">Edite ficha técnica e custo direto sem perder a posição da tela.</p>
+          </div>
+          <button
+            onClick={() => void fetchData()}
+            className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Atualizar lista
+          </button>
         </div>
-        <button
-          onClick={() => void fetchData()}
-          className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Atualizar
-        </button>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-lg border border-border bg-background px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Itens visíveis</p>
+            <p className="text-lg font-semibold text-foreground">{filteredRows.length}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Margem abaixo de 30%</p>
+            <p className="text-lg font-semibold text-foreground">{lowMarginCount}</p>
+          </div>
+          <div className="rounded-lg border border-border bg-background px-3 py-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Sem custo calculado</p>
+            <p className="text-lg font-semibold text-foreground">{withoutCostCount}</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_220px_220px]">
+      <div className="sticky top-0 z-10 grid gap-2 rounded-xl border border-border bg-background/95 p-3 backdrop-blur lg:grid-cols-[minmax(0,1fr)_220px_220px]">
         <div className="relative">
           <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -164,90 +203,14 @@ const ItemsTab = () => {
       ) : (
         <div className="space-y-4">
           {Object.entries(groupedRows).map(([categoryName, categoryRows]) => (
-            <section key={categoryName} className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="border-b border-border bg-muted/30 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{categoryName}</h3>
-                    <p className="text-xs text-muted-foreground">{categoryRows.length} item(ns)</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-auto">
-                <table className="w-full min-w-[860px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left">
-                      <th className="py-3 pl-4 pr-2 font-medium text-muted-foreground">Item</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Venda</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Ingredientes</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Custo direto</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Extras</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Custo total</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Lucro</th>
-                      <th className="px-2 py-3 text-right font-medium text-muted-foreground">Margem</th>
-                      <th className="py-3 pl-2 pr-4 text-right font-medium text-muted-foreground">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {categoryRows.map((row) => {
-                      const isExpanded = expandedId === row.id;
-                      const emphasisClass = row.totalCost <= 0 ? "text-destructive" : "text-foreground";
-
-                      return (
-                        <>
-                          <tr key={row.id} className="border-b border-border/50 align-top last:border-b-0">
-                            <td className="py-3 pl-4 pr-2">
-                              <div className="space-y-1">
-                                <p className="font-medium text-foreground">{row.name}</p>
-                                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                  <span>{row.active ? "Ativo" : "Oculto"}</span>
-                                  <span>•</span>
-                                  <span>{row.ingredientCount} ingrediente(s)</span>
-                                  {row.manualCost > 0 && (
-                                    <>
-                                      <span>•</span>
-                                      <span>Custo direto</span>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-2 py-3 text-right text-foreground">{formatCurrency(row.price)}</td>
-                            <td className={`px-2 py-3 text-right ${emphasisClass}`}>{formatCurrency(row.ingredientCost)}</td>
-                            <td className={`px-2 py-3 text-right ${row.manualCost > 0 ? "text-foreground" : "text-muted-foreground"}`}>{formatCurrency(row.manualCost)}</td>
-                            <td className="px-2 py-3 text-right text-muted-foreground">{formatCurrency(row.extraCost)}</td>
-                            <td className={`px-2 py-3 text-right font-medium ${emphasisClass}`}>{formatCurrency(row.totalCost)}</td>
-                            <td className={`px-2 py-3 text-right ${row.profit < 0 ? "text-destructive" : "text-foreground"}`}>
-                              {formatCurrency(row.profit)}
-                            </td>
-                            <td className={`px-2 py-3 text-right ${row.margin < 30 ? "text-destructive" : "text-primary"}`}>
-                              {row.margin.toFixed(1)}%
-                            </td>
-                            <td className="py-3 pl-2 pr-4 text-right">
-                              <button
-                                onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground"
-                              >
-                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                Editar
-                              </button>
-                            </td>
-                          </tr>
-                          {isExpanded && (
-                            <tr key={`${row.id}-editor`} className="border-b border-border/50 bg-muted/10 last:border-b-0">
-                              <td colSpan={9} className="p-4">
-                                <ProductRecipeEditor productId={row.id} onChange={() => void fetchData()} />
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+            <ItemsCategoryTable
+              key={categoryName}
+              categoryName={categoryName}
+              rows={categoryRows as ProductCostRow[]}
+              expandedId={expandedId}
+              onToggleExpanded={(id) => setExpandedId((current) => (current === id ? null : id))}
+              onRecipeChange={handleRecipeChange}
+            />
           ))}
         </div>
       )}

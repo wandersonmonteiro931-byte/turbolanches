@@ -1,5 +1,5 @@
-// SW Version 30 — standard service worker + immediate update
-var SW_VERSION = "v30";
+// SW Version 31 — standard service worker + immediate update
+var SW_VERSION = "v31";
 var __LOVA_FIX_TRIGGER__ = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ !== "undefined"
   ? self.__LOVA_FIX_TRIGGER__
   : false;

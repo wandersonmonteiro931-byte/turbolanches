@@ -23,7 +23,17 @@ interface RecipeLine {
 
 interface Props {
   productId: string;
-  onChange?: () => void;
+  onChange?: (payload: ProductRecipeEditorChange) => void;
+}
+
+export interface ProductRecipeEditorChange {
+  productId: string;
+  manualCost: number;
+  lines: Array<{
+    id?: string;
+    ingredient_id: string;
+    quantity: number;
+  }>;
 }
 
 const ProductRecipeEditor = ({ productId, onChange }: Props) => {
@@ -37,6 +47,22 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
   const [manualCostInput, setManualCostInput] = useState("");
   const [savedManualCost, setSavedManualCost] = useState(0);
   const [savingManualCost, setSavingManualCost] = useState(false);
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
+
+  const serializeLines = (nextLines: RecipeLine[]) =>
+    nextLines.map((line) => ({
+      id: line.id,
+      ingredient_id: line.ingredient_id,
+      quantity: line.quantity,
+    }));
+
+  const emitChange = (nextLines: RecipeLine[], nextManualCost: number) => {
+    onChange?.({
+      productId,
+      manualCost: nextManualCost,
+      lines: serializeLines(nextLines),
+    });
+  };
 
   const fetchData = async () => {
     let ingredientsQuery = supabase.from("ingredients").select("id, name, unit, cost_per_unit").order("name");
@@ -56,8 +82,7 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
     setIngredients(nextIngredients);
     setSavedManualCost(nextManualCost);
     setManualCostInput(formatMoneyInput(nextManualCost));
-    setLines(
-      ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) => {
+    const nextLines = ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) => {
         const ingredient = ingredientMap.get(line.ingredient_id);
         const quantity = Number(line.quantity || 0);
 
@@ -69,7 +94,14 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
           unit: ingredient?.unit || "unidade",
           cost: quantity * Number(ingredient?.cost_per_unit || 0),
         };
-      }),
+      });
+
+    setLines(nextLines);
+    setQuantityDrafts(
+      nextLines.reduce<Record<string, string>>((drafts, line) => {
+        if (line.id) drafts[line.id] = String(line.quantity);
+        return drafts;
+      }, {}),
     );
   };
 
@@ -111,7 +143,7 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
 
     setSavedManualCost(parsedValue);
     setManualCostInput(formatMoneyInput(parsedValue));
-    onChange?.();
+    emitChange(lines, parsedValue);
   };
 
   const handleAdd = async () => {
@@ -131,8 +163,8 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
 
     if (data) {
       const ingredient = ingredients.find((item) => item.id === selectedIngId);
-      setLines((current) => [
-        ...current,
+      const nextLines = [
+        ...lines,
         {
           id: data.id,
           ingredient_id: selectedIngId,
@@ -141,8 +173,11 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
           unit: ingredient?.unit,
           cost: quantity * Number(ingredient?.cost_per_unit || 0),
         },
-      ]);
-      onChange?.();
+      ];
+
+      setLines(nextLines);
+      setQuantityDrafts((current) => ({ ...current, [data.id]: String(quantity) }));
+      emitChange(nextLines, savedManualCost);
     }
 
     setAdding(false);
@@ -150,25 +185,43 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
     setQty("1");
   };
 
-  const handleQuantityChange = async (lineId: string | undefined, nextValue: string) => {
+  const handleQuantitySave = async (lineId: string | undefined) => {
     if (!lineId) return;
 
+    const nextValue = quantityDrafts[lineId];
+    const existingLine = lines.find((line) => line.id === lineId);
+    if (!existingLine) return;
+
     const nextQuantity = Number.parseFloat(nextValue);
-    if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) return;
+    if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) {
+      setQuantityDrafts((current) => ({
+        ...current,
+        [lineId]: String(existingLine.quantity),
+      }));
+      return;
+    }
+
+    if (nextQuantity === existingLine.quantity) {
+      setQuantityDrafts((current) => ({
+        ...current,
+        [lineId]: String(existingLine.quantity),
+      }));
+      return;
+    }
 
     const ingredientMap = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]));
+    const nextLines = lines.map((line) => {
+      if (line.id !== lineId) return line;
+      const ingredient = ingredientMap.get(line.ingredient_id);
+      return {
+        ...line,
+        quantity: nextQuantity,
+        cost: nextQuantity * Number(ingredient?.cost_per_unit || 0),
+      };
+    });
 
-    setLines((current) =>
-      current.map((line) => {
-        if (line.id !== lineId) return line;
-        const ingredient = ingredientMap.get(line.ingredient_id);
-        return {
-          ...line,
-          quantity: nextQuantity,
-          cost: nextQuantity * Number(ingredient?.cost_per_unit || 0),
-        };
-      }),
-    );
+    setLines(nextLines);
+    setQuantityDrafts((current) => ({ ...current, [lineId]: String(nextQuantity) }));
 
     const { error } = await supabase.from("product_ingredients").update({ quantity: nextQuantity }).eq("id", lineId);
     if (error) {
@@ -177,7 +230,7 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
       return;
     }
 
-    onChange?.();
+    emitChange(nextLines, savedManualCost);
   };
 
   const handleRemove = async (lineId: string | undefined) => {
@@ -188,8 +241,14 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
       return;
     }
 
-    setLines((current) => current.filter((line) => line.id !== lineId));
-    onChange?.();
+    const nextLines = lines.filter((line) => line.id !== lineId);
+    setLines(nextLines);
+    setQuantityDrafts((current) => {
+      const nextDrafts = { ...current };
+      delete nextDrafts[lineId];
+      return nextDrafts;
+    });
+    emitChange(nextLines, savedManualCost);
   };
 
   return (
@@ -238,8 +297,18 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
                 type="number"
                 min="0.01"
                 step="0.01"
-                value={line.quantity}
-                onChange={(event) => void handleQuantityChange(line.id, event.target.value)}
+                value={line.id ? quantityDrafts[line.id] ?? String(line.quantity) : String(line.quantity)}
+                onChange={(event) => {
+                  if (!line.id) return;
+                  setQuantityDrafts((current) => ({ ...current, [line.id as string]: event.target.value }));
+                }}
+                onBlur={() => void handleQuantitySave(line.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                }}
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
               />
             </div>
