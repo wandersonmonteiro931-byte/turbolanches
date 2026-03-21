@@ -2,50 +2,9 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-      try { Function("var __LOVA_FIX_TRIGGER__ = false;")(); } catch (e) {}
-      try { (0, eval)("this.__LOVA_FIX_TRIGGER__ = false; var __LOVA_FIX_TRIGGER__ = false;"); } catch (e) {}
       (function () {
-        var K = "__LOVA_FIX_TRIGGER__";
-        var PUSH_SW_URL = "/push-sw.js?v24";
+        var PUSH_SW_URL = "/push-sw.js?v25";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
-        function d(s) {
-          if (!s) return;
-          try { s[K] = false; } catch (e) {}
-          try {
-            Object.defineProperty(s, K, {
-              configurable: true,
-              get: function () { return false; },
-              set: function () {},
-            });
-          } catch (e) {}
-        }
-        try { d(window); } catch (e) {}
-        try { d(globalThis); } catch (e) {}
-        try { d(self); } catch (e) {}
-        try { window[K] = false; globalThis[K] = false; } catch (e) {}
-        try { (0, eval)("this." + K + "=false; var " + K + "=false"); } catch (e) {}
-        function f(v) { return String(v || "").indexOf(K) !== -1; }
-        window.addEventListener("error", function (e) {
-          if (f(e && e.message) || f(e && e.error && e.error.message)) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-          }
-        }, true);
-        window.addEventListener("unhandledrejection", function (e) {
-          try {
-            var r = e.reason, m = r instanceof Error ? r.message : String(r || "");
-            if (f(m)) {
-              e.preventDefault();
-              e.stopImmediatePropagation();
-            }
-          } catch (x) {}
-        }, true);
-        var _oe = window.onerror;
-        window.onerror = function (m, s, l, c, err) {
-          if (f(String(m || "")) || f((err && err.message) || "")) return true;
-          return _oe ? _oe.apply(this, arguments) : false;
-        };
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
             sessionStorage.setItem(SW_CLEANUP_KEY, PUSH_SW_URL);
@@ -83,6 +42,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=24"></script>
+    <script type="module" src="/src/main.tsx?v=25"></script>
   </body>
 </html>
