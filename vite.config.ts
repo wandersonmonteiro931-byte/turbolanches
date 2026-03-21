@@ -32,6 +32,16 @@ export default defineConfig(() => ({
   plugins: [
     ...react(),
     {
+      name: "lova-fix-trigger-transform",
+      transform(code, id) {
+        if (!/\.[cm]?[jt]sx?$/.test(id)) return null;
+        return {
+          code: `var __LOVA_FIX_TRIGGER__ = false; try { globalThis.__LOVA_FIX_TRIGGER__ = false; } catch (e) {}\n${code}`,
+          map: null,
+        };
+      },
+    },
+    {
       name: "lova-fix-trigger-bootstrap",
       transformIndexHtml() {
         return [
