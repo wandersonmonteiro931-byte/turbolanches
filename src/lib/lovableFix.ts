@@ -18,9 +18,11 @@ function defineOnTarget(target: unknown) {
 
   try {
     Object.defineProperty(target, LOVA_FIX_KEY, {
-      value: false,
-      writable: true,
       configurable: true,
+      get() {
+        return false;
+      },
+      set() {},
     });
   } catch {}
 }
