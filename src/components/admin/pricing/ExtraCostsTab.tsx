@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
+import { formatCurrency, formatMoneyInput, parseLocaleNumber, parseRoundedMoney } from "./pricingMoney";
 
 interface ExtraCost {
   id: string;
@@ -36,33 +37,63 @@ const ExtraCostsTab = () => {
 
   const openEdit = (c: ExtraCost) => {
     setEditing(c);
-    setForm({ name: c.name, cost_type: c.cost_type, value: String(c.value) });
+    setForm({
+      name: c.name,
+      cost_type: c.cost_type,
+      value: c.cost_type === "fixed" ? formatMoneyInput(c.value) : String(c.value),
+    });
     setShowForm(true);
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
+
+    const parsedValue = form.cost_type === "fixed"
+      ? parseRoundedMoney(form.value)
+      : parseLocaleNumber(form.value);
+
+    if (parsedValue === null) {
+      toast({
+        title: "Valor inválido",
+        description: form.cost_type === "fixed" ? "Informe um valor no formato R$ 0,00." : "Informe um percentual válido.",
+      });
+      return;
+    }
+
     const payload: any = {
       name: form.name.trim(),
       cost_type: form.cost_type,
-      value: parseFloat(form.value) || 0,
+      value: form.cost_type === "fixed" ? parsedValue : Number(parsedValue.toFixed(2)),
     };
+
     if (!editing && storeId) payload.store_id = storeId;
+
+    const { error } = editing
+      ? await supabase.from("extra_costs").update(payload).eq("id", editing.id)
+      : await supabase.from("extra_costs").insert(payload);
+
+    if (error) {
+      toast({ title: "Não foi possível salvar", description: error.message });
+      return;
+    }
+
     if (editing) {
-      await supabase.from("extra_costs").update(payload).eq("id", editing.id);
       toast({ title: "Custo atualizado!" });
     } else {
-      await supabase.from("extra_costs").insert(payload);
       toast({ title: "Custo criado!" });
     }
     setShowForm(false);
-    fetchData();
+    void fetchData();
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("extra_costs").delete().eq("id", id);
+    const { error } = await supabase.from("extra_costs").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Não foi possível remover", description: error.message });
+      return;
+    }
     toast({ title: "Custo removido!" });
-    fetchData();
+    void fetchData();
   };
 
   return (
@@ -86,7 +117,18 @@ const ExtraCostsTab = () => {
               <option value="fixed">Fixo (R$)</option>
               <option value="percentage">Percentual (%)</option>
             </select>
-            <input placeholder={form.cost_type === "fixed" ? "Valor (R$)" : "Percentual (%)"} type="number" step="0.01" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+            <input
+              placeholder={form.cost_type === "fixed" ? "R$ 0,00" : "Percentual (%)"}
+              type="text"
+              inputMode="decimal"
+              value={form.value}
+              onChange={(e) => setForm({ ...form, value: e.target.value })}
+              onBlur={(e) => {
+                if (form.cost_type !== "fixed") return;
+                setForm((current) => ({ ...current, value: formatMoneyInput(e.target.value) }));
+              }}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
+            />
             <button onClick={handleSave} className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground">Salvar</button>
           </div>
         </div>
@@ -98,7 +140,7 @@ const ExtraCostsTab = () => {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
               <p className="text-xs text-muted-foreground">
-                {c.cost_type === "fixed" ? `R$ ${Number(c.value).toFixed(2)}` : `${Number(c.value).toFixed(1)}%`}
+                {c.cost_type === "fixed" ? formatCurrency(Number(c.value)) : `${Number(c.value).toFixed(1)}%`}
               </p>
             </div>
             <button onClick={() => openEdit(c)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>

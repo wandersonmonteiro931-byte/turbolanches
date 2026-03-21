@@ -1,5 +1,7 @@
 export const INGREDIENT_CALCULATION_MODES = ["pacote", "kg", "fatias", "unidade", "g", "ml", "litro", "sachê"] as const;
 
+import { parseLocaleNumber, roundMoney } from "./pricingMoney";
+
 export const INGREDIENT_UNITS = ["kg", "fatias", "unidade", "g", "ml", "litro", "sachê"] as const;
 
 export type IngredientCalculationMode = (typeof INGREDIENT_CALCULATION_MODES)[number];
@@ -27,10 +29,7 @@ const isIngredientUnit = (value: string): value is IngredientMeasureUnit =>
 
 const asString = (value: unknown) => (typeof value === "string" ? value : "");
 
-const parseNumber = (value: string) => {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : null;
-};
+const parseNumber = (value: string) => parseLocaleNumber(value);
 
 export const normalizeIngredientUnit = (value?: string | null): IngredientMeasureUnit => {
   if (value === "fatia") return "fatias";
@@ -125,9 +124,9 @@ export const computeCalculationSummary = (config: IngredientCalculationConfig) =
     const packagePrice = parseNumber(config.package_price);
     const unitsPerPackage = parseNumber(config.units_per_package);
 
-    const totalSpent = packageQuantity !== null && packagePrice !== null ? packageQuantity * packagePrice : null;
+    const totalSpent = packageQuantity !== null && packagePrice !== null ? roundMoney(packageQuantity * packagePrice) : null;
     const totalUnits = packageQuantity !== null && unitsPerPackage !== null ? packageQuantity * unitsPerPackage : null;
-    const resolvedCostPerUnit = totalSpent !== null && totalUnits !== null && totalUnits > 0 ? totalSpent / totalUnits : null;
+    const resolvedCostPerUnit = totalSpent !== null && totalUnits !== null && totalUnits > 0 ? roundMoney(totalSpent / totalUnits) : null;
 
     return {
       convertedPurchaseQuantity: totalUnits,
@@ -142,13 +141,13 @@ export const computeCalculationSummary = (config: IngredientCalculationConfig) =
   const convertedPurchaseQuantity =
     purchaseQuantity !== null ? convertQuantityToMode(purchaseQuantity, config.purchase_unit, config.mode) : null;
   const totalSpent = referencePrice !== null && convertedPurchaseQuantity !== null
-    ? referencePrice * convertedPurchaseQuantity
+    ? roundMoney(referencePrice * convertedPurchaseQuantity)
     : null;
 
   return {
     convertedPurchaseQuantity,
     totalSpent,
     totalUnits: convertedPurchaseQuantity,
-    resolvedCostPerUnit: referencePrice,
+    resolvedCostPerUnit: referencePrice !== null ? roundMoney(referencePrice) : null,
   };
 };
