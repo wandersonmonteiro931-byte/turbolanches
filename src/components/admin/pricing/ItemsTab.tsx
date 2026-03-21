@@ -232,7 +232,7 @@ const ItemsTab = () => {
               <DialogHeader>
                 <DialogTitle>Precificação de {activeEditingRow.name}</DialogTitle>
                 <DialogDescription>
-                  Marque vários ingredientes para este item e ajuste as quantidades sem sair da lista.
+                  Marque vários ingredientes, escolha a unidade usada no item e o sistema converte kg/g e litro/ml automaticamente.
                 </DialogDescription>
               </DialogHeader>
 

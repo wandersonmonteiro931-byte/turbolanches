@@ -2,56 +2,35 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-
       (function () {
-        var root = typeof globalThis !== "undefined"
-          ? globalThis
-          : typeof window !== "undefined"
-            ? window
-            : typeof self !== "undefined"
-              ? self
-              : this;
-
-        var currentValue = root && typeof root.__LOVA_FIX_TRIGGER__ !== "undefined"
-          ? !!root.__LOVA_FIX_TRIGGER__
-          : false;
-
-        try {
-          __LOVA_FIX_TRIGGER__ = currentValue;
-        } catch (e) {}
+        var currentValue = false;
 
         function ensureTarget(target) {
           if (!target) return;
 
           try {
             Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
-              value: currentValue,
+              value: typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue,
               configurable: true,
               writable: true,
             });
+            currentValue = !!target.__LOVA_FIX_TRIGGER__;
           } catch (e) {
             try {
-              target.__LOVA_FIX_TRIGGER__ = currentValue;
+              target.__LOVA_FIX_TRIGGER__ = typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue;
+              currentValue = !!target.__LOVA_FIX_TRIGGER__;
             } catch (innerError) {}
           }
         }
 
-        ensureTarget(root);
+        ensureTarget(typeof globalThis !== "undefined" ? globalThis : null);
         if (typeof window !== "undefined") ensureTarget(window);
         if (typeof self !== "undefined") ensureTarget(self);
-
-        try {
-          Function(
-            "value",
-            "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {} try { this.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
-          )(currentValue);
-        } catch (e) {}
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v32";
+        var PUSH_SW_URL = "/push-sw.js?v33";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -90,6 +69,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=32"></script>
+    <script type="module" src="/src/main.tsx?v=33"></script>
   </body>
 </html>
