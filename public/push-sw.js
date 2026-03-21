@@ -1,5 +1,5 @@
-// SW Version 36 — standard service worker + immediate update
-var SW_VERSION = "v36";
+// SW Version 37 — standard service worker + immediate update
+var SW_VERSION = "v37";
 var resolvedFixTrigger = false;
 
 try {

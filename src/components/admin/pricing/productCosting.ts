@@ -1,4 +1,7 @@
+import { computeFixedExtraCostPerItem, type PricingExtraCost } from "./extraCosting";
 import { roundMoney } from "./pricingMoney";
+
+export type { PricingExtraCost } from "./extraCosting";
 
 export interface PricingCategory {
   id: string;
@@ -36,11 +39,6 @@ export interface PricingComboComponent {
   component_product_id: string;
   quantity: number;
   sort_order?: number | null;
-}
-
-export interface PricingExtraCost {
-  cost_type: string;
-  value: number;
 }
 
 export interface ProductCostRow {
@@ -102,7 +100,7 @@ export const buildProductCostRows = ({
   const totalFixedExtra = roundMoney(
     extraCosts
       .filter((extra) => extra.cost_type === "fixed")
-      .reduce((sum, extra) => sum + Number(extra.value || 0), 0),
+      .reduce((sum, extra) => sum + computeFixedExtraCostPerItem(extra), 0),
   );
 
   const totalPercentExtra = extraCosts
