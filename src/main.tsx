@@ -4,6 +4,8 @@ import { cleanupLegacyPushServiceWorkers, PUSH_SW_URL, shouldEnableServiceWorker
 import App from "./App.tsx";
 
 declare global {
+  var __LOVA_FIX_TRIGGER__: boolean | undefined;
+
   interface Window {
     __LOVA_FIX_TRIGGER__?: boolean;
   }
@@ -21,21 +23,20 @@ const bootstrapFixTrigger = () => {
   ].filter(Boolean) as FixTriggerTarget[];
 
   for (const target of targets) {
-    if (typeof target.__LOVA_FIX_TRIGGER__ === "undefined") {
-      target.__LOVA_FIX_TRIGGER__ = false;
+    try {
+      Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
+        configurable: true,
+        writable: true,
+        value: target.__LOVA_FIX_TRIGGER__ ?? false,
+      });
+    } catch {
+      target.__LOVA_FIX_TRIGGER__ = target.__LOVA_FIX_TRIGGER__ ?? false;
     }
   }
 
-  const rootTarget = typeof globalThis !== "undefined" ? (globalThis as FixTriggerTarget) : null;
-  if (!rootTarget) return;
+  if (typeof globalThis === "undefined") return;
 
-  try {
-    Object.defineProperty(rootTarget, "__LOVA_FIX_TRIGGER__", {
-      configurable: true,
-      writable: true,
-      value: rootTarget.__LOVA_FIX_TRIGGER__ ?? false,
-    });
-  } catch {}
+  globalThis.__LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;
 
   try {
     (0, eval)("var __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;");

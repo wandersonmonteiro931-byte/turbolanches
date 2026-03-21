@@ -1,4 +1,4 @@
-export const SW_VERSION = "v28";
+export const SW_VERSION = "v29";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 export const shouldEnableServiceWorker = () => {
@@ -6,8 +6,9 @@ export const shouldEnableServiceWorker = () => {
 
   const { hostname } = window.location;
   const isLovablePreview = hostname.endsWith(".lovable.app") && hostname.includes("--");
+  const isLovableProjectPreview = hostname.endsWith(".lovableproject.com");
 
-  return !isLovablePreview;
+  return !(isLovablePreview || isLovableProjectPreview);
 };
 
 export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | null) {

@@ -2,28 +2,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency } from "./pricingMoney";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-}
-
-interface Ingredient {
-  id: string;
-  cost_per_unit: number;
-}
-
-interface ProductIngredient {
-  product_id: string;
-  ingredient_id: string;
-  quantity: number;
-}
-
-interface ExtraCost {
-  cost_type: string;
-  value: number;
-}
+import {
+  buildProductCostRows,
+  type PricingCategory,
+  type PricingExtraCost,
+  type PricingIngredient,
+  type PricingProduct,
+  type PricingProductIngredient,
+} from "./productCosting";
 
 const ProfitDashboard = () => {
   const { storeId } = useStore();
@@ -39,40 +25,40 @@ const ProfitDashboard = () => {
 
   useEffect(() => {
     const load = async () => {
-      const filters = storeId ? { store_id: storeId } : {};
+      let productsQuery = supabase.from("products").select("id, name, price, category_id, active, sort_order").eq("active", true);
+      let ingredientsQuery = supabase.from("ingredients").select("id, cost_per_unit");
+      let productIngredientsQuery = supabase.from("product_ingredients").select("product_id, ingredient_id, quantity");
+      let extraCostsQuery = supabase.from("extra_costs").select("cost_type, value");
+
+      if (storeId) {
+        productsQuery = productsQuery.eq("store_id", storeId);
+        ingredientsQuery = ingredientsQuery.eq("store_id", storeId);
+        productIngredientsQuery = productIngredientsQuery.eq("store_id", storeId);
+        extraCostsQuery = extraCostsQuery.eq("store_id", storeId);
+      }
 
       const [prodRes, ingRes, piRes, ecRes] = await Promise.all([
-        supabase.from("products").select("id, name, price").eq("active", true).match(filters),
-        supabase.from("ingredients").select("id, cost_per_unit").match(filters),
-        supabase.from("product_ingredients").select("product_id, ingredient_id, quantity").match(filters),
-        supabase.from("extra_costs").select("cost_type, value").match(filters),
+        productsQuery,
+        ingredientsQuery,
+        productIngredientsQuery,
+        extraCostsQuery,
       ]);
 
-      const products = (prodRes.data || []) as Product[];
-      const ingredients = (ingRes.data || []) as Ingredient[];
-      const pis = (piRes.data || []) as ProductIngredient[];
-      const extras = (ecRes.data || []) as ExtraCost[];
-
-      const ingMap = new Map(ingredients.map((i) => [i.id, i.cost_per_unit]));
-
-      const totalFixedExtra = extras.filter((e) => e.cost_type === "fixed").reduce((s, e) => s + Number(e.value), 0);
-      const totalPctExtra = extras.filter((e) => e.cost_type === "percentage").reduce((s, e) => s + Number(e.value), 0);
-
-      const computed = products.map((p) => {
-        const myIngredients = pis.filter((pi) => pi.product_id === p.id);
-        const ingredientCost = myIngredients.reduce((s, pi) => {
-          const unitCost = ingMap.get(pi.ingredient_id) || 0;
-          return s + Number(pi.quantity) * Number(unitCost);
-        }, 0);
-
-        const pctCost = (totalPctExtra / 100) * Number(p.price);
-        const extraCost = totalFixedExtra + pctCost;
-        const totalCost = ingredientCost + extraCost;
-        const profit = Number(p.price) - totalCost;
-        const margin = Number(p.price) > 0 ? (profit / Number(p.price)) * 100 : 0;
-
-        return { name: p.name, price: Number(p.price), ingredientCost, extraCost, totalCost, profit, margin };
-      });
+      const computed = buildProductCostRows({
+        categories: [] as PricingCategory[],
+        products: (prodRes.data || []) as PricingProduct[],
+        ingredients: (ingRes.data || []) as PricingIngredient[],
+        productIngredients: (piRes.data || []) as PricingProductIngredient[],
+        extraCosts: (ecRes.data || []) as PricingExtraCost[],
+      }).map((row) => ({
+        name: row.name,
+        price: row.price,
+        ingredientCost: row.ingredientCost,
+        extraCost: row.extraCost,
+        totalCost: row.totalCost,
+        profit: row.profit,
+        margin: row.margin,
+      }));
 
       computed.sort((a, b) => a.margin - b.margin);
       setRows(computed);
