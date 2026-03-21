@@ -138,7 +138,7 @@ const ExtraCostsTab = () => {
           <div className="w-full max-w-sm rounded-xl bg-card p-5 shadow-lg space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-foreground">{editing ? "Editar" : "Novo"} Custo Extra</h3>
-              <button onClick={() => setShowForm(false)}><X size={20} className="text-muted-foreground" /></button>
+              <button onClick={() => setShowForm(false)} className="rounded-lg p-2 hover:bg-accent"><X size={24} className="text-muted-foreground" /></button>
             </div>
             <input placeholder="Nome (ex: Embalagem)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
             <select value={form.cost_type} onChange={(e) => setForm({ ...form, cost_type: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm">
