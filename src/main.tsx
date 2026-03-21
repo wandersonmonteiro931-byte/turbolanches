@@ -4,8 +4,6 @@ import { cleanupLegacyPushServiceWorkers, PUSH_SW_URL, shouldEnableServiceWorker
 import App from "./App.tsx";
 
 declare global {
-  var __LOVA_FIX_TRIGGER__: boolean | undefined;
-
   interface Window {
     __LOVA_FIX_TRIGGER__?: boolean;
   }
@@ -16,10 +14,7 @@ type FixTriggerTarget = typeof globalThis & {
 };
 
 const bootstrapFixTrigger = () => {
-  const currentValue =
-    typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ !== "undefined"
-      ? globalThis.__LOVA_FIX_TRIGGER__
-      : false;
+  let currentValue = false;
 
   const targets = [
     typeof globalThis !== "undefined" ? (globalThis as FixTriggerTarget) : null,
@@ -32,31 +27,14 @@ const bootstrapFixTrigger = () => {
       Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
         configurable: true,
         writable: true,
-        value: target.__LOVA_FIX_TRIGGER__ ?? currentValue,
+        value: typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue,
       });
+      currentValue = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
     } catch {
-      target.__LOVA_FIX_TRIGGER__ = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
+      target.__LOVA_FIX_TRIGGER__ = typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue;
+      currentValue = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
     }
   }
-
-  if (typeof globalThis === "undefined") return;
-
-  globalThis.__LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? currentValue;
-
-  try {
-    (0, eval)(`var __LOVA_FIX_TRIGGER__ = ${globalThis.__LOVA_FIX_TRIGGER__ ? "true" : "false"};`);
-  } catch {}
-
-  try {
-    Function(
-      "value",
-      "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
-        "try { this.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
-        "try { if (typeof globalThis !== 'undefined') globalThis.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
-        "try { if (typeof window !== 'undefined') window.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
-        "try { if (typeof self !== 'undefined') self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
-    )(globalThis.__LOVA_FIX_TRIGGER__ ?? currentValue);
-  } catch {}
 };
 
 bootstrapFixTrigger();

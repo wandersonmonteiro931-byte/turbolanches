@@ -3,6 +3,13 @@ import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
+import { normalizeIngredientUnit, type IngredientMeasureUnit } from "./ingredientCalculation";
+import {
+  convertMeasurementQuantity,
+  formatMeasurementQuantityInput,
+  getCompatibleMeasurementUnits,
+  getDefaultMeasurementUnit,
+} from "./measurement";
 import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
 import ProductIngredientSelector from "./ProductIngredientSelector";
 
@@ -51,8 +58,28 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
   const [savingManualCost, setSavingManualCost] = useState(false);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
   const [selectionDrafts, setSelectionDrafts] = useState<Record<string, string>>({});
+  const [entryUnits, setEntryUnits] = useState<Record<string, IngredientMeasureUnit>>({});
 
   const ingredientMap = useMemo(() => new Map(ingredients.map((ingredient) => [ingredient.id, ingredient])), [ingredients]);
+  const selectedIngredientUnitOptions = useMemo(
+    () => (selectedIngId ? getCompatibleMeasurementUnits(ingredientMap.get(selectedIngId)?.unit) : ["unidade"]),
+    [ingredientMap, selectedIngId],
+  );
+
+  const getIngredientBaseUnit = (ingredientId: string, lookup = ingredientMap): IngredientMeasureUnit =>
+    getDefaultMeasurementUnit(lookup.get(ingredientId)?.unit);
+
+  const formatDisplayQuantity = (
+    ingredientId: string,
+    baseQuantity: number,
+    lookup = ingredientMap,
+    unitSelections = entryUnits,
+  ) => {
+    const baseUnit = getIngredientBaseUnit(ingredientId, lookup);
+    const entryUnit = unitSelections[ingredientId] ?? baseUnit;
+    const displayQuantity = convertMeasurementQuantity(baseQuantity, baseUnit, entryUnit) ?? baseQuantity;
+    return formatMeasurementQuantityInput(displayQuantity);
+  };
 
   const serializeLines = (nextLines: RecipeLine[]) =>
     nextLines.map((line) => ({
@@ -100,8 +127,13 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     const nextIngredients = (ingRes.data || []) as Ingredient[];
     const nextIngredientMap = new Map(nextIngredients.map((ingredient) => [ingredient.id, ingredient]));
     const nextManualCost = Number(((productRes.data as { manual_cost?: number | null } | null)?.manual_cost) || 0);
+    const nextEntryUnits = nextIngredients.reduce<Record<string, IngredientMeasureUnit>>((drafts, ingredient) => {
+      drafts[ingredient.id] = getDefaultMeasurementUnit(ingredient.unit);
+      return drafts;
+    }, {});
 
     setIngredients(nextIngredients);
+    setEntryUnits(nextEntryUnits);
     setSavedManualCost(nextManualCost);
     setManualCostInput(formatMoneyInput(nextManualCost));
     const nextLines = ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) =>
@@ -111,13 +143,13 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     setLines(nextLines);
     setQuantityDrafts(
       nextLines.reduce<Record<string, string>>((drafts, line) => {
-        if (line.id) drafts[line.id] = String(line.quantity);
+        if (line.id) drafts[line.id] = formatDisplayQuantity(line.ingredient_id, line.quantity, nextIngredientMap, nextEntryUnits);
         return drafts;
       }, {}),
     );
     setSelectionDrafts(
       nextLines.reduce<Record<string, string>>((drafts, line) => {
-        drafts[line.ingredient_id] = String(line.quantity);
+        drafts[line.ingredient_id] = formatDisplayQuantity(line.ingredient_id, line.quantity, nextIngredientMap, nextEntryUnits);
         return drafts;
       }, {}),
     );
@@ -134,8 +166,12 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
     if (existingLine) return existingLine;
 
-    const quantity = Number.parseFloat(rawQuantity ?? "1") || 1;
-    if (quantity <= 0) return null;
+    const enteredQuantity = Number.parseFloat(rawQuantity ?? "1") || 1;
+    if (enteredQuantity <= 0) return null;
+
+    const baseUnit = getIngredientBaseUnit(ingredientId);
+    const entryUnit = entryUnits[ingredientId] ?? baseUnit;
+    const quantity = convertMeasurementQuantity(enteredQuantity, entryUnit, baseUnit) ?? enteredQuantity;
 
     const payload: any = { product_id: productId, ingredient_id: ingredientId, quantity };
     if (storeId) payload.store_id = storeId;
@@ -160,8 +196,12 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
 
     const nextLines = [...lines, nextLine];
     setLines(nextLines);
-    setQuantityDrafts((current) => ({ ...current, [data.id]: String(quantity) }));
-    setSelectionDrafts((current) => ({ ...current, [ingredientId]: String(quantity) }));
+    setEntryUnits((current) => ({
+      ...current,
+      [ingredientId]: current[ingredientId] ?? entryUnit,
+    }));
+    setQuantityDrafts((current) => ({ ...current, [data.id]: formatMeasurementQuantityInput(enteredQuantity) }));
+    setSelectionDrafts((current) => ({ ...current, [ingredientId]: formatMeasurementQuantityInput(enteredQuantity) }));
     emitChange(nextLines, savedManualCost);
 
     return nextLine;
@@ -233,33 +273,50 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
       delete nextDrafts[existingLine.id as string];
       return nextDrafts;
     });
+    setSelectionDrafts((current) => {
+      const nextDrafts = { ...current };
+      delete nextDrafts[ingredientId];
+      return nextDrafts;
+    });
+    setEntryUnits((current) => {
+      const nextUnits = { ...current };
+      delete nextUnits[ingredientId];
+      return nextUnits;
+    });
     emitChange(nextLines, savedManualCost);
   };
 
   const saveLineQuantity = async (line: RecipeLine, rawValue: string | undefined) => {
     if (!line.id) return;
 
-    const nextQuantity = Number.parseFloat(rawValue ?? "");
-    if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) {
+    const enteredQuantity = Number.parseFloat(rawValue ?? "");
+    const enteredDisplayValue = formatDisplayQuantity(line.ingredient_id, line.quantity);
+
+    if (!Number.isFinite(enteredQuantity) || enteredQuantity <= 0) {
       setQuantityDrafts((current) => ({
         ...current,
-        [line.id as string]: String(line.quantity),
+        [line.id as string]: enteredDisplayValue,
       }));
       setSelectionDrafts((current) => ({
         ...current,
-        [line.ingredient_id]: String(line.quantity),
+        [line.ingredient_id]: enteredDisplayValue,
       }));
       return;
     }
 
+    const baseUnit = getIngredientBaseUnit(line.ingredient_id);
+    const entryUnit = entryUnits[line.ingredient_id] ?? baseUnit;
+    const nextQuantity = convertMeasurementQuantity(enteredQuantity, entryUnit, baseUnit) ?? enteredQuantity;
+    const normalizedEnteredValue = formatMeasurementQuantityInput(enteredQuantity);
+
     if (nextQuantity === line.quantity) {
       setQuantityDrafts((current) => ({
         ...current,
-        [line.id as string]: String(line.quantity),
+        [line.id as string]: normalizedEnteredValue,
       }));
       setSelectionDrafts((current) => ({
         ...current,
-        [line.ingredient_id]: String(line.quantity),
+        [line.ingredient_id]: normalizedEnteredValue,
       }));
       return;
     }
@@ -276,8 +333,8 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     });
 
     setLines(nextLines);
-    setQuantityDrafts((current) => ({ ...current, [line.id as string]: String(nextQuantity) }));
-    setSelectionDrafts((current) => ({ ...current, [line.ingredient_id]: String(nextQuantity) }));
+    setQuantityDrafts((current) => ({ ...current, [line.id as string]: normalizedEnteredValue }));
+    setSelectionDrafts((current) => ({ ...current, [line.ingredient_id]: normalizedEnteredValue }));
 
     const { error } = await supabase.from("product_ingredients").update({ quantity: nextQuantity }).eq("id", line.id);
     if (error) {
@@ -303,8 +360,39 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
     await saveLineQuantity(existingLine, selectionDrafts[ingredientId]);
   };
 
+  const handleEntryUnitChange = (ingredientId: string, nextUnit: IngredientMeasureUnit) => {
+    const currentUnit = entryUnits[ingredientId] ?? getIngredientBaseUnit(ingredientId);
+    const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
+
+    let nextDisplayValue = existingLine
+      ? Number.parseFloat(formatDisplayQuantity(ingredientId, existingLine.quantity, ingredientMap, {
+          ...entryUnits,
+          [ingredientId]: nextUnit,
+        }))
+      : null;
+
+    const currentDraftValue = Number.parseFloat(selectionDrafts[ingredientId] ?? "");
+    if (Number.isFinite(currentDraftValue)) {
+      nextDisplayValue = convertMeasurementQuantity(currentDraftValue, currentUnit, nextUnit) ?? currentDraftValue;
+    }
+
+    const formattedDisplayValue =
+      nextDisplayValue !== null && Number.isFinite(nextDisplayValue) ? formatMeasurementQuantityInput(nextDisplayValue) : "";
+
+    setEntryUnits((current) => ({ ...current, [ingredientId]: nextUnit }));
+
+    if (formattedDisplayValue) {
+      setSelectionDrafts((current) => ({ ...current, [ingredientId]: formattedDisplayValue }));
+
+      if (existingLine?.id) {
+        setQuantityDrafts((current) => ({ ...current, [existingLine.id]: formattedDisplayValue }));
+      }
+    }
+  };
+
   const handleRemove = async (lineId: string | undefined) => {
     if (!lineId) return;
+    const removedLine = lines.find((line) => line.id === lineId);
     const { error } = await supabase.from("product_ingredients").delete().eq("id", lineId);
     if (error) {
       toast({ title: "Não foi possível remover", description: error.message });
@@ -318,6 +406,18 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
       delete nextDrafts[lineId];
       return nextDrafts;
     });
+    if (removedLine) {
+      setSelectionDrafts((current) => {
+        const nextDrafts = { ...current };
+        delete nextDrafts[removedLine.ingredient_id];
+        return nextDrafts;
+      });
+      setEntryUnits((current) => {
+        const nextUnits = { ...current };
+        delete nextUnits[removedLine.ingredient_id];
+        return nextUnits;
+      });
+    }
     emitChange(nextLines, savedManualCost);
   };
 
@@ -355,6 +455,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
           ingredients={ingredients}
           selectedLines={lines}
           quantityDrafts={selectionDrafts}
+          selectedUnits={entryUnits}
           onQuantityChange={(ingredientId, value) =>
             setSelectionDrafts((current) => ({
               ...current,
@@ -363,6 +464,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
           }
           onQuantitySave={handleSelectionQuantitySave}
           onToggle={handleIngredientToggle}
+          onUnitChange={handleEntryUnitChange}
         />
       )}
 
@@ -372,7 +474,7 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
 
       <div className="space-y-2">
         {lines.map((line) => (
-          <div key={line.id} className="grid gap-2 rounded-lg border border-border bg-background p-3 text-xs sm:grid-cols-[minmax(0,1fr)_120px_120px_40px] sm:items-center">
+          <div key={line.id} className="grid gap-2 rounded-lg border border-border bg-background p-3 text-xs lg:grid-cols-[minmax(0,1fr)_120px_120px_120px_40px] lg:items-center">
             <div className="min-w-0">
               <p className="truncate font-medium text-foreground">{line.name}</p>
               <p className="text-muted-foreground">Custo unitário: {formatCurrency((line.cost || 0) / Number(line.quantity || 1))} / {line.unit}</p>
@@ -399,6 +501,18 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
               />
             </div>
             <div>
+              <p className="mb-1 text-[11px] text-muted-foreground">Unidade</p>
+              <select
+                value={entryUnits[line.ingredient_id] ?? getIngredientBaseUnit(line.ingredient_id)}
+                onChange={(event) => handleEntryUnitChange(line.ingredient_id, normalizeIngredientUnit(event.target.value))}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                {getCompatibleMeasurementUnits(line.unit).map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <p className="mb-1 text-[11px] text-muted-foreground">Custo</p>
               <div className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
                 {formatCurrency(line.cost || 0)}
@@ -413,11 +527,40 @@ const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection
 
       {!allowBulkIngredientSelection && adding ? (
         <div className="space-y-2">
-          <select value={selectedIngId} onChange={(e) => setSelectedIngId(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
+          <select
+            value={selectedIngId}
+            onChange={(event) => {
+              const nextIngredientId = event.target.value;
+              setSelectedIngId(nextIngredientId);
+
+              if (!nextIngredientId) return;
+
+              setEntryUnits((current) => ({
+                ...current,
+                [nextIngredientId]: current[nextIngredientId] ?? getIngredientBaseUnit(nextIngredientId),
+              }));
+            }}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
             <option value="">Selecione ingrediente</option>
             {ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} ({formatCurrency(Number(i.cost_per_unit))}/{i.unit})</option>)}
           </select>
-          <input type="number" step="0.01" placeholder="Quantidade" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px]">
+            <input type="number" step="0.01" placeholder="Quantidade" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+            <select
+              value={selectedIngId ? entryUnits[selectedIngId] ?? getIngredientBaseUnit(selectedIngId) : "unidade"}
+              onChange={(event) => {
+                if (!selectedIngId) return;
+                handleEntryUnitChange(selectedIngId, normalizeIngredientUnit(event.target.value));
+              }}
+              disabled={!selectedIngId}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {selectedIngredientUnitOptions.map((unit) => (
+                <option key={unit} value={unit}>{unit}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-2">
             <button onClick={handleAdd} className="flex-1 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Adicionar</button>
             <button onClick={() => setAdding(false)} className="flex-1 rounded-lg border border-border py-2 text-xs font-medium text-muted-foreground">Cancelar</button>

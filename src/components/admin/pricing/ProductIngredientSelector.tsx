@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { normalizeIngredientUnit, type IngredientMeasureUnit } from "./ingredientCalculation";
+import { getCompatibleMeasurementUnits, getDefaultMeasurementUnit } from "./measurement";
 import { formatCurrency } from "./pricingMoney";
 
 interface IngredientOption {
@@ -19,18 +21,22 @@ interface ProductIngredientSelectorProps {
   ingredients: IngredientOption[];
   selectedLines: SelectedIngredientLine[];
   quantityDrafts: Record<string, string>;
+  selectedUnits: Record<string, IngredientMeasureUnit>;
   onQuantityChange: (ingredientId: string, value: string) => void;
   onQuantitySave: (ingredientId: string) => void;
   onToggle: (ingredientId: string, checked: boolean) => void;
+  onUnitChange: (ingredientId: string, unit: IngredientMeasureUnit) => void;
 }
 
 const ProductIngredientSelector = ({
   ingredients,
   selectedLines,
   quantityDrafts,
+  selectedUnits,
   onQuantityChange,
   onQuantitySave,
   onToggle,
+  onUnitChange,
 }: ProductIngredientSelectorProps) => {
   const [search, setSearch] = useState("");
 
@@ -68,11 +74,13 @@ const ProductIngredientSelector = ({
         {filteredIngredients.map((ingredient) => {
           const selectedLine = lineMap.get(ingredient.id);
           const checked = Boolean(selectedLine);
+          const unitOptions = getCompatibleMeasurementUnits(ingredient.unit);
+          const selectedUnit = selectedUnits[ingredient.id] ?? getDefaultMeasurementUnit(ingredient.unit);
 
           return (
             <div
               key={ingredient.id}
-              className="grid gap-2 rounded-lg border border-border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_120px] sm:items-center"
+              className="grid gap-3 rounded-lg border border-border bg-card p-3 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center"
             >
               <div className="flex items-start gap-3">
                 <Checkbox checked={checked} onCheckedChange={(value) => onToggle(ingredient.id, value === true)} />
@@ -85,23 +93,40 @@ const ProductIngredientSelector = ({
               </div>
 
               <div>
-                <p className="mb-1 text-[11px] text-muted-foreground">Quantidade</p>
-                <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  disabled={!checked}
-                  value={quantityDrafts[ingredient.id] ?? (selectedLine ? String(selectedLine.quantity) : "1")}
-                  onChange={(event) => onQuantityChange(ingredient.id, event.target.value)}
-                  onBlur={() => void onQuantitySave(ingredient.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      event.currentTarget.blur();
-                    }
-                  }}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                />
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_110px]">
+                  <div>
+                    <p className="mb-1 text-[11px] text-muted-foreground">Quantidade</p>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      disabled={!checked}
+                      value={quantityDrafts[ingredient.id] ?? (selectedLine ? String(selectedLine.quantity) : "1")}
+                      onChange={(event) => onQuantityChange(ingredient.id, event.target.value)}
+                      onBlur={() => void onQuantitySave(ingredient.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          event.currentTarget.blur();
+                        }
+                      }}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <p className="mb-1 text-[11px] text-muted-foreground">Unidade</p>
+                    <select
+                      value={selectedUnit}
+                      onChange={(event) => onUnitChange(ingredient.id, normalizeIngredientUnit(event.target.value))}
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    >
+                      {unitOptions.map((unit) => (
+                        <option key={unit} value={unit}>{unit}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           );

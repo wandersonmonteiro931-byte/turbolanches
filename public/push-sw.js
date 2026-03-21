@@ -1,27 +1,19 @@
-// SW Version 32 — standard service worker + immediate update
-var SW_VERSION = "v32";
-var __LOVA_FIX_TRIGGER__ = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ !== "undefined"
-  ? self.__LOVA_FIX_TRIGGER__
-  : false;
+// SW Version 33 — standard service worker + immediate update
+var SW_VERSION = "v33";
+var resolvedFixTrigger = false;
 
 try {
-  if (typeof self.__LOVA_FIX_TRIGGER__ === "undefined") {
-    Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", {
-      value: __LOVA_FIX_TRIGGER__,
-      configurable: true,
-      writable: true,
-    });
-  }
+  resolvedFixTrigger = typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
+  Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", {
+    value: resolvedFixTrigger,
+    configurable: true,
+    writable: true,
+  });
 } catch (e) {
-  self.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
+  try {
+    self.__LOVA_FIX_TRIGGER__ = resolvedFixTrigger;
+  } catch (innerError) {}
 }
-
-try {
-  Function(
-    "value",
-    "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {} try { self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
-  )(__LOVA_FIX_TRIGGER__);
-} catch (e) {}
 
 self.addEventListener("install", function () {
   self.skipWaiting();
