@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
+import ProductIngredientSelector from "./ProductIngredientSelector";
 
 interface Ingredient {
   id: string;
@@ -24,6 +25,7 @@ interface RecipeLine {
 interface Props {
   productId: string;
   onChange?: (payload: ProductRecipeEditorChange) => void;
+  allowBulkIngredientSelection?: boolean;
 }
 
 export interface ProductRecipeEditorChange {
@@ -36,7 +38,7 @@ export interface ProductRecipeEditorChange {
   }>;
 }
 
-const ProductRecipeEditor = ({ productId, onChange }: Props) => {
+const ProductRecipeEditor = ({ productId, onChange, allowBulkIngredientSelection = false }: Props) => {
   const { storeId } = useStore();
   const { toast } = useToast();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -48,6 +50,9 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
   const [savedManualCost, setSavedManualCost] = useState(0);
   const [savingManualCost, setSavingManualCost] = useState(false);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
+  const [selectionDrafts, setSelectionDrafts] = useState<Record<string, string>>({});
+
+  const ingredientMap = useMemo(() => new Map(ingredients.map((ingredient) => [ingredient.id, ingredient])), [ingredients]);
 
   const serializeLines = (nextLines: RecipeLine[]) =>
     nextLines.map((line) => ({
@@ -55,6 +60,23 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
       ingredient_id: line.ingredient_id,
       quantity: line.quantity,
     }));
+
+  const enrichLine = (
+    line: { id?: string; ingredient_id: string; quantity: number },
+    lookup = ingredientMap,
+  ): RecipeLine => {
+    const ingredient = lookup.get(line.ingredient_id);
+    const quantity = Number(line.quantity || 0);
+
+    return {
+      id: line.id,
+      ingredient_id: line.ingredient_id,
+      quantity,
+      name: ingredient?.name || "Ingrediente removido",
+      unit: ingredient?.unit || "unidade",
+      cost: quantity * Number(ingredient?.cost_per_unit || 0),
+    };
+  };
 
   const emitChange = (nextLines: RecipeLine[], nextManualCost: number) => {
     onChange?.({
@@ -76,30 +98,26 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
 
     const [ingRes, linesRes, productRes] = await Promise.all([ingredientsQuery, linesQuery, productQuery]);
     const nextIngredients = (ingRes.data || []) as Ingredient[];
-    const ingredientMap = new Map(nextIngredients.map((ingredient) => [ingredient.id, ingredient]));
+    const nextIngredientMap = new Map(nextIngredients.map((ingredient) => [ingredient.id, ingredient]));
     const nextManualCost = Number(((productRes.data as { manual_cost?: number | null } | null)?.manual_cost) || 0);
 
     setIngredients(nextIngredients);
     setSavedManualCost(nextManualCost);
     setManualCostInput(formatMoneyInput(nextManualCost));
-    const nextLines = ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) => {
-        const ingredient = ingredientMap.get(line.ingredient_id);
-        const quantity = Number(line.quantity || 0);
-
-        return {
-          id: line.id,
-          ingredient_id: line.ingredient_id,
-          quantity,
-          name: ingredient?.name || "Ingrediente removido",
-          unit: ingredient?.unit || "unidade",
-          cost: quantity * Number(ingredient?.cost_per_unit || 0),
-        };
-      });
+    const nextLines = ((linesRes.data || []) as Array<{ id: string; ingredient_id: string; quantity: number }>).map((line) =>
+      enrichLine(line, nextIngredientMap),
+    );
 
     setLines(nextLines);
     setQuantityDrafts(
       nextLines.reduce<Record<string, string>>((drafts, line) => {
         if (line.id) drafts[line.id] = String(line.quantity);
+        return drafts;
+      }, {}),
+    );
+    setSelectionDrafts(
+      nextLines.reduce<Record<string, string>>((drafts, line) => {
+        drafts[line.ingredient_id] = String(line.quantity);
         return drafts;
       }, {}),
     );
@@ -111,6 +129,43 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
 
   const totalCost = useMemo(() => lines.reduce((sum, line) => sum + (line.cost || 0), 0), [lines]);
   const combinedCost = useMemo(() => totalCost + savedManualCost, [savedManualCost, totalCost]);
+
+  const insertIngredientLine = async (ingredientId: string, rawQuantity?: string) => {
+    const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
+    if (existingLine) return existingLine;
+
+    const quantity = Number.parseFloat(rawQuantity ?? "1") || 1;
+    if (quantity <= 0) return null;
+
+    const payload: any = { product_id: productId, ingredient_id: ingredientId, quantity };
+    if (storeId) payload.store_id = storeId;
+
+    const { data, error } = await supabase.from("product_ingredients").insert(payload).select("id, ingredient_id, quantity").single();
+
+    if (error) {
+      toast({ title: "Não foi possível adicionar", description: error.message });
+      return null;
+    }
+
+    if (!data) return null;
+
+    const nextLine = enrichLine(
+      {
+        id: data.id,
+        ingredient_id: data.ingredient_id,
+        quantity: Number(data.quantity || 0),
+      },
+      ingredientMap,
+    );
+
+    const nextLines = [...lines, nextLine];
+    setLines(nextLines);
+    setQuantityDrafts((current) => ({ ...current, [data.id]: String(quantity) }));
+    setSelectionDrafts((current) => ({ ...current, [ingredientId]: String(quantity) }));
+    emitChange(nextLines, savedManualCost);
+
+    return nextLine;
+  };
 
   const handleManualCostSave = async (rawValue: string) => {
     const parsedValue = rawValue.trim() ? parseRoundedMoney(rawValue) : 0;
@@ -148,82 +203,83 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
 
   const handleAdd = async () => {
     if (!selectedIngId) return;
-    const quantity = parseFloat(qty) || 1;
-    if (quantity <= 0) return;
-
-    const payload: any = { product_id: productId, ingredient_id: selectedIngId, quantity };
-    if (storeId) payload.store_id = storeId;
-
-    const { data, error } = await supabase.from("product_ingredients").insert(payload).select("id, ingredient_id, quantity").single();
-
-    if (error) {
-      toast({ title: "Não foi possível adicionar", description: error.message });
-      return;
-    }
-
-    if (data) {
-      const ingredient = ingredients.find((item) => item.id === selectedIngId);
-      const nextLines = [
-        ...lines,
-        {
-          id: data.id,
-          ingredient_id: selectedIngId,
-          quantity,
-          name: ingredient?.name,
-          unit: ingredient?.unit,
-          cost: quantity * Number(ingredient?.cost_per_unit || 0),
-        },
-      ];
-
-      setLines(nextLines);
-      setQuantityDrafts((current) => ({ ...current, [data.id]: String(quantity) }));
-      emitChange(nextLines, savedManualCost);
-    }
+    const inserted = await insertIngredientLine(selectedIngId, qty);
+    if (!inserted) return;
 
     setAdding(false);
     setSelectedIngId("");
     setQty("1");
   };
 
-  const handleQuantitySave = async (lineId: string | undefined) => {
-    if (!lineId) return;
+  const handleIngredientToggle = async (ingredientId: string, checked: boolean) => {
+    if (checked) {
+      await insertIngredientLine(ingredientId, selectionDrafts[ingredientId] ?? "1");
+      return;
+    }
 
-    const nextValue = quantityDrafts[lineId];
-    const existingLine = lines.find((line) => line.id === lineId);
-    if (!existingLine) return;
+    const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
+    if (!existingLine?.id) return;
 
-    const nextQuantity = Number.parseFloat(nextValue);
+    const { error } = await supabase.from("product_ingredients").delete().eq("id", existingLine.id);
+    if (error) {
+      toast({ title: "Não foi possível remover", description: error.message });
+      return;
+    }
+
+    const nextLines = lines.filter((line) => line.id !== existingLine.id);
+    setLines(nextLines);
+    setQuantityDrafts((current) => {
+      const nextDrafts = { ...current };
+      delete nextDrafts[existingLine.id as string];
+      return nextDrafts;
+    });
+    emitChange(nextLines, savedManualCost);
+  };
+
+  const saveLineQuantity = async (line: RecipeLine, rawValue: string | undefined) => {
+    if (!line.id) return;
+
+    const nextQuantity = Number.parseFloat(rawValue ?? "");
     if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) {
       setQuantityDrafts((current) => ({
         ...current,
-        [lineId]: String(existingLine.quantity),
+        [line.id as string]: String(line.quantity),
+      }));
+      setSelectionDrafts((current) => ({
+        ...current,
+        [line.ingredient_id]: String(line.quantity),
       }));
       return;
     }
 
-    if (nextQuantity === existingLine.quantity) {
+    if (nextQuantity === line.quantity) {
       setQuantityDrafts((current) => ({
         ...current,
-        [lineId]: String(existingLine.quantity),
+        [line.id as string]: String(line.quantity),
+      }));
+      setSelectionDrafts((current) => ({
+        ...current,
+        [line.ingredient_id]: String(line.quantity),
       }));
       return;
     }
 
-    const ingredientMap = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]));
-    const nextLines = lines.map((line) => {
-      if (line.id !== lineId) return line;
-      const ingredient = ingredientMap.get(line.ingredient_id);
+    const nextLines = lines.map((currentLine) => {
+      if (currentLine.id !== line.id) return currentLine;
+      const ingredient = ingredientMap.get(currentLine.ingredient_id);
+
       return {
-        ...line,
+        ...currentLine,
         quantity: nextQuantity,
         cost: nextQuantity * Number(ingredient?.cost_per_unit || 0),
       };
     });
 
     setLines(nextLines);
-    setQuantityDrafts((current) => ({ ...current, [lineId]: String(nextQuantity) }));
+    setQuantityDrafts((current) => ({ ...current, [line.id as string]: String(nextQuantity) }));
+    setSelectionDrafts((current) => ({ ...current, [line.ingredient_id]: String(nextQuantity) }));
 
-    const { error } = await supabase.from("product_ingredients").update({ quantity: nextQuantity }).eq("id", lineId);
+    const { error } = await supabase.from("product_ingredients").update({ quantity: nextQuantity }).eq("id", line.id);
     if (error) {
       toast({ title: "Não foi possível salvar a quantidade", description: error.message });
       await fetchData();
@@ -231,6 +287,20 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
     }
 
     emitChange(nextLines, savedManualCost);
+  };
+
+  const handleQuantitySave = async (lineId: string | undefined) => {
+    if (!lineId) return;
+    const existingLine = lines.find((line) => line.id === lineId);
+    if (!existingLine) return;
+    await saveLineQuantity(existingLine, quantityDrafts[lineId]);
+  };
+
+  const handleSelectionQuantitySave = async (ingredientId: string) => {
+    const existingLine = lines.find((line) => line.ingredient_id === ingredientId);
+    if (!existingLine) return;
+
+    await saveLineQuantity(existingLine, selectionDrafts[ingredientId]);
   };
 
   const handleRemove = async (lineId: string | undefined) => {
@@ -280,6 +350,22 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
         </div>
       </div>
 
+      {allowBulkIngredientSelection && (
+        <ProductIngredientSelector
+          ingredients={ingredients}
+          selectedLines={lines}
+          quantityDrafts={selectionDrafts}
+          onQuantityChange={(ingredientId, value) =>
+            setSelectionDrafts((current) => ({
+              ...current,
+              [ingredientId]: value,
+            }))
+          }
+          onQuantitySave={handleSelectionQuantitySave}
+          onToggle={handleIngredientToggle}
+        />
+      )}
+
       {lines.length === 0 && !adding && (
         <p className="text-[11px] text-muted-foreground">Nenhum ingrediente ou custo vinculado ainda.</p>
       )}
@@ -325,7 +411,7 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
         ))}
       </div>
 
-      {adding ? (
+      {!allowBulkIngredientSelection && adding ? (
         <div className="space-y-2">
           <select value={selectedIngId} onChange={(e) => setSelectedIngId(e.target.value)} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm">
             <option value="">Selecione ingrediente</option>
@@ -337,11 +423,11 @@ const ProductRecipeEditor = ({ productId, onChange }: Props) => {
             <button onClick={() => setAdding(false)} className="flex-1 rounded-lg border border-border py-2 text-xs font-medium text-muted-foreground">Cancelar</button>
           </div>
         </div>
-      ) : (
+      ) : !allowBulkIngredientSelection ? (
         <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
           <Plus size={14} /> Adicionar ingrediente ou custo
         </button>
-      )}
+      ) : null}
     </div>
   );
 };

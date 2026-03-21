@@ -46,6 +46,17 @@ const bootstrapFixTrigger = () => {
   try {
     (0, eval)(`var __LOVA_FIX_TRIGGER__ = ${globalThis.__LOVA_FIX_TRIGGER__ ? "true" : "false"};`);
   } catch {}
+
+  try {
+    Function(
+      "value",
+      "try { __LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
+        "try { this.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
+        "try { if (typeof globalThis !== 'undefined') globalThis.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
+        "try { if (typeof window !== 'undefined') window.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}" +
+        "try { if (typeof self !== 'undefined') self.__LOVA_FIX_TRIGGER__ = value; } catch (e) {}",
+    )(globalThis.__LOVA_FIX_TRIGGER__ ?? currentValue);
+  } catch {}
 };
 
 bootstrapFixTrigger();
