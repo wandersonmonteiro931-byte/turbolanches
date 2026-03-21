@@ -10,16 +10,10 @@ export type IngredientMeasureUnit = (typeof INGREDIENT_UNITS)[number];
 export interface IngredientCalculationConfig {
   mode: IngredientCalculationMode;
   reference_price: string;
-  purchase_quantity: string;
-  purchase_unit: IngredientMeasureUnit;
-  package_quantity: string;
   package_price: string;
   units_per_package: string;
   package_content_unit: IngredientMeasureUnit;
 }
-
-const WEIGHT_UNITS: IngredientMeasureUnit[] = ["kg", "g"];
-const LIQUID_UNITS: IngredientMeasureUnit[] = ["litro", "ml"];
 
 const isCalculationMode = (value: string): value is IngredientCalculationMode =>
   INGREDIENT_CALCULATION_MODES.includes(value as IngredientCalculationMode);
@@ -41,52 +35,9 @@ export const normalizeCalculationMode = (value?: string | null): IngredientCalcu
   return value && isCalculationMode(value) ? value : "unidade";
 };
 
-export const getPurchaseUnitOptions = (
-  mode: IngredientCalculationMode,
-  packageContentUnit: IngredientMeasureUnit = "unidade",
-) => {
-  if (mode === "pacote") return [packageContentUnit];
-  if (mode === "kg") return WEIGHT_UNITS;
-  if (mode === "g") return [...WEIGHT_UNITS].reverse();
-  if (mode === "litro") return LIQUID_UNITS;
-  if (mode === "ml") return [...LIQUID_UNITS].reverse();
-  return [normalizeIngredientUnit(mode)];
-};
-
-const normalizePurchaseUnit = (
-  value: string | undefined,
-  mode: IngredientCalculationMode,
-  packageContentUnit: IngredientMeasureUnit,
-) => {
-  const options = getPurchaseUnitOptions(mode, packageContentUnit);
-  const normalizedValue = normalizeIngredientUnit(value);
-  return options.includes(normalizedValue) ? normalizedValue : options[0];
-};
-
-const convertQuantityToMode = (
-  quantity: number,
-  purchaseUnit: IngredientMeasureUnit,
-  mode: IngredientCalculationMode,
-) => {
-  if (mode === "kg" || mode === "g") {
-    const quantityInGrams = purchaseUnit === "kg" ? quantity * 1000 : quantity;
-    return mode === "kg" ? quantityInGrams / 1000 : quantityInGrams;
-  }
-
-  if (mode === "litro" || mode === "ml") {
-    const quantityInMl = purchaseUnit === "litro" ? quantity * 1000 : quantity;
-    return mode === "litro" ? quantityInMl / 1000 : quantityInMl;
-  }
-
-  return quantity;
-};
-
 export const createEmptyCalculationConfig = (): IngredientCalculationConfig => ({
   mode: "unidade",
   reference_price: "",
-  purchase_quantity: "",
-  purchase_unit: "unidade",
-  package_quantity: "",
   package_price: "",
   units_per_package: "",
   package_content_unit: "unidade",
@@ -109,9 +60,6 @@ export const buildCalculationConfig = (
   return {
     mode,
     reference_price: asString(record.reference_price) || fallbackReferencePrice,
-    purchase_quantity: asString(record.purchase_quantity),
-    purchase_unit: normalizePurchaseUnit(asString(record.purchase_unit), mode, packageContentUnit),
-    package_quantity: asString(record.package_quantity),
     package_price: asString(record.package_price),
     units_per_package: asString(record.units_per_package),
     package_content_unit: packageContentUnit,
@@ -120,12 +68,11 @@ export const buildCalculationConfig = (
 
 export const computeCalculationSummary = (config: IngredientCalculationConfig) => {
   if (config.mode === "pacote") {
-    const packageQuantity = parseNumber(config.package_quantity);
     const packagePrice = parseNumber(config.package_price);
     const unitsPerPackage = parseNumber(config.units_per_package);
 
-    const totalSpent = packageQuantity !== null && packagePrice !== null ? roundMoney(packageQuantity * packagePrice) : null;
-    const totalUnits = packageQuantity !== null && unitsPerPackage !== null ? packageQuantity * unitsPerPackage : null;
+    const totalSpent = packagePrice !== null ? roundMoney(packagePrice) : null;
+    const totalUnits = unitsPerPackage !== null ? unitsPerPackage : null;
     const resolvedCostPerUnit = totalSpent !== null && totalUnits !== null && totalUnits > 0 ? roundMoney(totalSpent / totalUnits) : null;
 
     return {
@@ -137,17 +84,11 @@ export const computeCalculationSummary = (config: IngredientCalculationConfig) =
   }
 
   const referencePrice = parseNumber(config.reference_price);
-  const purchaseQuantity = parseNumber(config.purchase_quantity);
-  const convertedPurchaseQuantity =
-    purchaseQuantity !== null ? convertQuantityToMode(purchaseQuantity, config.purchase_unit, config.mode) : null;
-  const totalSpent = referencePrice !== null && convertedPurchaseQuantity !== null
-    ? roundMoney(referencePrice * convertedPurchaseQuantity)
-    : null;
 
   return {
-    convertedPurchaseQuantity,
-    totalSpent,
-    totalUnits: convertedPurchaseQuantity,
+    convertedPurchaseQuantity: null,
+    totalSpent: referencePrice !== null ? roundMoney(referencePrice) : null,
+    totalUnits: null,
     resolvedCostPerUnit: referencePrice !== null ? roundMoney(referencePrice) : null,
   };
 };

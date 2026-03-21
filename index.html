@@ -24,11 +24,15 @@
             });
           }
         } catch (e) {}
+
+        try {
+          (0, eval)("var __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__ ?? false;");
+        } catch (e) {}
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v27";
+        var PUSH_SW_URL = "/push-sw.js?v28";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -67,6 +71,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=27"></script>
+    <script type="module" src="/src/main.tsx?v=28"></script>
   </body>
 </html>

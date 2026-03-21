@@ -7,7 +7,6 @@ import {
   buildCalculationConfig,
   computeCalculationSummary,
   createEmptyCalculationConfig,
-  getPurchaseUnitOptions,
   INGREDIENT_CALCULATION_MODES,
   INGREDIENT_UNITS,
   normalizeCalculationMode,
@@ -32,9 +31,6 @@ interface IngredientForm {
   calculationMode: IngredientCalculationMode;
   unit: IngredientMeasureUnit;
   referencePrice: string;
-  purchaseQuantity: string;
-  purchaseUnit: IngredientMeasureUnit;
-  packageQuantity: string;
   packagePrice: string;
   unitsPerPackage: string;
   packageContentUnit: IngredientMeasureUnit;
@@ -48,9 +44,6 @@ const createEmptyForm = (): IngredientForm => {
     calculationMode: config.mode,
     unit: "unidade",
     referencePrice: config.reference_price,
-    purchaseQuantity: config.purchase_quantity,
-    purchaseUnit: config.purchase_unit,
-    packageQuantity: config.package_quantity,
     packagePrice: config.package_price,
     unitsPerPackage: config.units_per_package,
     packageContentUnit: config.package_content_unit,
@@ -67,9 +60,6 @@ const buildFormFromIngredient = (item: Ingredient): IngredientForm => {
     calculationMode: config.mode,
     unit: config.mode === "pacote" ? config.package_content_unit : storedUnit,
     referencePrice: formatMoneyInput(config.reference_price),
-    purchaseQuantity: config.purchase_quantity,
-    purchaseUnit: config.purchase_unit,
-    packageQuantity: config.package_quantity,
     packagePrice: formatMoneyInput(config.package_price),
     unitsPerPackage: config.units_per_package,
     packageContentUnit: config.package_content_unit,
@@ -118,20 +108,12 @@ const IngredientsTab = () => {
   };
 
   const savedUnit = form.calculationMode === "pacote" ? form.packageContentUnit : form.unit;
-  const purchaseUnitOptions = useMemo(
-    () => getPurchaseUnitOptions(form.calculationMode, form.packageContentUnit),
-    [form.calculationMode, form.packageContentUnit],
-  );
-
   const calculationConfig = useMemo<IngredientCalculationConfig>(
     () =>
       buildCalculationConfig(
         {
           mode: form.calculationMode,
           reference_price: form.referencePrice,
-          purchase_quantity: form.purchaseQuantity,
-          purchase_unit: form.purchaseUnit,
-          package_quantity: form.packageQuantity,
           package_price: form.packagePrice,
           units_per_package: form.unitsPerPackage,
           package_content_unit: form.packageContentUnit,
@@ -143,7 +125,7 @@ const IngredientsTab = () => {
     [form, savedUnit],
   );
 
-  const { convertedPurchaseQuantity, resolvedCostPerUnit, totalSpent, totalUnits } = useMemo(
+  const { resolvedCostPerUnit, totalSpent, totalUnits } = useMemo(
     () => computeCalculationSummary(calculationConfig),
     [calculationConfig],
   );
@@ -153,13 +135,11 @@ const IngredientsTab = () => {
 
     setForm((current) => {
       const nextUnit = nextMode === "pacote" ? current.packageContentUnit : normalizeIngredientUnit(nextMode);
-      const nextPurchaseUnit = getPurchaseUnitOptions(nextMode, current.packageContentUnit)[0];
 
       return {
         ...current,
         calculationMode: nextMode,
         unit: nextUnit,
-        purchaseUnit: nextPurchaseUnit,
       };
     });
   };
@@ -170,19 +150,18 @@ const IngredientsTab = () => {
     if (form.calculationMode === "pacote" && resolvedCostPerUnit === null) {
       toast({
         title: "Preencha o cálculo por pacote",
-        description: "Informe quantidade comprada, valor pago no pacote e quantas unidades vêm no pacote.",
+        description: "Informe valor pago no pacote e quantas unidades vêm no pacote.",
       });
       return;
     }
 
     if (form.calculationMode !== "pacote") {
       const referencePrice = parseRoundedMoney(form.referencePrice);
-      const quantity = Number.parseFloat(form.purchaseQuantity);
 
-      if (!Number.isFinite(referencePrice) || referencePrice <= 0 || !Number.isFinite(quantity) || quantity <= 0) {
+      if (!Number.isFinite(referencePrice) || referencePrice <= 0) {
         toast({
           title: "Preencha os campos do cálculo",
-          description: `Informe o valor por ${form.calculationMode} e a quantidade comprada para salvar.`,
+          description: `Informe o valor por ${form.calculationMode} para salvar.`,
         });
         return;
       }
@@ -312,7 +291,6 @@ const IngredientsTab = () => {
                       ...current,
                       packageContentUnit: nextUnit,
                       unit: nextUnit,
-                      purchaseUnit: nextUnit,
                     }));
                   }}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
@@ -321,14 +299,6 @@ const IngredientsTab = () => {
                     <option key={unit} value={unit}>{unit}</option>
                   ))}
                 </select>
-                <input
-                  placeholder="Quantidade comprada (pacotes)"
-                  type="number"
-                  step="0.01"
-                  value={form.packageQuantity}
-                  onChange={(event) => setForm({ ...form, packageQuantity: event.target.value })}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                />
                 <input
                   placeholder="R$ 0,00"
                   type="text"
@@ -364,34 +334,8 @@ const IngredientsTab = () => {
                   onBlur={(event) => setForm((current) => ({ ...current, referencePrice: formatMoneyInput(event.target.value) }))}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
                 />
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <input
-                    placeholder="Quantidade comprada"
-                    type="number"
-                    step="0.01"
-                    value={form.purchaseQuantity}
-                    onChange={(event) => setForm({ ...form, purchaseQuantity: event.target.value })}
-                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                  />
-                  {purchaseUnitOptions.length > 1 ? (
-                    <select
-                      value={form.purchaseUnit}
-                      onChange={(event) => setForm({ ...form, purchaseUnit: normalizeIngredientUnit(event.target.value) })}
-                      className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
-                    >
-                      {purchaseUnitOptions.map((unit) => (
-                        <option key={unit} value={unit}>{unit}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-muted-foreground">
-                      {purchaseUnitOptions[0]}
-                    </div>
-                  )}
-                </div>
                 <div className="space-y-1 rounded-lg border border-border bg-background p-3 text-sm">
-                  <p className="text-muted-foreground">Quantidade convertida em {form.calculationMode}: <span className="font-semibold text-foreground">{convertedPurchaseQuantity?.toFixed(2) ?? "0.00"}</span></p>
-                  <p className="text-muted-foreground">Total gasto: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
+                  <p className="text-muted-foreground">Valor informado por {form.calculationMode}: <span className="font-semibold text-foreground">{formatCurrency(totalSpent ?? 0)}</span></p>
                   <p className="font-bold text-primary">Valor salvo por {form.calculationMode}: {formatCurrency(resolvedCostPerUnit ?? 0)}</p>
                 </div>
               </div>
