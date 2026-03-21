@@ -1,6 +1,6 @@
-export const INGREDIENT_CALCULATION_MODES = ["pacote", "kg", "fatias", "unidade", "g", "ml", "litro", "sachê"] as const;
-
 import { parseLocaleNumber, roundMoney } from "./pricingMoney";
+
+export const INGREDIENT_CALCULATION_MODES = ["pacote", "kg", "fatias", "unidade", "g", "ml", "litro", "sachê"] as const;
 
 export const INGREDIENT_UNITS = ["kg", "fatias", "unidade", "g", "ml", "litro", "sachê"] as const;
 
