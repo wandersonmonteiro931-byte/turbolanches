@@ -111,13 +111,13 @@ const AdminLayout = () => {
   );
 
   return (
-    <div className="flex h-screen bg-muted/30">
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block">
+    <div className="flex h-screen bg-muted/30 print:block print:h-auto print:bg-background">
+      <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block print:hidden">
         <NavContent />
       </aside>
 
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden print:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-card shadow-lg">
             <NavContent />
@@ -125,8 +125,8 @@ const AdminLayout = () => {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+      <div className="flex flex-1 flex-col overflow-hidden print:block">
+        <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 print:hidden">
           <button onClick={() => setSidebarOpen(true)} className="md:hidden">
             <Menu size={22} className="text-foreground" />
           </button>
@@ -134,7 +134,7 @@ const AdminLayout = () => {
             {navItems.find((n) => n.path === location.pathname)?.label || "Admin"}
           </h1>
         </header>
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto p-4 print:overflow-visible print:bg-background print:p-0">
           <Outlet />
         </main>
       </div>

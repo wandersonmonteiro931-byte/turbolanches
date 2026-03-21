@@ -39,7 +39,7 @@ function ensureIdentifierBinding() {
   } catch {}
 
   try {
-    (0, eval)("var __LOVA_FIX_TRIGGER__ = false;");
+    (0, eval)("this.__LOVA_FIX_TRIGGER__ = false; var __LOVA_FIX_TRIGGER__ = false;");
   } catch {}
 }
 
