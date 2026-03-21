@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, X, RefreshCw, Search, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Search, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
-import { syncIngredientsFromProductDescriptions } from "@/lib/ingredientsSync";
 import {
   buildCalculationConfig,
   computeCalculationSummary,
@@ -81,8 +80,6 @@ const IngredientsTab = () => {
   const { storeId } = useStore();
   const { toast } = useToast();
   const [items, setItems] = useState<Ingredient[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Ingredient | null>(null);
   const [form, setForm] = useState<IngredientForm>(createEmptyForm());
@@ -90,33 +87,14 @@ const IngredientsTab = () => {
   const [filterUnit, setFilterUnit] = useState("all");
 
   const fetchIngredients = async () => {
-    setLoading(true);
     let query = supabase.from("ingredients").select("*").order("name");
     if (storeId) query = query.eq("store_id", storeId);
     const { data } = await query;
     if (data) setItems(data as Ingredient[]);
-    setLoading(false);
-  };
-
-  const syncIngredients = async (showToast = true) => {
-    setSyncing(true);
-    const result = await syncIngredientsFromProductDescriptions(storeId);
-    await fetchIngredients();
-    setSyncing(false);
-
-    if (!showToast) return;
-
-    toast({
-      title: result.createdIngredients > 0 ? "Ingredientes sincronizados!" : "Ingredientes já atualizados",
-      description:
-        result.createdIngredients > 0
-          ? `${result.createdIngredients} ingrediente(s) novo(s) foram puxados automaticamente das descrições dos itens.`
-          : `Foram encontrados ${result.detectedIngredients} ingrediente(s) nas descrições, sem necessidade de novo cadastro.`,
-    });
   };
 
   useEffect(() => {
-    void syncIngredients(false);
+    void fetchIngredients();
   }, [storeId]);
 
   const filteredItems = useMemo(() => {
@@ -262,16 +240,9 @@ const IngredientsTab = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-muted-foreground">{filteredItems.length} de {items.length} ingredientes</p>
-          <p className="text-xs text-muted-foreground">Os ingredientes são puxados automaticamente das descrições dos itens e podem ser editados ou excluídos pelo admin.</p>
+          <p className="text-xs text-muted-foreground">Os ingredientes podem ser editados ou excluídos pelo admin.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => void syncIngredients(true)}
-            disabled={syncing || loading}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-opacity disabled:opacity-60"
-          >
-            <RefreshCw size={14} className={syncing ? "animate-spin" : ""} /> Atualizar
-          </button>
           <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
             <Plus size={16} /> Novo
           </button>
@@ -438,29 +409,45 @@ const IngredientsTab = () => {
         </div>
       )}
 
-      <div className="space-y-2">
+      <div className="overflow-auto rounded-xl border border-border bg-card">
         {filteredItems.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
-            Nenhum ingrediente encontrado.
-          </div>
+          <div className="p-4 text-center text-sm text-muted-foreground">Nenhum ingrediente encontrado.</div>
         ) : (
-          filteredItems.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-sm">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-foreground">{item.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatCurrency(Number(item.cost_per_unit))} / {normalizeIngredientUnit(item.unit)}
-                  {normalizeCalculationMode(item.calculation_mode ?? normalizeIngredientUnit(item.unit)) === "pacote" ? " • cálculo por pacote" : ""}
-                </p>
-              </div>
-              <button onClick={() => openEdit(item)} className="p-1.5 text-muted-foreground hover:text-foreground">
-                <Pencil size={16} />
-              </button>
-              <button onClick={() => void handleDelete(item.id)} className="p-1.5 text-muted-foreground hover:text-destructive">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="py-3 pl-4 pr-2 font-medium text-muted-foreground">Ingrediente</th>
+                <th className="px-2 py-3 font-medium text-muted-foreground">Unidade</th>
+                <th className="px-2 py-3 font-medium text-muted-foreground">Cálculo</th>
+                <th className="px-2 py-3 text-right font-medium text-muted-foreground">Custo</th>
+                <th className="py-3 pl-2 pr-4 text-right font-medium text-muted-foreground">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredItems.map((item) => {
+                const calculationMode = normalizeCalculationMode(item.calculation_mode ?? normalizeIngredientUnit(item.unit));
+
+                return (
+                  <tr key={item.id} className="border-b border-border/50 last:border-b-0">
+                    <td className="py-3 pl-4 pr-2 font-medium text-foreground">{item.name}</td>
+                    <td className="px-2 py-3 text-muted-foreground">{normalizeIngredientUnit(item.unit)}</td>
+                    <td className="px-2 py-3 text-muted-foreground">{calculationMode}</td>
+                    <td className="px-2 py-3 text-right text-foreground">{formatCurrency(Number(item.cost_per_unit))}</td>
+                    <td className="py-3 pl-2 pr-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => openEdit(item)} className="p-1.5 text-muted-foreground hover:text-foreground">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => void handleDelete(item.id)} className="p-1.5 text-muted-foreground hover:text-destructive">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
