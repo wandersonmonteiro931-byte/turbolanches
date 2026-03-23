@@ -213,11 +213,6 @@ const ExtraCostsTab = () => {
       }
     }
 
-    if (error) {
-      toast({ title: "Não foi possível salvar", description: error.message });
-      return;
-    }
-
     toast({ title: editing ? "Custo atualizado!" : "Custo criado!" });
     setShowForm(false);
     setForm(createEmptyForm());

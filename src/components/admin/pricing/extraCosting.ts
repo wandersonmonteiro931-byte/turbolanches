@@ -40,6 +40,7 @@ export const EXTRA_COST_PRESETS: ExtraCostPresetDefinition[] = [
   { key: "agua", name: "ÁGUA", helper: "Conta de água ÷ dias considerados ÷ lanches feitos por dia.", sortOrder: 30 },
   { key: "gasolina", name: "GASOLINA", helper: "Gasto de gasolina ÷ dias considerados ÷ lanches feitos por dia.", sortOrder: 40 },
   { key: "equipamento", name: "EQUIPAMENTO", helper: "Rateio do equipamento ÷ dias considerados ÷ lanches feitos por dia.", sortOrder: 50 },
+  { key: "oleo", name: "ÓLEO", helper: "Valor do óleo ÷ dias de duração ÷ lanches feitos por dia.", sortOrder: 60 },
 ];
 
 const PRESET_NAME_MAP = new Map(EXTRA_COST_PRESETS.map((preset) => [preset.key, preset.name]));
