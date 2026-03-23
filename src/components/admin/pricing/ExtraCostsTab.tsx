@@ -187,7 +187,7 @@ const ExtraCostsTab = () => {
       }
     }
 
-    const payload: Record<string, unknown> = {
+    const payload = {
       name: form.name.trim(),
       cost_type: form.cost_type,
       value: form.cost_type === "fixed" ? parsedValue : Number(parsedValue.toFixed(2)),
@@ -196,17 +196,21 @@ const ExtraCostsTab = () => {
       items_per_day: form.cost_type === "fixed" && form.division_mode === "daily" ? parsedItemsPerDay : null,
       preset_key: form.preset_key || null,
       notes: form.notes.trim(),
-    };
+    } as const;
 
-    if (!editing && storeId) payload.store_id = storeId;
-
-    const { error } = editing
-      ? await supabase.from("extra_costs").update(payload).eq("id", editing.id)
-      : await supabase.from("extra_costs").insert(payload);
-
-    if (error) {
-      toast({ title: "Não foi possível salvar", description: error.message });
-      return;
+    if (!editing && storeId) {
+      const insertPayload = { ...payload, store_id: storeId };
+      const { error } = await supabase.from("extra_costs").insert(insertPayload);
+      if (error) {
+        toast({ title: "Não foi possível salvar", description: error.message });
+        return;
+      }
+    } else if (editing) {
+      const { error } = await supabase.from("extra_costs").update(payload).eq("id", editing.id);
+      if (error) {
+        toast({ title: "Não foi possível salvar", description: error.message });
+        return;
+      }
     }
 
     toast({ title: editing ? "Custo atualizado!" : "Custo criado!" });
