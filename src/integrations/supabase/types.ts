@@ -1171,6 +1171,7 @@ export type Database = {
           ingredient_id: string | null
           ingredient_name: string
           last_price: number
+          notes: string
           quantity: number
           restock_list_id: string
           sort_order: number
@@ -1185,6 +1186,7 @@ export type Database = {
           ingredient_id?: string | null
           ingredient_name?: string
           last_price?: number
+          notes?: string
           quantity?: number
           restock_list_id: string
           sort_order?: number
@@ -1199,6 +1201,7 @@ export type Database = {
           ingredient_id?: string | null
           ingredient_name?: string
           last_price?: number
+          notes?: string
           quantity?: number
           restock_list_id?: string
           sort_order?: number
@@ -1231,6 +1234,7 @@ export type Database = {
       }
       restock_lists: {
         Row: {
+          closed_at: string | null
           created_at: string
           created_by: string
           id: string
@@ -1241,6 +1245,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          closed_at?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -1251,6 +1256,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          closed_at?: string | null
           created_at?: string
           created_by?: string
           id?: string
