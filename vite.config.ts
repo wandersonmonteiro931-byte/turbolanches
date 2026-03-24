@@ -11,7 +11,7 @@ export default defineConfig(() => ({
     },
   },
   define: {
-    __LOVA_FIX_TRIGGER__: "(typeof globalThis !== 'undefined' && typeof globalThis.__LOVA_FIX_TRIGGER__ === 'boolean' ? globalThis.__LOVA_FIX_TRIGGER__ : false)",
+    __LOVA_FIX_TRIGGER__: "false",
   },
   plugins: [...react()],
   resolve: {
