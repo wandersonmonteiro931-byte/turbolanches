@@ -19,6 +19,7 @@ const navItems = [
   { path: "/admin/notificacoes", icon: Bell, label: "Notificações" },
   { path: "/admin/cupons", icon: Ticket, label: "Cupons" },
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
+  { path: "/admin/etiquetas", icon: Tag, label: "Etiquetas" },
   { path: "/admin/administradores", icon: Shield, label: "Admins" },
   { path: "/admin/raspadinha", icon: Sparkles, label: "Raspadinha" },
   { path: "/admin/avaliacoes", icon: Star, label: "Avaliações" },

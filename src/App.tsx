@@ -44,6 +44,7 @@ import AdminScratchCard from "./pages/admin/AdminScratchCard";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminPricing from "./pages/admin/AdminPricing";
 import AdminRestock from "./pages/admin/AdminRestock";
+import AdminLabels from "./pages/admin/AdminLabels";
 import Kitchen from "./pages/Kitchen";
 import MyScratchCards from "./pages/MyScratchCards";
 
@@ -118,6 +119,7 @@ const AppInner = () => {
             <Route path="raspadinha" element={<AdminScratchCard />} />
             <Route path="avaliacoes" element={<AdminReviews />} />
             <Route path="precificacao" element={<AdminPricing />} />
+            <Route path="etiquetas" element={<AdminLabels />} />
             <Route path="reposicao" element={<AdminRestock />} />
             <Route path="ia" element={<AdminAiControl />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
