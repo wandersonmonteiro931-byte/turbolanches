@@ -13,6 +13,28 @@ type FixTriggerTarget = typeof globalThis & {
   __LOVA_FIX_TRIGGER__?: boolean;
 };
 
+const syncFixTriggerGlobalBinding = (value: boolean) => {
+  const serializedValue = value ? "true" : "false";
+
+  try {
+    (0, eval)(`var __LOVA_FIX_TRIGGER__ = ${serializedValue};`);
+  } catch {}
+
+  try {
+    Function(
+      "value",
+      `
+        var nextValue = Boolean(value);
+        try { globalThis.__LOVA_FIX_TRIGGER__ = nextValue; } catch (error) {}
+        try { window.__LOVA_FIX_TRIGGER__ = nextValue; } catch (error) {}
+        try { self.__LOVA_FIX_TRIGGER__ = nextValue; } catch (error) {}
+        try { (0, eval)('var __LOVA_FIX_TRIGGER__ = ' + (nextValue ? 'true' : 'false')); } catch (error) {}
+        return nextValue;
+      `,
+    )(value);
+  } catch {}
+};
+
 const bootstrapFixTrigger = () => {
   let currentValue = false;
 
@@ -23,6 +45,7 @@ const bootstrapFixTrigger = () => {
   ].filter(Boolean) as FixTriggerTarget[];
 
   currentValue = targets.find((target) => typeof target.__LOVA_FIX_TRIGGER__ === "boolean")?.__LOVA_FIX_TRIGGER__ ?? false;
+  syncFixTriggerGlobalBinding(currentValue);
 
   for (const target of targets) {
     try {
@@ -31,14 +54,18 @@ const bootstrapFixTrigger = () => {
         get: () => currentValue,
         set: (nextValue) => {
           currentValue = Boolean(nextValue);
+          syncFixTriggerGlobalBinding(currentValue);
         },
       });
       target.__LOVA_FIX_TRIGGER__ = currentValue;
     } catch {
       target.__LOVA_FIX_TRIGGER__ = typeof target.__LOVA_FIX_TRIGGER__ === "boolean" ? target.__LOVA_FIX_TRIGGER__ : currentValue;
       currentValue = target.__LOVA_FIX_TRIGGER__ ?? currentValue;
+      syncFixTriggerGlobalBinding(currentValue);
     }
   }
+
+  syncFixTriggerGlobalBinding(currentValue);
 };
 
 bootstrapFixTrigger();
