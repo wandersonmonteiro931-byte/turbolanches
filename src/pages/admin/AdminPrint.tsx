@@ -264,8 +264,8 @@ const AdminPrint = () => {
       bodyFontFamily: "'Arial Black', Arial, Helvetica, sans-serif",
       bodyFontSizePx: itemsFontSize,
       labelFontSizePx: labelFontSize,
-      bodyPaddingMm: 0.75,
-      sectionPaddingMm: 1.5,
+      bodyPaddingMm: 0,
+      sectionPaddingMm: 1,
     });
   }, [items, order, profile, ready, tipo, tpl]);
 
