@@ -97,13 +97,13 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     font-weight: 900 !important;
   }
   .txt-gigante {
-    font-size: 25px !important;
-    line-height: 1.2 !important;
+    font-size: 27px !important;
+    line-height: 1.12 !important;
     font-weight: 900 !important;
   }
   .txt-grande {
-    font-size: 19px !important;
-    line-height: 1.2 !important;
+    font-size: 21px !important;
+    line-height: 1.18 !important;
     font-weight: 900 !important;
   }
   .pedido-destaque {
@@ -115,11 +115,11 @@ const LEGACY_RECEIPT_PRINT_CSS = `
   .tipo-label {
     display: block !important;
     width: 100% !important;
-    font-size: 19px !important;
-    line-height: 1.25 !important;
-    margin: 1.5px 0 !important;
-    padding: 0.8mm 1.5mm !important;
-    border: 2.5px solid #000 !important;
+    font-size: 27px !important;
+    line-height: 1.08 !important;
+    margin: 1.2px 0 !important;
+    padding: 0.8mm 1.2mm !important;
+    border: 3px solid #000 !important;
     font-weight: 900 !important;
     letter-spacing: 0.5px !important;
   }

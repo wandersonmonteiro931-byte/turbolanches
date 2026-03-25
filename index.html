@@ -2,7 +2,7 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
+      if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = false; }
       (function(){
         try {
           var scopes = [];
@@ -24,7 +24,7 @@
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v58";
+        var PUSH_SW_URL = "/push-sw.js?v59";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -63,6 +63,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=58"></script>
+    <script type="module" src="/src/main.tsx?v=59"></script>
   </body>
 </html>
