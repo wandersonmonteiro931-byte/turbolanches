@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
@@ -6,29 +6,62 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 const tabConfig = [
-  { type: "pedido", label: "Comanda Pedido", icon: ClipboardList, color: "text-orange-500" },
-  { type: "obrigado", label: "Comanda Obrigado", icon: Heart, color: "text-pink-500" },
+  { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
+  { type: "obrigado", label: "Comanda Obrigado", icon: Heart },
+  { type: "etiquetas", label: "Etiquetas", icon: Sticker },
+  { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
+
+const DEFAULT_LABELS: Record<string, string> = {
+  pedido: "PEDIDO",
+  obrigado: "OBRIGADO!",
+  etiquetas: "ETIQUETA",
+  reposicao: "LISTA DE COMPRAS",
+};
+
+const buildTemplateDraft = (type: string, source?: Partial<ReceiptTemplate>) => ({
+  id: source?.id,
+  template_type: type,
+  store_id: source?.store_id ?? null,
+  store_name: source?.store_name ?? "TURBO LANCHES",
+  label: source?.label ?? DEFAULT_LABELS[type] ?? type.toUpperCase(),
+  custom_message: source?.custom_message ?? "",
+  footer_message: source?.footer_message ?? "",
+  body_template: source?.body_template ?? getDefaultTemplate(type),
+  show_customer_code: source?.show_customer_code ?? false,
+  show_max_delivery_time: source?.show_max_delivery_time ?? false,
+  show_driver_field: source?.show_driver_field ?? false,
+  show_troco: source?.show_troco ?? false,
+  show_obs: source?.show_obs ?? false,
+  show_payment_info: source?.show_payment_info ?? false,
+  show_totals_detail: source?.show_totals_detail ?? false,
+  items_font_size: source?.items_font_size ?? (type === "etiquetas" ? 10 : 14),
+  label_font_size: source?.label_font_size ?? (type === "etiquetas" ? 14 : 24),
+});
 
 const AdminReceipts = () => {
   const { data: templates, isLoading } = useReceiptTemplates();
   const updateMutation = useUpdateReceiptTemplate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const availableTypes = useMemo(() => tabConfig.map((tab) => tab.type), []);
+  const requestedTab = searchParams.get("tipo") || "pedido";
+  const activeTab = availableTypes.includes(requestedTab) ? requestedTab : "pedido";
   const [editData, setEditData] = useState<Record<string, Partial<ReceiptTemplate>>>({});
 
   useEffect(() => {
-    if (templates) {
-      const map: Record<string, Partial<ReceiptTemplate>> = {};
-      templates.forEach((t) => {
-        map[t.template_type] = { ...t };
-      });
-      setEditData(map);
-    }
+    const map: Record<string, Partial<ReceiptTemplate>> = {};
+    tabConfig.forEach((tab) => {
+      const existing = templates?.find((template) => template.template_type === tab.type);
+      map[tab.type] = buildTemplateDraft(tab.type, existing);
+    });
+    setEditData(map);
   }, [templates]);
 
-  const getField = (type: string) => editData[type] || {};
+  const getField = (type: string) => editData[type] || buildTemplateDraft(type);
 
   const updateField = (type: string, field: string, value: any) => {
     setEditData((prev) => ({
@@ -39,8 +72,8 @@ const AdminReceipts = () => {
 
   const handleSave = (type: string) => {
     const data = editData[type];
-    if (!data?.id) return;
-    updateMutation.mutate(data as ReceiptTemplate & { id: string });
+    if (!data) return;
+    updateMutation.mutate(data as Partial<ReceiptTemplate> & { template_type: string; id?: string });
   };
 
   const handleResetTemplate = (type: string) => {
@@ -66,11 +99,11 @@ const AdminReceipts = () => {
 
       <ReceiptVariableReference />
 
-      <Tabs defaultValue="pedido">
-        <TabsList className="w-full grid grid-cols-2">
+      <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
           {tabConfig.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
-              <tab.icon size={16} className={tab.color} />
+              <tab.icon size={16} className="text-primary" />
               {tab.label}
             </TabsTrigger>
           ))}
@@ -97,7 +130,7 @@ const AdminReceipts = () => {
                   <Input
                     value={(fields.label as string) || ""}
                     onChange={(e) => updateField(tab.type, "label", e.target.value)}
-                    placeholder={tab.type === "obrigado" ? "OBRIGADO!" : "PEDIDO"}
+                    placeholder={DEFAULT_LABELS[tab.type] ?? "MODELO"}
                   />
                 </div>
                 <div className="space-y-1">

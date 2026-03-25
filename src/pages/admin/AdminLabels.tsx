@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Printer, RefreshCw, Sticker } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReceiptTemplates } from "@/hooks/useReceiptTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { buildAdminPrintDocument } from "@/lib/adminPrintTemplates";
+import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { cn } from "@/lib/utils";
 
 type SourceKind = "ingredient" | "product" | "manual";
@@ -45,50 +49,11 @@ const addDays = (value: string, days: number) => {
   return parsedDate.toISOString().slice(0, 10);
 };
 
-const escapeHtml = (value: string) => value.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;").split("'").join("&#39;");
-
-const buildLabelsPrintHTML = (label: GeneratedLabel) => {
-  const labelMarkup = Array.from({ length: label.copies }, (_, index) => {
-    const borderStyle = label.showBorder ? "1px solid #111111" : "1px solid transparent";
-    return `
-      <article class="thermal-label" style="width:${label.widthMm}mm; min-height:${label.heightMm}mm; border:${borderStyle};">
-        <div class="row"><span class="label">PRODUTO:</span><span class="value">${escapeHtml(label.name)}</span></div>
-        <div class="row"><span class="label">FABRICAÇÃO:</span><span class="value">${escapeHtml(formatDate(label.manufacturedOn))}</span></div>
-        <div class="row"><span class="label">VALIDADE:</span><span class="value">${escapeHtml(formatDate(label.validUntil))}</span></div>
-        <div class="row"><span class="label">RESP:</span><span class="value">${escapeHtml(label.responsible)}</span></div>
-        ${label.copies > 1 ? `<div class="copy">Etiqueta ${index + 1}/${label.copies}</div>` : ""}
-      </article>`;
-  }).join("");
-
-  return `<!DOCTYPE html>
-  <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Etiquetas térmicas</title>
-      <style>
-        @page { size: ${label.widthMm}mm ${label.heightMm}mm; margin: 1mm; }
-        * { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; background: #ffffff; color: #000000; font-family: Arial, sans-serif; }
-        .sheet { display: flex; flex-direction: column; gap: 1mm; }
-        .thermal-label { padding: 2mm; display: flex; flex-direction: column; gap: 1.4mm; page-break-after: always; break-after: page; overflow: hidden; }
-        .row { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4mm; text-align: left; line-height: 1.15; }
-        .label { font-size: 8.5pt; font-weight: 700; }
-        .value { font-size: 10pt; font-weight: 700; word-break: break-word; }
-        .copy { margin-top: auto; font-size: 7pt; text-align: left; }
-      </style>
-    </head>
-    <body>
-      <main class="sheet">${labelMarkup}</main>
-      <script>window.onload = function () { window.print(); };</script>
-    </body>
-  </html>`;
-};
-
 const AdminLabels = () => {
   const { storeId } = useStore();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { data: templates } = useReceiptTemplates();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -139,6 +104,7 @@ const AdminLabels = () => {
 
   const selectedProduct = products.find((product) => product.id === selectedProductId) ?? null;
   const selectedIngredient = ingredients.find((ingredient) => ingredient.id === selectedIngredientId) ?? null;
+  const printTemplate = templates?.find((template) => template.template_type === "etiquetas");
 
   const resolvedName = useMemo(() => {
     if (sourceKind === "manual") return customName.trim();
@@ -203,7 +169,32 @@ const AdminLabels = () => {
     }
 
     printWindow.document.open();
-    printWindow.document.write(buildLabelsPrintHTML(labelToPrint));
+    printWindow.document.write(
+      buildAdminPrintDocument({
+        title: "Etiquetas térmicas",
+        template: printTemplate?.body_template || getDefaultTemplate("etiquetas"),
+        variables: {
+          "[NOMELOJA]": printTemplate?.store_name || "TURBO LANCHES",
+          "[TIPOCOMANDA]": printTemplate?.label || "ETIQUETA",
+          "[PRODUTO]": labelToPrint.name,
+          "[DATAFABRICACAO]": formatDate(labelToPrint.manufacturedOn),
+          "[VALIDADE]": formatDate(labelToPrint.validUntil),
+          "[RESPONSAVEL]": labelToPrint.responsible,
+          "[RODAPÉ]": printTemplate?.footer_message || "",
+          "[DIVULGAÇÃO]": printTemplate?.custom_message || "",
+        },
+        pageWidthMm: labelToPrint.widthMm,
+        pageHeightMm: labelToPrint.heightMm,
+        pageMarginMm: 1,
+        repeatCount: labelToPrint.copies,
+        bodyFontFamily: "Arial, sans-serif",
+        bodyFontSizePx: printTemplate?.items_font_size || 10,
+        bodyPaddingMm: 0,
+        sectionPaddingMm: 2,
+        sectionMinHeightMm: labelToPrint.heightMm,
+        sectionBorder: labelToPrint.showBorder ? "1px solid #111111" : "1px solid transparent",
+      }),
+    );
     printWindow.document.close();
   };
 
@@ -224,7 +215,7 @@ const AdminLabels = () => {
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2"><div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">50x30 mm</Badge></div><CardDescription>Gere etiquetas simples para ingredientes manipulados e produtos preparados, com fabricação, validade e responsável, prontas para impressora térmica.</CardDescription></div>
-          <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={handleRefresh} disabled={refreshing}><RefreshCw className={cn(refreshing && "animate-spin")} />Atualizar itens</Button><Button size="lg" onClick={handleGenerate}><Sticker />Gerar etiqueta</Button><Button size="lg" variant="outline" onClick={handlePrint}><Printer />Imprimir</Button></div>
+          <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={handleRefresh} disabled={refreshing}><RefreshCw className={cn(refreshing && "animate-spin")} />Atualizar itens</Button><Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo de impressão</Link></Button><Button size="lg" onClick={handleGenerate}><Sticker />Gerar etiqueta</Button><Button size="lg" variant="outline" onClick={handlePrint}><Printer />Imprimir</Button></div>
         </CardHeader>
       </Card>
 
