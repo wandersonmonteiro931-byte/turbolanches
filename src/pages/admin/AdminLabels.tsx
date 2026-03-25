@@ -91,6 +91,7 @@ const AdminLabels = () => {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
   const [brands, setBrands] = useState<BrandRow[]>([]);
+  const [storageConfigs, setStorageConfigs] = useState<StorageConfigRow[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedIngredientId, setSelectedIngredientId] = useState("");
   const [customName, setCustomName] = useState("");
@@ -106,7 +107,7 @@ const AdminLabels = () => {
   const [saveLabel, setSaveLabel] = useState(false);
 
   // Storage type state
-  const [storageType, setStorageType] = useState<StorageType>("");
+  const [storageType, setStorageType] = useState("");
   const [storageTemp, setStorageTemp] = useState("");
   const [storagePhrase, setStoragePhrase] = useState("");
 
@@ -116,9 +117,10 @@ const AdminLabels = () => {
 
   useEffect(() => {
     if (storageType) {
-      setStoragePhrase((prev) => prev || DEFAULT_STORAGE_PHRASES[storageType] || "");
+      const cfg = storageConfigs.find(c => c.name.toLowerCase() === storageType.toLowerCase());
+      setStoragePhrase((prev) => prev || cfg?.default_phrase || "");
     }
-  }, [storageType]);
+  }, [storageType, storageConfigs]);
 
   const fetchSavedLabels = useCallback(async () => {
     const query = (supabase as any).from("saved_labels").select("*").order("created_at", { ascending: false });
