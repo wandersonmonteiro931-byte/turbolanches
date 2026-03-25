@@ -605,7 +605,7 @@ export const buildBatchPrintDocument = (
         .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
         .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 1px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; }
-        .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
+        .box-highlight { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1px 0; padding: 1mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
