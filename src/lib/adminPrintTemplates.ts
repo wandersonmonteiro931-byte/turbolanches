@@ -565,6 +565,13 @@ const getSharedPrintStyles = ({
           line-height: 1.2;
           text-align: inherit;
         }
+        .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
+        .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
+        .items-table .items-qty { white-space: nowrap; width: 1%; padding-right: 4px; }
+        .items-table .items-name { word-break: break-word; }
+        .items-table .items-price { white-space: nowrap; width: 1%; text-align: right; padding-left: 4px; }
+        .items-table .items-obs-td { padding-top: 0; padding-bottom: 2px; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
+        .items-table .items-addon-td { padding-top: 0; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }

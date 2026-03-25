@@ -79,76 +79,21 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     border-top: 1.5px dashed #000 !important;
     margin: 1.5px 0 !important;
   }
-  .info,
-  .grand-total {
-    font-size: 11px !important;
-    line-height: 1.35 !important;
-    margin: 1.5px 0 !important;
-    font-weight: 900 !important;
-  }
-  .txt-medio {
-    font-size: 14px !important;
-    line-height: 1.35 !important;
-    font-weight: 900 !important;
-  }
-  .txt-pequeno {
-    font-size: 7px !important;
-    line-height: 1.3 !important;
-    font-weight: 900 !important;
-  }
-  .txt-gigante {
-    font-size: 27px !important;
-    line-height: 1.12 !important;
-    font-weight: 900 !important;
-  }
-  .txt-grande {
-    font-size: 21px !important;
-    line-height: 1.18 !important;
-    font-weight: 900 !important;
-  }
-  .pedido-destaque {
-    font-size: 19px !important;
-    line-height: 1.2 !important;
-    margin: 2px 0 !important;
-    font-weight: 900 !important;
-  }
-  .tipo-label {
-    display: block !important;
-    width: 100% !important;
-    font-size: 27px !important;
-    line-height: 1.08 !important;
-    margin: 1.2px 0 !important;
-    padding: 0.8mm 1.2mm !important;
-    border: 3px solid #000 !important;
-    font-weight: 900 !important;
-    letter-spacing: 0.5px !important;
-  }
-  .box-highlight {
-    display: block !important;
-    width: 100% !important;
-    font-size: inherit !important;
-    line-height: 1.25 !important;
-    margin: 1.5px 0 !important;
-    padding: 0.8mm 1.5mm !important;
-    border: 2.5px solid #000 !important;
+  .txt-borda-preta {
+    display: inline !important;
+    padding: 0.5mm 2mm !important;
+    border: 2px solid #000 !important;
+    background: transparent !important;
+    color: #000 !important;
     font-weight: 900 !important;
   }
   .inline-border {
     display: block !important;
     width: 100% !important;
-    font-size: 11px !important;
-    line-height: 1.35 !important;
     margin: 1.5px 0 !important;
     padding: 0.8mm 1.5mm !important;
     border: 2.5px solid #000 !important;
     font-weight: 900 !important;
-  }
-  .txt-borda-preta {
-    font-size: 11px !important;
-    line-height: 1.35 !important;
-    padding: 1mm !important;
-    font-weight: 900 !important;
-    letter-spacing: 0 !important;
   }
   .list-name,
   .list-row {
@@ -293,21 +238,26 @@ const AdminPrint = () => {
       "[DIVULGAÇÃO]": divulgacao,
     };
 
-    const buildDefaultItemLines = (item: any) => {
-      const lineTotal = Number(item.unit_price) * item.quantity;
-      const lines = [`${item.quantity}x ${item.product_name} - ${fmt(lineTotal)}`];
-      const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
-
-      addons.forEach((addon: any) => {
-        lines.push(`+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`);
+    const buildItemsTableHtml = () => {
+      if (items.length === 0) return "";
+      const fmt2 = fmt;
+      let rows = "";
+      items.forEach((item) => {
+        const lineTotal = Number(item.unit_price) * item.quantity;
+        rows += `<tr><td class="items-qty">${item.quantity}x</td><td class="items-name">${escapeHtml(item.product_name)}</td><td class="items-price">${fmt2(lineTotal)}</td></tr>`;
+        const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
+        addons.forEach((addon: any) => {
+          const addonLabel = `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`;
+          rows += `<tr><td></td><td colspan="2" class="items-addon-td">${escapeHtml(addonLabel)}</td></tr>`;
+        });
+        if (item.observations?.trim()) {
+          rows += `<tr><td></td><td colspan="2" class="items-obs-td">Obs: ${escapeHtml(item.observations.trim())}</td></tr>`;
+        }
       });
-
-      if (item.observations?.trim()) {
-        lines.push(`Obs: ${item.observations.trim()}`);
-      }
-
-      return lines;
+      return `<table class="items-table">${rows}</table>`;
     };
+
+    const itemsHtml = buildItemsTableHtml();
 
     const rawTemplate = tpl?.body_template || getDefaultTemplate(resolvedType);
     const expandedTemplate = rawTemplate
@@ -317,6 +267,11 @@ const AdminPrint = () => {
         if (items.length === 0) return [];
 
         const itemTemplate = getTemplateForItemsLine(rawLine);
+
+        // If the line is just [ITENS] alone, we use the table block
+        if (!itemTemplate) {
+          return ["[__ITEMS_TABLE_BLOCK__]"];
+        }
 
         return items.flatMap((item) => {
           const lineTotal = Number(item.unit_price) * item.quantity;
@@ -330,10 +285,6 @@ const AdminPrint = () => {
             "[OBSITEM]": item.observations?.trim() || "",
           };
 
-          if (!itemTemplate) {
-            return buildDefaultItemLines(item);
-          }
-
           if (shouldHideOptionalItemLine(itemTemplate, itemVars)) {
             return [];
           }
@@ -343,6 +294,12 @@ const AdminPrint = () => {
         });
       })
       .join("\n");
+
+    const blocksMap: Record<string, string | undefined> = {
+      "[__ITEMS_TABLE_BLOCK__]": itemsHtml,
+    };
+
+    const bodyFontSize = (tpl as any)?.body_font_size ?? 11;
 
     return buildAdminPrintDocument({
       title: `${tipoLabel} ${String(order.order_number).padStart(5, "0")}`,
