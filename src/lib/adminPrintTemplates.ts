@@ -473,7 +473,7 @@ export const buildBatchPrintDocument = (
   const {
     title,
     template,
-    pageWidthMm = 80,
+    pageWidthMm = 72,
     pageHeightMm = "auto",
     pageMarginMm = 0,
     bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",

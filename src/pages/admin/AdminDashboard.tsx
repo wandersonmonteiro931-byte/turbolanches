@@ -504,14 +504,14 @@ const AdminDashboard = () => {
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; width:80mm; padding:2mm; font-size:10px; }
+        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; }
         .big { font-size:14px; font-weight:900; }
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
-        @page { size:80mm auto; margin:0; }
+        @page { size:72mm auto; margin:0; }
       </style></head><body>
         <h1>TURBO LANCHES</h1>
         <h2>RELATÓRIO DIÁRIO</h2>
