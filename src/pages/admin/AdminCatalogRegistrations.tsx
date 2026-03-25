@@ -69,7 +69,8 @@ const BrandsTab = () => {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("brands").delete().eq("id", id);
+    const db = supabase as any;
+    const { error } = await db.from("brands").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
       return;
