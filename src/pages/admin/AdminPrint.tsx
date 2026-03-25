@@ -283,8 +283,11 @@ const AdminPrint = () => {
           const lineTotal = Number(item.unit_price) * item.quantity;
           return renderProcessedLine(itemTemplate, `${keyPrefix}-${item.id}-${itemIndex}`, {
             "[PRODUTO]": item.product_name,
+            "[PRODUTOS]": item.product_name,
             "[QNTITENS]": String(item.quantity),
+            "[QUANTIDADEPROD]": String(item.quantity),
             "[VALORITEM]": fmt(lineTotal),
+            "[PREÇOPROD]": fmt(Number(item.unit_price)),
           });
         })}
       </Fragment>

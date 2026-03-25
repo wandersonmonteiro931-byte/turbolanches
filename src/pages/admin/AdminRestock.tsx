@@ -323,7 +323,7 @@ const AdminRestock = () => {
         blocks: {
           "[LISTA]": `<div class="list-block">${activeItems
             .map(
-              (item) => `<div class="list-row"><span class="list-name">${escapeHtml(item.ingredient_name)}</span><span class="list-qty">${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit}`)}</span></div>`,
+              (item) => `<div class="list-row"><span class="list-name">${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit} ${item.ingredient_name}`)}</span></div>`,
             )
             .join("")}</div>`,
         },
