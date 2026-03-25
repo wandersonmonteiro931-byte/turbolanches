@@ -58,6 +58,7 @@ const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
 const DEFAULT_STORAGE_PHRASES: Record<string, string> = {
   resfriado: "Manter resfriado entre 0°C e 5°C",
   congelado: "Manter congelado a -18°C ou inferior",
+  ambiente: "Armazenar em local seco e arejado",
 };
 
 const AdminLabels = () => {
