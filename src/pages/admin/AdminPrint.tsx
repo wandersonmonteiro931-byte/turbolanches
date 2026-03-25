@@ -6,6 +6,7 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import {
   buildAdminPrintDocument,
   stripFormattingTags,
+  escapeHtml,
 } from "@/lib/adminPrintTemplates";
 
 const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
