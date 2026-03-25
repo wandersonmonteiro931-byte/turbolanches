@@ -285,17 +285,17 @@ const getFrameCss = (sectionPaddingMm: number) => {
   return `
     .print-frame,
     .print-frame-strong,
+    .print-frame-rect { display: block; }
+    .print-frame { border: 1.5px solid #000 !important; }
+    .print-frame-strong { border: 3px solid #000 !important; }
     .print-frame-rect {
-      display: block;
       width: calc(100% + ${bleed * 2}mm);
       margin-left: -${bleed}mm !important;
       margin-right: -${bleed}mm !important;
       padding-left: ${bleed}mm;
       padding-right: ${bleed}mm;
+      border: 1.5px solid #000 !important;
     }
-    .print-frame { border: 1.5px solid #000 !important; }
-    .print-frame-strong { border: 3px solid #000 !important; }
-    .print-frame-rect { border: 1.5px solid #000 !important; }
   `;
 };
 
