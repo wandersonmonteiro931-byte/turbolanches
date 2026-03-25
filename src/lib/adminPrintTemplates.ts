@@ -617,6 +617,7 @@ export const buildBatchPrintDocument = (
         .print-section { max-width: 100%; }
         .info,
         .grand-total,
+        .txt-grande,
         .txt-medio,
         .txt-pequeno,
         .txt-gigante,
