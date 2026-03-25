@@ -204,6 +204,7 @@ const AdminLabels = () => {
     const storageLabel = (type: StorageType) => {
       if (type === "resfriado") return "RESFRIADO";
       if (type === "congelado") return "CONGELADO";
+      if (type === "ambiente") return "AMBIENTE";
       return "";
     };
 
