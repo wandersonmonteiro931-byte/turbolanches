@@ -45,6 +45,7 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminPricing from "./pages/admin/AdminPricing";
 import AdminRestock from "./pages/admin/AdminRestock";
 import AdminLabels from "./pages/admin/AdminLabels";
+import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
 import MyScratchCards from "./pages/MyScratchCards";
 
@@ -105,6 +106,7 @@ const AppInner = () => {
             <Route index element={<AdminDashboard />} />
             <Route path="pedidos" element={<AdminOrders />} />
             <Route path="produtos" element={<AdminProducts />} />
+            <Route path="cadastros" element={<AdminCatalogRegistrations />} />
             <Route path="categorias" element={<AdminCategories />} />
             <Route path="entregas" element={<AdminDeliveryZones />} />
             <Route path="adicionais" element={<AdminAddons />} />

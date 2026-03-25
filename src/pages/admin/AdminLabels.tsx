@@ -219,7 +219,7 @@ const AdminLabels = () => {
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">{totalLabelsInQueue} na fila</Badge></div>
-            <CardDescription>Os ingredientes e produtos exibidos aqui são os cadastrados manualmente na seção de Precificação e Produtos.</CardDescription>
+            <CardDescription>Os ingredientes e itens exibidos aqui vêm dos cadastros manuais da nova seção de Cadastros.</CardDescription>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo</Link></Button>
@@ -237,7 +237,7 @@ const AdminLabels = () => {
               <div className="space-y-2">
                 <Label htmlFor="ingredient">Ingrediente</Label>
                 {ingredients.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum ingrediente cadastrado. <Link to="/admin/precificacao" className="text-primary underline">Cadastre na Precificação</Link>.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum ingrediente cadastrado. <Link to="/admin/cadastros" className="text-primary underline">Cadastre em Cadastros</Link>.</p>
                 ) : (
                   <select id="ingredient" value={selectedIngredientId} onChange={(event) => setSelectedIngredientId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{ingredients.map((ingredient) => <option key={ingredient.id} value={ingredient.id}>{ingredient.name} • {ingredient.unit}</option>)}</select>
                 )}
@@ -247,7 +247,7 @@ const AdminLabels = () => {
               <div className="space-y-2">
                 <Label htmlFor="product">Produto</Label>
                 {products.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum produto cadastrado. <Link to="/admin/produtos" className="text-primary underline">Cadastre em Produtos</Link>.</p>
+                  <p className="text-sm text-muted-foreground">Nenhum item cadastrado. <Link to="/admin/cadastros" className="text-primary underline">Cadastre em Cadastros</Link>.</p>
                 ) : (
                   <select id="product" value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{products.map((product) => <option key={product.id} value={product.id}>{product.name}{product.active ? "" : " • oculto"}</option>)}</select>
                 )}

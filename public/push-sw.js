@@ -1,5 +1,5 @@
-// SW Version 43 — standard service worker + immediate update
-var SW_VERSION = "v43";
+// SW Version 44 — standard service worker + immediate update
+var SW_VERSION = "v44";
 
 self.addEventListener("install", function () {
   self.skipWaiting();
