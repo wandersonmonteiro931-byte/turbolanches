@@ -17,7 +17,8 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
-type StorageType = "" | "resfriado" | "congelado" | "ambiente";
+
+interface StorageConfigRow { id: string; name: string; emoji: string; default_temp: string; default_phrase: string; }
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
@@ -33,7 +34,7 @@ interface GeneratedLabel {
   copies: number;
   widthMm: number;
   heightMm: number;
-  storageType: StorageType;
+  storageType: string;
   storageTemp: string;
   storagePhrase: string;
   brand: string;
@@ -51,7 +52,7 @@ interface SavedLabel {
   copies: number;
   width_mm: number;
   height_mm: number;
-  storage_type: StorageType;
+  storage_type: string;
   storage_temp: string;
   storage_phrase: string;
   brand: string;
@@ -76,11 +77,7 @@ const addDays = (value: string, days: number) => {
 let labelIdCounter = 0;
 const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
 
-const DEFAULT_STORAGE_PHRASES: Record<string, string> = {
-  resfriado: "Manter resfriado entre 0°C e 5°C",
-  congelado: "Manter congelado a -18°C ou inferior",
-  ambiente: "Armazenar em local seco e arejado",
-};
+// Removed hardcoded DEFAULT_STORAGE_PHRASES - now loaded from DB
 
 const AdminLabels = () => {
   const { storeId } = useStore();
@@ -94,6 +91,7 @@ const AdminLabels = () => {
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
   const [brands, setBrands] = useState<BrandRow[]>([]);
+  const [storageConfigs, setStorageConfigs] = useState<StorageConfigRow[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedIngredientId, setSelectedIngredientId] = useState("");
   const [customName, setCustomName] = useState("");
@@ -109,7 +107,7 @@ const AdminLabels = () => {
   const [saveLabel, setSaveLabel] = useState(false);
 
   // Storage type state
-  const [storageType, setStorageType] = useState<StorageType>("");
+  const [storageType, setStorageType] = useState("");
   const [storageTemp, setStorageTemp] = useState("");
   const [storagePhrase, setStoragePhrase] = useState("");
 
@@ -119,9 +117,10 @@ const AdminLabels = () => {
 
   useEffect(() => {
     if (storageType) {
-      setStoragePhrase((prev) => prev || DEFAULT_STORAGE_PHRASES[storageType] || "");
+      const cfg = storageConfigs.find(c => c.name.toLowerCase() === storageType.toLowerCase());
+      setStoragePhrase((prev) => prev || cfg?.default_phrase || "");
     }
-  }, [storageType]);
+  }, [storageType, storageConfigs]);
 
   const fetchSavedLabels = useCallback(async () => {
     const query = (supabase as any).from("saved_labels").select("*").order("created_at", { ascending: false });
@@ -136,16 +135,19 @@ const AdminLabels = () => {
         const productsQuery = supabase.from("products").select("id, name, active").order("name");
         const ingredientsQuery = supabase.from("ingredients").select("id, name, unit").order("name");
         let brandsQuery = db.from("brands").select("id, name").order("name");
-        const [productsRes, ingredientsRes, brandsRes] = await Promise.all([
+        let storageQuery = db.from("storage_configs").select("id, name, emoji, default_temp, default_phrase").eq("active", true).order("sort_order").order("name");
+        const [productsRes, ingredientsRes, brandsRes, storageRes] = await Promise.all([
           storeId ? productsQuery.eq("store_id", storeId) : productsQuery,
           storeId ? ingredientsQuery.eq("store_id", storeId) : ingredientsQuery,
           storeId ? brandsQuery.eq("store_id", storeId) : brandsQuery,
+          storeId ? storageQuery.eq("store_id", storeId) : storageQuery,
         ]);
         if (productsRes.error) throw productsRes.error;
         if (ingredientsRes.error) throw ingredientsRes.error;
         setProducts((productsRes.data ?? []) as ProductRow[]);
         setIngredients((ingredientsRes.data ?? []) as IngredientRow[]);
         setBrands((brandsRes.data ?? []) as BrandRow[]);
+        setStorageConfigs((storageRes.data ?? []) as StorageConfigRow[]);
         setSelectedProductId((current) => current || productsRes.data?.[0]?.id || "");
         setSelectedIngredientId((current) => current || ingredientsRes.data?.[0]?.id || "");
       } catch (error) {
@@ -244,7 +246,7 @@ const AdminLabels = () => {
     setCopies(String(label.copies));
     setLabelWidthMm(String(label.width_mm));
     setLabelHeightMm(String(label.height_mm));
-    setStorageType(label.storage_type as StorageType);
+    setStorageType(label.storage_type);
     setStorageTemp(label.storage_temp);
     setStoragePhrase(label.storage_phrase);
     setSaveLabel(true);
@@ -255,12 +257,7 @@ const AdminLabels = () => {
   };
 
   const handleReprintSaved = (label: SavedLabel) => {
-    const storageLabel = (type: StorageType) => {
-      if (type === "resfriado") return "RESFRIADO";
-      if (type === "congelado") return "CONGELADO";
-      if (type === "ambiente") return "AMBIENTE";
-      return "";
-    };
+    const storageLabel = (type: string) => type ? type.toUpperCase() : "";
 
     const newLabel: GeneratedLabel = {
       id: nextLabelId(),
@@ -274,7 +271,7 @@ const AdminLabels = () => {
       copies: label.copies,
       widthMm: label.width_mm,
       heightMm: label.height_mm,
-      storageType: label.storage_type as StorageType,
+      storageType: label.storage_type,
       storageTemp: label.storage_temp,
       storagePhrase: label.storage_phrase,
       brand: label.brand,
@@ -349,12 +346,7 @@ const AdminLabels = () => {
     const widthMm = firstLabel.widthMm;
     const heightMm = firstLabel.heightMm;
 
-    const storageLabel = (type: StorageType) => {
-      if (type === "resfriado") return "RESFRIADO";
-      if (type === "congelado") return "CONGELADO";
-      if (type === "ambiente") return "AMBIENTE";
-      return "";
-    };
+    const storageLabel = (type: string) => type ? type.toUpperCase() : "";
 
     const batchItems: BatchSection[] = labelQueue.flatMap((label) =>
       Array.from({ length: label.copies }, () => ({
@@ -465,10 +457,13 @@ const AdminLabels = () => {
             <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
               <Label className="text-sm font-semibold">Tipo de armazenamento (opcional)</Label>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant={storageType === "" ? "default" : "outline"} onClick={() => { setStorageType(""); setStoragePhrase(""); }}>Nenhum</Button>
-                <Button type="button" variant={storageType === "resfriado" ? "default" : "outline"} onClick={() => { setStorageType("resfriado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.resfriado); }}>🧊 Resfriado</Button>
-                <Button type="button" variant={storageType === "congelado" ? "default" : "outline"} onClick={() => { setStorageType("congelado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.congelado); }}>❄️ Congelado</Button>
-                <Button type="button" variant={storageType === "ambiente" ? "default" : "outline"} onClick={() => { setStorageType("ambiente"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.ambiente); }}>🌡️ Ambiente</Button>
+                <Button type="button" variant={storageType === "" ? "default" : "outline"} onClick={() => { setStorageType(""); setStoragePhrase(""); setStorageTemp(""); }}>Nenhum</Button>
+                {storageConfigs.map((cfg) => (
+                  <Button key={cfg.id} type="button" variant={storageType === cfg.name.toLowerCase() ? "default" : "outline"} onClick={() => { setStorageType(cfg.name.toLowerCase()); setStoragePhrase(cfg.default_phrase); setStorageTemp(cfg.default_temp); }}>
+                    {cfg.emoji} {cfg.name}
+                  </Button>
+                ))}
+                {storageConfigs.length === 0 && <span className="text-xs text-muted-foreground">Cadastre tipos em Cadastros → Armazenamento</span>}
               </div>
               {storageType && (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -535,7 +530,7 @@ const AdminLabels = () => {
                         <div className="text-xs text-muted-foreground">
                           {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
                           {label.brand ? ` · ${label.brand}` : ""}
-                          {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
+                          {label.storageType ? ` · ${storageConfigs.find(c => c.name.toLowerCase() === label.storageType)?.emoji || "📦"} ${label.storageType}` : ""}
                           {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                         </div>
                       </div>
