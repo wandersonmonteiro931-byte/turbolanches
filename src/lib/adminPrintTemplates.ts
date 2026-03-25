@@ -476,8 +476,8 @@ export const buildAdminPrintDocument = ({
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; }
