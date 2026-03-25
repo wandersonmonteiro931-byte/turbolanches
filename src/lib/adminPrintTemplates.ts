@@ -12,8 +12,16 @@ const TAG_RULES = [
 ] as const;
 
 const WRAPPER_RULES = [
-  { marker: "[QUADRADONEGRITO]", close: "[/QUADRADONEGRITO]", className: "print-frame-strong" },
-  { marker: "[QUADRADO]", close: "[/QUADRADO]", className: "print-frame" },
+  {
+    tokens: ["[QUADRADONEGRITO]", "[quadradonegrito]"],
+    closeTokens: ["[/QUADRADONEGRITO]", "[/quadradonegrito]"],
+    className: "print-frame-strong",
+  },
+  {
+    tokens: ["[QUADRADO]", "[quadrado]"],
+    closeTokens: ["[/QUADRADO]", "[/quadrado]"],
+    className: "print-frame",
+  },
 ] as const;
 
 export interface BuildAdminPrintDocumentOptions {
@@ -39,6 +47,11 @@ export interface BatchSection {
   blocks?: Record<string, string | undefined>;
 }
 
+export interface TemplateSection {
+  content: string;
+  wrapperClass: string;
+}
+
 const unique = (values: string[]) => Array.from(new Set(values));
 
 export const escapeHtml = (value: string) =>
@@ -56,18 +69,89 @@ export const escapeHtml = (value: string) =>
 
 const replaceAllToken = (value: string, search: string, replacement: string) => value.split(search).join(replacement);
 
-const extractTemplateWrapper = (template: string) => {
-  const matchedRule = WRAPPER_RULES.find((rule) => template.includes(rule.marker) || template.includes(rule.close));
+const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
-  const cleanedTemplate = WRAPPER_RULES.reduce(
-    (currentTemplate, rule) => replaceAllToken(replaceAllToken(currentTemplate, rule.marker, ""), rule.close, ""),
-    template,
-  );
+const findNextWrapperToken = (template: string, startIndex: number) => {
+  let nextMatch:
+    | {
+        index: number;
+        token: string;
+        kind: "toggle" | "close";
+        rule: (typeof WRAPPER_RULES)[number];
+      }
+    | null = null;
 
-  return {
-    cleanedTemplate: cleanedTemplate.trim(),
-    wrapperClass: matchedRule?.className ?? "",
+  WRAPPER_RULES.forEach((rule) => {
+    rule.tokens.forEach((token) => {
+      const index = template.indexOf(token, startIndex);
+      if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
+        nextMatch = { index, token, kind: "toggle", rule };
+      }
+    });
+
+    rule.closeTokens.forEach((token) => {
+      const index = template.indexOf(token, startIndex);
+      if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
+        nextMatch = { index, token, kind: "close", rule };
+      }
+    });
+  });
+
+  return nextMatch;
+};
+
+export const extractTemplateSections = (template: string): TemplateSection[] => {
+  const sections: TemplateSection[] = [];
+  let activeRule: (typeof WRAPPER_RULES)[number] | null = null;
+  let cursor = 0;
+  let buffer = "";
+
+  const pushBuffer = () => {
+    const content = trimEmptyEdges(buffer);
+    if (!content.trim()) {
+      buffer = "";
+      return;
+    }
+
+    sections.push({
+      content,
+      wrapperClass: activeRule?.className ?? "",
+    });
+
+    buffer = "";
   };
+
+  while (cursor < template.length) {
+    const nextMatch = findNextWrapperToken(template, cursor);
+
+    if (!nextMatch) {
+      buffer += template.slice(cursor);
+      break;
+    }
+
+    buffer += template.slice(cursor, nextMatch.index);
+    pushBuffer();
+
+    if (nextMatch.kind === "close") {
+      if (activeRule?.className === nextMatch.rule.className) {
+        activeRule = null;
+      }
+    } else if (activeRule?.className === nextMatch.rule.className) {
+      activeRule = null;
+    } else {
+      activeRule = nextMatch.rule;
+    }
+
+    cursor = nextMatch.index + nextMatch.token.length;
+  }
+
+  pushBuffer();
+
+  if (sections.length === 0) {
+    return [{ content: template.trim(), wrapperClass: "" }];
+  }
+
+  return sections;
 };
 
 const replaceVariables = (input: string, variables: Record<string, string | number | null | undefined>) => {
@@ -190,13 +274,22 @@ export const buildAdminPrintDocument = ({
   sectionBorder = "none",
   extraCss = "",
 }: BuildAdminPrintDocumentOptions) => {
-  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(template);
+  const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const sections = Array.from({ length: Math.max(1, repeatCount) }, () => {
-    const content = renderAdminTemplateMarkup(cleanedTemplate, variables, blocks);
-    const pageClasses = ["print-page", wrapperClass].filter(Boolean).join(" ");
-    return `<section class="${pageClasses}" style="width:${pageWidthMm}mm;${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${content}</section>`;
+  const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
+    const content = templateSections
+      .map(({ content: sectionTemplate, wrapperClass }) => {
+        const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
+        if (!markup) return "";
+
+        const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
+        return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
+      })
+      .filter(Boolean)
+      .join("");
+
+    return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
   }).join("");
 
   return `<!DOCTYPE html>
@@ -212,7 +305,7 @@ export const buildAdminPrintDocument = ({
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-page { page-break-inside: avoid; }
+          .print-document { page-break-inside: avoid; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff; color: #000000; }
@@ -228,9 +321,10 @@ export const buildAdminPrintDocument = ({
           text-rendering: geometricPrecision;
         }
         .print-root { display: flex; flex-direction: column; gap: 0; }
-        .print-page { display: block; overflow: hidden; background: #ffffff; }
-        .print-page + .print-page { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
-        .print-page:last-child { page-break-after: auto; break-after: auto; }
+        .print-document { display: block; overflow: hidden; background: #ffffff; }
+        .print-document + .print-document { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
+        .print-document:last-child { page-break-after: auto; break-after: auto; }
+        .print-section { display: block; overflow: hidden; }
         .print-frame { border: 1.5px solid #000 !important; }
         .print-frame-strong { border: 3px solid #000 !important; }
         .center { text-align: center; }
@@ -253,7 +347,7 @@ export const buildAdminPrintDocument = ({
       </style>
     </head>
     <body>
-      <main class="print-root">${sections}</main>
+      <main class="print-root">${documents}</main>
       <script>window.onload = function () { window.print(); };</script>
     </body>
   </html>`;
@@ -278,17 +372,26 @@ export const buildBatchPrintDocument = (
     extraCss = "",
   } = base;
 
-  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(template);
+  const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
 
-  const sections = items
+  const documents = items
     .map((item) => {
       const mergedVars = { ...(base.variables ?? {}), ...(item.variables ?? {}) };
       const mergedBlocks = { ...(base.blocks ?? {}), ...(item.blocks ?? {}) };
-      const content = renderAdminTemplateMarkup(cleanedTemplate, mergedVars, mergedBlocks);
-      const cls = ["print-page", wrapperClass].filter(Boolean).join(" ");
-      return `<section class="${cls}" style="width:${pageWidthMm}mm;${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${content}</section>`;
+      const content = templateSections
+        .map(({ content: sectionTemplate, wrapperClass }) => {
+          const markup = renderAdminTemplateMarkup(sectionTemplate, mergedVars, mergedBlocks);
+          if (!markup) return "";
+
+          const cls = ["print-section", wrapperClass].filter(Boolean).join(" ");
+          return `<section class="${cls}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
+        })
+        .filter(Boolean)
+        .join("");
+
+      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
     })
     .join("");
 
@@ -320,8 +423,9 @@ export const buildBatchPrintDocument = (
           text-rendering: geometricPrecision;
         }
         .print-root { display: flex; flex-direction: column; gap: 0; }
-        .print-page { display: block; overflow: hidden; background: #ffffff; }
-        .print-page + .print-page { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
+        .print-document { display: block; overflow: hidden; background: #ffffff; }
+        .print-document + .print-document { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
+        .print-section { display: block; overflow: hidden; }
         .print-frame { border: 1.5px solid #000 !important; }
         .print-frame-strong { border: 3px solid #000 !important; }
         .center { text-align: center; }
@@ -344,7 +448,7 @@ export const buildBatchPrintDocument = (
       </style>
     </head>
     <body>
-      <main class="print-root">${sections}</main>
+      <main class="print-root">${documents}</main>
       <script>window.onload = function () { window.print(); };</script>
     </body>
   </html>`;

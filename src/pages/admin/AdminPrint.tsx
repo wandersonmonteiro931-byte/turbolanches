@@ -3,11 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
-
-const WRAPPER_RULES = [
-  { marker: "[QUADRADONEGRITO]", close: "[/QUADRADONEGRITO]", className: "print-frame-strong" },
-  { marker: "[QUADRADO]", close: "[/QUADRADO]", className: "print-frame" },
-] as const;
+import { extractTemplateSections } from "@/lib/adminPrintTemplates";
 
 const TAG_RULES = [
   { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
@@ -21,20 +17,6 @@ const TAG_RULES = [
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
   { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
 ] as const;
-
-const extractTemplateWrapper = (template: string) => {
-  const matchedRule = WRAPPER_RULES.find((rule) => template.includes(rule.marker) || template.includes(rule.close));
-
-  const cleanedTemplate = WRAPPER_RULES.reduce(
-    (currentTemplate, rule) => currentTemplate.split(rule.marker).join("").split(rule.close).join(""),
-    template,
-  );
-
-  return {
-    cleanedTemplate: cleanedTemplate.trim(),
-    wrapperClass: matchedRule?.className ?? "",
-  };
-};
 
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
@@ -323,8 +305,7 @@ const AdminPrint = () => {
 
   const bodyTemplate = tpl?.body_template || "";
   const rawTemplateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
-  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(rawTemplateToRender);
-  const templateToRender = cleanedTemplate || getDefaultTemplate(resolvedType);
+  const templateSections = extractTemplateSections(rawTemplateToRender);
 
   const styles = `
     @page { size: 72mm auto portrait; margin: 0 !important; padding: 0 !important; }
@@ -344,6 +325,7 @@ const AdminPrint = () => {
     }
     .center { text-align: center; }
     .print-shell { display: block; }
+    .print-section { display: block; overflow: hidden; }
     .print-frame { border: 1.5px solid #000; padding: 1.5mm; }
     .print-frame-strong { border: 3px solid #000; padding: 1.5mm; }
     .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
@@ -386,7 +368,13 @@ const AdminPrint = () => {
     <>
       <style>{styles}</style>
       <div>
-        <div className={["print-shell", wrapperClass].filter(Boolean).join(" ")}>{renderTemplate(templateToRender)}</div>
+        <div className="print-shell">
+          {templateSections.map((section, index) => (
+            <section key={`${section.wrapperClass}-${index}`} className={["print-section", section.wrapperClass].filter(Boolean).join(" ")}>
+              {renderTemplate(section.content)}
+            </section>
+          ))}
+        </div>
         <div className="print-end">&nbsp;</div>
       </div>
     </>
