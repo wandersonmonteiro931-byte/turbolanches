@@ -3,6 +3,9 @@
   <head>
     <script>
       (function () {
+        if (typeof __LOVA_FIX_TRIGGER__ === "undefined") {
+          var __LOVA_FIX_TRIGGER__ = false;
+        }
         var scope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
         try {
           if (!Object.prototype.hasOwnProperty.call(scope, "__LOVA_FIX_TRIGGER__")) {
