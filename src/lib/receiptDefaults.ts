@@ -49,10 +49,35 @@ PAGAMENTO: [FORMAPAGTO]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_ETIQUETAS = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+---
+PRODUTO: [PRODUTO]
+FABRICAÇÃO: [DATAFABRICACAO]
+VALIDADE: [VALIDADE]
+RESP: [RESPONSAVEL]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
+export const DEFAULT_REPOSICAO = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+---
+LISTA: [TITULO]
+GERADA EM: [DATAHORA]
+ITENS MARCADOS: [TOTALITENS]
+ESTIMATIVA: [TOTAL_ESTIMADO]
+[OBS]
+---
+[LISTA]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
     case "pedido": return DEFAULT_PEDIDO;
     case "obrigado": return DEFAULT_OBRIGADO;
+    case "etiquetas": return DEFAULT_ETIQUETAS;
+    case "reposicao": return DEFAULT_REPOSICAO;
     // Legacy fallbacks
     case "cozinha": return DEFAULT_PEDIDO;
     case "entrega": return DEFAULT_PEDIDO;

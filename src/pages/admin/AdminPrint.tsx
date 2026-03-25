@@ -245,7 +245,7 @@ const AdminPrint = () => {
     @media print {
       html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }
-      iframe, [data-lovable], a[href*="lovable"] { display: none !important; }
+      iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
       body > *:not(#root):not(style) { display: none !important; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }

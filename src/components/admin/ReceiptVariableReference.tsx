@@ -31,6 +31,14 @@ const VARIABLES = [
   { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA" },
   { key: "[RODAPÉ]", desc: "Mensagem de rodapé (campo editável)" },
   { key: "[DIVULGAÇÃO]", desc: "Mensagem promocional (campo editável)" },
+  { key: "[PRODUTO]", desc: "Nome do produto/ingrediente da etiqueta" },
+  { key: "[DATAFABRICACAO]", desc: "Data de fabricação da etiqueta" },
+  { key: "[VALIDADE]", desc: "Data de validade da etiqueta" },
+  { key: "[RESPONSAVEL]", desc: "Responsável pela produção/preparo" },
+  { key: "[TITULO]", desc: "Título da lista de reposição" },
+  { key: "[TOTALITENS]", desc: "Quantidade total de itens marcados" },
+  { key: "[TOTAL_ESTIMADO]", desc: "Soma estimada da compra" },
+  { key: "[LISTA]", desc: "Lista dinâmica da reposição com item + quantidade" },
 ];
 
 const FORMATTING = [

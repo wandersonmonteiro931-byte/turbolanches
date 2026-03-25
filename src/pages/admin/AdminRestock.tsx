@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCheck, ClipboardList, History, Printer, RefreshCw, Search, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useReceiptTemplates } from "@/hooks/useReceiptTemplates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { buildAdminPrintDocument, escapeHtml } from "@/lib/adminPrintTemplates";
+import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { cn } from "@/lib/utils";
 
 interface RestockList {
@@ -47,9 +51,6 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-const escapeHtml = (value: string) =>
-  value.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;").split("'").join("&#39;");
-
 const formatCurrency = (value: number) => currencyFormatter.format(Number.isFinite(value) ? value : 0);
 
 const formatQuantity = (value: number) =>
@@ -58,56 +59,12 @@ const formatQuantity = (value: number) =>
     maximumFractionDigits: 2,
   });
 
-const buildCleanShoppingListHTML = (title: string, items: RestockItem[]) => {
-  const rows = items
-    .map(
-      (item) => `
-        <tr>
-          <td>${escapeHtml(item.ingredient_name)}</td>
-          <td>${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit}`)}</td>
-        </tr>
-      `,
-    )
-    .join("");
-
-  return `<!DOCTYPE html>
-  <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>${escapeHtml(title)}</title>
-      <style>
-        @page { size: auto; margin: 6mm; }
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: #111111; background: #ffffff; }
-        .sheet { max-width: 480px; margin: 0 auto; padding: 8px; }
-        h1 { margin: 0 0 4px; font-size: 22px; }
-        p { margin: 0 0 16px; font-size: 13px; color: #525252; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px 0; border-bottom: 1px solid #d4d4d4; text-align: left; font-size: 15px; }
-        th:last-child, td:last-child { text-align: right; }
-        @media print { .sheet { max-width: none; padding: 0; } }
-      </style>
-    </head>
-    <body>
-      <main class="sheet">
-        <h1>${escapeHtml(title)}</h1>
-        <p>Lista limpa para compra • ${new Date().toLocaleString("pt-BR")}</p>
-        <table>
-          <thead><tr><th>Item</th><th>Quantidade</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </main>
-      <script>window.onload = function () { window.print(); };</script>
-    </body>
-  </html>`;
-};
-
 const AdminRestock = () => {
   const db = supabase as any;
   const { toast } = useToast();
   const { storeId } = useStore();
   const { user } = useAuth();
+  const { data: templates } = useReceiptTemplates();
 
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -389,6 +346,7 @@ const AdminRestock = () => {
   const selectedHistoryItems = selectedHistoryId ? historyItemsByList[selectedHistoryId] ?? [] : [];
   const activeList = view === "history" ? selectedHistoryList : draftList;
   const activeItems = view === "history" ? selectedHistoryItems.filter((item) => item.checked) : currentSelectedItems;
+  const printTemplate = templates?.find((template) => template.template_type === "reposicao");
 
   const estimatedTotal = currentSelectedItems.reduce(
     (sum, item) => sum + Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)),
@@ -416,7 +374,42 @@ const AdminRestock = () => {
     }
 
     printWindow.document.open();
-    printWindow.document.write(buildCleanShoppingListHTML(activeList.title || "Lista de compras", activeItems));
+    printWindow.document.write(
+      buildAdminPrintDocument({
+        title: activeList.title || "Lista de compras",
+        template: printTemplate?.body_template || getDefaultTemplate("reposicao"),
+        variables: {
+          "[NOMELOJA]": printTemplate?.store_name || "TURBO LANCHES",
+          "[TIPOCOMANDA]": printTemplate?.label || "LISTA DE COMPRAS",
+          "[TITULO]": activeList.title || "Lista de compras",
+          "[DATAHORA]": new Date(activeList.closed_at ?? activeList.updated_at ?? Date.now()).toLocaleString("pt-BR"),
+          "[TOTALITENS]": String(activeItems.length),
+          "[TOTAL_ESTIMADO]": formatCurrency(
+            activeItems.reduce(
+              (sum, item) => sum + Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)),
+              0,
+            ),
+          ),
+          "[OBS]": activeList.notes?.trim() ? `OBS: ${activeList.notes.trim()}` : "",
+          "[RODAPÉ]": printTemplate?.footer_message || "",
+          "[DIVULGAÇÃO]": printTemplate?.custom_message || "",
+        },
+        blocks: {
+          "[LISTA]": `<div class="list-block">${activeItems
+            .map(
+              (item) => `<div class="list-row"><span class="list-name">${escapeHtml(item.ingredient_name)}</span><span class="list-qty">${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit}`)}</span></div>`,
+            )
+            .join("")}</div>`,
+        },
+        pageWidthMm: 72,
+        pageHeightMm: "auto",
+        pageMarginMm: 3,
+        bodyFontFamily: "Arial, sans-serif",
+        bodyFontSizePx: printTemplate?.items_font_size || 12,
+        bodyPaddingMm: 1,
+        sectionPaddingMm: 1.5,
+      }),
+    );
     printWindow.document.close();
   };
 
@@ -446,6 +439,9 @@ const AdminRestock = () => {
             <Button variant="outline" onClick={handleRefresh} disabled={syncing}>
               <RefreshCw className={cn(syncing && "animate-spin")} />
               Atualizar itens
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/admin/comandas?tipo=reposicao">Editar modelo de impressão</Link>
             </Button>
             <Button variant="outline" onClick={handlePrintCleanList}>
               <Printer />
