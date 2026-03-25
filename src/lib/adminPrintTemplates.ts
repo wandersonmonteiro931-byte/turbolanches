@@ -616,8 +616,7 @@ export const buildBatchPrintDocument = (
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
         .list-qty { white-space: nowrap; }
-        .print-section,
-        .print-section * { max-width: 100%; }
+        .print-section { max-width: 100%; }
         .info,
         .grand-total,
         .txt-medio,
@@ -626,7 +625,7 @@ export const buildBatchPrintDocument = (
         .tipo-label,
         .pedido-destaque,
         .box-highlight,
-        .list-name { overflow-wrap: anywhere; word-break: break-word; }
+        .list-name { overflow-wrap: break-word; white-space: normal; }
         ${extraCss}
       </style>
     </head>
