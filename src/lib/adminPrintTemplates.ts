@@ -10,6 +10,11 @@ const TAG_RULES = [
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
 ] as const;
 
+const WRAPPER_RULES = [
+  { marker: "[QUADRADONEGRITO]", close: "[/QUADRADONEGRITO]", className: "print-frame-strong" },
+  { marker: "[QUADRADO]", close: "[/QUADRADO]", className: "print-frame" },
+] as const;
+
 export interface BuildAdminPrintDocumentOptions {
   title: string;
   template: string;
@@ -44,6 +49,20 @@ export const escapeHtml = (value: string) =>
     .join("&#39;");
 
 const replaceAllToken = (value: string, search: string, replacement: string) => value.split(search).join(replacement);
+
+const extractTemplateWrapper = (template: string) => {
+  const matchedRule = WRAPPER_RULES.find((rule) => template.includes(rule.marker) || template.includes(rule.close));
+
+  const cleanedTemplate = WRAPPER_RULES.reduce(
+    (currentTemplate, rule) => replaceAllToken(replaceAllToken(currentTemplate, rule.marker, ""), rule.close, ""),
+    template,
+  );
+
+  return {
+    cleanedTemplate: cleanedTemplate.trim(),
+    wrapperClass: matchedRule?.className ?? "",
+  };
+};
 
 const replaceVariables = (input: string, variables: Record<string, string | number | null | undefined>) => {
   let output = input;
@@ -129,11 +148,13 @@ export const buildAdminPrintDocument = ({
   sectionBorder = "none",
   extraCss = "",
 }: BuildAdminPrintDocumentOptions) => {
+  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
   const sections = Array.from({ length: Math.max(1, repeatCount) }, () => {
-    const content = renderAdminTemplateMarkup(template, variables, blocks);
-    return `<section class="print-page" style="width:${pageWidthMm}mm;${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${content}</section>`;
+    const content = renderAdminTemplateMarkup(cleanedTemplate, variables, blocks);
+    const pageClasses = ["print-page", wrapperClass].filter(Boolean).join(" ");
+    return `<section class="${pageClasses}" style="width:${pageWidthMm}mm;${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${content}</section>`;
   }).join("");
 
   return `<!DOCTYPE html>
@@ -167,6 +188,8 @@ export const buildAdminPrintDocument = ({
         .print-root { display: flex; flex-direction: column; gap: ${Math.max(0, pageMarginMm)}mm; }
         .print-page { display: block; page-break-after: always; break-after: page; overflow: hidden; background: #ffffff; }
         .print-page:last-child { page-break-after: auto; break-after: auto; }
+        .print-frame { border: 1.5px solid #000 !important; }
+        .print-frame-strong { border: 3px solid #000 !important; }
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }

@@ -52,6 +52,8 @@ const FORMATTING = [
   { marker: "[TXTPEQUENO]texto[/TXTPEQUENO]", desc: "Texto menor" },
   { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande em negrito" },
   { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco em destaque com fundo preto e negrito" },
+  { marker: "[QUADRADO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado fino" },
+  { marker: "[QUADRADONEGRITO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado com borda grossa" },
 ];
 
 const ReceiptVariableReference = () => {
