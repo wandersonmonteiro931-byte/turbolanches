@@ -2,24 +2,29 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
+      var __LOVA_FIX_TRIGGER__ = false;
       (function(){
         try {
-          var s = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
-          if (typeof s.__LOVA_FIX_TRIGGER__ === "undefined") {
-            Object.defineProperty(s, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: false });
-          }
-          if (typeof window !== "undefined" && typeof window.__LOVA_FIX_TRIGGER__ === "undefined") {
-            Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: false });
-          }
-          if (typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ === "undefined") {
-            Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: false });
-          }
+          var scopes = [];
+          if (typeof globalThis !== "undefined") scopes.push(globalThis);
+          if (typeof window !== "undefined") scopes.push(window);
+          if (typeof self !== "undefined") scopes.push(self);
+
+          scopes.forEach(function (scope) {
+            if (!scope) return;
+            if (typeof scope.__LOVA_FIX_TRIGGER__ === "undefined") {
+              Object.defineProperty(scope, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: false });
+              return;
+            }
+
+            scope.__LOVA_FIX_TRIGGER__ = Boolean(scope.__LOVA_FIX_TRIGGER__);
+          });
         } catch (e) {}
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v55";
+        var PUSH_SW_URL = "/push-sw.js?v58";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -58,6 +63,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=55"></script>
+    <script type="module" src="/src/main.tsx?v=58"></script>
   </body>
 </html>
