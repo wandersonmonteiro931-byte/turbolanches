@@ -18,6 +18,18 @@ const TAG_RULES = [
   { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
 ] as const;
 
+const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
+const ITEM_TEMPLATE_TOKENS = [
+  ...ITEM_BLOCK_TOKENS,
+  "[PRODUTO]",
+  "[PRODUTOS]",
+  "[QNTITENS]",
+  "[QUANTIDADEPROD]",
+  "[VALORITEM]",
+  "[PREÇOPROD]",
+  "[OBSITEM]",
+] as const;
+
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -206,6 +218,24 @@ const AdminPrint = () => {
     return content.replace(/\[CENTRO\]/g, "").trim();
   };
 
+  const hasItemTemplateTokens = (text: string) => ITEM_TEMPLATE_TOKENS.some((token) => text.includes(token));
+
+  const removeItemBlockTokens = (text: string) =>
+    ITEM_BLOCK_TOKENS.reduce((content, token) => content.split(token).join(""), text);
+
+  const shouldHideOptionalItemLine = (rawLine: string, mergedVars: Record<string, string>) => {
+    if (!rawLine.includes("[OBSITEM]")) return false;
+
+    const itemObservation = mergedVars["[OBSITEM]"] ?? "";
+    if (itemObservation.trim()) return false;
+
+    const remainingContent = stripFormattingTags(rawLine.replace(/\[OBSITEM\]/g, ""))
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return !remainingContent || /^obs(item)?\s*:?$/i.test(remainingContent);
+  };
+
   const renderProcessedLine = (
     rawLine: string,
     key: string | number,
@@ -213,6 +243,8 @@ const AdminPrint = () => {
   ) => {
     let content = rawLine;
     const mergedVars = { ...varMap, ...extraVars };
+
+    if (shouldHideOptionalItemLine(rawLine, mergedVars)) return null;
 
     for (let pass = 0; pass < 2; pass++) {
       for (const [token, value] of Object.entries(mergedVars)) {
@@ -260,14 +292,14 @@ const AdminPrint = () => {
   );
 
   const getTemplateForItemsLine = (rawLine: string) => {
-    const lineWithoutItems = rawLine.replace(/\[ITENS\]/g, "").trim();
+    const lineWithoutItems = removeItemBlockTokens(rawLine).trim();
 
     if (!lineWithoutItems) return null;
 
     const visibleContent = stripFormattingTags(lineWithoutItems);
     if (visibleContent) return lineWithoutItems;
 
-    return rawLine.replace(/\[ITENS\]/g, "[QNTITENS]x [PRODUTO] - [VALORITEM]").trim();
+    return null;
   };
 
   const renderItemsFromTemplateLine = (line: string, keyPrefix: string | number) => {
@@ -288,6 +320,7 @@ const AdminPrint = () => {
             "[QUANTIDADEPROD]": String(item.quantity),
             "[VALORITEM]": fmt(lineTotal),
             "[PREÇOPROD]": fmt(Number(item.unit_price)),
+            "[OBSITEM]": item.observations?.trim() || "",
           });
         })}
       </Fragment>
@@ -301,7 +334,7 @@ const AdminPrint = () => {
     return lines.map((rawLine, i) => {
       const line = rawLine.trimEnd();
       if (line.trim() === "---") return <div key={i} className="separator" />;
-      if (line.includes("[ITENS]")) return renderItemsFromTemplateLine(line, i);
+      if (hasItemTemplateTokens(line)) return renderItemsFromTemplateLine(line, i);
       return renderProcessedLine(line, i);
     });
   };
