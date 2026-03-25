@@ -3,8 +3,14 @@ declare global {
 }
 
 try {
-  if (typeof globalThis.__LOVA_FIX_TRIGGER__ === "undefined") {
-    (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
+  const scope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : (typeof self !== "undefined" ? self : ({} as any));
+  if (scope.__LOVA_FIX_TRIGGER__ === undefined) {
+    Object.defineProperty(scope, "__LOVA_FIX_TRIGGER__", {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: false,
+    });
   }
 } catch {
   // silently ignore
