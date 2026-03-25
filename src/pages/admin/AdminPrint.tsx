@@ -81,8 +81,10 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     margin: 1.5px 0 !important;
   }
   .txt-borda-preta {
-    display: inline !important;
-    padding: 0.5mm 2mm !important;
+    display: block !important;
+    width: 100% !important;
+    margin: 1.5px 0 !important;
+    padding: 1mm 2mm !important;
     background: #000 !important;
     color: #fff !important;
     font-weight: 900 !important;
