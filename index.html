@@ -2,29 +2,6 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-      (function (value) {
-        var targets = [
-          typeof globalThis !== "undefined" ? globalThis : null,
-          typeof window !== "undefined" ? window : null,
-          typeof self !== "undefined" ? self : null,
-        ];
-
-        targets.forEach(function (target) {
-          if (!target) return;
-          try {
-            Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
-              value: value,
-              configurable: true,
-              writable: true,
-            });
-          } catch (e) {
-            target.__LOVA_FIX_TRIGGER__ = value;
-          }
-        });
-      })(__LOVA_FIX_TRIGGER__);
-    </script>
-    <script>
       (function () {
         var PUSH_SW_URL = "/push-sw.js?v43";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
