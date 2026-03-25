@@ -127,33 +127,43 @@ const AdminPrint = () => {
     ? `${order.coupon_code} (-${fmt(discount)})`
     : "Nenhum";
 
+  const varMap: Record<string, string> = {
+    "[NUMEROPEDIDO]": `#${String(order.order_number).padStart(5, '0')}`,
+    "[NOMECLIENTE]": displayName || "Não informado",
+    "[CODIGOCLIENTE]": customerCode,
+    "[TELEFONECLIENTE]": displayPhone || "Não informado",
+    "[ENDEREÇO]": address,
+    "[FORMAPAGTO]": `${order.payment_method?.toUpperCase()} - ${paymentLabel}`,
+    "[TOTALRECEBER]": fmt(totalReceber),
+    "[TOTALPAGO]": fmt(totalPago),
+    "[SUBTOTAL]": fmt(subtotal),
+    "[TOTAL]": fmt(total),
+    "[TAXAENTREGA]": fmt(deliveryFee),
+    "[DESCONTO]": fmt(discount),
+    "[CUPOM]": couponInfo,
+    "[TROCO]": troco > 0 ? fmt(troco) : "R$ 0,00",
+    "[NOMELOJA]": storeName,
+    "[TIPOCOMANDA]": tipoLabel,
+    "[DATAHORA]": dataAgora,
+    "[DATAAGORA]": dataAgora,
+    "[DATAHORAPEDIDO]": dataHoraPedido,
+    "[DATAHORAENTREGA]": horarioMax,
+    "[DATAHORASAÍDAENTREGA]": horarioSaida,
+    "[OBS]": obsText ? `OBS: ${obsText}` : "",
+    "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
+    "[RODAPÉ]": rodape,
+    "[DIVULGAÇÃO]": divulgacao,
+  };
+
   const replaceVars = (text: string): string => {
-    return text
-      .replace(/\[NUMEROPEDIDO\]/g, `#${String(order.order_number).padStart(5, '0')}`)
-      .replace(/\[NOMECLIENTE\]/g, displayName || "Não informado")
-      .replace(/\[CODIGOCLIENTE\]/g, customerCode)
-      .replace(/\[TELEFONECLIENTE\]/g, displayPhone || "Não informado")
-      .replace(/\[ENDEREÇO\]/g, address)
-      .replace(/\[FORMAPAGTO\]/g, `${order.payment_method?.toUpperCase()} - ${paymentLabel}`)
-      .replace(/\[TOTALRECEBER\]/g, fmt(totalReceber))
-      .replace(/\[TOTALPAGO\]/g, fmt(totalPago))
-      .replace(/\[SUBTOTAL\]/g, fmt(subtotal))
-      .replace(/\[TOTAL\]/g, fmt(total))
-      .replace(/\[TAXAENTREGA\]/g, fmt(deliveryFee))
-      .replace(/\[DESCONTO\]/g, fmt(discount))
-      .replace(/\[CUPOM\]/g, couponInfo)
-      .replace(/\[TROCO\]/g, troco > 0 ? fmt(troco) : "R$ 0,00")
-      .replace(/\[NOMELOJA\]/g, storeName)
-      .replace(/\[TIPOCOMANDA\]/g, tipoLabel)
-      .replace(/\[DATAHORA\]/g, dataAgora)
-      .replace(/\[DATAAGORA\]/g, dataAgora)
-      .replace(/\[DATAHORAPEDIDO\]/g, dataHoraPedido)
-      .replace(/\[DATAHORAENTREGA\]/g, horarioMax)
-      .replace(/\[DATAHORASAÍDAENTREGA\]/g, horarioSaida)
-      .replace(/\[OBS\]/g, obsText ? `OBS: ${obsText}` : "")
-      .replace(/\[DELIVERYRETIRADAVIAGEM\]/g, deliveryLabel)
-      .replace(/\[RODAPÉ\]/g, rodape)
-      .replace(/\[DIVULGAÇÃO\]/g, divulgacao);
+    let result = text;
+    // Two passes to allow variables inside configured fields (e.g. footer containing [NUMEROPEDIDO])
+    for (let pass = 0; pass < 2; pass++) {
+      for (const [key, val] of Object.entries(varMap)) {
+        result = result.split(key).join(val);
+      }
+    }
+    return result;
   };
 
   // ─── Items renderer ───
@@ -241,7 +251,7 @@ const AdminPrint = () => {
   const templateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
 
   const styles = `
-    @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
+    @page { size: 72mm auto portrait; margin: 0 !important; padding: 0 !important; }
     @media print {
       html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }

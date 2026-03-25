@@ -48,9 +48,12 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 const replaceVariables = (input: string, variables: Record<string, string | number | null | undefined>) => {
   let output = input;
 
-  Object.entries(variables).forEach(([key, rawValue]) => {
-    output = replaceAllToken(output, key, rawValue == null ? "" : String(rawValue));
-  });
+  // Two passes so variables inside configured fields (store name, footer, etc.) are also resolved
+  for (let pass = 0; pass < 2; pass++) {
+    Object.entries(variables).forEach(([key, rawValue]) => {
+      output = replaceAllToken(output, key, rawValue == null ? "" : String(rawValue));
+    });
+  }
 
   return output;
 };
@@ -140,12 +143,13 @@ export const buildAdminPrintDocument = ({
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>${escapeHtml(title)}</title>
       <style>
-        @page { size: ${pageSize}; margin: ${pageMarginMm}mm !important; }
+        @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; height: auto !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print-page { page-break-inside: avoid; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff; color: #000000; }
