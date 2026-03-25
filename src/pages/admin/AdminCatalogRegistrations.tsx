@@ -27,7 +27,7 @@ const StorageConfigsTab = () => {
   const { toast } = useToast();
   const [items, setItems] = useState<StorageConfig[]>([]);
   const [newName, setNewName] = useState("");
-  const [newEmoji, setNewEmoji] = useState("📦");
+  const [newEmoji, setNewEmoji] = useState("");
   const [newTemp, setNewTemp] = useState("");
   const [newPhrase, setNewPhrase] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,7 +65,7 @@ const StorageConfigsTab = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
-    setNewName(""); setNewEmoji("📦"); setNewTemp(""); setNewPhrase("");
+    setNewName(""); setNewEmoji(""); setNewTemp(""); setNewPhrase("");
     toast({ title: "Tipo de armazenamento adicionado" });
     void fetchItems();
   };
@@ -111,8 +111,8 @@ const StorageConfigsTab = () => {
     <div className="space-y-4">
       <div className="grid gap-2 sm:grid-cols-[60px_1fr_1fr_1fr] items-end">
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-muted-foreground">Emoji</label>
-          <Input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)} placeholder="📦" maxLength={4} />
+          <label className="text-xs font-semibold text-muted-foreground">Emoji <span className="text-muted-foreground/60 font-normal">(opcional)</span></label>
+          <Input value={newEmoji} onChange={(e) => setNewEmoji(e.target.value)} placeholder="Ex: ❄️" maxLength={4} />
         </div>
         <div className="space-y-1">
           <label className="text-xs font-semibold text-muted-foreground">Nome</label>
@@ -150,7 +150,7 @@ const StorageConfigsTab = () => {
                 </div>
               ) : (
                 <>
-                  <span className="text-lg">{item.emoji}</span>
+                  {item.emoji && <span className="text-lg">{item.emoji}</span>}
                   <span className="font-bold text-sm">{item.name}</span>
                   {item.default_temp && <Badge variant="outline">{item.default_temp}°C</Badge>}
                   <span className="flex-1 text-xs text-muted-foreground truncate">{item.default_phrase}</span>
