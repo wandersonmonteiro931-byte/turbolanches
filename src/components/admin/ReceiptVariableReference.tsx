@@ -61,7 +61,7 @@ const FORMATTING = [
   { marker: "[TXTMEDIO]texto[/TXTMEDIO]", desc: "Texto médio" },
   { marker: "[TXTPEQUENO]texto[/TXTPEQUENO]", desc: "Texto menor" },
   { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande" },
-  { marker: "[TXTBORDA]texto[/TXTBORDA]", desc: "Fundo preto, texto branco, ponta a ponta" },
+  { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Fundo preto, texto branco, ponta a ponta" },
   { marker: "[TXTBORDATXT]texto[/TXTBORDATXT]", desc: "Fundo preto, texto branco, apenas ao redor das letras" },
   { marker: "[BORDA]texto[/BORDA]", desc: "Moldura fina ao redor do texto" },
   { marker: "[QUADRADO]", desc: "Bloco com moldura fina (abrir e fechar)" },
