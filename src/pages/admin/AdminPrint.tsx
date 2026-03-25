@@ -9,6 +9,19 @@ const WRAPPER_RULES = [
   { marker: "[QUADRADO]", close: "[/QUADRADO]", className: "print-frame" },
 ] as const;
 
+const TAG_RULES = [
+  { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
+  { open: "[GRANDE]", close: "[/GRANDE]", className: "tipo-label" },
+  { open: "[DESTAQUE]", close: "[/DESTAQUE]", className: "pedido-destaque" },
+  { open: "[CAIXA]", close: "[/CAIXA]", className: "box-highlight" },
+  { open: "[NEGRITO]", close: "[/NEGRITO]", className: "grand-total" },
+  { open: "[TXTMEDIO]", close: "[/TXTMEDIO]", className: "txt-medio" },
+  { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
+  { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
+  { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
+  { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
+] as const;
+
 const extractTemplateWrapper = (template: string) => {
   const matchedRule = WRAPPER_RULES.find((rule) => template.includes(rule.marker) || template.includes(rule.close));
 
@@ -185,6 +198,56 @@ const AdminPrint = () => {
     return result;
   };
 
+  const resolveClasses = (text: string) => {
+    const activeClasses = ["info"];
+
+    TAG_RULES.forEach((rule) => {
+      if (text.includes(rule.open) || text.includes(rule.close)) {
+        activeClasses.push(rule.className);
+      }
+    });
+
+    if (text.includes("[CENTRO]")) {
+      activeClasses.push("center");
+    }
+
+    return Array.from(new Set(activeClasses)).join(" ");
+  };
+
+  const stripFormattingTags = (text: string) => {
+    let content = text;
+
+    TAG_RULES.forEach((rule) => {
+      content = content.split(rule.open).join("").split(rule.close).join("");
+    });
+
+    return content.replace(/\[CENTRO\]/g, "").trim();
+  };
+
+  const renderProcessedLine = (
+    rawLine: string,
+    key: string | number,
+    extraVars: Record<string, string> = {},
+  ) => {
+    let content = rawLine;
+    const mergedVars = { ...varMap, ...extraVars };
+
+    for (let pass = 0; pass < 2; pass++) {
+      for (const [token, value] of Object.entries(mergedVars)) {
+        content = content.split(token).join(value);
+      }
+    }
+
+    content = stripFormattingTags(content);
+    if (!content.trim()) return null;
+
+    return (
+      <div key={key} className={resolveClasses(rawLine)}>
+        {content}
+      </div>
+    );
+  };
+
   // ─── Items renderer ───
   const renderItems = () => (
     <div>
@@ -214,55 +277,36 @@ const AdminPrint = () => {
     </div>
   );
 
+  const renderItemsFromTemplateLine = (line: string, keyPrefix: string | number) => {
+    const itemTemplate = line.replace(/\[ITENS\]/g, "").trim();
+
+    if (!itemTemplate) {
+      return <Fragment key={keyPrefix}>{renderItems()}</Fragment>;
+    }
+
+    return (
+      <Fragment key={keyPrefix}>
+        {items.map((item, itemIndex) => {
+          const lineTotal = Number(item.unit_price) * item.quantity;
+          return renderProcessedLine(itemTemplate, `${keyPrefix}-${item.id}-${itemIndex}`, {
+            "[PRODUTO]": item.product_name,
+            "[QNTITENS]": String(item.quantity),
+            "[VALORITEM]": fmt(lineTotal),
+          });
+        })}
+      </Fragment>
+    );
+  };
+
   // ─── Template parser ───
   const renderTemplate = (template: string) => {
     const lines = template.split("\n");
 
-    const tagRules = [
-      { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
-      { open: "[GRANDE]", close: "[/GRANDE]", className: "tipo-label" },
-      { open: "[DESTAQUE]", close: "[/DESTAQUE]", className: "pedido-destaque" },
-      { open: "[CAIXA]", close: "[/CAIXA]", className: "box-highlight" },
-      { open: "[NEGRITO]", close: "[/NEGRITO]", className: "grand-total" },
-      { open: "[TXTMEDIO]", close: "[/TXTMEDIO]", className: "txt-medio" },
-      { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
-      { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
-      { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
-    ];
-
     return lines.map((rawLine, i) => {
       const line = rawLine.trimEnd();
       if (line.trim() === "---") return <div key={i} className="separator" />;
-      if (line.trim() === "[ITENS]") return <Fragment key={i}>{renderItems()}</Fragment>;
-
-      let content = replaceVars(line);
-      if (!content.trim()) return null;
-
-      const activeClasses: string[] = ["info"];
-
-      tagRules.forEach((rule) => {
-        if (content.includes(rule.open) || content.includes(rule.close)) {
-          activeClasses.push(rule.className);
-          content = content
-            .replace(new RegExp(rule.open.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "")
-            .replace(new RegExp(rule.close.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "");
-        }
-      });
-
-      // Compatibilidade com templates legados que fecham CENTRO com [CENTRO]
-      if (content.includes("[CENTRO]")) {
-        activeClasses.push("center");
-        content = content.replace(/\[CENTRO\]/g, "");
-      }
-
-      content = content.trim();
-      if (!content) return null;
-
-      return (
-        <div key={i} className={Array.from(new Set(activeClasses)).join(" ")}>
-          {content}
-        </div>
-      );
+      if (line.includes("[ITENS]")) return renderItemsFromTemplateLine(line, i);
+      return renderProcessedLine(line, i);
     });
   };
 
@@ -307,6 +351,13 @@ const AdminPrint = () => {
       color: #fff;
       font-weight: 900;
       letter-spacing: 0.4px;
+    }
+    .inline-border {
+      display: block;
+      width: 100%;
+      margin: 2px 0;
+      padding: 3px 4px;
+      border: 1.5px solid #000;
     }
     .footer { font-size: 9px; text-align: center; margin-top: 4px; font-weight: 900; }
     .print-end { display: block; height: 10mm; min-height: 10mm; width: 100%; overflow: hidden; color: transparent; font-size: 1px; line-height: 10mm; }

@@ -1,19 +1,5 @@
-// SW Version 40 — standard service worker + immediate update
-var SW_VERSION = "v40";
-var resolvedFixTrigger = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
-
-try {
-  resolvedFixTrigger = typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
-  Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", {
-    value: resolvedFixTrigger,
-    configurable: true,
-    writable: true,
-  });
-} catch (e) {
-  try {
-    self.__LOVA_FIX_TRIGGER__ = resolvedFixTrigger;
-  } catch (innerError) {}
-}
+// SW Version 41 — standard service worker + immediate update
+var SW_VERSION = "v41";
 
 self.addEventListener("install", function () {
   self.skipWaiting();

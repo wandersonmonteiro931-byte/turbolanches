@@ -30,8 +30,6 @@ interface RestockItem {
   ingredient_name: string;
   unit: string;
   quantity: number;
-  last_price: number;
-  estimated_total: number | null;
   checked: boolean;
   sort_order: number;
   notes: string;
@@ -45,13 +43,6 @@ interface Ingredient {
 }
 
 type RestockView = "current" | "history";
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const formatCurrency = (value: number) => currencyFormatter.format(Number.isFinite(value) ? value : 0);
 
 const formatQuantity = (value: number) =>
   Number(value || 0).toLocaleString("pt-BR", {
@@ -150,8 +141,6 @@ const AdminRestock = () => {
         ingredient_name: ingredient.name,
         unit: ingredient.unit,
         quantity: 1,
-        last_price: Number(ingredient.cost_per_unit) || 0,
-        estimated_total: Number(ingredient.cost_per_unit) || 0,
         checked: false,
         notes: "",
         sort_order: existingItems.length + index,
@@ -161,19 +150,15 @@ const AdminRestock = () => {
       .map((ingredient) => {
         const existing = existingByIngredient.get(ingredient.id);
         if (!existing) return null;
-        const nextPrice = Number(ingredient.cost_per_unit) || 0;
         const changed =
           existing.ingredient_name !== ingredient.name ||
-          existing.unit !== ingredient.unit ||
-          Number(existing.last_price) !== nextPrice;
+          existing.unit !== ingredient.unit;
         if (!changed) return null;
         return db
           .from("restock_items")
           .update({
             ingredient_name: ingredient.name,
             unit: ingredient.unit,
-            last_price: nextPrice,
-            estimated_total: Number((Number(existing.quantity || 0) * nextPrice).toFixed(2)),
           })
           .eq("id", existing.id);
       })
@@ -260,26 +245,17 @@ const AdminRestock = () => {
     setItems((current) =>
       current.map((item) => {
         if (item.id !== itemId) return item;
-        const nextItem = { ...item, ...patch };
-        return {
-          ...nextItem,
-          estimated_total: Number((Number(nextItem.quantity || 0) * Number(nextItem.last_price || 0)).toFixed(2)),
-        };
+        return { ...item, ...patch };
       }),
     );
   };
 
   const saveItemPatch = async (itemId: string, patch: Partial<RestockItem>) => {
-    const currentItem = items.find((item) => item.id === itemId);
-    if (!currentItem) return;
-    const nextItem = { ...currentItem, ...patch };
-    const estimatedTotal = Number((Number(nextItem.quantity || 0) * Number(nextItem.last_price || 0)).toFixed(2));
-
     updateLocalItem(itemId, patch);
 
     const { error } = await db
       .from("restock_items")
-      .update({ ...patch, estimated_total: estimatedTotal })
+      .update(patch)
       .eq("id", itemId);
 
     if (error) {
@@ -342,16 +318,15 @@ const AdminRestock = () => {
   }, [items, search]);
 
   const currentSelectedItems = useMemo(() => items.filter((item) => item.checked), [items]);
+  const totalSelectedQuantity = useMemo(
+    () => currentSelectedItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [currentSelectedItems],
+  );
   const selectedHistoryList = historyLists.find((list) => list.id === selectedHistoryId) ?? null;
   const selectedHistoryItems = selectedHistoryId ? historyItemsByList[selectedHistoryId] ?? [] : [];
   const activeList = view === "history" ? selectedHistoryList : draftList;
   const activeItems = view === "history" ? selectedHistoryItems.filter((item) => item.checked) : currentSelectedItems;
   const printTemplate = templates?.find((template) => template.template_type === "reposicao");
-
-  const estimatedTotal = currentSelectedItems.reduce(
-    (sum, item) => sum + Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)),
-    0,
-  );
 
   const handlePrintCleanList = () => {
     if (!activeList || activeItems.length === 0) {
@@ -377,19 +352,16 @@ const AdminRestock = () => {
     printWindow.document.write(
       buildAdminPrintDocument({
         title: activeList.title || "Lista de compras",
-        template: printTemplate?.body_template || getDefaultTemplate("reposicao"),
+        template: (printTemplate?.body_template || getDefaultTemplate("reposicao"))
+          .split("\n")
+          .filter((line) => !line.includes("[TOTAL_ESTIMADO]"))
+          .join("\n"),
         variables: {
           "[NOMELOJA]": printTemplate?.store_name || "TURBO LANCHES",
           "[TIPOCOMANDA]": printTemplate?.label || "LISTA DE COMPRAS",
           "[TITULO]": activeList.title || "Lista de compras",
           "[DATAHORA]": new Date(activeList.closed_at ?? activeList.updated_at ?? Date.now()).toLocaleString("pt-BR"),
           "[TOTALITENS]": String(activeItems.length),
-          "[TOTAL_ESTIMADO]": formatCurrency(
-            activeItems.reduce(
-              (sum, item) => sum + Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)),
-              0,
-            ),
-          ),
           "[OBS]": activeList.notes?.trim() ? `OBS: ${activeList.notes.trim()}` : "",
           "[RODAPÉ]": printTemplate?.footer_message || "",
           "[DIVULGAÇÃO]": printTemplate?.custom_message || "",
@@ -457,7 +429,7 @@ const AdminRestock = () => {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Itens marcados</p><p className="mt-2 text-3xl font-black text-foreground">{currentSelectedItems.length}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Estimativa da compra</p><p className="mt-2 text-3xl font-black text-foreground">{formatCurrency(estimatedTotal)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Quantidade total marcada</p><p className="mt-2 text-3xl font-black text-foreground">{formatQuantity(totalSelectedQuantity)}</p></CardContent></Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-muted-foreground"><Sparkles className="h-4 w-4" />Sugestão automática</div>
@@ -488,20 +460,18 @@ const AdminRestock = () => {
                 {filteredItems.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum ingrediente encontrado.</div>
                 ) : filteredItems.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
+                      <div className="flex flex-col gap-4">
                       <div className="flex flex-1 items-start gap-3">
                         <input type="checkbox" checked={item.checked} onChange={(event) => void saveItemPatch(item.id, { checked: event.target.checked })} className="mt-1 h-5 w-5 rounded border-border bg-background text-primary" />
                         <div className="min-w-0 flex-1 space-y-3">
                           <div className="flex flex-wrap items-center gap-2"><p className="text-base font-bold text-foreground">{item.ingredient_name}</p><Badge variant={item.checked ? "default" : "outline"}>{item.unit}</Badge></div>
-                          <div className="grid gap-3 sm:grid-cols-[140px_160px_minmax(0,1fr)]">
+                            <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                             <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Quantidade</p><Input type="number" step="0.01" min="0" value={item.quantity} onChange={(event) => updateLocalItem(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} onBlur={(event) => void saveItemPatch(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} /></div>
-                            <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Último valor</p><div className="flex h-10 items-center rounded-md border border-border bg-muted/20 px-3 text-sm font-semibold text-foreground">{formatCurrency(Number(item.last_price))}</div></div>
                             <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Observação do item</p><Textarea value={item.notes ?? ""} onChange={(event) => updateLocalItem(item.id, { notes: event.target.value })} onBlur={(event) => void saveItemPatch(item.id, { notes: event.target.value })} placeholder="Ex.: comprar no fornecedor X" rows={2} /></div>
                           </div>
                         </div>
                       </div>
-                      <div className="rounded-2xl border border-border bg-card px-4 py-3 lg:min-w-[180px]"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Estimativa</p><p className="mt-2 text-xl font-black text-foreground">{formatCurrency(Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)))}</p></div>
                     </div>
                   </div>
                 ))}
@@ -519,7 +489,7 @@ const AdminRestock = () => {
                   <div className="space-y-3">
                     {selectedHistoryItems.filter((item) => item.checked).map((item) => (
                       <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
-                        <div className="flex flex-wrap items-start justify-between gap-3"><div className="space-y-1"><p className="text-base font-bold text-foreground">{item.ingredient_name}</p><p className="text-sm text-muted-foreground">{formatQuantity(Number(item.quantity))} {item.unit} • {formatCurrency(Number(item.last_price))}</p></div><Badge>{formatCurrency(Number(item.estimated_total ?? Number(item.quantity) * Number(item.last_price)))}</Badge></div>
+                          <div className="space-y-1"><p className="text-base font-bold text-foreground">{item.ingredient_name}</p><p className="text-sm text-muted-foreground">{formatQuantity(Number(item.quantity))} {item.unit}</p></div>
                         {item.notes?.trim() ? <div className="mt-3 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground"><strong>Observação:</strong> {item.notes.trim()}</div> : null}
                       </div>
                     ))}
