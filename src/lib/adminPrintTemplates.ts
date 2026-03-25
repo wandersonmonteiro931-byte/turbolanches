@@ -76,6 +76,31 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 
 const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
+const findNextInlineTag = (input: string, startIndex: number) => {
+  let nextMatch:
+    | {
+        index: number;
+        token: string;
+        kind: "open" | "close";
+        rule: (typeof TAG_RULES)[number];
+      }
+    | null = null;
+
+  TAG_RULES.forEach((rule) => {
+    const openIndex = input.indexOf(rule.open, startIndex);
+    if (openIndex !== -1 && (!nextMatch || openIndex < nextMatch.index)) {
+      nextMatch = { index: openIndex, token: rule.open, kind: "open", rule };
+    }
+
+    const closeIndex = input.indexOf(rule.close, startIndex);
+    if (closeIndex !== -1 && (!nextMatch || closeIndex < nextMatch.index)) {
+      nextMatch = { index: closeIndex, token: rule.close, kind: "close", rule };
+    }
+  });
+
+  return nextMatch;
+};
+
 const findNextWrapperToken = (template: string, startIndex: number) => {
   let nextMatch:
     | {
@@ -172,7 +197,7 @@ const replaceVariables = (input: string, variables: Record<string, string | numb
   return output;
 };
 
-const stripFormattingTags = (input: string) => {
+export const stripFormattingTags = (input: string) => {
   let output = input;
 
   TAG_RULES.forEach((rule) => {
@@ -183,20 +208,55 @@ const stripFormattingTags = (input: string) => {
   return replaceAllToken(output, "[CENTRO]", "").trim();
 };
 
-const resolveClasses = (input: string) => {
+export const resolveTemplateLineClasses = (input: string) => {
   const classes = ["info"];
-
-  TAG_RULES.forEach((rule) => {
-    if (input.includes(rule.open) || input.includes(rule.close)) {
-      classes.push(rule.className);
-    }
-  });
 
   if (input.includes("[CENTRO]")) {
     classes.push("center");
   }
 
   return unique(classes).join(" ");
+};
+
+export const renderInlineTemplateMarkup = (input: string) => {
+  let markup = "";
+  let cursor = 0;
+  const activeRules: Array<(typeof TAG_RULES)[number]> = [];
+
+  const pushChunk = (chunk: string) => {
+    if (!chunk) return;
+    const classNames = unique(activeRules.map((rule) => rule.className)).join(" ");
+    const escapedChunk = escapeHtml(chunk);
+
+    markup += classNames ? `<span class="${classNames}">${escapedChunk}</span>` : escapedChunk;
+  };
+
+  while (cursor < input.length) {
+    const nextMatch = findNextInlineTag(input, cursor);
+
+    if (!nextMatch) {
+      pushChunk(input.slice(cursor));
+      break;
+    }
+
+    pushChunk(input.slice(cursor, nextMatch.index));
+
+    if (nextMatch.kind === "close") {
+      const activeIndex = activeRules.map((rule) => rule.className).lastIndexOf(nextMatch.rule.className);
+      if (activeIndex !== -1) activeRules.splice(activeIndex, 1);
+    } else {
+      const activeIndex = activeRules.map((rule) => rule.className).lastIndexOf(nextMatch.rule.className);
+      if (activeIndex !== -1) {
+        activeRules.splice(activeIndex, 1);
+      } else {
+        activeRules.push(nextMatch.rule);
+      }
+    }
+
+    cursor = nextMatch.index + nextMatch.token.length;
+  }
+
+  return markup;
 };
 
 const shouldHideOptionalLine = (
@@ -226,13 +286,15 @@ export const renderAdminTemplateMarkup = (
     const trimmedLine = rawLine.trim();
     if (!trimmedLine) return "";
 
-    const classes = resolveClasses(rawLine);
+    const classes = resolveTemplateLineClasses(rawLine);
     if (shouldHideOptionalLine(rawLine, variables)) return "";
     const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
     if (!content) return "";
+    const markup = renderInlineTemplateMarkup(replaced);
+    if (!markup) return "";
 
-    return `<div class="${classes}">${escapeHtml(content)}</div>`;
+    return `<div class="${classes}">${markup}</div>`;
   };
 
   const renderLineWithBlocks = (rawLine: string) => {
