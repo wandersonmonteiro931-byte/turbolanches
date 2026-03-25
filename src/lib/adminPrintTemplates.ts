@@ -486,13 +486,15 @@ export const buildAdminPrintDocument = ({
         .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
         .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
-        .txt-medio { font-size: ${bodyFontSizePx + 3}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
-        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 8)}px; font-weight: 900; margin: 1.5px 0; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 12}px; font-weight: 900; margin: 2px 0; line-height: 1.2; }
+        .txt-grande { font-size: ${bodyFontSizePx + 8}px !important; font-weight: 900; line-height: 1.2; }
+        .txt-medio { font-size: ${bodyFontSizePx + 3}px !important; font-weight: 900; line-height: 1.35; }
+        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 7)}px !important; font-weight: 900; line-height: 1.3; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 14}px !important; font-weight: 900; line-height: 1.2; }
         .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; line-height: 1.35; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
-        .tipo-label { display: block; width: 100%; font-size: ${bodyFontSizePx + 2}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; text-transform: uppercase; line-height: 1.25; }
+        .tipo-label { display: block; width: 100%; font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; text-transform: uppercase; line-height: 1.25; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; margin: 2px 0; line-height: 1.2; }
+        .box-highlight { display: block; width: 100%; font-size: inherit; font-weight: 900; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
         .box-highlight { display: block; width: 100%; font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
