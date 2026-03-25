@@ -596,9 +596,9 @@ export const buildBatchPrintDocument = (
           overflow-x: hidden;
         }
         .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
-        .print-document { display: block; overflow: hidden; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
-        .print-section { display: block; overflow: hidden; width: 100%; }
+        .print-section { display: block; width: 100%; }
         ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
