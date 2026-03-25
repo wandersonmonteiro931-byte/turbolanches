@@ -20,6 +20,7 @@ type StorageType = "" | "resfriado" | "congelado" | "ambiente";
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
+interface BrandRow { id: string; name: string; }
 
 interface GeneratedLabel {
   id: string;
@@ -34,6 +35,7 @@ interface GeneratedLabel {
   storageType: StorageType;
   storageTemp: string;
   storagePhrase: string;
+  brand: string;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -72,6 +74,7 @@ const AdminLabels = () => {
   const [validityMode, setValidityMode] = useState<ValidityMode>("manual");
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
+  const [brands, setBrands] = useState<BrandRow[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [selectedIngredientId, setSelectedIngredientId] = useState("");
   const [customName, setCustomName] = useState("");
@@ -83,6 +86,7 @@ const AdminLabels = () => {
   const [labelHeightMm, setLabelHeightMm] = useState("30");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState("");
 
   // Storage type state
   const [storageType, setStorageType] = useState<StorageType>("");
@@ -98,16 +102,20 @@ const AdminLabels = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const db = supabase as any;
         const productsQuery = supabase.from("products").select("id, name, active").order("name");
         const ingredientsQuery = supabase.from("ingredients").select("id, name, unit").order("name");
-        const [productsRes, ingredientsRes] = await Promise.all([
+        let brandsQuery = db.from("brands").select("id, name").order("name");
+        const [productsRes, ingredientsRes, brandsRes] = await Promise.all([
           storeId ? productsQuery.eq("store_id", storeId) : productsQuery,
           storeId ? ingredientsQuery.eq("store_id", storeId) : ingredientsQuery,
+          storeId ? brandsQuery.eq("store_id", storeId) : brandsQuery,
         ]);
         if (productsRes.error) throw productsRes.error;
         if (ingredientsRes.error) throw ingredientsRes.error;
         setProducts((productsRes.data ?? []) as ProductRow[]);
         setIngredients((ingredientsRes.data ?? []) as IngredientRow[]);
+        setBrands((brandsRes.data ?? []) as BrandRow[]);
         setSelectedProductId((current) => current || productsRes.data?.[0]?.id || "");
         setSelectedIngredientId((current) => current || ingredientsRes.data?.[0]?.id || "");
       } catch (error) {
@@ -126,6 +134,7 @@ const AdminLabels = () => {
 
   const selectedProduct = products.find((product) => product.id === selectedProductId) ?? null;
   const selectedIngredient = ingredients.find((ingredient) => ingredient.id === selectedIngredientId) ?? null;
+  const selectedBrand = brands.find((b) => b.id === selectedBrandId) ?? null;
   const printTemplate = templates?.find((template) => template.template_type === "etiquetas");
 
   const resolvedName = useMemo(() => {
@@ -156,6 +165,7 @@ const AdminLabels = () => {
       storageType,
       storageTemp: storageTemp.trim(),
       storagePhrase: storageType ? storagePhrase.trim() : "",
+      brand: selectedBrand?.name ?? "",
     };
 
     if (!newLabel.name.trim()) {
@@ -212,6 +222,7 @@ const AdminLabels = () => {
       Array.from({ length: label.copies }, () => ({
         variables: {
           "[PRODUTO]": label.name,
+          "[MARCA]": label.brand,
           "[DATAFABRICACAO]": formatDate(label.manufacturedOn),
           "[VALIDADE]": formatDate(label.validUntil),
           "[RESPONSAVEL]": label.responsible,
@@ -237,11 +248,11 @@ const AdminLabels = () => {
         },
         pageWidthMm: widthMm,
         pageHeightMm: "auto",
-        pageMarginMm: 1,
+        pageMarginMm: 0,
         bodyFontFamily: "Arial, sans-serif",
         bodyFontSizePx: printTemplate?.items_font_size || 10,
         bodyPaddingMm: 0,
-        sectionPaddingMm: 2,
+        sectionPaddingMm: 1,
         sectionMinHeightMm: heightMm,
         sectionBorder: "none",
       }, batchItems),
@@ -290,6 +301,16 @@ const AdminLabels = () => {
               </div>
             ) : null}
             {sourceKind === "manual" ? <div className="space-y-2"><Label htmlFor="custom-name">Nome do item</Label><Input id="custom-name" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Ex.: Carne temperada" /></div> : null}
+
+            {/* Marca (opcional) */}
+            <div className="space-y-2">
+              <Label htmlFor="brand">Marca (opcional)</Label>
+              <select id="brand" value={selectedBrandId} onChange={(e) => setSelectedBrandId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                <option value="">Sem marca</option>
+                {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              {brands.length === 0 && <p className="text-xs text-muted-foreground">Cadastre marcas em <Link to="/admin/cadastros" className="text-primary underline">Cadastros → Marcas</Link>.</p>}
+            </div>
 
             <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="manufacturedOn">Data de fabricação</Label><Input id="manufacturedOn" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="responsible">Responsável</Label><Input id="responsible" value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Nome de quem preparou" /></div></div>
 
@@ -347,6 +368,7 @@ const AdminLabels = () => {
                       <div className="font-bold text-sm truncate">{label.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
+                        {label.brand ? ` · ${label.brand}` : ""}
                         {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
                         {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                       </div>

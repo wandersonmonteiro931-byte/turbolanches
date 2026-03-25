@@ -283,8 +283,11 @@ const AdminPrint = () => {
           const lineTotal = Number(item.unit_price) * item.quantity;
           return renderProcessedLine(itemTemplate, `${keyPrefix}-${item.id}-${itemIndex}`, {
             "[PRODUTO]": item.product_name,
+            "[PRODUTOS]": item.product_name,
             "[QNTITENS]": String(item.quantity),
+            "[QUANTIDADEPROD]": String(item.quantity),
             "[VALORITEM]": fmt(lineTotal),
+            "[PREÇOPROD]": fmt(Number(item.unit_price)),
           });
         })}
       </Fragment>
@@ -328,6 +331,7 @@ const AdminPrint = () => {
     .print-section { display: block; overflow: hidden; }
     .print-frame { border: 1.5px solid #000; padding: 1.5mm; }
     .print-frame-strong { border: 3px solid #000; padding: 1.5mm; }
+    .print-frame-rect { border-left: 1.5px solid #000; border-right: 1.5px solid #000; border-top: none; border-bottom: none; padding: 0 1.5mm; }
     .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
     .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
     .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }

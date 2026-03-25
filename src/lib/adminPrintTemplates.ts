@@ -22,6 +22,11 @@ const WRAPPER_RULES = [
     closeTokens: ["[/QUADRADO]", "[/quadrado]"],
     className: "print-frame",
   },
+  {
+    tokens: ["[RETANGULO]", "[retangulo]"],
+    closeTokens: ["[/RETANGULO]", "[/retangulo]"],
+    className: "print-frame-rect",
+  },
 ] as const;
 
 export interface BuildAdminPrintDocumentOptions {
@@ -257,6 +262,12 @@ export const renderAdminTemplateMarkup = (
     .join("");
 };
 
+const FRAME_CSS = `
+  .print-frame { border: 1.5px solid #000 !important; }
+  .print-frame-strong { border: 3px solid #000 !important; }
+  .print-frame-rect { border-left: 1.5px solid #000 !important; border-right: 1.5px solid #000 !important; border-top: none !important; border-bottom: none !important; }
+`;
+
 export const buildAdminPrintDocument = ({
   title,
   template,
@@ -322,11 +333,10 @@ export const buildAdminPrintDocument = ({
         }
         .print-root { display: flex; flex-direction: column; gap: 0; }
         .print-document { display: block; overflow: hidden; background: #ffffff; }
-        .print-document + .print-document { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
+        .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; overflow: hidden; }
-        .print-frame { border: 1.5px solid #000 !important; }
-        .print-frame-strong { border: 3px solid #000 !important; }
+        ${FRAME_CSS}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
@@ -424,10 +434,9 @@ export const buildBatchPrintDocument = (
         }
         .print-root { display: flex; flex-direction: column; gap: 0; }
         .print-document { display: block; overflow: hidden; background: #ffffff; }
-        .print-document + .print-document { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
+        .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-section { display: block; overflow: hidden; }
-        .print-frame { border: 1.5px solid #000 !important; }
-        .print-frame-strong { border: 3px solid #000 !important; }
+        ${FRAME_CSS}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }

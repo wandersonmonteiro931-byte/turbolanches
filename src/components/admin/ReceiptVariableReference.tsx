@@ -28,10 +28,14 @@ const VARIABLES = [
   { key: "[ITENS]", desc: "Sozinho renderiza a lista completa; na mesma linha repete o modelo para cada item" },
   { key: "[VALORITEM]", desc: "Valor total do item (dentro da linha com [ITENS])" },
   { key: "[QNTITENS]", desc: "Quantidade de cada item (dentro da linha com [ITENS])" },
+  { key: "[PRODUTOS]", desc: "Nome do produto (dentro da linha com [ITENS])" },
+  { key: "[PREÇOPROD]", desc: "Preço unitário do produto (dentro da linha com [ITENS])" },
+  { key: "[QUANTIDADEPROD]", desc: "Quantidade do produto (dentro da linha com [ITENS])" },
   { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA" },
   { key: "[RODAPÉ]", desc: "Mensagem de rodapé (campo editável)" },
   { key: "[DIVULGAÇÃO]", desc: "Mensagem promocional (campo editável)" },
   { key: "[PRODUTO]", desc: "Nome do produto/ingrediente da etiqueta" },
+  { key: "[MARCA]", desc: "Marca do ingrediente/item selecionado na etiqueta" },
   { key: "[DATAFABRICACAO]", desc: "Data de fabricação da etiqueta" },
   { key: "[VALIDADE]", desc: "Data de validade da etiqueta" },
   { key: "[RESPONSAVEL]", desc: "Responsável pela produção/preparo" },
@@ -40,14 +44,14 @@ const VARIABLES = [
   { key: "[LISTA]", desc: "Lista dinâmica da reposição com item + quantidade" },
   { key: "[RESFRIADO]", desc: "Exibe 'RESFRIADO' se selecionado na etiqueta" },
   { key: "[CONGELADO]", desc: "Exibe 'CONGELADO' se selecionado na etiqueta" },
-  { key: "[ARMAZENAR]", desc: "Tipo de armazenamento (RESFRIADO ou CONGELADO)" },
+  { key: "[ARMAZENAR]", desc: "Tipo de armazenamento (RESFRIADO ou CONGELADO ou AMBIENTE)" },
   { key: "[GRAUS]", desc: "Temperatura em °C (ex: -18°C)" },
   { key: "[FRASEARMAZ]", desc: "Frase configurável de armazenamento" },
 ];
 
 const FORMATTING = [
   { marker: "---", desc: "Linha separadora tracejada" },
-  { marker: "[CENTRO]texto[/CENTRO]", desc: "Texto centralizado (aceita também [CENTRO] no fechamento legado)" },
+  { marker: "[CENTRO]texto[/CENTRO]", desc: "Texto centralizado" },
   { marker: "[GRANDE]texto[/GRANDE]", desc: "Texto grande com borda (título)" },
   { marker: "[CAIXA]texto[/CAIXA]", desc: "Texto em caixa com borda" },
   { marker: "[DESTAQUE]texto[/DESTAQUE]", desc: "Texto grande destacado" },
@@ -55,10 +59,11 @@ const FORMATTING = [
   { marker: "[TXTMEDIO]texto[/TXTMEDIO]", desc: "Texto maior, sem ser gigante" },
   { marker: "[TXTPEQUENO]texto[/TXTPEQUENO]", desc: "Texto menor" },
   { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande em negrito" },
-  { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco em destaque com fundo preto e negrito" },
-  { marker: "[BORDA]texto[BORDA]", desc: "Adiciona moldura fina ao trecho/linha entre as duas tags [BORDA]" },
-  { marker: "[QUADRADO]", desc: "Abre ou fecha um bloco com moldura fina exatamente no ponto onde a tag for colocada" },
-  { marker: "[QUADRADONEGRITO]", desc: "Abre ou fecha um bloco com moldura grossa exatamente no ponto onde a tag for colocada" },
+  { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco com fundo preto e negrito" },
+  { marker: "[BORDA]texto[/BORDA]", desc: "Moldura fina ao trecho entre as duas tags" },
+  { marker: "[QUADRADO]", desc: "Bloco com moldura fina (abrir e fechar)" },
+  { marker: "[QUADRADONEGRITO]", desc: "Bloco com moldura grossa (abrir e fechar)" },
+  { marker: "[RETANGULO]", desc: "Bloco com bordas laterais borda-a-borda (abrir e fechar)" },
 ];
 
 const ReceiptVariableReference = () => {
@@ -89,7 +94,6 @@ const ReceiptVariableReference = () => {
 
       {open && (
         <div className="border-t border-border px-4 pb-4 space-y-4">
-          {/* Variables */}
           <div>
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Variáveis (clique para copiar)
@@ -117,7 +121,6 @@ const ReceiptVariableReference = () => {
             </div>
           </div>
 
-          {/* Formatting */}
           <div>
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
               Formatação

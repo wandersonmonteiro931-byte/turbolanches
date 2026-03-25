@@ -323,7 +323,7 @@ const AdminRestock = () => {
         blocks: {
           "[LISTA]": `<div class="list-block">${activeItems
             .map(
-              (item) => `<div class="list-row"><span class="list-name">${escapeHtml(item.ingredient_name)}</span><span class="list-qty">${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit}`)}</span></div>`,
+              (item) => `<div class="list-row"><span class="list-name">${escapeHtml(`${formatQuantity(Number(item.quantity))} ${item.unit} ${item.ingredient_name}`)}</span></div>`,
             )
             .join("")}</div>`,
         },
@@ -434,8 +434,9 @@ const AdminRestock = () => {
                               <p className="text-base font-bold text-foreground">{item.ingredient_name}</p>
                               <Badge variant={item.checked ? "default" : "outline"}>{item.unit}</Badge>
                             </div>
-                            <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                            <div className="grid gap-3 sm:grid-cols-[100px_140px_minmax(0,1fr)]">
                               <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Quantidade</p><Input type="number" step="0.01" min="0" value={item.quantity} onChange={(event) => updateLocalItem(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} onBlur={(event) => void saveItemPatch(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} /></div>
+                              <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Unidade</p><select value={item.unit} onChange={(e) => void saveItemPatch(item.id, { unit: e.target.value })} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">{UNIT_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}</select></div>
                               <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Observação</p><Textarea value={item.notes ?? ""} onChange={(event) => updateLocalItem(item.id, { notes: event.target.value })} onBlur={(event) => void saveItemPatch(item.id, { notes: event.target.value })} placeholder="Ex.: comprar no fornecedor X" rows={2} /></div>
                             </div>
                           </div>
