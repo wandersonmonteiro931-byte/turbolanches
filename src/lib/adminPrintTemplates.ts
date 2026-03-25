@@ -390,7 +390,7 @@ export const buildAdminPrintDocument = ({
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const frameCss = getFrameCss(sectionPaddingMm);
+  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
   const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
     const content = templateSections
       .map(({ content: sectionTemplate, wrapperClass }) => {
