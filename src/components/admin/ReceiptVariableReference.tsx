@@ -25,9 +25,9 @@ const VARIABLES = [
   { key: "[DATAHORAENTREGA]", desc: "Horário máximo para entrega" },
   { key: "[DATAHORASAÍDAENTREGA]", desc: "Horário de saída para entrega" },
   { key: "[OBS]", desc: "Observações do pedido" },
-  { key: "[ITENS]", desc: "Lista completa dos itens (auto-renderizado)" },
-  { key: "[VALORITEM]", desc: "Valor unitário × qtd (dentro de [ITENS])" },
-  { key: "[QNTITENS]", desc: "Quantidade de cada item (dentro de [ITENS])" },
+  { key: "[ITENS]", desc: "Sozinho renderiza a lista completa; na mesma linha repete o modelo para cada item" },
+  { key: "[VALORITEM]", desc: "Valor total do item (dentro da linha com [ITENS])" },
+  { key: "[QNTITENS]", desc: "Quantidade de cada item (dentro da linha com [ITENS])" },
   { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA" },
   { key: "[RODAPÉ]", desc: "Mensagem de rodapé (campo editável)" },
   { key: "[DIVULGAÇÃO]", desc: "Mensagem promocional (campo editável)" },
@@ -37,7 +37,6 @@ const VARIABLES = [
   { key: "[RESPONSAVEL]", desc: "Responsável pela produção/preparo" },
   { key: "[TITULO]", desc: "Título da lista de reposição" },
   { key: "[TOTALITENS]", desc: "Quantidade total de itens marcados" },
-  { key: "[TOTAL_ESTIMADO]", desc: "Soma estimada da compra" },
   { key: "[LISTA]", desc: "Lista dinâmica da reposição com item + quantidade" },
 ];
 
@@ -52,6 +51,7 @@ const FORMATTING = [
   { marker: "[TXTPEQUENO]texto[/TXTPEQUENO]", desc: "Texto menor" },
   { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande em negrito" },
   { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco em destaque com fundo preto e negrito" },
+  { marker: "[BORDA]texto[BORDA]", desc: "Adiciona moldura fina ao trecho/linha entre as duas tags [BORDA]" },
   { marker: "[QUADRADO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado fino" },
   { marker: "[QUADRADONEGRITO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado com borda grossa" },
 ];

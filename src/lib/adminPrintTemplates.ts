@@ -8,6 +8,7 @@ const TAG_RULES = [
   { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
   { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
+  { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
 ] as const;
 
 const WRAPPER_RULES = [
@@ -116,6 +117,47 @@ export const renderAdminTemplateMarkup = (
 ) => {
   const lines = template.split("\n");
 
+  const renderTextLine = (rawLine: string) => {
+    const trimmedLine = rawLine.trim();
+    if (!trimmedLine) return "";
+
+    const classes = resolveClasses(rawLine);
+    const replaced = replaceVariables(rawLine, variables);
+    const content = stripFormattingTags(replaced);
+    if (!content) return "";
+
+    return `<div class="${classes}">${escapeHtml(content)}</div>`;
+  };
+
+  const renderLineWithBlocks = (rawLine: string) => {
+    const enabledBlocks = Object.entries(blocks).filter(([token, html]) => rawLine.includes(token) && html);
+    if (enabledBlocks.length === 0) return renderTextLine(rawLine);
+
+    const parts: string[] = [];
+    let cursor = 0;
+
+    while (cursor < rawLine.length) {
+      const nextBlock = enabledBlocks
+        .map(([token, html]) => ({ token, html: html ?? "", index: rawLine.indexOf(token, cursor) }))
+        .filter((block) => block.index !== -1)
+        .sort((left, right) => left.index - right.index)[0];
+
+      if (!nextBlock) {
+        const tailMarkup = renderTextLine(rawLine.slice(cursor));
+        if (tailMarkup) parts.push(tailMarkup);
+        break;
+      }
+
+      const beforeMarkup = renderTextLine(rawLine.slice(cursor, nextBlock.index));
+      if (beforeMarkup) parts.push(beforeMarkup);
+
+      parts.push(nextBlock.html);
+      cursor = nextBlock.index + nextBlock.token.length;
+    }
+
+    return parts.join("");
+  };
+
   return lines
     .map((rawLine) => {
       const line = rawLine.trimEnd();
@@ -125,12 +167,7 @@ export const renderAdminTemplateMarkup = (
       if (trimmed === "---") return '<div class="separator"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
-      const classes = resolveClasses(line);
-      const replaced = replaceVariables(line, variables);
-      const content = stripFormattingTags(replaced);
-      if (!content) return "";
-
-      return `<div class="${classes}">${escapeHtml(content)}</div>`;
+      return renderLineWithBlocks(line);
     })
     .filter(Boolean)
     .join("");
@@ -204,6 +241,7 @@ export const buildAdminPrintDocument = ({
         .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
         .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
         .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
+        .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
         .tipo-label { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
@@ -294,6 +332,7 @@ export const buildBatchPrintDocument = (
         .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
         .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
         .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
+        .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
         .tipo-label { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
