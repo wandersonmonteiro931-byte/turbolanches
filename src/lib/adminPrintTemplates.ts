@@ -48,9 +48,12 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 const replaceVariables = (input: string, variables: Record<string, string | number | null | undefined>) => {
   let output = input;
 
-  Object.entries(variables).forEach(([key, rawValue]) => {
-    output = replaceAllToken(output, key, rawValue == null ? "" : String(rawValue));
-  });
+  // Two passes so variables inside configured fields (store name, footer, etc.) are also resolved
+  for (let pass = 0; pass < 2; pass++) {
+    Object.entries(variables).forEach(([key, rawValue]) => {
+      output = replaceAllToken(output, key, rawValue == null ? "" : String(rawValue));
+    });
+  }
 
   return output;
 };
