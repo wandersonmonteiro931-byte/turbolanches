@@ -48,6 +48,7 @@ export interface BuildAdminPrintDocumentOptions {
   sectionMinHeightMm?: number;
   sectionBorder?: string;
   extraCss?: string;
+  labelGapMm?: number;
 }
 
 export interface BatchSection {
@@ -693,9 +694,10 @@ export const buildBatchPrintDocument = (
     bodyFontSizePx,
     labelFontSizePx,
     bodyPaddingMm,
-    frameCss,
-    extraCss,
-  });
+      frameCss,
+      extraCss,
+      labelGapMm: base.labelGapMm,
+    });
 
   const documents = items
     .map((item) => {
