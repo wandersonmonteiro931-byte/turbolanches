@@ -27,7 +27,8 @@ const BrandsTab = () => {
   const [editingName, setEditingName] = useState("");
 
   const fetchBrands = async () => {
-    let query = supabase.from("brands").select("id, name").order("name");
+    const db = supabase as any;
+    let query = db.from("brands").select("id, name").order("name");
     if (storeId) query = query.eq("store_id", storeId);
     const { data, error } = await query;
     if (error) {
