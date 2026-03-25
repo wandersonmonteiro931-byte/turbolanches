@@ -262,12 +262,20 @@ const AdminPrint = () => {
   );
 
   const getTemplateForItemsLine = (rawLine: string) => {
-    const lineWithoutItems = removeItemBlockTokens(rawLine).trim();
+    // Remove anchor tokens and trim
+    let lineWithoutItems = rawLine;
+    for (const token of ITEM_BLOCK_TOKENS) {
+      lineWithoutItems = lineWithoutItems.split(token).join("");
+    }
+    lineWithoutItems = lineWithoutItems.trim();
 
     if (!lineWithoutItems) return null;
 
+    // Check if there's visible content besides formatting tags
     const visibleContent = stripFormattingTags(lineWithoutItems);
-    if (visibleContent) return lineWithoutItems;
+    // Even if visibleContent is only item-variable tokens, that's valid
+    const hasItemVars = ITEM_TEMPLATE_TOKENS.some((t) => lineWithoutItems.includes(t));
+    if (visibleContent || hasItemVars) return lineWithoutItems;
 
     return null;
   };
