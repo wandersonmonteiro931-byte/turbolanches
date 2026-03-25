@@ -41,6 +41,7 @@ const buildTemplateDraft = (type: string, source?: Partial<ReceiptTemplate>) => 
   show_totals_detail: source?.show_totals_detail ?? false,
   items_font_size: source?.items_font_size ?? (type === "etiquetas" ? 10 : 14),
   label_font_size: source?.label_font_size ?? (type === "etiquetas" ? 14 : 24),
+  body_font_size: source?.body_font_size ?? 11,
 });
 
 const AdminReceipts = () => {
@@ -147,6 +148,16 @@ const AdminReceipts = () => {
                     value={(fields.footer_message as string) || ""}
                     onChange={(e) => updateField(tab.type, "footer_message", e.target.value)}
                     placeholder="Ex: Agradecemos a preferência!"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Tamanho do Texto Base (px)</Label>
+                  <Input
+                    type="number"
+                    value={fields.body_font_size ?? 11}
+                    onChange={(e) => updateField(tab.type, "body_font_size", Number(e.target.value))}
+                    min={7}
+                    max={20}
                   />
                 </div>
                 <div className="space-y-1">
