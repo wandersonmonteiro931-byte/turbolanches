@@ -68,6 +68,7 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     padding: 0 !important;
     margin: 0 !important;
     font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 900 !important;
     letter-spacing: 0 !important;
   }
   .print-root, .print-document, .print-section {
@@ -75,48 +76,49 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     margin: 0 !important;
   }
   .separator {
-    border-top-width: 1px !important;
-    margin: 1mm 0 !important;
+    border-top: 1.5px dashed #000 !important;
+    margin: 1.5px 0 !important;
   }
   .info,
   .grand-total {
     font-size: 11px !important;
-    line-height: 1.25 !important;
-    margin: 0.5mm 0 !important;
+    line-height: 1.35 !important;
+    margin: 1.5px 0 !important;
     font-weight: 900 !important;
   }
   .txt-medio {
     font-size: 14px !important;
-    line-height: 1.25 !important;
-    margin: 0.5mm 0 !important;
+    line-height: 1.35 !important;
+    margin: 1.5px 0 !important;
     font-weight: 900 !important;
   }
   .txt-pequeno {
     font-size: 8px !important;
-    line-height: 1.15 !important;
-    margin: 0.3mm 0 !important;
-    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    margin: 1.5px 0 !important;
+    font-weight: 900 !important;
   }
   .txt-gigante {
     font-size: 23px !important;
-    line-height: 1.1 !important;
-    margin: 0.5mm 0 !important;
+    line-height: 1.2 !important;
+    margin: 2px 0 !important;
     font-weight: 900 !important;
   }
   .pedido-destaque {
     font-size: 19px !important;
-    line-height: 1.15 !important;
-    margin: 0.5mm 0 !important;
+    line-height: 1.2 !important;
+    margin: 2px 0 !important;
     font-weight: 900 !important;
   }
   .tipo-label {
     display: block !important;
     width: 100% !important;
-    font-size: 22px !important;
-    line-height: 1.02 !important;
-    margin: 0.8mm 0 1mm !important;
-    padding: 2mm 0 1.5mm !important;
-    border: 2px solid #000 !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    margin: 1.5px 0 !important;
+    padding: 0.8mm 1.5mm !important;
+    border: 2.5px solid #000 !important;
+    font-weight: 900 !important;
     letter-spacing: 0.5px !important;
   }
   .box-highlight {
@@ -124,7 +126,7 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     width: 100% !important;
     font-size: 13px !important;
     line-height: 1.25 !important;
-    margin: 0.5mm 0 !important;
+    margin: 1.5px 0 !important;
     padding: 0.8mm 1.5mm !important;
     border: 2.5px solid #000 !important;
     font-weight: 900 !important;
@@ -133,16 +135,22 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     display: block !important;
     width: 100% !important;
     font-size: 11px !important;
-    line-height: 1.2 !important;
-    margin: 0.5mm 0 !important;
+    line-height: 1.35 !important;
+    margin: 1.5px 0 !important;
     padding: 0.8mm 1.5mm !important;
-    border: 1.5px solid #000 !important;
+    border: 2.5px solid #000 !important;
+    font-weight: 900 !important;
   }
   .txt-borda-preta {
     font-size: 11px !important;
-    line-height: 1.2 !important;
+    line-height: 1.35 !important;
     padding: 1mm !important;
+    font-weight: 900 !important;
     letter-spacing: 0 !important;
+  }
+  .list-name,
+  .list-row {
+    font-weight: 900 !important;
   }
 `;
 
