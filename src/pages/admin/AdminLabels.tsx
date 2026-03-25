@@ -387,6 +387,7 @@ const AdminLabels = () => {
         sectionPaddingMm: 0,
         sectionMinHeightMm: heightMm,
         sectionBorder: "none",
+        labelGapMm: parseFloat(labelGapMm) || 0,
       }, batchItems),
     );
     printWindow.document.close();
