@@ -67,17 +67,10 @@ const LEGACY_RECEIPT_PRINT_CSS = `
   body {
     padding: 0 !important;
     margin: 0 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
     letter-spacing: 0 !important;
   }
-  .print-root {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  .print-document {
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-  .print-section {
+  .print-root, .print-document, .print-section {
     padding: 0 !important;
     margin: 0 !important;
   }
@@ -86,26 +79,35 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     margin: 1mm 0 !important;
   }
   .info,
-  .grand-total,
+  .grand-total {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    margin: 0.5mm 0 !important;
+    font-weight: 900 !important;
+  }
   .txt-medio {
-    font-size: 9px !important;
-    line-height: 1.18 !important;
+    font-size: 14px !important;
+    line-height: 1.25 !important;
     margin: 0.5mm 0 !important;
     font-weight: 900 !important;
   }
   .txt-pequeno {
     font-size: 8px !important;
-    line-height: 1.12 !important;
+    line-height: 1.15 !important;
     margin: 0.3mm 0 !important;
     font-weight: 700 !important;
   }
-  .txt-gigante,
-  .pedido-destaque {
-    font-size: 9px !important;
-    line-height: 1.18 !important;
+  .txt-gigante {
+    font-size: 23px !important;
+    line-height: 1.1 !important;
     margin: 0.5mm 0 !important;
-    letter-spacing: 0 !important;
-    text-align: inherit !important;
+    font-weight: 900 !important;
+  }
+  .pedido-destaque {
+    font-size: 19px !important;
+    line-height: 1.15 !important;
+    margin: 0.5mm 0 !important;
+    font-weight: 900 !important;
   }
   .tipo-label {
     display: block !important;
@@ -120,7 +122,7 @@ const LEGACY_RECEIPT_PRINT_CSS = `
   .box-highlight {
     display: block !important;
     width: 100% !important;
-    font-size: 11px !important;
+    font-size: 13px !important;
     line-height: 1.25 !important;
     margin: 0.5mm 0 !important;
     padding: 0.8mm 1.5mm !important;
@@ -130,15 +132,15 @@ const LEGACY_RECEIPT_PRINT_CSS = `
   .inline-border {
     display: block !important;
     width: 100% !important;
-    font-size: 9px !important;
-    line-height: 1.12 !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
     margin: 0.5mm 0 !important;
-    padding: 1mm 1.5mm !important;
+    padding: 0.8mm 1.5mm !important;
     border: 1.5px solid #000 !important;
   }
   .txt-borda-preta {
-    font-size: 9px !important;
-    line-height: 1.12 !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
     padding: 1mm !important;
     letter-spacing: 0 !important;
   }
@@ -339,8 +341,8 @@ const AdminPrint = () => {
       pageWidthMm: 72,
       pageHeightMm: "auto",
       pageMarginMm: 0,
-      bodyFontFamily: "'Arial Black', Arial, Helvetica, sans-serif",
-      bodyFontSizePx: 9,
+      bodyFontFamily: "Arial, Helvetica, sans-serif",
+      bodyFontSizePx: 11,
       labelFontSizePx: 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,

@@ -420,8 +420,8 @@ export const buildAdminPrintDocument = ({
   pageHeightMm = "auto",
   pageMarginMm = 0,
   repeatCount = 1,
-  bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
-  bodyFontSizePx = 10,
+  bodyFontFamily = "Arial, Helvetica, sans-serif",
+  bodyFontSizePx = 11,
   labelFontSizePx = bodyFontSizePx + 8,
   bodyPaddingMm = 0,
   sectionPaddingMm = 2,
@@ -483,17 +483,17 @@ export const buildAdminPrintDocument = ({
         .print-section { display: block; width: 100%; }
         ${frameCss}
         .center { text-align: center; }
-        .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
-        .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
-        .grand-total { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 2px 0; }
-        .txt-medio { font-size: ${bodyFontSizePx + 4}px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
-        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; }
-        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; }
-        .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 1px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; }
-        .box-highlight { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1px 0; padding: 1mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
+        .separator { border-top: 1.5px dashed #000; margin: 1px 0; }
+        .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.3; }
+        .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1px 0; }
+        .txt-medio { font-size: ${bodyFontSizePx + 3}px; font-weight: 900; margin: 1px 0; line-height: 1.3; }
+        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.25; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 12}px; font-weight: 900; margin: 2px 0; line-height: 1.15; }
+        .txt-borda-preta { display: block; width: 100%; margin: 1px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; }
+        .inline-border { display: block; width: 100%; margin: 1px 0; padding: 1mm 2px; border: 1.5px solid #000; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1px 0; padding: 2mm 0 1.5mm; border: 2px solid #000; text-transform: uppercase; }
+        .pedido-destaque { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; margin: 2px 0; }
+        .box-highlight { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
@@ -528,8 +528,8 @@ export const buildBatchPrintDocument = (
     pageWidthMm = 72,
     pageHeightMm = "auto",
     pageMarginMm = 0,
-    bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
-    bodyFontSizePx = 10,
+    bodyFontFamily = "Arial, Helvetica, sans-serif",
+    bodyFontSizePx = 11,
     labelFontSizePx = bodyFontSizePx + 8,
     bodyPaddingMm = 0,
     sectionPaddingMm = 2,
@@ -595,17 +595,17 @@ export const buildBatchPrintDocument = (
         .print-section { display: block; width: 100%; }
         ${frameCss}
         .center { text-align: center; }
-        .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
-        .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
-        .grand-total { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 2px 0; }
-        .txt-medio { font-size: ${bodyFontSizePx + 4}px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
-        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; }
-        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; }
-        .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 1px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; }
-        .box-highlight { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1px 0; padding: 1mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
+        .separator { border-top: 1.5px dashed #000; margin: 1px 0; }
+        .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.3; }
+        .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1px 0; }
+        .txt-medio { font-size: ${bodyFontSizePx + 3}px; font-weight: 900; margin: 1px 0; line-height: 1.3; }
+        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.25; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 12}px; font-weight: 900; margin: 2px 0; line-height: 1.15; }
+        .txt-borda-preta { display: block; width: 100%; margin: 1px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; }
+        .inline-border { display: block; width: 100%; margin: 1px 0; padding: 1mm 2px; border: 1.5px solid #000; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1px 0; padding: 2mm 0 1.5mm; border: 2px solid #000; text-transform: uppercase; }
+        .pedido-destaque { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; margin: 2px 0; }
+        .box-highlight { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
