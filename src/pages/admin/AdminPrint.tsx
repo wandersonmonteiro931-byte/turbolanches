@@ -212,14 +212,22 @@ const AdminPrint = () => {
 
     if (shouldHideOptionalItemLine(rawLine, mergedVars)) return null;
 
+    // Replace all variables (two passes for nested references)
     for (let pass = 0; pass < 2; pass++) {
       for (const [token, value] of Object.entries(mergedVars)) {
         content = content.split(token).join(value);
       }
     }
 
+    // Also strip any remaining item-block anchors
+    for (const token of ITEM_BLOCK_TOKENS) {
+      content = content.split(token).join("");
+    }
+
     const plainContent = stripFormattingTags(content);
     if (!plainContent.trim()) return null;
+
+    // Parse inline formatting tags (e.g. [TXTPEQUENO]...[TXTPEQUENO])
     const markup = renderInlineTemplateMarkup(content);
     if (!markup.trim()) return null;
 
@@ -262,12 +270,20 @@ const AdminPrint = () => {
   );
 
   const getTemplateForItemsLine = (rawLine: string) => {
-    const lineWithoutItems = removeItemBlockTokens(rawLine).trim();
+    // Remove anchor tokens and trim
+    let lineWithoutItems = rawLine;
+    for (const token of ITEM_BLOCK_TOKENS) {
+      lineWithoutItems = lineWithoutItems.split(token).join("");
+    }
+    lineWithoutItems = lineWithoutItems.trim();
 
     if (!lineWithoutItems) return null;
 
+    // Check if there's visible content besides formatting tags
     const visibleContent = stripFormattingTags(lineWithoutItems);
-    if (visibleContent) return lineWithoutItems;
+    // Even if visibleContent is only item-variable tokens, that's valid
+    const hasItemVars = ITEM_TEMPLATE_TOKENS.some((t) => lineWithoutItems.includes(t));
+    if (visibleContent || hasItemVars) return lineWithoutItems;
 
     return null;
   };
