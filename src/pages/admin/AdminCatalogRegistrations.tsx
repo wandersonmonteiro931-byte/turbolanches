@@ -150,7 +150,7 @@ const StorageConfigsTab = () => {
                 </div>
               ) : (
                 <>
-                  <span className="text-lg">{item.emoji}</span>
+                  {item.emoji && <span className="text-lg">{item.emoji}</span>}
                   <span className="font-bold text-sm">{item.name}</span>
                   {item.default_temp && <Badge variant="outline">{item.default_temp}°C</Badge>}
                   <span className="flex-1 text-xs text-muted-foreground truncate">{item.default_phrase}</span>
