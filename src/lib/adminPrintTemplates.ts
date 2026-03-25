@@ -366,7 +366,7 @@ export const buildAdminPrintDocument = ({
   template,
   variables = {},
   blocks = {},
-  pageWidthMm = 72,
+  pageWidthMm = 80,
   pageHeightMm = "auto",
   pageMarginMm = 0,
   repeatCount = 1,
@@ -464,7 +464,7 @@ export const buildBatchPrintDocument = (
   const {
     title,
     template,
-    pageWidthMm = 72,
+    pageWidthMm = 80,
     pageHeightMm = "auto",
     pageMarginMm = 0,
     bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
