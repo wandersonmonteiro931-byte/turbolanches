@@ -63,6 +63,68 @@ const shouldHideOptionalItemLine = (rawLine: string, variables: Record<string, s
   return !remainingContent || /^obs(item)?\s*:?$/i.test(remainingContent);
 };
 
+const LEGACY_RECEIPT_PRINT_CSS = `
+  body {
+    padding: 3.2mm 3.2mm 1.6mm !important;
+    letter-spacing: 0 !important;
+  }
+  .print-section {
+    padding: 0 !important;
+  }
+  .separator {
+    border-top-width: 1px !important;
+    margin: 1.6mm 0 !important;
+  }
+  .info,
+  .grand-total,
+  .txt-medio {
+    font-size: 9px !important;
+    line-height: 1.18 !important;
+    margin: 0.7mm 0 !important;
+    font-weight: 900 !important;
+  }
+  .txt-pequeno {
+    font-size: 8px !important;
+    line-height: 1.12 !important;
+    margin: 0.45mm 0 !important;
+    font-weight: 700 !important;
+  }
+  .txt-gigante,
+  .pedido-destaque {
+    font-size: 9px !important;
+    line-height: 1.18 !important;
+    margin: 0.7mm 0 !important;
+    letter-spacing: 0 !important;
+    text-align: inherit !important;
+  }
+  .tipo-label {
+    display: block !important;
+    width: 100% !important;
+    font-size: 22px !important;
+    line-height: 1.02 !important;
+    margin: 1.2mm 0 1.8mm !important;
+    padding: 4mm 0 2.8mm !important;
+    border: 1.5px solid #000 !important;
+    letter-spacing: 0.5px !important;
+  }
+  .box-highlight,
+  .inline-border {
+    display: block !important;
+    width: 100% !important;
+    font-size: 9px !important;
+    line-height: 1.12 !important;
+    margin: 1.2mm 0 !important;
+    padding: 2.2mm 2mm !important;
+    border: 1.5px solid #000 !important;
+  }
+  .txt-borda-preta {
+    font-size: 9px !important;
+    line-height: 1.12 !important;
+    padding: 2mm !important;
+    letter-spacing: 0 !important;
+  }
+`;
+
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -75,7 +137,6 @@ const AdminPrint = () => {
   const [profile, setProfile] = useState<any>(null);
   const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
 
-  // Map legacy types and resolve the actual template type to load
   const resolveType = (t: string) => {
     if (t === "cozinha" || t === "entrega") return "pedido";
     if (t === "cliente") return "obrigado";
@@ -164,8 +225,6 @@ const AdminPrint = () => {
     const storeName = tpl?.store_name || "TURBO LANCHES";
     const resolvedType = resolveType(tipo);
     const tipoLabel = tpl?.label || (resolvedType === "obrigado" ? "OBRIGADO!" : "PEDIDO");
-    const labelFontSize = tpl?.label_font_size || 24;
-    const itemsFontSize = tpl?.items_font_size || 10;
     const divulgacao = tpl?.custom_message || "";
     const rodape = tpl?.footer_message || "";
 
@@ -262,10 +321,11 @@ const AdminPrint = () => {
       pageHeightMm: "auto",
       pageMarginMm: 0,
       bodyFontFamily: "'Arial Black', Arial, Helvetica, sans-serif",
-      bodyFontSizePx: itemsFontSize,
-      labelFontSizePx: labelFontSize,
+      bodyFontSizePx: 9,
+      labelFontSizePx: 22,
       bodyPaddingMm: 0,
-      sectionPaddingMm: 1,
+      sectionPaddingMm: 0,
+      extraCss: LEGACY_RECEIPT_PRINT_CSS,
     });
   }, [items, order, profile, ready, tipo, tpl]);
 
