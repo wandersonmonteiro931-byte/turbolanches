@@ -91,6 +91,15 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+  .txt-borda-inline {
+    display: inline !important;
+    padding: 0.3mm 2mm !important;
+    background: #000 !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   .inline-border {
     display: block !important;
     width: 100% !important;
