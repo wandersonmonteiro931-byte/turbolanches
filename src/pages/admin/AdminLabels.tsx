@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Printer, Sticker, Plus, Trash2, ListChecks } from "lucide-react";
+import { Printer, Sticker, Plus, Trash2, ListChecks, Save, Pencil, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { buildBatchPrintDocument, type BatchSection } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
@@ -35,6 +36,24 @@ interface GeneratedLabel {
   storageType: StorageType;
   storageTemp: string;
   storagePhrase: string;
+  brand: string;
+}
+
+interface SavedLabel {
+  id: string;
+  name: string;
+  source_kind: SourceKind;
+  manufactured_on: string;
+  valid_until: string;
+  validity_mode: ValidityMode;
+  shelf_life_days: number;
+  responsible: string;
+  copies: number;
+  width_mm: number;
+  height_mm: number;
+  storage_type: StorageType;
+  storage_temp: string;
+  storage_phrase: string;
   brand: string;
 }
 
@@ -87,17 +106,28 @@ const AdminLabels = () => {
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState("");
+  const [saveLabel, setSaveLabel] = useState(false);
 
   // Storage type state
   const [storageType, setStorageType] = useState<StorageType>("");
   const [storageTemp, setStorageTemp] = useState("");
   const [storagePhrase, setStoragePhrase] = useState("");
 
+  // Saved labels
+  const [savedLabels, setSavedLabels] = useState<SavedLabel[]>([]);
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+
   useEffect(() => {
     if (storageType) {
       setStoragePhrase((prev) => prev || DEFAULT_STORAGE_PHRASES[storageType] || "");
     }
   }, [storageType]);
+
+  const fetchSavedLabels = useCallback(async () => {
+    const query = (supabase as any).from("saved_labels").select("*").order("created_at", { ascending: false });
+    const { data, error } = storeId ? await query.eq("store_id", storeId) : await query;
+    if (!error && data) setSavedLabels(data as SavedLabel[]);
+  }, [storeId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,7 +155,8 @@ const AdminLabels = () => {
       }
     };
     void fetchData();
-  }, [storeId]);
+    void fetchSavedLabels();
+  }, [storeId, fetchSavedLabels]);
 
   useEffect(() => {
     const defaultResponsible = user?.user_metadata?.full_name || user?.email || "";
@@ -150,6 +181,108 @@ const AdminLabels = () => {
   }, [selectedIngredient, sourceKind]);
 
   const resolvedValidity = useMemo(() => validityMode === "automatic" ? addDays(manufacturedOn, Math.max(0, Number(shelfLifeDays) || 0)) : validUntil, [manufacturedOn, shelfLifeDays, validUntil, validityMode]);
+
+  const handleSaveToDb = async (labelData: { name: string; }) => {
+    if (!user) return;
+    const payload = {
+      store_id: storeId || null,
+      user_id: user.id,
+      name: labelData.name,
+      source_kind: sourceKind,
+      manufactured_on: manufacturedOn,
+      valid_until: resolvedValidity,
+      validity_mode: validityMode,
+      shelf_life_days: Math.max(0, Number(shelfLifeDays) || 0),
+      responsible: responsible.trim(),
+      copies: Math.max(1, Number(copies) || 1),
+      width_mm: Math.max(40, Number(labelWidthMm) || 80),
+      height_mm: Math.max(25, Number(labelHeightMm) || 30),
+      storage_type: storageType,
+      storage_temp: storageTemp.trim(),
+      storage_phrase: storageType ? storagePhrase.trim() : "",
+      brand: selectedBrand?.name ?? "",
+    };
+
+    if (editingLabelId) {
+      const { error } = await (supabase as any).from("saved_labels").update({ ...payload, updated_at: new Date().toISOString() }).eq("id", editingLabelId);
+      if (error) {
+        toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Etiqueta atualizada!" });
+      setEditingLabelId(null);
+    } else {
+      const { error } = await (supabase as any).from("saved_labels").insert(payload);
+      if (error) {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "Etiqueta salva!" });
+    }
+    void fetchSavedLabels();
+  };
+
+  const handleDeleteSaved = async (id: string) => {
+    const { error } = await (supabase as any).from("saved_labels").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Etiqueta excluída" });
+    void fetchSavedLabels();
+  };
+
+  const handleLoadSaved = (label: SavedLabel) => {
+    setEditingLabelId(label.id);
+    setSourceKind(label.source_kind as SourceKind);
+    setCustomName(label.name);
+    setManufacturedOn(label.manufactured_on || todayIso());
+    setValidUntil(label.valid_until || todayIso());
+    setValidityMode(label.validity_mode as ValidityMode);
+    setShelfLifeDays(String(label.shelf_life_days));
+    setResponsible(label.responsible);
+    setCopies(String(label.copies));
+    setLabelWidthMm(String(label.width_mm));
+    setLabelHeightMm(String(label.height_mm));
+    setStorageType(label.storage_type as StorageType);
+    setStorageTemp(label.storage_temp);
+    setStoragePhrase(label.storage_phrase);
+    setSaveLabel(true);
+    // Set brand by name
+    const matchedBrand = brands.find(b => b.name === label.brand);
+    setSelectedBrandId(matchedBrand?.id ?? "");
+    toast({ title: "Etiqueta carregada para edição" });
+  };
+
+  const handleReprintSaved = (label: SavedLabel) => {
+    const storageLabel = (type: StorageType) => {
+      if (type === "resfriado") return "RESFRIADO";
+      if (type === "congelado") return "CONGELADO";
+      if (type === "ambiente") return "AMBIENTE";
+      return "";
+    };
+
+    const newLabel: GeneratedLabel = {
+      id: nextLabelId(),
+      name: label.name,
+      sourceLabel: label.source_kind === "manual" ? "Manual" : label.source_kind === "product" ? "Produto" : "Ingrediente",
+      manufacturedOn: label.manufactured_on || todayIso(),
+      validUntil: label.validity_mode === "automatic"
+        ? addDays(label.manufactured_on || todayIso(), label.shelf_life_days)
+        : (label.valid_until || todayIso()),
+      responsible: label.responsible,
+      copies: label.copies,
+      widthMm: label.width_mm,
+      heightMm: label.height_mm,
+      storageType: label.storage_type as StorageType,
+      storageTemp: label.storage_temp,
+      storagePhrase: label.storage_phrase,
+      brand: label.brand,
+    };
+
+    setLabelQueue((prev) => [...prev, newLabel]);
+    toast({ title: "Adicionado à fila", description: `${newLabel.copies}x ${newLabel.name}` });
+  };
 
   const handleAddToQueue = () => {
     const newLabel: GeneratedLabel = {
@@ -182,6 +315,11 @@ const AdminLabels = () => {
     }
 
     setLabelQueue((prev) => [...prev, newLabel]);
+
+    if (saveLabel) {
+      void handleSaveToDb({ name: newLabel.name });
+    }
+
     toast({ title: "Adicionado à fila", description: `${newLabel.copies}x ${newLabel.name}` });
   };
 
@@ -277,7 +415,10 @@ const AdminLabels = () => {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card>
-          <CardHeader><CardTitle>Configuração rápida</CardTitle><CardDescription>Em até 3 cliques você gera e imprime a etiqueta.</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>{editingLabelId ? "Editando etiqueta salva" : "Configuração rápida"}</CardTitle>
+            <CardDescription>{editingLabelId ? "Edite os campos e clique em salvar ou adicionar à fila." : "Em até 3 cliques você gera e imprime a etiqueta."}</CardDescription>
+          </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-3"><Label>Origem do item</Label><div className="flex flex-wrap gap-2">{([{ value: "ingredient", label: "Ingrediente" }, { value: "product", label: "Produto" }, { value: "manual", label: "Texto manual" }] as const).map((option) => <Button key={option.value} type="button" variant={sourceKind === option.value ? "default" : "outline"} onClick={() => setSourceKind(option.value)}>{option.label}</Button>)}</div></div>
 
@@ -345,46 +486,108 @@ const AdminLabels = () => {
 
             <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
 
-            <Button size="lg" className="w-full" onClick={handleAddToQueue}><Plus />Adicionar à fila</Button>
+            {/* Salvar etiqueta */}
+            <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 p-4">
+              <Switch id="save-label" checked={saveLabel} onCheckedChange={setSaveLabel} />
+              <Label htmlFor="save-label" className="cursor-pointer">Salvar etiqueta para reimprimir depois</Label>
+            </div>
+
+            <div className="flex gap-3">
+              <Button size="lg" className="flex-1" onClick={handleAddToQueue}>
+                <Plus className="h-4 w-4" />
+                Adicionar à fila
+              </Button>
+              {editingLabelId && (
+                <>
+                  <Button size="lg" variant="secondary" onClick={() => void handleSaveToDb({ name: resolvedName })}>
+                    <Save className="h-4 w-4" />
+                    Salvar alterações
+                  </Button>
+                  <Button size="lg" variant="ghost" onClick={() => setEditingLabelId(null)}>
+                    Cancelar
+                  </Button>
+                </>
+              )}
+            </div>
 
             {loading ? <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando...</div> : null}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex-row items-start justify-between gap-3">
-            <div><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Fila de impressão ({totalLabelsInQueue})</CardTitle><CardDescription>Todas as etiquetas serão impressas juntas.</CardDescription></div>
-            {labelQueue.length > 0 && <Button variant="ghost" size="sm" onClick={handleClearQueue}><Trash2 className="h-4 w-4" />Limpar</Button>}
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {labelQueue.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
-                Nenhuma etiqueta na fila. Configure e clique em "Adicionar à fila".
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {labelQueue.map((label) => (
-                  <div key={label.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+        <div className="space-y-6">
+          {/* Fila de impressão */}
+          <Card>
+            <CardHeader className="flex-row items-start justify-between gap-3">
+              <div><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Fila de impressão ({totalLabelsInQueue})</CardTitle><CardDescription>Todas as etiquetas serão impressas juntas.</CardDescription></div>
+              {labelQueue.length > 0 && <Button variant="ghost" size="sm" onClick={handleClearQueue}><Trash2 className="h-4 w-4" />Limpar</Button>}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {labelQueue.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
+                  Nenhuma etiqueta na fila. Configure e clique em "Adicionar à fila".
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {labelQueue.map((label) => (
+                    <div key={label.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm truncate">{label.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
+                          {label.brand ? ` · ${label.brand}` : ""}
+                          {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
+                          {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="shrink-0">{label.sourceLabel}</Badge>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => handleRemoveFromQueue(label.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button className="w-full" size="lg" onClick={handlePrintAll} disabled={labelQueue.length === 0}><Printer />Imprimir {totalLabelsInQueue} etiqueta(s)</Button>
+            </CardContent>
+          </Card>
+
+          {/* Etiquetas salvas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><Save className="h-5 w-5 text-primary" />Etiquetas salvas</CardTitle>
+              <CardDescription>Clique para editar ou reimprimir rapidamente.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {savedLabels.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                  Nenhuma etiqueta salva. Ative "Salvar etiqueta" ao adicionar à fila.
+                </div>
+              ) : (
+                savedLabels.map((label) => (
+                  <div key={label.id} className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2">
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-sm truncate">{label.name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
+                        {label.copies}x · {label.responsible}
                         {label.brand ? ` · ${label.brand}` : ""}
-                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
-                        {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
+                        {label.storage_type ? ` · ${label.storage_type}` : ""}
                       </div>
                     </div>
-                    <Badge variant="outline" className="shrink-0">{label.sourceLabel}</Badge>
-                    <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => handleRemoveFromQueue(label.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button variant="outline" size="sm" onClick={() => handleReprintSaved(label)} title="Adicionar à fila">
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleLoadSaved(label)} title="Editar">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDeleteSaved(label.id)} title="Excluir">
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
                     </Button>
                   </div>
-                ))}
-              </div>
-            )}
-            <Button className="w-full" size="lg" onClick={handlePrintAll} disabled={labelQueue.length === 0}><Printer />Imprimir {totalLabelsInQueue} etiqueta(s)</Button>
-          </CardContent>
-        </Card>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
