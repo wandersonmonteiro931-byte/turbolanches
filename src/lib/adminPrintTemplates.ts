@@ -583,14 +583,11 @@ export const buildBatchPrintDocument = (
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
-          min-width: ${pageWidthMm}mm;
-          max-width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
           line-height: 1.3;
-          letter-spacing: 0.2px;
+          letter-spacing: 0;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
-          overflow-x: hidden;
         }
         .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
         .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
