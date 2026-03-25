@@ -2,6 +2,19 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
+      var __LOVA_FIX_TRIGGER__ = false;
+
+      try {
+        if (typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "boolean") {
+          __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__;
+        }
+      } catch (error) {}
+
+      try { globalThis.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
+      try { window.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
+      try { self.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
+    </script>
+    <script>
       (function () {
         var resolvedFixTrigger = false;
 
@@ -62,7 +75,7 @@
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v38";
+        var PUSH_SW_URL = "/push-sw.js?v39";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -101,6 +114,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=38"></script>
+    <script type="module" src="/src/main.tsx?v=39"></script>
   </body>
 </html>
