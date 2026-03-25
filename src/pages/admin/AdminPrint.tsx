@@ -241,7 +241,7 @@ const AdminPrint = () => {
   const templateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
 
   const styles = `
-    @page { size: 72mm auto; margin: 0 !important; padding: 0 !important; }
+    @page { size: 72mm auto portrait; margin: 0 !important; padding: 0 !important; }
     @media print {
       html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }
