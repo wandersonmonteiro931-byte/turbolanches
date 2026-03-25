@@ -52,8 +52,8 @@ const FORMATTING = [
   { marker: "[TXTGIGANTE]texto[/TXTGIGANTE]", desc: "Texto muito grande em negrito" },
   { marker: "[TZTBORDA]texto[/TZTBORDA]", desc: "Texto branco em destaque com fundo preto e negrito" },
   { marker: "[BORDA]texto[BORDA]", desc: "Adiciona moldura fina ao trecho/linha entre as duas tags [BORDA]" },
-  { marker: "[QUADRADO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado fino" },
-  { marker: "[QUADRADONEGRITO]", desc: "Use no início e no fim do modelo para envolver toda a impressão em um quadrado com borda grossa" },
+  { marker: "[QUADRADO]", desc: "Abre ou fecha um bloco com moldura fina exatamente no ponto onde a tag for colocada" },
+  { marker: "[QUADRADONEGRITO]", desc: "Abre ou fecha um bloco com moldura grossa exatamente no ponto onde a tag for colocada" },
 ];
 
 const ReceiptVariableReference = () => {
