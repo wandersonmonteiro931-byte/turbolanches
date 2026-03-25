@@ -65,35 +65,45 @@ const shouldHideOptionalItemLine = (rawLine: string, variables: Record<string, s
 
 const LEGACY_RECEIPT_PRINT_CSS = `
   body {
-    padding: 3.2mm 3.2mm 1.6mm !important;
+    padding: 0 !important;
+    margin: 0 !important;
     letter-spacing: 0 !important;
+  }
+  .print-root {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-document {
+    padding: 0 !important;
+    margin: 0 !important;
   }
   .print-section {
     padding: 0 !important;
+    margin: 0 !important;
   }
   .separator {
     border-top-width: 1px !important;
-    margin: 1.6mm 0 !important;
+    margin: 1mm 0 !important;
   }
   .info,
   .grand-total,
   .txt-medio {
     font-size: 9px !important;
     line-height: 1.18 !important;
-    margin: 0.7mm 0 !important;
+    margin: 0.5mm 0 !important;
     font-weight: 900 !important;
   }
   .txt-pequeno {
     font-size: 8px !important;
     line-height: 1.12 !important;
-    margin: 0.45mm 0 !important;
+    margin: 0.3mm 0 !important;
     font-weight: 700 !important;
   }
   .txt-gigante,
   .pedido-destaque {
     font-size: 9px !important;
     line-height: 1.18 !important;
-    margin: 0.7mm 0 !important;
+    margin: 0.5mm 0 !important;
     letter-spacing: 0 !important;
     text-align: inherit !important;
   }
@@ -102,25 +112,34 @@ const LEGACY_RECEIPT_PRINT_CSS = `
     width: 100% !important;
     font-size: 22px !important;
     line-height: 1.02 !important;
-    margin: 1.2mm 0 1.8mm !important;
-    padding: 4mm 0 2.8mm !important;
-    border: 1.5px solid #000 !important;
+    margin: 0.8mm 0 1mm !important;
+    padding: 2mm 0 1.5mm !important;
+    border: 2px solid #000 !important;
     letter-spacing: 0.5px !important;
   }
-  .box-highlight,
+  .box-highlight {
+    display: block !important;
+    width: 100% !important;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    margin: 0.5mm 0 !important;
+    padding: 0.8mm 1.5mm !important;
+    border: 2.5px solid #000 !important;
+    font-weight: 900 !important;
+  }
   .inline-border {
     display: block !important;
     width: 100% !important;
     font-size: 9px !important;
     line-height: 1.12 !important;
-    margin: 1.2mm 0 !important;
-    padding: 2.2mm 2mm !important;
+    margin: 0.5mm 0 !important;
+    padding: 1mm 1.5mm !important;
     border: 1.5px solid #000 !important;
   }
   .txt-borda-preta {
     font-size: 9px !important;
     line-height: 1.12 !important;
-    padding: 2mm !important;
+    padding: 1mm !important;
     letter-spacing: 0 !important;
   }
 `;

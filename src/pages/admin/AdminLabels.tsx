@@ -253,7 +253,7 @@ const AdminLabels = () => {
         bodyFontSizePx: printTemplate?.items_font_size || 10,
         labelFontSizePx: printTemplate?.label_font_size || 24,
         bodyPaddingMm: 0,
-        sectionPaddingMm: 1,
+        sectionPaddingMm: 0,
         sectionMinHeightMm: heightMm,
         sectionBorder: "none",
       }, batchItems),
