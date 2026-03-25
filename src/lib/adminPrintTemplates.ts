@@ -7,6 +7,7 @@ const TAG_RULES = [
   { open: "[TXTMEDIO]", close: "[/TXTMEDIO]", className: "txt-medio" },
   { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
   { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
+  { open: "[TXTBORDA]", close: "[/TXTBORDA]", className: "txt-borda-preta" },
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
   { open: "[TXTBORDATXT]", close: "[/TXTBORDATXT]", className: "txt-borda-inline" },
   { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
