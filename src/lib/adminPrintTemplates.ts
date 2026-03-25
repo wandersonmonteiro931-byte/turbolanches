@@ -40,6 +40,7 @@ export interface BuildAdminPrintDocumentOptions {
   repeatCount?: number;
   bodyFontFamily?: string;
   bodyFontSizePx?: number;
+  labelFontSizePx?: number;
   bodyPaddingMm?: number;
   sectionPaddingMm?: number;
   sectionMinHeightMm?: number;
@@ -370,6 +371,46 @@ const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
   `;
 };
 
+const PRINT_BOOTSTRAP_SCRIPT = `<script>
+(function () {
+  var started = false;
+
+  function firePrint() {
+    if (started) return;
+    started = true;
+
+    var run = function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          window.print();
+        });
+      });
+    };
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(run).catch(run);
+      return;
+    }
+
+    setTimeout(run, 60);
+  }
+
+  if (document.readyState === "complete") {
+    setTimeout(firePrint, 80);
+  } else {
+    window.addEventListener("load", function () {
+      setTimeout(firePrint, 80);
+    }, { once: true });
+  }
+
+  window.addEventListener("afterprint", function () {
+    setTimeout(function () {
+      try { window.close(); } catch (error) {}
+    }, 120);
+  }, { once: true });
+})();
+</script>`;
+
 export const buildAdminPrintDocument = ({
   title,
   template,
@@ -381,6 +422,7 @@ export const buildAdminPrintDocument = ({
   repeatCount = 1,
   bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
   bodyFontSizePx = 10,
+  labelFontSizePx = bodyFontSizePx + 8,
   bodyPaddingMm = 0,
   sectionPaddingMm = 2,
   sectionMinHeightMm,
@@ -415,7 +457,7 @@ export const buildAdminPrintDocument = ({
       <style>
         @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; height: auto !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: hidden !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -428,17 +470,20 @@ export const buildAdminPrintDocument = ({
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
+          min-width: ${pageWidthMm}mm;
+          max-width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
           line-height: 1.3;
           letter-spacing: 0.2px;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
+          overflow-x: hidden;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; }
-        .print-document { display: block; overflow: hidden; background: #ffffff; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-document { display: block; overflow: hidden; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
-        .print-section { display: block; overflow: hidden; }
+        .print-section { display: block; overflow: hidden; width: 100%; }
         ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
@@ -449,19 +494,30 @@ export const buildAdminPrintDocument = ({
         .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
         .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
         .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
         .list-qty { white-space: nowrap; }
+        .print-section,
+        .print-section * { max-width: 100%; }
+        .info,
+        .grand-total,
+        .txt-medio,
+        .txt-pequeno,
+        .txt-gigante,
+        .tipo-label,
+        .pedido-destaque,
+        .box-highlight,
+        .list-name { overflow-wrap: anywhere; word-break: break-word; }
         ${extraCss}
       </style>
     </head>
     <body>
       <main class="print-root">${documents}</main>
-      <script>window.onload = function () { window.print(); };</script>
+      ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
   </html>`;
 };
@@ -478,6 +534,7 @@ export const buildBatchPrintDocument = (
     pageMarginMm = 0,
     bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
     bodyFontSizePx = 10,
+    labelFontSizePx = bodyFontSizePx + 8,
     bodyPaddingMm = 0,
     sectionPaddingMm = 2,
     sectionMinHeightMm,
@@ -518,7 +575,7 @@ export const buildBatchPrintDocument = (
       <style>
         @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; height: auto !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: hidden !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -530,16 +587,19 @@ export const buildBatchPrintDocument = (
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
+          min-width: ${pageWidthMm}mm;
+          max-width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
           line-height: 1.3;
           letter-spacing: 0.2px;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
+          overflow-x: hidden;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; }
-        .print-document { display: block; overflow: hidden; background: #ffffff; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-document { display: block; overflow: hidden; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
-        .print-section { display: block; overflow: hidden; }
+        .print-section { display: block; overflow: hidden; width: 100%; }
         ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
@@ -550,19 +610,30 @@ export const buildBatchPrintDocument = (
         .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
         .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
         .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
         .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
         .list-qty { white-space: nowrap; }
+        .print-section,
+        .print-section * { max-width: 100%; }
+        .info,
+        .grand-total,
+        .txt-medio,
+        .txt-pequeno,
+        .txt-gigante,
+        .tipo-label,
+        .pedido-destaque,
+        .box-highlight,
+        .list-name { overflow-wrap: anywhere; word-break: break-word; }
         ${extraCss}
       </style>
     </head>
     <body>
       <main class="print-root">${documents}</main>
-      <script>window.onload = function () { window.print(); };</script>
+      ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
   </html>`;
 };

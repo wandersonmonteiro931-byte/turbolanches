@@ -332,6 +332,7 @@ const AdminRestock = () => {
         pageMarginMm: 3,
         bodyFontFamily: "Arial, sans-serif",
         bodyFontSizePx: printTemplate?.items_font_size || 12,
+        labelFontSizePx: printTemplate?.label_font_size || 24,
         bodyPaddingMm: 1,
         sectionPaddingMm: 1.5,
       }),
