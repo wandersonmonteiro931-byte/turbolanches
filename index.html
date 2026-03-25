@@ -5,13 +5,19 @@
       var __LOVA_FIX_TRIGGER__ = false;
       try {
         var __lovaScope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
-        Object.defineProperty(__lovaScope, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: false });
-        if (typeof window !== "undefined") window.__LOVA_FIX_TRIGGER__ = false;
+        var __lovaValue = __lovaScope && __lovaScope.__LOVA_FIX_TRIGGER__ === true;
+        Object.defineProperty(__lovaScope, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: __lovaValue });
+        if (typeof window !== "undefined") {
+          Object.defineProperty(window, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: __lovaValue });
+        }
+        if (typeof self !== "undefined") {
+          Object.defineProperty(self, "__LOVA_FIX_TRIGGER__", { configurable: true, enumerable: false, writable: true, value: __lovaValue });
+        }
       } catch (e) {}
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v54";
+        var PUSH_SW_URL = "/push-sw.js?v55";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -50,6 +56,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=54"></script>
+    <script type="module" src="/src/main.tsx?v=55"></script>
   </body>
 </html>
