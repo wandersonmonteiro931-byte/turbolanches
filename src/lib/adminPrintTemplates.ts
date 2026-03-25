@@ -487,6 +487,7 @@ const getSharedPrintStyles = ({
   bodyPaddingMm,
   frameCss,
   extraCss,
+  labelGapMm,
 }: {
   pageSize: string;
   pageMarginMm: number;
