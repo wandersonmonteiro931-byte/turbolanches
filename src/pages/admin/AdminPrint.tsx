@@ -277,8 +277,19 @@ const AdminPrint = () => {
     </div>
   );
 
+  const getTemplateForItemsLine = (rawLine: string) => {
+    const lineWithoutItems = rawLine.replace(/\[ITENS\]/g, "").trim();
+
+    if (!lineWithoutItems) return null;
+
+    const visibleContent = stripFormattingTags(lineWithoutItems);
+    if (visibleContent) return lineWithoutItems;
+
+    return rawLine.replace(/\[ITENS\]/g, "[QNTITENS]x [PRODUTO] - [VALORITEM]").trim();
+  };
+
   const renderItemsFromTemplateLine = (line: string, keyPrefix: string | number) => {
-    const itemTemplate = line.replace(/\[ITENS\]/g, "").trim();
+    const itemTemplate = getTemplateForItemsLine(line);
 
     if (!itemTemplate) {
       return <Fragment key={keyPrefix}>{renderItems()}</Fragment>;
