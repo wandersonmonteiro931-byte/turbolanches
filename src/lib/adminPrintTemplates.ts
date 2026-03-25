@@ -614,6 +614,7 @@ export const buildAdminPrintDocument = ({
   sectionMinHeightMm,
   sectionBorder = "none",
   extraCss = "",
+  labelGapMm,
 }: BuildAdminPrintDocumentOptions) => {
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
@@ -629,6 +630,7 @@ export const buildAdminPrintDocument = ({
     bodyPaddingMm,
     frameCss,
     extraCss,
+    labelGapMm,
   });
   const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
     const content = templateSections
