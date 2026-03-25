@@ -82,7 +82,7 @@ const AdminLabels = () => {
   const [validUntil, setValidUntil] = useState(todayIso());
   const [shelfLifeDays, setShelfLifeDays] = useState("1");
   const [responsible, setResponsible] = useState("");
-  const [labelWidthMm, setLabelWidthMm] = useState("50");
+  const [labelWidthMm, setLabelWidthMm] = useState("80");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
