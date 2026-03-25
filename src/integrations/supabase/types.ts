@@ -1122,6 +1122,7 @@ export type Database = {
       }
       receipt_templates: {
         Row: {
+          body_font_size: number
           body_template: string
           custom_message: string
           footer_message: string
@@ -1142,6 +1143,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          body_font_size?: number
           body_template?: string
           custom_message?: string
           footer_message?: string
@@ -1162,6 +1164,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          body_font_size?: number
           body_template?: string
           custom_message?: string
           footer_message?: string
