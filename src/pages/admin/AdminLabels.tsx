@@ -222,7 +222,7 @@ const AdminLabels = () => {
       Array.from({ length: label.copies }, () => ({
         variables: {
           "[PRODUTO]": label.name,
-          "[MARCA]": label.brand,
+          "[MARCA]": label.brand || undefined,
           "[DATAFABRICACAO]": formatDate(label.manufacturedOn),
           "[VALIDADE]": formatDate(label.validUntil),
           "[RESPONSAVEL]": label.responsible,

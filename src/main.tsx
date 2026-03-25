@@ -1,4 +1,5 @@
 import "./index.css";
+import "@/lib/bootstrap";
 import { createRoot } from "react-dom/client";
 import { cleanupLegacyPushServiceWorkers, PUSH_SW_URL, shouldEnableServiceWorker } from "@/lib/pwa";
 import App from "./App.tsx";

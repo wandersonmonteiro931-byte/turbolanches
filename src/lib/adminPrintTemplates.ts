@@ -199,6 +199,22 @@ const resolveClasses = (input: string) => {
   return unique(classes).join(" ");
 };
 
+const shouldHideOptionalLine = (
+  rawLine: string,
+  variables: Record<string, string | number | null | undefined>,
+) => {
+  if (!rawLine.includes("[MARCA]")) return false;
+
+  const brandValue = variables["[MARCA]"];
+  if (brandValue != null && String(brandValue).trim()) return false;
+
+  const staticContent = stripFormattingTags(replaceAllToken(rawLine, "[MARCA]", ""))
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return !staticContent || /^marca\s*:?$/i.test(staticContent);
+};
+
 export const renderAdminTemplateMarkup = (
   template: string,
   variables: Record<string, string | number | null | undefined> = {},
@@ -211,6 +227,7 @@ export const renderAdminTemplateMarkup = (
     if (!trimmedLine) return "";
 
     const classes = resolveClasses(rawLine);
+    if (shouldHideOptionalLine(rawLine, variables)) return "";
     const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
     if (!content) return "";
@@ -262,11 +279,25 @@ export const renderAdminTemplateMarkup = (
     .join("");
 };
 
-const FRAME_CSS = `
-  .print-frame { border: 1.5px solid #000 !important; }
-  .print-frame-strong { border: 3px solid #000 !important; }
-  .print-frame-rect { border-left: 1.5px solid #000 !important; border-right: 1.5px solid #000 !important; border-top: none !important; border-bottom: none !important; }
-`;
+const getFrameCss = (sectionPaddingMm: number) => {
+  const bleed = Math.max(sectionPaddingMm, 0);
+
+  return `
+    .print-frame,
+    .print-frame-strong,
+    .print-frame-rect {
+      display: block;
+      width: calc(100% + ${bleed * 2}mm);
+      margin-left: -${bleed}mm !important;
+      margin-right: -${bleed}mm !important;
+      padding-left: ${bleed}mm;
+      padding-right: ${bleed}mm;
+    }
+    .print-frame { border: 1.5px solid #000 !important; }
+    .print-frame-strong { border: 3px solid #000 !important; }
+    .print-frame-rect { border: 1.5px solid #000 !important; }
+  `;
+};
 
 export const buildAdminPrintDocument = ({
   title,
@@ -288,6 +319,7 @@ export const buildAdminPrintDocument = ({
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
+  const frameCss = getFrameCss(sectionPaddingMm);
   const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
     const content = templateSections
       .map(({ content: sectionTemplate, wrapperClass }) => {
@@ -336,7 +368,7 @@ export const buildAdminPrintDocument = ({
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; overflow: hidden; }
-        ${FRAME_CSS}
+        ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
@@ -385,6 +417,7 @@ export const buildBatchPrintDocument = (
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
+  const frameCss = getFrameCss(sectionPaddingMm);
 
   const documents = items
     .map((item) => {
@@ -436,7 +469,7 @@ export const buildBatchPrintDocument = (
         .print-document { display: block; overflow: hidden; background: #ffffff; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-section { display: block; overflow: hidden; }
-        ${FRAME_CSS}
+        ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
