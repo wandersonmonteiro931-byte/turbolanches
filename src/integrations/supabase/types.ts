@@ -1642,6 +1642,53 @@ export type Database = {
           },
         ]
       }
+      storage_configs: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_phrase: string
+          default_temp: string
+          emoji: string
+          id: string
+          name: string
+          sort_order: number
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_phrase?: string
+          default_temp?: string
+          emoji?: string
+          id?: string
+          name: string
+          sort_order?: number
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_phrase?: string
+          default_temp?: string
+          emoji?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_configs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_schedule: {
         Row: {
           close_time: string | null
