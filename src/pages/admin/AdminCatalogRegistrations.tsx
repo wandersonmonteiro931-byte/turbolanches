@@ -44,7 +44,8 @@ const BrandsTab = () => {
 
   const handleAdd = async () => {
     if (!newBrandName.trim()) return;
-    const { error } = await supabase.from("brands").insert({ name: newBrandName.trim(), store_id: storeId ?? null });
+    const db = supabase as any;
+    const { error } = await db.from("brands").insert({ name: newBrandName.trim(), store_id: storeId ?? null });
     if (error) {
       toast({ title: "Erro ao adicionar marca", description: error.message, variant: "destructive" });
       return;
