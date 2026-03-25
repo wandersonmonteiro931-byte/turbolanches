@@ -16,7 +16,7 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
-type StorageType = "" | "resfriado" | "congelado";
+type StorageType = "" | "resfriado" | "congelado" | "ambiente";
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
