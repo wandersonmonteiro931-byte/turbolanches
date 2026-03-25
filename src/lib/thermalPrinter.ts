@@ -43,14 +43,14 @@ function buildReceiptHTML(order: PrintOrderData): string {
 <title>Pedido #${order.orderId.slice(0, 6)}</title>
 <style>
   @page {
-    size: 80mm auto;
+    size: 72mm auto;
     margin: 0;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    width: 80mm;
+    width: 72mm;
     padding: 4mm;
     color: #000;
   }
@@ -66,7 +66,7 @@ function buildReceiptHTML(order: PrintOrderData): string {
   .info { font-size: 11px; margin: 1px 0; }
   .footer { font-size: 10px; text-align: center; margin-top: 8px; }
   @media print {
-    body { width: 80mm; }
+    body { width: 72mm; }
   }
 </style>
 </head>

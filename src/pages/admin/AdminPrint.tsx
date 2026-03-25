@@ -314,9 +314,9 @@ const AdminPrint = () => {
   const templateSections = extractTemplateSections(rawTemplateToRender);
 
   const styles = `
-    @page { size: 80mm auto portrait; margin: 0 !important; padding: 0 !important; }
+    @page { size: 72mm auto portrait; margin: 0 !important; padding: 0 !important; }
     @media print {
-      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 80mm !important; }
+      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; width: 72mm !important; }
       .no-print { display: none !important; }
       iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
       body > *:not(#root):not(style) { display: none !important; }
@@ -325,7 +325,7 @@ const AdminPrint = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Arial Black', 'Arial', Helvetica, sans-serif;
-      font-size: 10px; font-weight: 900; width: 80mm; padding: 1.5mm 2mm; margin: 0;
+      font-size: 10px; font-weight: 900; width: 72mm; padding: 1.5mm 2mm; margin: 0;
       color: #000; background: #fff; letter-spacing: 0.2px; line-height: 1.3;
       -webkit-font-smoothing: none; text-rendering: geometricPrecision;
     }

@@ -82,7 +82,7 @@ const AdminLabels = () => {
   const [validUntil, setValidUntil] = useState(todayIso());
   const [shelfLifeDays, setShelfLifeDays] = useState("1");
   const [responsible, setResponsible] = useState("");
-  const [labelWidthMm, setLabelWidthMm] = useState("80");
+  const [labelWidthMm, setLabelWidthMm] = useState("50");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
@@ -160,7 +160,7 @@ const AdminLabels = () => {
       validUntil: resolvedValidity,
       responsible: responsible.trim(),
       copies: Math.max(1, Number(copies) || 1),
-      widthMm: Math.max(40, Number(labelWidthMm) || 80),
+      widthMm: Math.max(40, Number(labelWidthMm) || 50),
       heightMm: Math.max(25, Number(labelHeightMm) || 30),
       storageType,
       storageTemp: storageTemp.trim(),
