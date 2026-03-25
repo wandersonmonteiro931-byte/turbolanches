@@ -1,6 +1,6 @@
 const TAG_RULES = [
   { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
-  { open: "[GRANDE]", close: "[/GRANDE]", className: "tipo-label" },
+  { open: "[GRANDE]", close: "[/GRANDE]", className: "txt-grande" },
   { open: "[DESTAQUE]", close: "[/DESTAQUE]", className: "pedido-destaque" },
   { open: "[CAIXA]", close: "[/CAIXA]", className: "box-highlight" },
   { open: "[NEGRITO]", close: "[/NEGRITO]", className: "grand-total" },
