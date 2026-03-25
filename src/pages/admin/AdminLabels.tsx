@@ -101,6 +101,7 @@ const AdminLabels = () => {
   const [responsible, setResponsible] = useState("");
   const [labelWidthMm, setLabelWidthMm] = useState("80");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
+  const [labelGapMm, setLabelGapMm] = useState("0.3");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState("");
@@ -386,6 +387,7 @@ const AdminLabels = () => {
         sectionPaddingMm: 0,
         sectionMinHeightMm: heightMm,
         sectionBorder: "none",
+        labelGapMm: parseFloat(labelGapMm) || 0,
       }, batchItems),
     );
     printWindow.document.close();
@@ -479,7 +481,7 @@ const AdminLabels = () => {
               )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
+            <div className="grid gap-4 md:grid-cols-4"><div className="space-y-2"><Label htmlFor="copies">Cópias</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelGapMm">Distância entre etiquetas (mm)</Label><Input id="labelGapMm" type="number" min="0" step="0.1" value={labelGapMm} onChange={(event) => setLabelGapMm(event.target.value)} /></div></div>
 
             {/* Salvar etiqueta */}
             <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/20 p-4">

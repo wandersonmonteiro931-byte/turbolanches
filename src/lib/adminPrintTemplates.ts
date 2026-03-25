@@ -48,6 +48,7 @@ export interface BuildAdminPrintDocumentOptions {
   sectionMinHeightMm?: number;
   sectionBorder?: string;
   extraCss?: string;
+  labelGapMm?: number;
 }
 
 export interface BatchSection {
@@ -487,6 +488,7 @@ const getSharedPrintStyles = ({
   bodyPaddingMm,
   frameCss,
   extraCss,
+  labelGapMm,
 }: {
   pageSize: string;
   pageMarginMm: number;
@@ -497,7 +499,9 @@ const getSharedPrintStyles = ({
   bodyPaddingMm: number;
   frameCss: string;
   extraCss: string;
+  labelGapMm?: number;
 }) => {
+  const gapMm = labelGapMm ?? 0.3;
   const mediumTextPx = Math.max(bodyFontSizePx + 3, Math.round(bodyFontSizePx * 1.25));
   const largeTextPx = Math.max(labelFontSizePx + 2, bodyFontSizePx + 10);
   const giantTextPx = Math.max(labelFontSizePx + 8, largeTextPx + 6);
@@ -527,7 +531,7 @@ const getSharedPrintStyles = ({
         }
         .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
         .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
-        .print-document + .print-document { margin-top: 0.3mm; border-top: 1px dashed #aaa; padding-top: 0.3mm; }
+        .print-document + .print-document { margin-top: ${gapMm}mm; border-top: 1px dashed #aaa; padding-top: ${gapMm}mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; max-width: 100%; }
         ${frameCss}
@@ -610,6 +614,7 @@ export const buildAdminPrintDocument = ({
   sectionMinHeightMm,
   sectionBorder = "none",
   extraCss = "",
+  labelGapMm,
 }: BuildAdminPrintDocumentOptions) => {
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
@@ -625,6 +630,7 @@ export const buildAdminPrintDocument = ({
     bodyPaddingMm,
     frameCss,
     extraCss,
+    labelGapMm,
   });
   const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
     const content = templateSections
@@ -690,9 +696,10 @@ export const buildBatchPrintDocument = (
     bodyFontSizePx,
     labelFontSizePx,
     bodyPaddingMm,
-    frameCss,
-    extraCss,
-  });
+      frameCss,
+      extraCss,
+      labelGapMm: base.labelGapMm,
+    });
 
   const documents = items
     .map((item) => {
