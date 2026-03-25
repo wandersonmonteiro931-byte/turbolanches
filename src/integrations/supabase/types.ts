@@ -1362,6 +1362,80 @@ export type Database = {
           },
         ]
       }
+      saved_labels: {
+        Row: {
+          brand: string
+          copies: number
+          created_at: string
+          height_mm: number
+          id: string
+          manufactured_on: string
+          name: string
+          responsible: string
+          shelf_life_days: number
+          source_kind: string
+          storage_phrase: string
+          storage_temp: string
+          storage_type: string
+          store_id: string | null
+          updated_at: string
+          user_id: string
+          valid_until: string
+          validity_mode: string
+          width_mm: number
+        }
+        Insert: {
+          brand?: string
+          copies?: number
+          created_at?: string
+          height_mm?: number
+          id?: string
+          manufactured_on?: string
+          name: string
+          responsible?: string
+          shelf_life_days?: number
+          source_kind?: string
+          storage_phrase?: string
+          storage_temp?: string
+          storage_type?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id: string
+          valid_until?: string
+          validity_mode?: string
+          width_mm?: number
+        }
+        Update: {
+          brand?: string
+          copies?: number
+          created_at?: string
+          height_mm?: number
+          id?: string
+          manufactured_on?: string
+          name?: string
+          responsible?: string
+          shelf_life_days?: number
+          source_kind?: string
+          storage_phrase?: string
+          storage_temp?: string
+          storage_type?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id?: string
+          valid_until?: string
+          validity_mode?: string
+          width_mm?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_labels_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scratch_prizes: {
         Row: {
           created_at: string
