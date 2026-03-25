@@ -3,26 +3,9 @@
   <head>
     <script>
       (function () {
-        var __LOVA_FIX_TRIGGER__ = typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ !== "undefined"
-          ? globalThis.__LOVA_FIX_TRIGGER__
-          : false;
-        var scope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
-        scope.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
-        if (typeof window !== "undefined") {
-          window.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
-        }
-        try {
-          if (!Object.prototype.hasOwnProperty.call(scope, "__LOVA_FIX_TRIGGER__")) {
-            Object.defineProperty(scope, "__LOVA_FIX_TRIGGER__", {
-              configurable: true,
-              enumerable: false,
-              writable: true,
-              value: __LOVA_FIX_TRIGGER__,
-            });
-          }
-        } catch (e) {
-          scope.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
-        }
+        var s = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
+        if (typeof s.__LOVA_FIX_TRIGGER__ === "undefined") { s.__LOVA_FIX_TRIGGER__ = false; }
+        if (typeof window !== "undefined" && typeof window.__LOVA_FIX_TRIGGER__ === "undefined") { window.__LOVA_FIX_TRIGGER__ = false; }
       })();
     </script>
     <script>
