@@ -488,7 +488,7 @@ export const buildBatchPrintDocument = (
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const frameCss = getFrameCss(sectionPaddingMm);
+  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
 
   const documents = items
     .map((item) => {
