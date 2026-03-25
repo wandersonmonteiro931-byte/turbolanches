@@ -16,6 +16,7 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
+type StorageType = "" | "resfriado" | "congelado";
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
@@ -30,6 +31,9 @@ interface GeneratedLabel {
   copies: number;
   widthMm: number;
   heightMm: number;
+  storageType: StorageType;
+  storageTemp: string;
+  storagePhrase: string;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -50,6 +54,11 @@ const addDays = (value: string, days: number) => {
 
 let labelIdCounter = 0;
 const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
+
+const DEFAULT_STORAGE_PHRASES: Record<string, string> = {
+  resfriado: "Manter resfriado entre 0°C e 5°C",
+  congelado: "Manter congelado a -18°C ou inferior",
+};
 
 const AdminLabels = () => {
   const { storeId } = useStore();
@@ -73,6 +82,17 @@ const AdminLabels = () => {
   const [labelHeightMm, setLabelHeightMm] = useState("30");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
+
+  // Storage type state
+  const [storageType, setStorageType] = useState<StorageType>("");
+  const [storageTemp, setStorageTemp] = useState("");
+  const [storagePhrase, setStoragePhrase] = useState("");
+
+  useEffect(() => {
+    if (storageType) {
+      setStoragePhrase((prev) => prev || DEFAULT_STORAGE_PHRASES[storageType] || "");
+    }
+  }, [storageType]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,6 +152,9 @@ const AdminLabels = () => {
       copies: Math.max(1, Number(copies) || 1),
       widthMm: Math.max(40, Number(labelWidthMm) || 50),
       heightMm: Math.max(25, Number(labelHeightMm) || 30),
+      storageType,
+      storageTemp: storageTemp.trim(),
+      storagePhrase: storageType ? storagePhrase.trim() : "",
     };
 
     if (!newLabel.name.trim()) {
@@ -177,6 +200,12 @@ const AdminLabels = () => {
     const widthMm = firstLabel.widthMm;
     const heightMm = firstLabel.heightMm;
 
+    const storageLabel = (type: StorageType) => {
+      if (type === "resfriado") return "RESFRIADO";
+      if (type === "congelado") return "CONGELADO";
+      return "";
+    };
+
     const batchItems: BatchSection[] = labelQueue.flatMap((label) =>
       Array.from({ length: label.copies }, () => ({
         variables: {
@@ -184,6 +213,11 @@ const AdminLabels = () => {
           "[DATAFABRICACAO]": formatDate(label.manufacturedOn),
           "[VALIDADE]": formatDate(label.validUntil),
           "[RESPONSAVEL]": label.responsible,
+          "[RESFRIADO]": label.storageType === "resfriado" ? "RESFRIADO" : "",
+          "[CONGELADO]": label.storageType === "congelado" ? "CONGELADO" : "",
+          "[ARMAZENAR]": storageLabel(label.storageType),
+          "[GRAUS]": label.storageTemp ? `${label.storageTemp}°C` : "",
+          "[FRASEARMAZ]": label.storagePhrase,
         },
       })),
     );
@@ -262,6 +296,28 @@ const AdminLabels = () => {
               {validityMode === "manual" ? <div className="space-y-2"><Label htmlFor="validUntil">Validade</Label><Input id="validUntil" type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} /></div> : <div className="grid gap-4 md:grid-cols-[180px_1fr] md:items-end"><div className="space-y-2"><Label htmlFor="shelfLifeDays">Dias de validade</Label><Input id="shelfLifeDays" type="number" min="0" value={shelfLifeDays} onChange={(event) => setShelfLifeDays(event.target.value)} /></div><div className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground">Válido até <strong>{formatDate(resolvedValidity)}</strong></div></div>}
             </div>
 
+            {/* Armazenamento */}
+            <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
+              <Label className="text-sm font-semibold">Tipo de armazenamento (opcional)</Label>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant={storageType === "" ? "default" : "outline"} onClick={() => { setStorageType(""); setStoragePhrase(""); }}>Nenhum</Button>
+                <Button type="button" variant={storageType === "resfriado" ? "default" : "outline"} onClick={() => { setStorageType("resfriado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.resfriado); }}>🧊 Resfriado</Button>
+                <Button type="button" variant={storageType === "congelado" ? "default" : "outline"} onClick={() => { setStorageType("congelado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.congelado); }}>❄️ Congelado</Button>
+              </div>
+              {storageType && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="storageTemp">Temperatura (°C) — opcional</Label>
+                    <Input id="storageTemp" value={storageTemp} onChange={(e) => setStorageTemp(e.target.value)} placeholder="Ex: -18 ou 4" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="storagePhrase">Frase de armazenamento</Label>
+                    <Input id="storagePhrase" value={storagePhrase} onChange={(e) => setStoragePhrase(e.target.value)} placeholder="Ex: Manter resfriado entre 0°C e 5°C" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
 
             <Button size="lg" className="w-full" onClick={handleAddToQueue}><Plus />Adicionar à fila</Button>
@@ -288,6 +344,8 @@ const AdminLabels = () => {
                       <div className="font-bold text-sm truncate">{label.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
+                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : "❄️"} ${label.storageType}` : ""}
+                        {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                       </div>
                     </div>
                     <Badge variant="outline" className="shrink-0">{label.sourceLabel}</Badge>

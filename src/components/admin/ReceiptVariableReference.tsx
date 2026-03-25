@@ -38,6 +38,11 @@ const VARIABLES = [
   { key: "[TITULO]", desc: "Título da lista de reposição" },
   { key: "[TOTALITENS]", desc: "Quantidade total de itens marcados" },
   { key: "[LISTA]", desc: "Lista dinâmica da reposição com item + quantidade" },
+  { key: "[RESFRIADO]", desc: "Exibe 'RESFRIADO' se selecionado na etiqueta" },
+  { key: "[CONGELADO]", desc: "Exibe 'CONGELADO' se selecionado na etiqueta" },
+  { key: "[ARMAZENAR]", desc: "Tipo de armazenamento (RESFRIADO ou CONGELADO)" },
+  { key: "[GRAUS]", desc: "Temperatura em °C (ex: -18°C)" },
+  { key: "[FRASEARMAZ]", desc: "Frase configurável de armazenamento" },
 ];
 
 const FORMATTING = [
