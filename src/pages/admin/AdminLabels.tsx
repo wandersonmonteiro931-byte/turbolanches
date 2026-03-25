@@ -17,7 +17,8 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
-type StorageType = "" | "resfriado" | "congelado" | "ambiente";
+
+interface StorageConfigRow { id: string; name: string; emoji: string; default_temp: string; default_phrase: string; }
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
@@ -33,7 +34,7 @@ interface GeneratedLabel {
   copies: number;
   widthMm: number;
   heightMm: number;
-  storageType: StorageType;
+  storageType: string;
   storageTemp: string;
   storagePhrase: string;
   brand: string;
@@ -51,7 +52,7 @@ interface SavedLabel {
   copies: number;
   width_mm: number;
   height_mm: number;
-  storage_type: StorageType;
+  storage_type: string;
   storage_temp: string;
   storage_phrase: string;
   brand: string;
@@ -76,11 +77,7 @@ const addDays = (value: string, days: number) => {
 let labelIdCounter = 0;
 const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
 
-const DEFAULT_STORAGE_PHRASES: Record<string, string> = {
-  resfriado: "Manter resfriado entre 0°C e 5°C",
-  congelado: "Manter congelado a -18°C ou inferior",
-  ambiente: "Armazenar em local seco e arejado",
-};
+// Removed hardcoded DEFAULT_STORAGE_PHRASES - now loaded from DB
 
 const AdminLabels = () => {
   const { storeId } = useStore();
