@@ -470,17 +470,14 @@ export const buildAdminPrintDocument = ({
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
-          min-width: ${pageWidthMm}mm;
-          max-width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
           line-height: 1.3;
-          letter-spacing: 0.2px;
+          letter-spacing: 0;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
-          overflow-x: hidden;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; }
@@ -491,11 +488,11 @@ export const buildAdminPrintDocument = ({
         .grand-total { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 2px 0; }
         .txt-medio { font-size: ${bodyFontSizePx + 4}px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
         .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
-        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; }
+        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; }
         .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 1px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
+        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
@@ -586,17 +583,14 @@ export const buildBatchPrintDocument = (
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
-          min-width: ${pageWidthMm}mm;
-          max-width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
           line-height: 1.3;
-          letter-spacing: 0.2px;
+          letter-spacing: 0;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
-          overflow-x: hidden;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; min-width: ${pageWidthMm}mm; max-width: ${pageWidthMm}mm; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-section { display: block; width: 100%; }
         ${frameCss}
@@ -606,11 +600,11 @@ export const buildBatchPrintDocument = (
         .grand-total { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 2px 0; }
         .txt-medio { font-size: ${bodyFontSizePx + 4}px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
         .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
-        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; }
+        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; }
         .inline-border { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; border: 1.5px solid #000; }
-        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
+        .tipo-label { font-size: ${labelFontSizePx}px; font-weight: 900; text-align: center; letter-spacing: 1px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
+        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; }
         .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
