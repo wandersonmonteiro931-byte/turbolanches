@@ -3,6 +3,15 @@ declare global {
 }
 
 try {
+  if (typeof globalThis.__LOVA_FIX_TRIGGER__ === "undefined") {
+    Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
+      configurable: true,
+      enumerable: false,
+      writable: true,
+      value: false,
+    });
+  }
+
   const scopes = [
     typeof globalThis !== "undefined" ? globalThis : undefined,
     typeof window !== "undefined" ? window : undefined,

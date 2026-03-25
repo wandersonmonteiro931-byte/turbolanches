@@ -224,38 +224,38 @@ export const renderInlineTemplateMarkup = (input: string) => {
   let cursor = 0;
   const activeRules: Array<(typeof TAG_RULES)[number]> = [];
 
-  const pushChunk = (chunk: string) => {
-    if (!chunk) return;
-    const classNames = unique(activeRules.map((rule) => rule.className)).join(" ");
-    const escapedChunk = escapeHtml(chunk);
+  const closeRulesFrom = (ruleIndex: number) => {
+    if (ruleIndex < 0) return;
 
-    markup += classNames ? `<span class="${classNames}">${escapedChunk}</span>` : escapedChunk;
+    for (let index = activeRules.length - 1; index >= ruleIndex; index -= 1) {
+      markup += "</span>";
+    }
+
+    activeRules.splice(ruleIndex);
   };
 
   while (cursor < input.length) {
     const nextMatch = findNextInlineTag(input, cursor);
 
     if (!nextMatch) {
-      pushChunk(input.slice(cursor));
+      markup += escapeHtml(input.slice(cursor));
       break;
     }
 
-    pushChunk(input.slice(cursor, nextMatch.index));
+    markup += escapeHtml(input.slice(cursor, nextMatch.index));
 
     if (nextMatch.kind === "close") {
       const activeIndex = activeRules.map((rule) => rule.className).lastIndexOf(nextMatch.rule.className);
-      if (activeIndex !== -1) activeRules.splice(activeIndex, 1);
+      closeRulesFrom(activeIndex);
     } else {
-      const activeIndex = activeRules.map((rule) => rule.className).lastIndexOf(nextMatch.rule.className);
-      if (activeIndex !== -1) {
-        activeRules.splice(activeIndex, 1);
-      } else {
-        activeRules.push(nextMatch.rule);
-      }
+      activeRules.push(nextMatch.rule);
+      markup += `<span class="${nextMatch.rule.className}">`;
     }
 
     cursor = nextMatch.index + nextMatch.token.length;
   }
+
+  closeRulesFrom(0);
 
   return markup;
 };
@@ -276,6 +276,21 @@ const shouldHideOptionalLine = (
   return !staticContent || /^marca\s*:?$/i.test(staticContent);
 };
 
+const shouldRenderTipoComandaLine = (
+  rawLine: string,
+  variables: Record<string, string | number | null | undefined>,
+) => {
+  if (!rawLine.includes("[TIPOCOMANDA]")) return false;
+
+  const remainingContent = stripFormattingTags(
+    replaceVariables(replaceAllToken(rawLine, "[TIPOCOMANDA]", ""), variables),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return !remainingContent;
+};
+
 export const renderAdminTemplateMarkup = (
   template: string,
   variables: Record<string, string | number | null | undefined> = {},
@@ -287,8 +302,17 @@ export const renderAdminTemplateMarkup = (
     const trimmedLine = rawLine.trim();
     if (!trimmedLine) return "";
 
-    const classes = resolveTemplateLineClasses(rawLine);
     if (shouldHideOptionalLine(rawLine, variables)) return "";
+
+    if (shouldRenderTipoComandaLine(rawLine, variables)) {
+      const tipoComanda = variables["[TIPOCOMANDA]"] == null ? "" : String(variables["[TIPOCOMANDA]"]).trim();
+      if (!tipoComanda) return "";
+
+      const classes = unique([resolveTemplateLineClasses(rawLine), "tipo-comanda-row"]).join(" ");
+      return `<div class="${classes}"><span class="tipo-label">${escapeHtml(tipoComanda)}</span></div>`;
+    }
+
+    const classes = resolveTemplateLineClasses(rawLine);
     const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
     if (!content) return "";
@@ -372,7 +396,30 @@ const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
 };
 
 const PRINT_BOOTSTRAP_SCRIPT = `<script>
+if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = false; }
 (function () {
+  try {
+    var scopes = [];
+    if (typeof globalThis !== "undefined") scopes.push(globalThis);
+    if (typeof window !== "undefined") scopes.push(window);
+    if (typeof self !== "undefined") scopes.push(self);
+
+    scopes.forEach(function (scope) {
+      if (!scope) return;
+      if (typeof scope.__LOVA_FIX_TRIGGER__ === "undefined") {
+        Object.defineProperty(scope, "__LOVA_FIX_TRIGGER__", {
+          configurable: true,
+          enumerable: false,
+          writable: true,
+          value: false,
+        });
+        return;
+      }
+
+      scope.__LOVA_FIX_TRIGGER__ = Boolean(scope.__LOVA_FIX_TRIGGER__);
+    });
+  } catch (error) {}
+
   var started = false;
 
   function firePrint() {
@@ -433,8 +480,8 @@ const getSharedPrintStyles = ({
   extraCss: string;
 }) => {
   const mediumTextPx = Math.max(bodyFontSizePx + 3, Math.round(bodyFontSizePx * 1.25));
-  const largeTextPx = Math.max(labelFontSizePx, bodyFontSizePx + 8);
-  const giantTextPx = Math.max(labelFontSizePx + 6, largeTextPx + 4);
+  const largeTextPx = Math.max(labelFontSizePx + 2, bodyFontSizePx + 10);
+  const giantTextPx = Math.max(labelFontSizePx + 8, largeTextPx + 6);
   const smallTextPx = Math.max(bodyFontSizePx - 3, 7);
 
   return `
@@ -465,7 +512,7 @@ const getSharedPrintStyles = ({
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; max-width: 100%; }
         ${frameCss}
-        .center { text-align: center; }
+        .center { display: block; width: 100%; text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
         .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
@@ -475,6 +522,7 @@ const getSharedPrintStyles = ({
         .txt-gigante { font-size: ${giantTextPx}px !important; font-weight: 900; line-height: 1.12; }
         .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; line-height: 1.35; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
+        .tipo-comanda-row { margin: 0; }
         .tipo-label {
           display: block;
           width: 100%;
@@ -482,11 +530,11 @@ const getSharedPrintStyles = ({
           font-weight: 900;
           text-align: center;
           letter-spacing: 0.5px;
-          margin: 1.5px 0;
-          padding: 0.8mm 1.5mm;
-          border: 2.5px solid #000;
+          margin: 1.2px 0;
+          padding: 0.8mm 1.2mm;
+          border: 3px solid #000;
           text-transform: uppercase;
-          line-height: 1.15;
+          line-height: 1.08;
         }
         .pedido-destaque { font-size: ${largeTextPx}px !important; font-weight: 900; text-align: center; margin: 2px 0; line-height: 1.18; }
         .box-highlight {
