@@ -57,7 +57,8 @@ const BrandsTab = () => {
 
   const handleUpdate = async (id: string) => {
     if (!editingName.trim()) return;
-    const { error } = await supabase.from("brands").update({ name: editingName.trim() }).eq("id", id);
+    const db = supabase as any;
+    const { error } = await db.from("brands").update({ name: editingName.trim() }).eq("id", id);
     if (error) {
       toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
       return;
