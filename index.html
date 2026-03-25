@@ -3,9 +3,7 @@
   <head>
     <script>
       (function () {
-        if (typeof __LOVA_FIX_TRIGGER__ === "undefined") {
-          var __LOVA_FIX_TRIGGER__ = false;
-        }
+        window.__LOVA_FIX_TRIGGER__ = window.__LOVA_FIX_TRIGGER__ ?? false;
         var scope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
         try {
           if (!Object.prototype.hasOwnProperty.call(scope, "__LOVA_FIX_TRIGGER__")) {
@@ -23,7 +21,7 @@
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v49";
+        var PUSH_SW_URL = "/push-sw.js?v50";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -62,6 +60,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=49"></script>
+    <script type="module" src="/src/main.tsx?v=50"></script>
   </body>
 </html>
