@@ -411,50 +411,33 @@ const PRINT_BOOTSTRAP_SCRIPT = `<script>
 })();
 </script>`;
 
-export const buildAdminPrintDocument = ({
-  title,
-  template,
-  variables = {},
-  blocks = {},
-  pageWidthMm = 72,
-  pageHeightMm = "auto",
-  pageMarginMm = 0,
-  repeatCount = 1,
-  bodyFontFamily = "Arial, Helvetica, sans-serif",
-  bodyFontSizePx = 11,
-  labelFontSizePx = bodyFontSizePx + 8,
-  bodyPaddingMm = 0,
-  sectionPaddingMm = 2,
-  sectionMinHeightMm,
-  sectionBorder = "none",
-  extraCss = "",
-}: BuildAdminPrintDocumentOptions) => {
-  const templateSections = extractTemplateSections(template);
-  const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
-  const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
-  const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
-    const content = templateSections
-      .map(({ content: sectionTemplate, wrapperClass }) => {
-        const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
-        if (!markup) return "";
+const getSharedPrintStyles = ({
+  pageSize,
+  pageMarginMm,
+  pageWidthMm,
+  bodyFontFamily,
+  bodyFontSizePx,
+  labelFontSizePx,
+  bodyPaddingMm,
+  frameCss,
+  extraCss,
+}: {
+  pageSize: string;
+  pageMarginMm: number;
+  pageWidthMm: number;
+  bodyFontFamily: string;
+  bodyFontSizePx: number;
+  labelFontSizePx: number;
+  bodyPaddingMm: number;
+  frameCss: string;
+  extraCss: string;
+}) => {
+  const mediumTextPx = Math.max(bodyFontSizePx + 3, Math.round(bodyFontSizePx * 1.25));
+  const largeTextPx = Math.max(labelFontSizePx, bodyFontSizePx + 8);
+  const giantTextPx = Math.max(labelFontSizePx + 6, largeTextPx + 4);
+  const smallTextPx = Math.max(bodyFontSizePx - 3, 7);
 
-        const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
-        return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
-      })
-      .filter(Boolean)
-      .join("");
-
-    return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
-  }).join("");
-
-  return `<!DOCTYPE html>
-  <html lang="pt-BR">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>${escapeHtml(title)}</title>
-      <style>
+  return `
         @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
           html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: hidden !important; }
@@ -480,27 +463,47 @@ export const buildAdminPrintDocument = ({
         .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
         .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
-        .print-section { display: block; width: 100%; }
+        .print-section { display: block; width: 100%; max-width: 100%; }
         ${frameCss}
         .center { text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
         .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
-        .txt-grande { font-size: ${bodyFontSizePx + 8}px !important; font-weight: 900; line-height: 1.2; }
-        .txt-medio { font-size: ${bodyFontSizePx + 3}px !important; font-weight: 900; line-height: 1.35; }
-        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 7)}px !important; font-weight: 900; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px !important; font-weight: 900; line-height: 1.2; }
+        .txt-grande { font-size: ${largeTextPx}px !important; font-weight: 900; line-height: 1.18; }
+        .txt-medio { font-size: ${mediumTextPx}px !important; font-weight: 900; line-height: 1.32; }
+        .txt-pequeno { font-size: ${smallTextPx}px !important; font-weight: 900; line-height: 1.3; }
+        .txt-gigante { font-size: ${giantTextPx}px !important; font-weight: 900; line-height: 1.12; }
         .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; line-height: 1.35; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
-        .tipo-label { display: block; width: 100%; font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; text-transform: uppercase; line-height: 1.25; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; margin: 2px 0; line-height: 1.2; }
-        .box-highlight { display: block; width: 100%; font-size: inherit; font-weight: 900; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
-        .box-highlight { display: block; width: 100%; font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
+        .tipo-label {
+          display: block;
+          width: 100%;
+          font-size: ${giantTextPx}px !important;
+          font-weight: 900;
+          text-align: center;
+          letter-spacing: 0.5px;
+          margin: 1.5px 0;
+          padding: 0.8mm 1.5mm;
+          border: 2.5px solid #000;
+          text-transform: uppercase;
+          line-height: 1.15;
+        }
+        .pedido-destaque { font-size: ${largeTextPx}px !important; font-weight: 900; text-align: center; margin: 2px 0; line-height: 1.18; }
+        .box-highlight {
+          display: block;
+          width: 100%;
+          margin: 1.5px 0;
+          padding: 0.8mm 1.5mm;
+          border: 2.5px solid #000;
+          font-size: inherit !important;
+          font-weight: 900;
+          line-height: 1.2;
+          text-align: inherit;
+        }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
         .list-qty { white-space: nowrap; }
-        .print-section { max-width: 100%; }
         .info,
         .grand-total,
         .txt-grande,
@@ -512,6 +515,65 @@ export const buildAdminPrintDocument = ({
         .box-highlight,
         .list-name { overflow-wrap: break-word; white-space: normal; }
         ${extraCss}
+      `;
+};
+
+export const buildAdminPrintDocument = ({
+  title,
+  template,
+  variables = {},
+  blocks = {},
+  pageWidthMm = 72,
+  pageHeightMm = "auto",
+  pageMarginMm = 0,
+  repeatCount = 1,
+  bodyFontFamily = "Arial, Helvetica, sans-serif",
+  bodyFontSizePx = 11,
+  labelFontSizePx = bodyFontSizePx + 8,
+  bodyPaddingMm = 0,
+  sectionPaddingMm = 2,
+  sectionMinHeightMm,
+  sectionBorder = "none",
+  extraCss = "",
+}: BuildAdminPrintDocumentOptions) => {
+  const templateSections = extractTemplateSections(template);
+  const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
+  const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
+  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
+  const sharedStyles = getSharedPrintStyles({
+    pageSize,
+    pageMarginMm,
+    pageWidthMm,
+    bodyFontFamily,
+    bodyFontSizePx,
+    labelFontSizePx,
+    bodyPaddingMm,
+    frameCss,
+    extraCss,
+  });
+  const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
+    const content = templateSections
+      .map(({ content: sectionTemplate, wrapperClass }) => {
+        const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
+        if (!markup) return "";
+
+        const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
+        return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
+      })
+      .filter(Boolean)
+      .join("");
+
+    return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+  <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>${escapeHtml(title)}</title>
+      <style>
+        ${sharedStyles}
       </style>
     </head>
     <body>
@@ -545,6 +607,17 @@ export const buildBatchPrintDocument = (
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
   const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
+  const sharedStyles = getSharedPrintStyles({
+    pageSize,
+    pageMarginMm,
+    pageWidthMm,
+    bodyFontFamily,
+    bodyFontSizePx,
+    labelFontSizePx,
+    bodyPaddingMm,
+    frameCss,
+    extraCss,
+  });
 
   const documents = items
     .map((item) => {
@@ -572,60 +645,7 @@ export const buildBatchPrintDocument = (
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>${escapeHtml(title)}</title>
       <style>
-        @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
-        @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: hidden !important; }
-          iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
-          body > *:not(.print-root):not(script):not(style) { display: none !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #ffffff; color: #000000; }
-        body {
-          font-family: ${bodyFontFamily};
-          font-size: ${bodyFontSizePx}px;
-          font-weight: 900;
-          width: ${pageWidthMm}mm;
-          padding: ${bodyPaddingMm}mm;
-          line-height: 1.3;
-          letter-spacing: 0;
-          -webkit-font-smoothing: none;
-          text-rendering: geometricPrecision;
-        }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
-        .print-document + .print-document { margin-top: 1mm; border-top: 1px dashed #aaa; padding-top: 1mm; }
-        .print-section { display: block; width: 100%; }
-        ${frameCss}
-        .center { text-align: center; }
-        .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
-        .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
-        .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
-        .txt-grande { font-size: ${bodyFontSizePx + 8}px !important; font-weight: 900; line-height: 1.2; }
-        .txt-medio { font-size: ${bodyFontSizePx + 3}px !important; font-weight: 900; line-height: 1.35; }
-        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 3, 7)}px !important; font-weight: 900; line-height: 1.3; }
-        .txt-gigante { font-size: ${bodyFontSizePx + 14}px !important; font-weight: 900; line-height: 1.2; }
-        .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; line-height: 1.35; }
-        .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
-        .tipo-label { display: block; width: 100%; font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 0.5px; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; text-transform: uppercase; line-height: 1.25; }
-        .pedido-destaque { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; margin: 2px 0; line-height: 1.2; }
-        .box-highlight { display: block; width: 100%; font-size: inherit; font-weight: 900; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; line-height: 1.25; }
-        .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
-        .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
-        .list-name { flex: 1; min-width: 0; word-break: break-word; }
-        .list-qty { white-space: nowrap; }
-        .print-section { max-width: 100%; }
-        .info,
-        .grand-total,
-        .txt-grande,
-        .txt-medio,
-        .txt-pequeno,
-        .txt-gigante,
-        .tipo-label,
-        .pedido-destaque,
-        .box-highlight,
-        .list-name { overflow-wrap: break-word; white-space: normal; }
-        ${extraCss}
+        ${sharedStyles}
       </style>
     </head>
     <body>
