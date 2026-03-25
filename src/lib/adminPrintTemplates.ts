@@ -341,22 +341,31 @@ export const renderAdminTemplateMarkup = (
     .join("");
 };
 
-const getFrameCss = (sectionPaddingMm: number) => {
+const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
   const bleed = Math.max(sectionPaddingMm, 0);
 
   return `
     .print-frame,
     .print-frame-strong,
-    .print-frame-rect { display: block; }
-    .print-frame { border: 1.5px solid #000 !important; }
-    .print-frame-strong { border: 3px solid #000 !important; }
+    .print-frame-rect { display: block; box-sizing: border-box; }
+    .print-frame {
+      border: 1.5px solid #000 !important;
+      padding: 1mm 2mm;
+    }
+    .print-frame-strong {
+      border: 3px solid #000 !important;
+      padding: 1mm 2mm;
+    }
     .print-frame-rect {
+      position: relative;
       width: calc(100% + ${bleed * 2}mm);
       margin-left: -${bleed}mm !important;
       margin-right: -${bleed}mm !important;
-      padding-left: ${bleed}mm;
-      padding-right: ${bleed}mm;
-      border: 1.5px solid #000 !important;
+      padding: 1mm ${bleed}mm;
+      border-top: 1.5px solid #000 !important;
+      border-bottom: 1.5px solid #000 !important;
+      border-left: 1.5px solid #000 !important;
+      border-right: 1.5px solid #000 !important;
     }
   `;
 };
@@ -381,7 +390,7 @@ export const buildAdminPrintDocument = ({
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const frameCss = getFrameCss(sectionPaddingMm);
+  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
   const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
     const content = templateSections
       .map(({ content: sectionTemplate, wrapperClass }) => {
@@ -479,7 +488,7 @@ export const buildBatchPrintDocument = (
   const templateSections = extractTemplateSections(template);
   const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
   const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
-  const frameCss = getFrameCss(sectionPaddingMm);
+  const frameCss = getFrameCss(sectionPaddingMm, pageWidthMm);
 
   const documents = items
     .map((item) => {
