@@ -3,20 +3,12 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
-import { extractTemplateSections } from "@/lib/adminPrintTemplates";
-
-const TAG_RULES = [
-  { open: "[CENTRO]", close: "[/CENTRO]", className: "center" },
-  { open: "[GRANDE]", close: "[/GRANDE]", className: "tipo-label" },
-  { open: "[DESTAQUE]", close: "[/DESTAQUE]", className: "pedido-destaque" },
-  { open: "[CAIXA]", close: "[/CAIXA]", className: "box-highlight" },
-  { open: "[NEGRITO]", close: "[/NEGRITO]", className: "grand-total" },
-  { open: "[TXTMEDIO]", close: "[/TXTMEDIO]", className: "txt-medio" },
-  { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
-  { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
-  { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
-  { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
-] as const;
+import {
+  extractTemplateSections,
+  renderInlineTemplateMarkup,
+  resolveTemplateLineClasses,
+  stripFormattingTags,
+} from "@/lib/adminPrintTemplates";
 
 const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
 const ITEM_TEMPLATE_TOKENS = [
@@ -192,32 +184,6 @@ const AdminPrint = () => {
     return result;
   };
 
-  const resolveClasses = (text: string) => {
-    const activeClasses = ["info"];
-
-    TAG_RULES.forEach((rule) => {
-      if (text.includes(rule.open) || text.includes(rule.close)) {
-        activeClasses.push(rule.className);
-      }
-    });
-
-    if (text.includes("[CENTRO]")) {
-      activeClasses.push("center");
-    }
-
-    return Array.from(new Set(activeClasses)).join(" ");
-  };
-
-  const stripFormattingTags = (text: string) => {
-    let content = text;
-
-    TAG_RULES.forEach((rule) => {
-      content = content.split(rule.open).join("").split(rule.close).join("");
-    });
-
-    return content.replace(/\[CENTRO\]/g, "").trim();
-  };
-
   const hasItemTemplateTokens = (text: string) => ITEM_TEMPLATE_TOKENS.some((token) => text.includes(token));
 
   const removeItemBlockTokens = (text: string) =>
@@ -252,13 +218,17 @@ const AdminPrint = () => {
       }
     }
 
-    content = stripFormattingTags(content);
-    if (!content.trim()) return null;
+    const plainContent = stripFormattingTags(content);
+    if (!plainContent.trim()) return null;
+    const markup = renderInlineTemplateMarkup(content);
+    if (!markup.trim()) return null;
 
     return (
-      <div key={key} className={resolveClasses(rawLine)}>
-        {content}
-      </div>
+      <div
+        key={key}
+        className={resolveTemplateLineClasses(rawLine)}
+        dangerouslySetInnerHTML={{ __html: markup }}
+      />
     );
   };
 
