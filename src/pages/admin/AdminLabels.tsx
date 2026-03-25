@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Printer, RefreshCw, Sticker, Plus, Trash2, ListChecks } from "lucide-react";
+import { Printer, Sticker, Plus, Trash2, ListChecks } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { buildBatchPrintDocument, type BatchSection } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
-import { cn } from "@/lib/utils";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
@@ -59,7 +58,6 @@ const AdminLabels = () => {
   const { data: templates } = useReceiptTemplates();
 
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [sourceKind, setSourceKind] = useState<SourceKind>("ingredient");
   const [validityMode, setValidityMode] = useState<ValidityMode>("manual");
   const [products, setProducts] = useState<ProductRow[]>([]);
@@ -76,29 +74,30 @@ const AdminLabels = () => {
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
 
-  const fetchData = async () => {
-    try {
-      const productsQuery = supabase.from("products").select("id, name, active").order("name");
-      const ingredientsQuery = supabase.from("ingredients").select("id, name, unit").order("name");
-      const [productsRes, ingredientsRes] = await Promise.all([
-        storeId ? productsQuery.eq("store_id", storeId) : productsQuery,
-        storeId ? ingredientsQuery.eq("store_id", storeId) : ingredientsQuery,
-      ]);
-      if (productsRes.error) throw productsRes.error;
-      if (ingredientsRes.error) throw ingredientsRes.error;
-      setProducts((productsRes.data ?? []) as ProductRow[]);
-      setIngredients((ingredientsRes.data ?? []) as IngredientRow[]);
-      setSelectedProductId((current) => current || productsRes.data?.[0]?.id || "");
-      setSelectedIngredientId((current) => current || ingredientsRes.data?.[0]?.id || "");
-    } catch (error) {
-      toast({ title: "Erro ao carregar etiquetas", description: error instanceof Error ? error.message : "Não foi possível carregar produtos e ingredientes.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const productsQuery = supabase.from("products").select("id, name, active").order("name");
+        const ingredientsQuery = supabase.from("ingredients").select("id, name, unit").order("name");
+        const [productsRes, ingredientsRes] = await Promise.all([
+          storeId ? productsQuery.eq("store_id", storeId) : productsQuery,
+          storeId ? ingredientsQuery.eq("store_id", storeId) : ingredientsQuery,
+        ]);
+        if (productsRes.error) throw productsRes.error;
+        if (ingredientsRes.error) throw ingredientsRes.error;
+        setProducts((productsRes.data ?? []) as ProductRow[]);
+        setIngredients((ingredientsRes.data ?? []) as IngredientRow[]);
+        setSelectedProductId((current) => current || productsRes.data?.[0]?.id || "");
+        setSelectedIngredientId((current) => current || ingredientsRes.data?.[0]?.id || "");
+      } catch (error) {
+        toast({ title: "Erro ao carregar dados", description: error instanceof Error ? error.message : "Não foi possível carregar.", variant: "destructive" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    void fetchData();
+  }, [storeId]);
 
-  useEffect(() => { void fetchData(); }, [storeId]);
   useEffect(() => {
     const defaultResponsible = user?.user_metadata?.full_name || user?.email || "";
     setResponsible((current) => (current.trim() ? current : defaultResponsible));
@@ -122,11 +121,6 @@ const AdminLabels = () => {
 
   const resolvedValidity = useMemo(() => validityMode === "automatic" ? addDays(manufacturedOn, Math.max(0, Number(shelfLifeDays) || 0)) : validUntil, [manufacturedOn, shelfLifeDays, validUntil, validityMode]);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchData();
-  };
-
   const handleAddToQueue = () => {
     const newLabel: GeneratedLabel = {
       id: nextLabelId(),
@@ -141,15 +135,15 @@ const AdminLabels = () => {
     };
 
     if (!newLabel.name.trim()) {
-      toast({ title: "Selecione um item", description: "Escolha o produto/ingrediente ou digite um nome manual.", variant: "destructive" });
+      toast({ title: "Selecione um item", description: "Escolha o produto/ingrediente ou digite um nome.", variant: "destructive" });
       return;
     }
     if (!newLabel.manufacturedOn || !newLabel.validUntil) {
-      toast({ title: "Preencha as datas", description: "Informe fabricação e validade antes de gerar a etiqueta.", variant: "destructive" });
+      toast({ title: "Preencha as datas", variant: "destructive" });
       return;
     }
     if (!newLabel.responsible.trim()) {
-      toast({ title: "Informe o responsável", description: "Preencha quem preparou o item para gerar a etiqueta.", variant: "destructive" });
+      toast({ title: "Informe o responsável", variant: "destructive" });
       return;
     }
 
@@ -169,13 +163,13 @@ const AdminLabels = () => {
 
   const handlePrintAll = () => {
     if (labelQueue.length === 0) {
-      toast({ title: "Fila vazia", description: "Adicione pelo menos uma etiqueta antes de imprimir.", variant: "destructive" });
+      toast({ title: "Fila vazia", description: "Adicione pelo menos uma etiqueta.", variant: "destructive" });
       return;
     }
 
     const printWindow = window.open("", "_blank", "width=480,height=720");
     if (!printWindow) {
-      toast({ title: "Permita pop-ups", description: "O navegador precisa abrir a impressão térmica em uma janela limpa.", variant: "destructive" });
+      toast({ title: "Permita pop-ups", variant: "destructive" });
       return;
     }
 
@@ -183,7 +177,6 @@ const AdminLabels = () => {
     const widthMm = firstLabel.widthMm;
     const heightMm = firstLabel.heightMm;
 
-    // Expand each label by its copies count into flat BatchSection array
     const batchItems: BatchSection[] = labelQueue.flatMap((label) =>
       Array.from({ length: label.copies }, () => ({
         variables: {
@@ -224,8 +217,13 @@ const AdminLabels = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2"><div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">{totalLabelsInQueue} na fila</Badge></div><CardDescription>Adicione vários itens à fila e imprima tudo de uma vez, economizando papel. Use [QUADRADO] ou [QUADRADONEGRITO] no modelo para adicionar moldura.</CardDescription></div>
-          <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={handleRefresh} disabled={refreshing}><RefreshCw className={cn(refreshing && "animate-spin")} />Atualizar</Button><Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo</Link></Button></div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">{totalLabelsInQueue} na fila</Badge></div>
+            <CardDescription>Os ingredientes e produtos exibidos aqui são os cadastrados manualmente na seção de Precificação e Produtos.</CardDescription>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo</Link></Button>
+          </div>
         </CardHeader>
       </Card>
 
@@ -235,8 +233,26 @@ const AdminLabels = () => {
           <CardContent className="space-y-6">
             <div className="space-y-3"><Label>Origem do item</Label><div className="flex flex-wrap gap-2">{([{ value: "ingredient", label: "Ingrediente" }, { value: "product", label: "Produto" }, { value: "manual", label: "Texto manual" }] as const).map((option) => <Button key={option.value} type="button" variant={sourceKind === option.value ? "default" : "outline"} onClick={() => setSourceKind(option.value)}>{option.label}</Button>)}</div></div>
 
-            {sourceKind === "ingredient" ? <div className="space-y-2"><Label htmlFor="ingredient">Ingrediente</Label><select id="ingredient" value={selectedIngredientId} onChange={(event) => setSelectedIngredientId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{ingredients.map((ingredient) => <option key={ingredient.id} value={ingredient.id}>{ingredient.name} • {ingredient.unit}</option>)}</select></div> : null}
-            {sourceKind === "product" ? <div className="space-y-2"><Label htmlFor="product">Produto</Label><select id="product" value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{products.map((product) => <option key={product.id} value={product.id}>{product.name}{product.active ? "" : " • oculto"}</option>)}</select></div> : null}
+            {sourceKind === "ingredient" ? (
+              <div className="space-y-2">
+                <Label htmlFor="ingredient">Ingrediente</Label>
+                {ingredients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum ingrediente cadastrado. <Link to="/admin/precificacao" className="text-primary underline">Cadastre na Precificação</Link>.</p>
+                ) : (
+                  <select id="ingredient" value={selectedIngredientId} onChange={(event) => setSelectedIngredientId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{ingredients.map((ingredient) => <option key={ingredient.id} value={ingredient.id}>{ingredient.name} • {ingredient.unit}</option>)}</select>
+                )}
+              </div>
+            ) : null}
+            {sourceKind === "product" ? (
+              <div className="space-y-2">
+                <Label htmlFor="product">Produto</Label>
+                {products.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum produto cadastrado. <Link to="/admin/produtos" className="text-primary underline">Cadastre em Produtos</Link>.</p>
+                ) : (
+                  <select id="product" value={selectedProductId} onChange={(event) => setSelectedProductId(event.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">{products.map((product) => <option key={product.id} value={product.id}>{product.name}{product.active ? "" : " • oculto"}</option>)}</select>
+                )}
+              </div>
+            ) : null}
             {sourceKind === "manual" ? <div className="space-y-2"><Label htmlFor="custom-name">Nome do item</Label><Input id="custom-name" value={customName} onChange={(event) => setCustomName(event.target.value)} placeholder="Ex.: Carne temperada" /></div> : null}
 
             <div className="grid gap-4 md:grid-cols-2"><div className="space-y-2"><Label htmlFor="manufacturedOn">Data de fabricação</Label><Input id="manufacturedOn" type="date" value={manufacturedOn} onChange={(event) => setManufacturedOn(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="responsible">Responsável</Label><Input id="responsible" value={responsible} onChange={(event) => setResponsible(event.target.value)} placeholder="Nome de quem preparou" /></div></div>
@@ -246,17 +262,17 @@ const AdminLabels = () => {
               {validityMode === "manual" ? <div className="space-y-2"><Label htmlFor="validUntil">Validade</Label><Input id="validUntil" type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} /></div> : <div className="grid gap-4 md:grid-cols-[180px_1fr] md:items-end"><div className="space-y-2"><Label htmlFor="shelfLifeDays">Dias de validade</Label><Input id="shelfLifeDays" type="number" min="0" value={shelfLifeDays} onChange={(event) => setShelfLifeDays(event.target.value)} /></div><div className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground">Válido até <strong>{formatDate(resolvedValidity)}</strong></div></div>}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias deste item</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
+            <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
 
-            <Button size="lg" className="w-full" onClick={handleAddToQueue}><Plus />Adicionar à fila de impressão</Button>
+            <Button size="lg" className="w-full" onClick={handleAddToQueue}><Plus />Adicionar à fila</Button>
 
-            {loading ? <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando produtos e ingredientes...</div> : null}
+            {loading ? <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando...</div> : null}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex-row items-start justify-between gap-3">
-            <div><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Fila de impressão ({totalLabelsInQueue})</CardTitle><CardDescription>Todas as etiquetas abaixo serão impressas juntas, com espaço mínimo para corte.</CardDescription></div>
+            <div><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Fila de impressão ({totalLabelsInQueue})</CardTitle><CardDescription>Todas as etiquetas serão impressas juntas.</CardDescription></div>
             {labelQueue.length > 0 && <Button variant="ghost" size="sm" onClick={handleClearQueue}><Trash2 className="h-4 w-4" />Limpar</Button>}
           </CardHeader>
           <CardContent className="space-y-4">
@@ -282,7 +298,7 @@ const AdminLabels = () => {
                 ))}
               </div>
             )}
-            <Button className="w-full" size="lg" onClick={handlePrintAll} disabled={labelQueue.length === 0}><Printer />Imprimir {totalLabelsInQueue} etiqueta(s) de uma vez</Button>
+            <Button className="w-full" size="lg" onClick={handlePrintAll} disabled={labelQueue.length === 0}><Printer />Imprimir {totalLabelsInQueue} etiqueta(s)</Button>
           </CardContent>
         </Card>
       </div>
