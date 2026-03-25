@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, X, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,7 @@ const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
+  { path: "/admin/cadastros", icon: FolderPlus, label: "Cadastros" },
   { path: "/admin/categorias", icon: Tag, label: "Categorias" },
   { path: "/admin/adicionais", icon: ListPlus, label: "Adicionais" },
   { path: "/admin/banners", icon: Image, label: "Banners" },

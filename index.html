@@ -3,7 +3,24 @@
   <head>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v43";
+        var scope = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
+        try {
+          if (!Object.prototype.hasOwnProperty.call(scope, "__LOVA_FIX_TRIGGER__")) {
+            Object.defineProperty(scope, "__LOVA_FIX_TRIGGER__", {
+              configurable: true,
+              enumerable: false,
+              writable: true,
+              value: false,
+            });
+          }
+        } catch (e) {
+          scope.__LOVA_FIX_TRIGGER__ = false;
+        }
+      })();
+    </script>
+    <script>
+      (function () {
+        var PUSH_SW_URL = "/push-sw.js?v44";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -42,6 +59,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=43"></script>
+    <script type="module" src="/src/main.tsx?v=44"></script>
   </body>
 </html>

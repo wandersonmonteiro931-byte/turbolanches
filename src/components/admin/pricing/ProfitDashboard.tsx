@@ -121,9 +121,9 @@ const ProfitDashboard = () => {
   }, [filteredRows]);
 
   const marginColor = (m: number) => {
-    if (m < 0) return "text-red-600 font-bold";
-    if (m < 30) return "text-amber-600 font-semibold";
-    return "text-emerald-600 font-semibold";
+    if (m < 0) return "text-destructive font-bold";
+    if (m < 30) return "text-foreground font-semibold";
+    return "text-primary font-semibold";
   };
 
   return (
@@ -171,38 +171,57 @@ const ProfitDashboard = () => {
       ) : (
         <div className="space-y-4">
           {Object.entries(groupedRows).map(([categoryName, catRows]) => (
-            <div key={categoryName} className="overflow-auto rounded-xl border border-border bg-card">
+            <div key={categoryName} className="rounded-xl border border-border bg-card">
               <div className="border-b border-border bg-muted/30 px-4 py-2">
                 <h3 className="text-sm font-semibold text-foreground">{categoryName}</h3>
               </div>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="py-2 pl-4 pr-2 font-medium text-muted-foreground">Produto</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Venda</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Ingred.</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Direto</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Extras</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Custo</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground text-right">Lucro</th>
-                    <th className="py-2 pl-2 pr-4 font-medium text-muted-foreground text-right">Margem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {catRows.map((r) => (
-                    <tr key={r.id} className="border-b border-border/50">
-                      <td className="py-2 pl-4 pr-2 text-foreground font-medium truncate max-w-[120px]">{r.name}</td>
-                      <td className="py-2 px-2 text-right text-foreground">{formatCurrency(r.price)}</td>
-                      <td className="py-2 px-2 text-right text-muted-foreground">{formatCurrency(r.ingredientCost)}</td>
-                      <td className="py-2 px-2 text-right text-muted-foreground">{formatCurrency(r.manualCost)}</td>
-                      <td className="py-2 px-2 text-right text-muted-foreground">{formatCurrency(r.extraCost)}</td>
-                      <td className="py-2 px-2 text-right text-foreground">{formatCurrency(r.totalCost)}</td>
-                      <td className={`py-2 px-2 text-right ${marginColor(r.margin)}`}>{formatCurrency(r.profit)}</td>
-                      <td className={`py-2 pl-2 pr-4 text-right ${marginColor(r.margin)}`}>{r.margin.toFixed(1)}%</td>
+              <div className="space-y-3 p-3 lg:hidden">
+                {catRows.map((r) => (
+                  <article key={r.id} className="rounded-xl border border-border bg-background p-3">
+                    <p className="break-words text-sm font-semibold text-foreground">{r.name}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Venda</p><p className="font-semibold text-foreground">{formatCurrency(r.price)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Ingred.</p><p className="text-foreground">{formatCurrency(r.ingredientCost)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Direto</p><p className="text-foreground">{formatCurrency(r.manualCost)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Extras</p><p className="text-foreground">{formatCurrency(r.extraCost)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Custo</p><p className="text-foreground">{formatCurrency(r.totalCost)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Lucro</p><p className={marginColor(r.margin)}>{formatCurrency(r.profit)}</p></div>
+                      <div className="rounded-lg border border-border p-2"><p className="text-muted-foreground">Margem</p><p className={marginColor(r.margin)}>{r.margin.toFixed(1)}%</p></div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="hidden overflow-x-auto lg:block">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="py-2 pl-4 pr-2 font-medium text-muted-foreground">Produto</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Venda</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Ingred.</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Direto</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Extras</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Custo</th>
+                      <th className="py-2 px-2 font-medium text-muted-foreground text-right whitespace-nowrap">Lucro</th>
+                      <th className="py-2 pl-2 pr-4 font-medium text-muted-foreground text-right whitespace-nowrap">Margem</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {catRows.map((r) => (
+                      <tr key={r.id} className="border-b border-border/50">
+                        <td className="max-w-[260px] break-words py-2 pl-4 pr-2 font-medium text-foreground">{r.name}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap text-foreground">{formatCurrency(r.price)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap text-muted-foreground">{formatCurrency(r.ingredientCost)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap text-muted-foreground">{formatCurrency(r.manualCost)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap text-muted-foreground">{formatCurrency(r.extraCost)}</td>
+                        <td className="py-2 px-2 text-right whitespace-nowrap text-foreground">{formatCurrency(r.totalCost)}</td>
+                        <td className={`py-2 px-2 text-right whitespace-nowrap ${marginColor(r.margin)}`}>{formatCurrency(r.profit)}</td>
+                        <td className={`py-2 pl-2 pr-4 text-right whitespace-nowrap ${marginColor(r.margin)}`}>{r.margin.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
