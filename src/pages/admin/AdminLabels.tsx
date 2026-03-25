@@ -347,7 +347,7 @@ const AdminLabels = () => {
                       <div className="font-bold text-sm truncate">{label.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
-                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : "❄️"} ${label.storageType}` : ""}
+                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
                         {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                       </div>
                     </div>
