@@ -33,6 +33,11 @@ export interface BuildAdminPrintDocumentOptions {
   extraCss?: string;
 }
 
+export interface BatchSection {
+  variables?: Record<string, string | number | null | undefined>;
+  blocks?: Record<string, string | undefined>;
+}
+
 const unique = (values: string[]) => Array.from(new Set(values));
 
 export const escapeHtml = (value: string) =>
@@ -185,9 +190,100 @@ export const buildAdminPrintDocument = ({
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
         }
-        .print-root { display: flex; flex-direction: column; gap: ${Math.max(0, pageMarginMm)}mm; }
-        .print-page { display: block; page-break-after: always; break-after: page; overflow: hidden; background: #ffffff; }
+        .print-root { display: flex; flex-direction: column; gap: 0; }
+        .print-page { display: block; overflow: hidden; background: #ffffff; }
+        .print-page + .print-page { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
         .print-page:last-child { page-break-after: auto; break-after: auto; }
+        .print-frame { border: 1.5px solid #000 !important; }
+        .print-frame-strong { border: 3px solid #000 !important; }
+        .center { text-align: center; }
+        .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
+        .info { font-size: ${bodyFontSizePx}px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
+        .grand-total { font-size: ${bodyFontSizePx + 2}px; font-weight: 900; margin: 2px 0; }
+        .txt-medio { font-size: ${bodyFontSizePx + 4}px; font-weight: 900; margin: 2px 0; line-height: 1.35; }
+        .txt-pequeno { font-size: ${Math.max(bodyFontSizePx - 2, 8)}px; font-weight: 700; margin: 1px 0; line-height: 1.3; }
+        .txt-gigante { font-size: ${bodyFontSizePx + 14}px; font-weight: 900; margin: 3px 0; line-height: 1.2; letter-spacing: 0.6px; }
+        .txt-borda-preta { display: block; width: 100%; margin: 2px 0; padding: 3px 4px; background: #000; color: #fff; font-weight: 900; letter-spacing: 0.4px; }
+        .tipo-label { font-size: ${bodyFontSizePx + 8}px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 3px 0; padding: 4px 0; border: 2px solid #000; text-transform: uppercase; }
+        .pedido-destaque { font-size: ${bodyFontSizePx + 10}px; font-weight: 900; text-align: center; margin: 3px 0; letter-spacing: 1px; }
+        .box-highlight { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 3px 0; padding: 4px 3px; border: 2px solid #000; line-height: 1.4; }
+        .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
+        .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
+        .list-name { flex: 1; min-width: 0; word-break: break-word; }
+        .list-qty { white-space: nowrap; }
+        ${extraCss}
+      </style>
+    </head>
+    <body>
+      <main class="print-root">${sections}</main>
+      <script>window.onload = function () { window.print(); };</script>
+    </body>
+  </html>`;
+};
+
+export const buildBatchPrintDocument = (
+  base: Omit<BuildAdminPrintDocumentOptions, "repeatCount">,
+  items: BatchSection[],
+) => {
+  const {
+    title,
+    template,
+    pageWidthMm = 72,
+    pageHeightMm = "auto",
+    pageMarginMm = 0,
+    bodyFontFamily = "'Arial Black', Arial, Helvetica, sans-serif",
+    bodyFontSizePx = 10,
+    bodyPaddingMm = 0,
+    sectionPaddingMm = 2,
+    sectionMinHeightMm,
+    sectionBorder = "none",
+    extraCss = "",
+  } = base;
+
+  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(template);
+  const pageSize = pageHeightMm === "auto" ? `${pageWidthMm}mm auto` : `${pageWidthMm}mm ${pageHeightMm}mm`;
+  const minHeightStyle = sectionMinHeightMm ? `min-height:${sectionMinHeightMm}mm;` : "";
+
+  const sections = items
+    .map((item) => {
+      const mergedVars = { ...(base.variables ?? {}), ...(item.variables ?? {}) };
+      const mergedBlocks = { ...(base.blocks ?? {}), ...(item.blocks ?? {}) };
+      const content = renderAdminTemplateMarkup(cleanedTemplate, mergedVars, mergedBlocks);
+      const cls = ["print-page", wrapperClass].filter(Boolean).join(" ");
+      return `<section class="${cls}" style="width:${pageWidthMm}mm;${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${content}</section>`;
+    })
+    .join("");
+
+  return `<!DOCTYPE html>
+  <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>${escapeHtml(title)}</title>
+      <style>
+        @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
+        @media print {
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; height: auto !important; }
+          iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
+          body > *:not(.print-root):not(script):not(style) { display: none !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: #ffffff; color: #000000; }
+        body {
+          font-family: ${bodyFontFamily};
+          font-size: ${bodyFontSizePx}px;
+          font-weight: 900;
+          width: ${pageWidthMm}mm;
+          padding: ${bodyPaddingMm}mm;
+          line-height: 1.3;
+          letter-spacing: 0.2px;
+          -webkit-font-smoothing: none;
+          text-rendering: geometricPrecision;
+        }
+        .print-root { display: flex; flex-direction: column; gap: 0; }
+        .print-page { display: block; overflow: hidden; background: #ffffff; }
+        .print-page + .print-page { margin-top: 3mm; border-top: 1px dashed #aaa; padding-top: 2mm; }
         .print-frame { border: 1.5px solid #000 !important; }
         .print-frame-strong { border: 3px solid #000 !important; }
         .center { text-align: center; }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Printer, RefreshCw, Sticker } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Printer, RefreshCw, Sticker, Plus, Trash2, ListChecks } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { buildAdminPrintDocument } from "@/lib/adminPrintTemplates";
+import { buildBatchPrintDocument, type BatchSection } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
 
 interface GeneratedLabel {
+  id: string;
   name: string;
   sourceLabel: string;
   manufacturedOn: string;
@@ -30,7 +31,6 @@ interface GeneratedLabel {
   copies: number;
   widthMm: number;
   heightMm: number;
-  showBorder: boolean;
 }
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -48,6 +48,9 @@ const addDays = (value: string, days: number) => {
   parsedDate.setDate(parsedDate.getDate() + days);
   return parsedDate.toISOString().slice(0, 10);
 };
+
+let labelIdCounter = 0;
+const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
 
 const AdminLabels = () => {
   const { storeId } = useStore();
@@ -68,11 +71,10 @@ const AdminLabels = () => {
   const [validUntil, setValidUntil] = useState(todayIso());
   const [shelfLifeDays, setShelfLifeDays] = useState("1");
   const [responsible, setResponsible] = useState("");
-  const [copies, setCopies] = useState("1");
   const [labelWidthMm, setLabelWidthMm] = useState("50");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
-  const [showBorder, setShowBorder] = useState(true);
-  const [generatedLabel, setGeneratedLabel] = useState<GeneratedLabel | null>(null);
+  const [copies, setCopies] = useState("1");
+  const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
 
   const fetchData = async () => {
     try {
@@ -125,8 +127,9 @@ const AdminLabels = () => {
     await fetchData();
   };
 
-  const handleGenerate = () => {
-    const nextLabel: GeneratedLabel = {
+  const handleAddToQueue = () => {
+    const newLabel: GeneratedLabel = {
+      id: nextLabelId(),
       name: resolvedName,
       sourceLabel: resolvedSourceLabel,
       manufacturedOn,
@@ -135,30 +138,38 @@ const AdminLabels = () => {
       copies: Math.max(1, Number(copies) || 1),
       widthMm: Math.max(40, Number(labelWidthMm) || 50),
       heightMm: Math.max(25, Number(labelHeightMm) || 30),
-      showBorder,
     };
 
-    if (!nextLabel.name.trim()) {
+    if (!newLabel.name.trim()) {
       toast({ title: "Selecione um item", description: "Escolha o produto/ingrediente ou digite um nome manual.", variant: "destructive" });
       return;
     }
-    if (!nextLabel.manufacturedOn || !nextLabel.validUntil) {
+    if (!newLabel.manufacturedOn || !newLabel.validUntil) {
       toast({ title: "Preencha as datas", description: "Informe fabricação e validade antes de gerar a etiqueta.", variant: "destructive" });
       return;
     }
-    if (!nextLabel.responsible.trim()) {
+    if (!newLabel.responsible.trim()) {
       toast({ title: "Informe o responsável", description: "Preencha quem preparou o item para gerar a etiqueta.", variant: "destructive" });
       return;
     }
 
-    setGeneratedLabel(nextLabel);
-    toast({ title: "Etiqueta pronta", description: `${nextLabel.copies} etiqueta(s) geradas para impressão térmica.` });
+    setLabelQueue((prev) => [...prev, newLabel]);
+    toast({ title: "Adicionado à fila", description: `${newLabel.copies}x ${newLabel.name}` });
   };
 
-  const handlePrint = () => {
-    const labelToPrint = generatedLabel;
-    if (!labelToPrint) {
-      handleGenerate();
+  const handleRemoveFromQueue = useCallback((id: string) => {
+    setLabelQueue((prev) => prev.filter((l) => l.id !== id));
+  }, []);
+
+  const handleClearQueue = useCallback(() => {
+    setLabelQueue([]);
+  }, []);
+
+  const totalLabelsInQueue = useMemo(() => labelQueue.reduce((sum, l) => sum + l.copies, 0), [labelQueue]);
+
+  const handlePrintAll = () => {
+    if (labelQueue.length === 0) {
+      toast({ title: "Fila vazia", description: "Adicione pelo menos uma etiqueta antes de imprimir.", variant: "destructive" });
       return;
     }
 
@@ -168,54 +179,53 @@ const AdminLabels = () => {
       return;
     }
 
+    const firstLabel = labelQueue[0];
+    const widthMm = firstLabel.widthMm;
+    const heightMm = firstLabel.heightMm;
+
+    // Expand each label by its copies count into flat BatchSection array
+    const batchItems: BatchSection[] = labelQueue.flatMap((label) =>
+      Array.from({ length: label.copies }, () => ({
+        variables: {
+          "[PRODUTO]": label.name,
+          "[DATAFABRICACAO]": formatDate(label.manufacturedOn),
+          "[VALIDADE]": formatDate(label.validUntil),
+          "[RESPONSAVEL]": label.responsible,
+        },
+      })),
+    );
+
     printWindow.document.open();
     printWindow.document.write(
-      buildAdminPrintDocument({
+      buildBatchPrintDocument({
         title: "Etiquetas térmicas",
         template: printTemplate?.body_template || getDefaultTemplate("etiquetas"),
         variables: {
           "[NOMELOJA]": printTemplate?.store_name || "TURBO LANCHES",
           "[TIPOCOMANDA]": printTemplate?.label || "ETIQUETA",
-          "[PRODUTO]": labelToPrint.name,
-          "[DATAFABRICACAO]": formatDate(labelToPrint.manufacturedOn),
-          "[VALIDADE]": formatDate(labelToPrint.validUntil),
-          "[RESPONSAVEL]": labelToPrint.responsible,
           "[RODAPÉ]": printTemplate?.footer_message || "",
           "[DIVULGAÇÃO]": printTemplate?.custom_message || "",
         },
-        pageWidthMm: labelToPrint.widthMm,
-        pageHeightMm: labelToPrint.heightMm,
+        pageWidthMm: widthMm,
+        pageHeightMm: "auto",
         pageMarginMm: 1,
-        repeatCount: labelToPrint.copies,
         bodyFontFamily: "Arial, sans-serif",
         bodyFontSizePx: printTemplate?.items_font_size || 10,
         bodyPaddingMm: 0,
         sectionPaddingMm: 2,
-        sectionMinHeightMm: labelToPrint.heightMm,
-        sectionBorder: labelToPrint.showBorder ? "1px solid #111111" : "1px solid transparent",
-      }),
+        sectionMinHeightMm: heightMm,
+        sectionBorder: "none",
+      }, batchItems),
     );
     printWindow.document.close();
-  };
-
-  const previewLabel = generatedLabel ?? {
-    name: resolvedName || "Nome do item",
-    sourceLabel: resolvedSourceLabel,
-    manufacturedOn,
-    validUntil: resolvedValidity,
-    responsible: responsible || "Responsável",
-    copies: Math.max(1, Number(copies) || 1),
-    widthMm: Math.max(40, Number(labelWidthMm) || 50),
-    heightMm: Math.max(25, Number(labelHeightMm) || 30),
-    showBorder,
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2"><div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">50x30 mm</Badge></div><CardDescription>Gere etiquetas simples para ingredientes manipulados e produtos preparados, com fabricação, validade e responsável, prontas para impressora térmica.</CardDescription></div>
-          <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={handleRefresh} disabled={refreshing}><RefreshCw className={cn(refreshing && "animate-spin")} />Atualizar itens</Button><Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo de impressão</Link></Button><Button size="lg" onClick={handleGenerate}><Sticker />Gerar etiqueta</Button><Button size="lg" variant="outline" onClick={handlePrint}><Printer />Imprimir</Button></div>
+          <div className="space-y-2"><div className="flex items-center gap-2"><CardTitle className="text-xl">Etiquetas térmicas</CardTitle><Badge variant="secondary">{totalLabelsInQueue} na fila</Badge></div><CardDescription>Adicione vários itens à fila e imprima tudo de uma vez, economizando papel. Use [QUADRADO] ou [QUADRADONEGRITO] no modelo para adicionar moldura.</CardDescription></div>
+          <div className="flex flex-col gap-2 sm:flex-row"><Button variant="outline" onClick={handleRefresh} disabled={refreshing}><RefreshCw className={cn(refreshing && "animate-spin")} />Atualizar</Button><Button variant="outline" asChild><Link to="/admin/comandas?tipo=etiquetas">Editar modelo</Link></Button></div>
         </CardHeader>
       </Card>
 
@@ -236,19 +246,43 @@ const AdminLabels = () => {
               {validityMode === "manual" ? <div className="space-y-2"><Label htmlFor="validUntil">Validade</Label><Input id="validUntil" type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} /></div> : <div className="grid gap-4 md:grid-cols-[180px_1fr] md:items-end"><div className="space-y-2"><Label htmlFor="shelfLifeDays">Dias de validade</Label><Input id="shelfLifeDays" type="number" min="0" value={shelfLifeDays} onChange={(event) => setShelfLifeDays(event.target.value)} /></div><div className="rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground">Válido até <strong>{formatDate(resolvedValidity)}</strong></div></div>}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><div className="space-y-2"><Label htmlFor="copies">Quantidade de etiquetas</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div><label className="flex h-10 items-center gap-3 rounded-md border border-border bg-background px-3 text-sm font-medium text-foreground"><input type="checkbox" checked={showBorder} onChange={(event) => setShowBorder(event.target.checked)} className="h-4 w-4" />Borda fina</label></div>
+            <div className="grid gap-4 md:grid-cols-3"><div className="space-y-2"><Label htmlFor="copies">Cópias deste item</Label><Input id="copies" type="number" min="1" value={copies} onChange={(event) => setCopies(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelWidthMm">Largura (mm)</Label><Input id="labelWidthMm" type="number" min="40" value={labelWidthMm} onChange={(event) => setLabelWidthMm(event.target.value)} /></div><div className="space-y-2"><Label htmlFor="labelHeightMm">Altura (mm)</Label><Input id="labelHeightMm" type="number" min="25" value={labelHeightMm} onChange={(event) => setLabelHeightMm(event.target.value)} /></div></div>
+
+            <Button size="lg" className="w-full" onClick={handleAddToQueue}><Plus />Adicionar à fila de impressão</Button>
 
             {loading ? <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando produtos e ingredientes...</div> : null}
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Pré-visualização térmica</CardTitle><CardDescription>Preto e branco, alinhada à esquerda, com margens mínimas e pronta para impressora de etiqueta.</CardDescription></CardHeader>
+          <CardHeader className="flex-row items-start justify-between gap-3">
+            <div><CardTitle className="flex items-center gap-2"><ListChecks className="h-5 w-5 text-primary" />Fila de impressão ({totalLabelsInQueue})</CardTitle><CardDescription>Todas as etiquetas abaixo serão impressas juntas, com espaço mínimo para corte.</CardDescription></div>
+            {labelQueue.length > 0 && <Button variant="ghost" size="sm" onClick={handleClearQueue}><Trash2 className="h-4 w-4" />Limpar</Button>}
+          </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm"><span className="font-semibold text-foreground">{previewLabel.copies} etiqueta(s)</span><Badge variant="outline">{previewLabel.sourceLabel}</Badge></div>
-            <div className="grid gap-3">{Array.from({ length: Math.min(previewLabel.copies, 6) }, (_, index) => <article key={`${previewLabel.name}-${index}`} className="rounded-xl bg-white p-4 text-left text-black shadow-sm" style={{ width: `${previewLabel.widthMm * 2.2}px`, minHeight: `${previewLabel.heightMm * 2.2}px`, border: previewLabel.showBorder ? "1px solid #111111" : "1px solid transparent" }}><div className="space-y-2 text-[12px] leading-tight"><div><div className="font-bold">PRODUTO:</div><div className="font-semibold">{previewLabel.name || "Nome do item"}</div></div><div><div className="font-bold">FABRICAÇÃO:</div><div className="font-semibold">{formatDate(previewLabel.manufacturedOn)}</div></div><div><div className="font-bold">VALIDADE:</div><div className="font-semibold">{formatDate(previewLabel.validUntil)}</div></div><div><div className="font-bold">RESP:</div><div className="font-semibold">{previewLabel.responsible || "Responsável"}</div></div></div></article>)}</div>
-            {previewLabel.copies > 6 ? <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">Mostrando 6 prévias. Na impressão sairão {previewLabel.copies} etiquetas completas.</div> : null}
-            <Button className="w-full" size="lg" onClick={handlePrint}><Printer />Imprimir {previewLabel.copies} etiqueta(s)</Button>
+            {labelQueue.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
+                Nenhuma etiqueta na fila. Configure e clique em "Adicionar à fila".
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {labelQueue.map((label) => (
+                  <div key={label.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm truncate">{label.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="shrink-0">{label.sourceLabel}</Badge>
+                    <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => handleRemoveFromQueue(label.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button className="w-full" size="lg" onClick={handlePrintAll} disabled={labelQueue.length === 0}><Printer />Imprimir {totalLabelsInQueue} etiqueta(s) de uma vez</Button>
           </CardContent>
         </Card>
       </div>
