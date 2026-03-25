@@ -2,21 +2,9 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
-      var __LOVA_FIX_TRIGGER__ = false;
-
-      try {
-        if (typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "boolean") {
-          __LOVA_FIX_TRIGGER__ = globalThis.__LOVA_FIX_TRIGGER__;
-        }
-      } catch (error) {}
-
-      try { globalThis.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
-      try { window.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
-      try { self.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__; } catch (error) {}
-    </script>
-    <script>
       (function () {
         var resolvedFixTrigger = false;
+        var targets = [];
 
         try {
           if (typeof globalThis !== "undefined" && typeof globalThis.__LOVA_FIX_TRIGGER__ === "boolean") {
@@ -24,58 +12,43 @@
           }
         } catch (error) {}
 
-        var defineGlobalTrigger = function (value) {
-          resolvedFixTrigger = Boolean(value);
+        try {
+          if (typeof globalThis !== "undefined") targets.push(globalThis);
+        } catch (error) {}
+
+        try {
+          if (typeof window !== "undefined" && targets.indexOf(window) === -1) targets.push(window);
+        } catch (error) {}
+
+        try {
+          if (typeof self !== "undefined" && targets.indexOf(self) === -1) targets.push(self);
+        } catch (error) {}
+
+        for (var index = 0; index < targets.length; index += 1) {
+          var target = targets[index];
 
           try {
-            (0, eval)("var __LOVA_FIX_TRIGGER__ = " + (resolvedFixTrigger ? "true" : "false"));
-          } catch (error) {}
-
-          var targets = [];
-
-          try {
-            if (typeof globalThis !== "undefined") targets.push(globalThis);
-          } catch (error) {}
-
-          try {
-            if (typeof window !== "undefined" && targets.indexOf(window) === -1) targets.push(window);
-          } catch (error) {}
-
-          try {
-            if (typeof self !== "undefined" && targets.indexOf(self) === -1) targets.push(self);
-          } catch (error) {}
-
-          for (var index = 0; index < targets.length; index += 1) {
-            var target = targets[index];
-
+            Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
+              configurable: true,
+              get: function () {
+                return resolvedFixTrigger;
+              },
+              set: function (nextValue) {
+                resolvedFixTrigger = Boolean(nextValue);
+              },
+            });
+            target.__LOVA_FIX_TRIGGER__ = resolvedFixTrigger;
+          } catch (error) {
             try {
-              Object.defineProperty(target, "__LOVA_FIX_TRIGGER__", {
-                configurable: true,
-                get: function () {
-                  return resolvedFixTrigger;
-                },
-                set: function (nextValue) {
-                  resolvedFixTrigger = Boolean(nextValue);
-                  try {
-                    (0, eval)("var __LOVA_FIX_TRIGGER__ = " + (resolvedFixTrigger ? "true" : "false"));
-                  } catch (innerError) {}
-                },
-              });
               target.__LOVA_FIX_TRIGGER__ = resolvedFixTrigger;
-            } catch (error) {
-              try {
-                target.__LOVA_FIX_TRIGGER__ = resolvedFixTrigger;
-              } catch (innerError) {}
-            }
+            } catch (innerError) {}
           }
-        };
-
-        defineGlobalTrigger(resolvedFixTrigger);
+        }
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v39";
+        var PUSH_SW_URL = "/push-sw.js?v40";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -114,6 +87,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=39"></script>
+    <script type="module" src="/src/main.tsx?v=40"></script>
   </body>
 </html>

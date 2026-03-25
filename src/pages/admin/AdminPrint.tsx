@@ -4,6 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
+const WRAPPER_RULES = [
+  { marker: "[QUADRADONEGRITO]", close: "[/QUADRADONEGRITO]", className: "print-frame-strong" },
+  { marker: "[QUADRADO]", close: "[/QUADRADO]", className: "print-frame" },
+] as const;
+
+const extractTemplateWrapper = (template: string) => {
+  const matchedRule = WRAPPER_RULES.find((rule) => template.includes(rule.marker) || template.includes(rule.close));
+
+  const cleanedTemplate = WRAPPER_RULES.reduce(
+    (currentTemplate, rule) => currentTemplate.split(rule.marker).join("").split(rule.close).join(""),
+    template,
+  );
+
+  return {
+    cleanedTemplate: cleanedTemplate.trim(),
+    wrapperClass: matchedRule?.className ?? "",
+  };
+};
+
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -248,7 +267,9 @@ const AdminPrint = () => {
   };
 
   const bodyTemplate = tpl?.body_template || "";
-  const templateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
+  const rawTemplateToRender = bodyTemplate || getDefaultTemplate(resolvedType);
+  const { cleanedTemplate, wrapperClass } = extractTemplateWrapper(rawTemplateToRender);
+  const templateToRender = cleanedTemplate || getDefaultTemplate(resolvedType);
 
   const styles = `
     @page { size: 72mm auto portrait; margin: 0 !important; padding: 0 !important; }
@@ -267,6 +288,9 @@ const AdminPrint = () => {
       -webkit-font-smoothing: none; text-rendering: geometricPrecision;
     }
     .center { text-align: center; }
+    .print-shell { display: block; }
+    .print-frame { border: 1.5px solid #000; padding: 1.5mm; }
+    .print-frame-strong { border: 3px solid #000; padding: 1.5mm; }
     .separator { border-top: 1.5px dashed #000; margin: 3px 0; }
     .info { font-size: 10px; margin: 1px 0; font-weight: 900; line-height: 1.35; }
     .total-line { display: flex; justify-content: space-between; margin: 1px 0; font-weight: 900; font-size: 10px; }
@@ -300,7 +324,7 @@ const AdminPrint = () => {
     <>
       <style>{styles}</style>
       <div>
-        {renderTemplate(templateToRender)}
+        <div className={["print-shell", wrapperClass].filter(Boolean).join(" ")}>{renderTemplate(templateToRender)}</div>
         <div className="print-end">&nbsp;</div>
       </div>
     </>

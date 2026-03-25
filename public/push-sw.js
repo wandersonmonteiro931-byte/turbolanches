@@ -1,7 +1,6 @@
-// SW Version 39 — standard service worker + immediate update
-var SW_VERSION = "v39";
-var __LOVA_FIX_TRIGGER__ = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
-var resolvedFixTrigger = __LOVA_FIX_TRIGGER__;
+// SW Version 40 — standard service worker + immediate update
+var SW_VERSION = "v40";
+var resolvedFixTrigger = typeof self !== "undefined" && typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
 
 try {
   resolvedFixTrigger = typeof self.__LOVA_FIX_TRIGGER__ === "boolean" ? self.__LOVA_FIX_TRIGGER__ : false;
