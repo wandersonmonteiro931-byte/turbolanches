@@ -375,7 +375,7 @@ export const buildAdminPrintDocument = ({
   template,
   variables = {},
   blocks = {},
-  pageWidthMm = 80,
+  pageWidthMm = 72,
   pageHeightMm = "auto",
   pageMarginMm = 0,
   repeatCount = 1,
