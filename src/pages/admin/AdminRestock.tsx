@@ -329,12 +329,12 @@ const AdminRestock = () => {
         },
         pageWidthMm: 72,
         pageHeightMm: "auto",
-        pageMarginMm: 3,
+        pageMarginMm: 0,
         bodyFontFamily: "Arial, sans-serif",
         bodyFontSizePx: printTemplate?.items_font_size || 12,
         labelFontSizePx: printTemplate?.label_font_size || 24,
-        bodyPaddingMm: 1,
-        sectionPaddingMm: 1.5,
+        bodyPaddingMm: 0,
+        sectionPaddingMm: 0,
       }),
     );
     printWindow.document.close();
