@@ -16,7 +16,7 @@ import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 type SourceKind = "ingredient" | "product" | "manual";
 type ValidityMode = "manual" | "automatic";
-type StorageType = "" | "resfriado" | "congelado";
+type StorageType = "" | "resfriado" | "congelado" | "ambiente";
 
 interface ProductRow { id: string; name: string; active: boolean; }
 interface IngredientRow { id: string; name: string; unit: string; }
@@ -58,6 +58,7 @@ const nextLabelId = () => `lbl-${++labelIdCounter}-${Date.now()}`;
 const DEFAULT_STORAGE_PHRASES: Record<string, string> = {
   resfriado: "Manter resfriado entre 0°C e 5°C",
   congelado: "Manter congelado a -18°C ou inferior",
+  ambiente: "Armazenar em local seco e arejado",
 };
 
 const AdminLabels = () => {
@@ -203,6 +204,7 @@ const AdminLabels = () => {
     const storageLabel = (type: StorageType) => {
       if (type === "resfriado") return "RESFRIADO";
       if (type === "congelado") return "CONGELADO";
+      if (type === "ambiente") return "AMBIENTE";
       return "";
     };
 
@@ -303,6 +305,7 @@ const AdminLabels = () => {
                 <Button type="button" variant={storageType === "" ? "default" : "outline"} onClick={() => { setStorageType(""); setStoragePhrase(""); }}>Nenhum</Button>
                 <Button type="button" variant={storageType === "resfriado" ? "default" : "outline"} onClick={() => { setStorageType("resfriado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.resfriado); }}>🧊 Resfriado</Button>
                 <Button type="button" variant={storageType === "congelado" ? "default" : "outline"} onClick={() => { setStorageType("congelado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.congelado); }}>❄️ Congelado</Button>
+                <Button type="button" variant={storageType === "ambiente" ? "default" : "outline"} onClick={() => { setStorageType("ambiente"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.ambiente); }}>🌡️ Ambiente</Button>
               </div>
               {storageType && (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -344,7 +347,7 @@ const AdminLabels = () => {
                       <div className="font-bold text-sm truncate">{label.name}</div>
                       <div className="text-xs text-muted-foreground">
                         {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
-                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : "❄️"} ${label.storageType}` : ""}
+                        {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
                         {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                       </div>
                     </div>
