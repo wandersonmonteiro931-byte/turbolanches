@@ -160,7 +160,7 @@ const AdminLabels = () => {
       validUntil: resolvedValidity,
       responsible: responsible.trim(),
       copies: Math.max(1, Number(copies) || 1),
-      widthMm: Math.max(40, Number(labelWidthMm) || 50),
+      widthMm: Math.max(40, Number(labelWidthMm) || 80),
       heightMm: Math.max(25, Number(labelHeightMm) || 30),
       storageType,
       storageTemp: storageTemp.trim(),
