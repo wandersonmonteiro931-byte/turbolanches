@@ -21,6 +21,7 @@ export interface ReceiptTemplate {
   show_totals_detail: boolean;
   items_font_size: number;
   label_font_size: number;
+  body_font_size: number;
   updated_at: string;
 }
 
@@ -64,7 +65,7 @@ const EDITABLE_FIELDS = [
   "store_name", "label", "custom_message", "footer_message", "body_template",
   "show_customer_code", "show_max_delivery_time", "show_driver_field",
   "show_troco", "show_obs", "show_payment_info", "show_totals_detail",
-  "items_font_size", "label_font_size",
+  "items_font_size", "label_font_size", "body_font_size",
 ] as const;
 
 export const useUpdateReceiptTemplate = () => {

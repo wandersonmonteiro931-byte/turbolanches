@@ -388,7 +388,7 @@ const AdminLabels = () => {
         pageHeightMm: "auto",
         pageMarginMm: 0,
         bodyFontFamily: "Arial, Helvetica, sans-serif",
-        bodyFontSizePx: printTemplate?.items_font_size || 11,
+        bodyFontSizePx: (printTemplate as any)?.body_font_size || printTemplate?.items_font_size || 11,
         labelFontSizePx: printTemplate?.label_font_size || 22,
         bodyPaddingMm: 0,
         sectionPaddingMm: 0,

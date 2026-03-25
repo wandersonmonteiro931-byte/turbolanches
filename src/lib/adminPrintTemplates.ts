@@ -291,6 +291,20 @@ const shouldRenderTipoComandaLine = (
   return !remainingContent;
 };
 
+const resolveTipoComandaContent = (
+  tipoComanda: string,
+  variables: Record<string, string | number | null | undefined>,
+) => {
+  let resolved = tipoComanda;
+  for (let pass = 0; pass < 2; pass++) {
+    Object.entries(variables).forEach(([key, rawValue]) => {
+      if (key === "[TIPOCOMANDA]") return;
+      resolved = replaceAllToken(resolved, key, rawValue == null ? "" : String(rawValue));
+    });
+  }
+  return resolved.trim();
+};
+
 export const renderAdminTemplateMarkup = (
   template: string,
   variables: Record<string, string | number | null | undefined> = {},
@@ -308,8 +322,11 @@ export const renderAdminTemplateMarkup = (
       const tipoComanda = variables["[TIPOCOMANDA]"] == null ? "" : String(variables["[TIPOCOMANDA]"]).trim();
       if (!tipoComanda) return "";
 
+      const resolved = resolveTipoComandaContent(tipoComanda, variables);
+      if (!resolved) return "";
+
       const classes = unique([resolveTemplateLineClasses(rawLine), "tipo-comanda-row"]).join(" ");
-      return `<div class="${classes}"><span class="tipo-label">${escapeHtml(tipoComanda)}</span></div>`;
+      return `<div class="${classes}"><span class="tipo-label">${escapeHtml(resolved)}</span></div>`;
     }
 
     const classes = resolveTemplateLineClasses(rawLine);
@@ -520,7 +537,7 @@ const getSharedPrintStyles = ({
         .txt-medio { font-size: ${mediumTextPx}px !important; font-weight: 900; line-height: 1.32; }
         .txt-pequeno { font-size: ${smallTextPx}px !important; font-weight: 900; line-height: 1.3; }
         .txt-gigante { font-size: ${giantTextPx}px !important; font-weight: 900; line-height: 1.12; }
-        .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2px; background: #000; color: #fff; font-weight: 900; line-height: 1.35; }
+        .txt-borda-preta { display: inline; padding: 0.5mm 2mm; border: 2px solid #000; font-weight: 900; line-height: 1.35; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
         .tipo-comanda-row { margin: 0; }
         .tipo-label {
@@ -548,6 +565,13 @@ const getSharedPrintStyles = ({
           line-height: 1.2;
           text-align: inherit;
         }
+        .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
+        .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
+        .items-table .items-qty { white-space: nowrap; width: 1%; padding-right: 4px; }
+        .items-table .items-name { word-break: break-word; }
+        .items-table .items-price { white-space: nowrap; width: 1%; text-align: right; padding-left: 4px; }
+        .items-table .items-obs-td { padding-top: 0; padding-bottom: 2px; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
+        .items-table .items-addon-td { padding-top: 0; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }

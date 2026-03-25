@@ -1,0 +1,1 @@
+ALTER TABLE public.receipt_templates ADD COLUMN IF NOT EXISTS body_font_size integer NOT NULL DEFAULT 11;
