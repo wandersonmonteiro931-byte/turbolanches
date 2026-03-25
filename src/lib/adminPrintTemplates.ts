@@ -8,6 +8,7 @@ const TAG_RULES = [
   { open: "[TXTPEQUENO]", close: "[/TXTPEQUENO]", className: "txt-pequeno" },
   { open: "[TXTGIGANTE]", close: "[/TXTGIGANTE]", className: "txt-gigante" },
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
+  { open: "[TXTBORDATXT]", close: "[/TXTBORDATXT]", className: "txt-borda-inline" },
   { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
 ] as const;
 
@@ -538,6 +539,7 @@ const getSharedPrintStyles = ({
         .txt-pequeno { font-size: ${smallTextPx}px !important; font-weight: 900; line-height: 1.3; }
         .txt-gigante { font-size: ${giantTextPx}px !important; font-weight: 900; line-height: 1.12; }
         .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2mm; background: #000; color: #fff; font-weight: 900; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .txt-borda-inline { display: inline; padding: 0.3mm 2mm; background: #000; color: #fff; font-weight: 900; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
         .tipo-comanda-row { margin: 0; }
         .tipo-label {
