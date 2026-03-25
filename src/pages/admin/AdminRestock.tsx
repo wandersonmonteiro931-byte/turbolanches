@@ -327,7 +327,7 @@ const AdminRestock = () => {
             )
             .join("")}</div>`,
         },
-        pageWidthMm: 72,
+        pageWidthMm: 80,
         pageHeightMm: "auto",
         pageMarginMm: 3,
         bodyFontFamily: "Arial, sans-serif",

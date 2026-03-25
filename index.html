@@ -2,15 +2,17 @@
 <html lang="pt-BR" translate="no">
   <head>
     <script>
+      var __LOVA_FIX_TRIGGER__ = false;
       (function () {
         var s = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : self;
-        if (typeof s.__LOVA_FIX_TRIGGER__ === "undefined") { s.__LOVA_FIX_TRIGGER__ = false; }
-        if (typeof window !== "undefined" && typeof window.__LOVA_FIX_TRIGGER__ === "undefined") { window.__LOVA_FIX_TRIGGER__ = false; }
+        if (typeof s.__LOVA_FIX_TRIGGER__ !== "boolean") s.__LOVA_FIX_TRIGGER__ = false;
+        __LOVA_FIX_TRIGGER__ = s.__LOVA_FIX_TRIGGER__;
+        if (typeof window !== "undefined") window.__LOVA_FIX_TRIGGER__ = __LOVA_FIX_TRIGGER__;
       })();
     </script>
     <script>
       (function () {
-        var PUSH_SW_URL = "/push-sw.js?v52";
+        var PUSH_SW_URL = "/push-sw.js?v53";
         var SW_CLEANUP_KEY = "__turbo_push_sw_cleanup__";
         try {
           if ("serviceWorker" in navigator && sessionStorage.getItem(SW_CLEANUP_KEY) !== PUSH_SW_URL) {
@@ -49,6 +51,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx?v=52"></script>
+    <script type="module" src="/src/main.tsx?v=53"></script>
   </body>
 </html>
