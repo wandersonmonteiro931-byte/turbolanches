@@ -305,6 +305,7 @@ const AdminLabels = () => {
                 <Button type="button" variant={storageType === "" ? "default" : "outline"} onClick={() => { setStorageType(""); setStoragePhrase(""); }}>Nenhum</Button>
                 <Button type="button" variant={storageType === "resfriado" ? "default" : "outline"} onClick={() => { setStorageType("resfriado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.resfriado); }}>🧊 Resfriado</Button>
                 <Button type="button" variant={storageType === "congelado" ? "default" : "outline"} onClick={() => { setStorageType("congelado"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.congelado); }}>❄️ Congelado</Button>
+                <Button type="button" variant={storageType === "ambiente" ? "default" : "outline"} onClick={() => { setStorageType("ambiente"); setStoragePhrase(DEFAULT_STORAGE_PHRASES.ambiente); }}>🌡️ Ambiente</Button>
               </div>
               {storageType && (
                 <div className="grid gap-4 md:grid-cols-2">
