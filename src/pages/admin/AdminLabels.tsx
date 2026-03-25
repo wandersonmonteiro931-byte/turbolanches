@@ -530,7 +530,7 @@ const AdminLabels = () => {
                         <div className="text-xs text-muted-foreground">
                           {label.copies}x · Fab: {formatDate(label.manufacturedOn)} · Val: {formatDate(label.validUntil)} · {label.responsible}
                           {label.brand ? ` · ${label.brand}` : ""}
-                          {label.storageType ? ` · ${label.storageType === "resfriado" ? "🧊" : label.storageType === "congelado" ? "❄️" : "🌡️"} ${label.storageType}` : ""}
+                          {label.storageType ? ` · ${storageConfigs.find(c => c.name.toLowerCase() === label.storageType)?.emoji || "📦"} ${label.storageType}` : ""}
                           {label.storageTemp ? ` ${label.storageTemp}°C` : ""}
                         </div>
                       </div>
