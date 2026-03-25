@@ -45,7 +45,7 @@ const addDays = (value: string, days: number) => {
   return parsedDate.toISOString().slice(0, 10);
 };
 
-const escapeHtml = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+const escapeHtml = (value: string) => value.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split('"').join("&quot;").split("'").join("&#39;");
 
 const buildLabelsPrintHTML = (label: GeneratedLabel) => {
   const labelMarkup = Array.from({ length: label.copies }, (_, index) => {
