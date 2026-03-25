@@ -212,14 +212,22 @@ const AdminPrint = () => {
 
     if (shouldHideOptionalItemLine(rawLine, mergedVars)) return null;
 
+    // Replace all variables (two passes for nested references)
     for (let pass = 0; pass < 2; pass++) {
       for (const [token, value] of Object.entries(mergedVars)) {
         content = content.split(token).join(value);
       }
     }
 
+    // Also strip any remaining item-block anchors
+    for (const token of ITEM_BLOCK_TOKENS) {
+      content = content.split(token).join("");
+    }
+
     const plainContent = stripFormattingTags(content);
     if (!plainContent.trim()) return null;
+
+    // Parse inline formatting tags (e.g. [TXTPEQUENO]...[TXTPEQUENO])
     const markup = renderInlineTemplateMarkup(content);
     if (!markup.trim()) return null;
 
