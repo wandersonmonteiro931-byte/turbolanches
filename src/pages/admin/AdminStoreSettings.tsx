@@ -241,7 +241,6 @@ const AdminStoreSettings = () => {
             </button>
           </div>
         </div>
-        </div>
       )}
 
       {/* WhatsApp */}
