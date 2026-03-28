@@ -1741,6 +1741,7 @@ export type Database = {
           is_open: boolean
           max_serving_km: number | null
           max_serving_km_active: boolean
+          obrigado_receipt_enabled: boolean
           opened_at: string | null
           pickup_time_minutes: number
           prep_time_minutes: number
@@ -1771,6 +1772,7 @@ export type Database = {
           is_open?: boolean
           max_serving_km?: number | null
           max_serving_km_active?: boolean
+          obrigado_receipt_enabled?: boolean
           opened_at?: string | null
           pickup_time_minutes?: number
           prep_time_minutes?: number
@@ -1801,6 +1803,7 @@ export type Database = {
           is_open?: boolean
           max_serving_km?: number | null
           max_serving_km_active?: boolean
+          obrigado_receipt_enabled?: boolean
           opened_at?: string | null
           pickup_time_minutes?: number
           prep_time_minutes?: number
