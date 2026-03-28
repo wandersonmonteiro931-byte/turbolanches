@@ -69,6 +69,7 @@ interface StoreSettings {
   scheduled_open: string | null;
   scheduled_close: string | null;
   use_schedule: boolean;
+  obrigado_receipt_enabled?: boolean;
 }
 
 const tabs = [
@@ -326,7 +327,9 @@ const AdminDashboard = () => {
       }
       printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
-      printReceipt(orderId, "obrigado");
+      if (storeSettings?.obrigado_receipt_enabled !== false) {
+        printReceipt(orderId, "obrigado");
+      }
     }
   };
 
