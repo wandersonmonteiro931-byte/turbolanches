@@ -161,7 +161,7 @@ const AdminDashboard = () => {
   const fetchStoreSettings = useCallback(async () => {
     let query = supabase
       .from("store_settings")
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled")
       .limit(1);
 
     if (storeId) {
