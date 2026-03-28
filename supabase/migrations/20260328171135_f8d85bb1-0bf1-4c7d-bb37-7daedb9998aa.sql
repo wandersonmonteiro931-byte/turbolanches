@@ -1,0 +1,1 @@
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS obrigado_receipt_enabled boolean NOT NULL DEFAULT true;

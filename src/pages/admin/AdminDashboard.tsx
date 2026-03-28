@@ -69,6 +69,7 @@ interface StoreSettings {
   scheduled_open: string | null;
   scheduled_close: string | null;
   use_schedule: boolean;
+  obrigado_receipt_enabled?: boolean;
 }
 
 const tabs = [
@@ -161,7 +162,7 @@ const AdminDashboard = () => {
   const fetchStoreSettings = useCallback(async () => {
     let query = supabase
       .from("store_settings")
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled")
       .limit(1);
 
     if (storeId) {
@@ -326,7 +327,9 @@ const AdminDashboard = () => {
       }
       printReceipt(orderId, "pedido");
     } else if (newStatus === "delivering") {
-      printReceipt(orderId, "obrigado");
+      if (storeSettings?.obrigado_receipt_enabled !== false) {
+        printReceipt(orderId, "obrigado");
+      }
     }
   };
 

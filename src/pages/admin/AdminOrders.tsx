@@ -94,6 +94,7 @@ const AdminOrders = () => {
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -207,6 +208,15 @@ const AdminOrders = () => {
   useEffect(() => {
     void fetchOrders();
 
+    // Fetch obrigado setting
+    const fetchObrigado = async () => {
+      let q = supabase.from("store_settings").select("obrigado_receipt_enabled").limit(1);
+      if (storeId) q = q.eq("store_id", storeId);
+      const { data } = await q.maybeSingle();
+      if (data) setObrigadoEnabled((data as any).obrigado_receipt_enabled !== false);
+    };
+    fetchObrigado();
+
     const channel = supabase
       .channel("admin-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
@@ -220,7 +230,7 @@ const AdminOrders = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchOrders, toast]);
+  }, [fetchOrders, toast, storeId]);
 
   // Filtered orders
   const filteredOrders = useMemo(() => {
@@ -347,7 +357,9 @@ const AdminOrders = () => {
     if (newStatus === "preparing") {
       safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
     } else if (newStatus === "delivering") {
-      safePrint(`/admin/imprimir/${orderId}?tipo=obrigado`);
+      if (obrigadoEnabled) {
+        safePrint(`/admin/imprimir/${orderId}?tipo=obrigado`);
+      }
     }
   };
 
