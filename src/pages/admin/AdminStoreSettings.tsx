@@ -226,6 +226,21 @@ const AdminStoreSettings = () => {
               </div>
             </div>
           </div>
+
+          {/* Obrigado receipt toggle */}
+          <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">Comanda Obrigado</p>
+              <p className="text-xs text-muted-foreground">Se desativada, a comanda de obrigado nunca será impressa automaticamente.</p>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, obrigado_receipt_enabled: !settings.obrigado_receipt_enabled })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.obrigado_receipt_enabled ? "bg-primary" : "bg-muted-foreground/30"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.obrigado_receipt_enabled ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+        </div>
         </div>
       )}
 
