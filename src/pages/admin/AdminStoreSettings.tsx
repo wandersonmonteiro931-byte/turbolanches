@@ -11,6 +11,7 @@ interface StoreSettingsData {
   store_logo_url: string;
   whatsapp_number: string;
   whatsapp_name: string;
+  obrigado_receipt_enabled: boolean;
 }
 
 interface StoreData {
@@ -39,7 +40,7 @@ const AdminStoreSettings = () => {
     const fetch = async () => {
       let settingsQuery = supabase
         .from("store_settings")
-        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name")
+        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name, obrigado_receipt_enabled")
         .limit(1);
       if (storeId) settingsQuery = settingsQuery.eq("store_id", storeId);
 
@@ -79,6 +80,7 @@ const AdminStoreSettings = () => {
         store_logo_url: settings.store_logo_url,
         whatsapp_number: settings.whatsapp_number,
         whatsapp_name: settings.whatsapp_name,
+        obrigado_receipt_enabled: settings.obrigado_receipt_enabled,
       } as any)
       .eq("id", settings.id);
 
@@ -198,7 +200,7 @@ const AdminStoreSettings = () => {
               />
             </div>
 
-            <div>
+              <div>
               <label className="text-xs font-medium text-muted-foreground">Logotipo</label>
               <div className="mt-1 flex items-center gap-3">
                 {settings.store_logo_url && (
@@ -210,9 +212,17 @@ const AdminStoreSettings = () => {
                 )}
                 <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
                   <ImageIcon size={14} />
-                  {uploading ? "Enviando..." : "Enviar Logo"}
+                  {uploading ? "Enviando..." : settings.store_logo_url ? "Alterar Logo" : "Enviar Logo"}
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                 </label>
+                {settings.store_logo_url && (
+                  <button
+                    onClick={() => setSettings({ ...settings, store_logo_url: "" })}
+                    className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
+                  >
+                    Excluir
+                  </button>
+                )}
               </div>
             </div>
           </div>

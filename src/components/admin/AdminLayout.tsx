@@ -136,7 +136,7 @@ const AdminLayout = () => {
             {navItems.find((n) => n.path === location.pathname)?.label || "Admin"}
           </h1>
         </header>
-        <main className="flex-1 overflow-auto p-4 print:overflow-visible print:bg-background print:p-0">
+        <main className="flex-1 overflow-auto bg-background p-4 print:overflow-visible print:p-0">
           <Outlet />
         </main>
       </div>

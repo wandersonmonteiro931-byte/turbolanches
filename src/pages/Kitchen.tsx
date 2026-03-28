@@ -51,18 +51,27 @@ const Kitchen = () => {
     }
     const rows = data ?? [];
 
-    // Detect orders that disappeared (cancelled) between polls
-    const prevIds = new Set(prevOrdersRef.current.map(o => o.id));
+    // Detect orders that were actually cancelled (not just moved to ready/delivering)
     const currentIds = new Set(rows.map(o => o.id));
     const disappeared = prevOrdersRef.current.filter(o => !currentIds.has(o.id));
     if (disappeared.length > 0) {
-      setCancelledAlerts(prev => {
-        const existingIds = new Set(prev.map(a => a.order.id));
-        const newAlerts = disappeared
-          .filter(o => !existingIds.has(o.id))
-          .map(order => ({ order, cancelledAt: Date.now() }));
-        return [...prev, ...newAlerts];
-      });
+      // Check actual status of disappeared orders
+      const { data: statusCheck } = await supabase
+        .from("orders")
+        .select("id, status")
+        .in("id", disappeared.map(o => o.id));
+      const cancelledIds = new Set(
+        (statusCheck || []).filter(o => o.status === "cancelled").map(o => o.id)
+      );
+      if (cancelledIds.size > 0) {
+        setCancelledAlerts(prev => {
+          const existingIds = new Set(prev.map(a => a.order.id));
+          const newAlerts = disappeared
+            .filter(o => cancelledIds.has(o.id) && !existingIds.has(o.id))
+            .map(order => ({ order, cancelledAt: Date.now() }));
+          return [...prev, ...newAlerts];
+        });
+      }
     }
 
     setOrders(rows as KitchenOrder[]);
