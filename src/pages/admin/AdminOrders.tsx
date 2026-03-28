@@ -94,6 +94,7 @@ const AdminOrders = () => {
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
