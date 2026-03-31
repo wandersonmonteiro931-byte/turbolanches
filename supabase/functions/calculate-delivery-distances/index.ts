@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
       .select("id, neighborhood, distance_km")
       .gt("distance_km", MAX_ROAD_DISTANCE_KM)
       .order("distance_km", { ascending: false })
-      .limit(10);
+      .limit(20);
 
     const zones = (outlierZones && outlierZones.length > 0)
       ? outlierZones
@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
           .select("id, neighborhood, distance_km")
       .is("distance_km", null)
       .order("neighborhood")
-      .limit(10)).data;
+      .limit(20)).data;
 
     if (!zones || zones.length === 0) {
       // Tudo processado — recalcular taxas
