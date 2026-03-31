@@ -323,7 +323,22 @@ const AdminLabels = () => {
     setLabelQueue((prev) => [...prev, newLabel]);
 
     if (saveLabel) {
-      void handleSaveToDb({ name: newLabel.name });
+      // Check for duplicate saved labels (same name, source_kind, storage_type, brand, responsible)
+      const isDuplicate = savedLabels.some(s =>
+        s.name === newLabel.name &&
+        s.source_kind === sourceKind &&
+        s.storage_type === storageType &&
+        s.brand === (selectedBrand?.name ?? "") &&
+        s.responsible === newLabel.responsible &&
+        s.manufactured_on === newLabel.manufacturedOn &&
+        s.valid_until === newLabel.validUntil &&
+        !editingLabelId
+      );
+      if (isDuplicate) {
+        toast({ title: "Etiqueta já salva", description: "Uma etiqueta idêntica já existe nas salvas.", variant: "destructive" });
+      } else {
+        void handleSaveToDb({ name: newLabel.name });
+      }
     }
 
     toast({ title: "Adicionado à fila", description: `${newLabel.copies}x ${newLabel.name}` });
