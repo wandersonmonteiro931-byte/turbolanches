@@ -131,11 +131,58 @@ const AdminRestock = () => {
     if (storeId) query = query.eq("store_id", storeId);
     const { data } = await query;
     setIngredients((data ?? []) as Ingredient[]);
+    return (data ?? []) as Ingredient[];
   };
 
   const fetchHistoryItems = async (listId: string) => {
     const loadedItems = await getRestockItems(listId);
     setHistoryItemsByList((current) => ({ ...current, [listId]: loadedItems }));
+  };
+
+  /** Auto-sync: add missing ingredients, update changed names/units, remove deleted */
+  const syncIngredientsWithDraft = async (draftId: string, draftItems: RestockItem[], allIngredients: Ingredient[]) => {
+    const ingMap = new Map(allIngredients.map((i) => [i.id, i]));
+    const promises: Promise<any>[] = [];
+
+    // 1. Update name/unit for existing items whose ingredient was edited
+    for (const item of draftItems) {
+      if (!item.ingredient_id) continue;
+      const ing = ingMap.get(item.ingredient_id);
+      if (!ing) {
+        // Ingredient was deleted → remove from draft
+        promises.push(db.from("restock_items").delete().eq("id", item.id));
+        continue;
+      }
+      if (item.ingredient_name !== ing.name || item.unit !== ing.unit) {
+        promises.push(db.from("restock_items").update({ ingredient_name: ing.name, unit: ing.unit }).eq("id", item.id));
+      }
+    }
+
+    // 2. Auto-add new ingredients not yet in draft
+    const existingIngIds = new Set(draftItems.filter((i) => i.ingredient_id).map((i) => i.ingredient_id));
+    const missing = allIngredients.filter((i) => !existingIngIds.has(i.id));
+    for (let idx = 0; idx < missing.length; idx++) {
+      const ing = missing[idx];
+      promises.push(
+        db.from("restock_items").insert({
+          restock_list_id: draftId,
+          store_id: storeId ?? null,
+          ingredient_id: ing.id,
+          ingredient_name: ing.name,
+          unit: ing.unit,
+          quantity: 1,
+          checked: true,
+          notes: "",
+          sort_order: draftItems.length + idx,
+        })
+      );
+    }
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+      return true; // changed
+    }
+    return false;
   };
 
   const loadDashboard = async (preferredHistoryId?: string | null) => {
@@ -146,14 +193,23 @@ const AdminRestock = () => {
       const existingDraft = await getDraftList();
       const resolvedDraft = existingDraft ?? (await createDraftList());
 
-      const [freshDraftItems, freshDraft, freshHistory] = await Promise.all([
+      const [freshDraftItems, freshHistory, allIngredients] = await Promise.all([
         getRestockItems(resolvedDraft.id),
-        getDraftList(),
         getHistoryLists(),
+        fetchIngredients().then(() => ingredients.length > 0 ? ingredients : (async () => {
+          let q = db.from("ingredients").select("id, name, unit").order("name");
+          if (storeId) q = q.eq("store_id", storeId);
+          const { data } = await q;
+          return (data ?? []) as Ingredient[];
+        })()),
       ]);
 
-      setDraftList(freshDraft ?? resolvedDraft);
-      setItems(freshDraftItems);
+      // Auto-sync ingredients with draft
+      const changed = await syncIngredientsWithDraft(resolvedDraft.id, freshDraftItems, allIngredients);
+      const finalItems = changed ? await getRestockItems(resolvedDraft.id) : freshDraftItems;
+
+      setDraftList(resolvedDraft);
+      setItems(finalItems);
       setHistoryLists(freshHistory);
       setSelectedHistoryId((current) => {
         if (preferredHistoryId && freshHistory.some((list) => list.id === preferredHistoryId)) return preferredHistoryId;
@@ -173,7 +229,6 @@ const AdminRestock = () => {
 
   useEffect(() => {
     void loadDashboard();
-    void fetchIngredients();
   }, [storeId, user?.id]);
 
   useEffect(() => {
