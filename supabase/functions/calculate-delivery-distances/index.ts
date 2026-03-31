@@ -44,18 +44,21 @@ async function getRoadDistanceKm(
   fromLat: number, fromLng: number,
   toLat: number, toLng: number,
 ): Promise<number | null> {
-  // OSRM espera lng,lat (não lat,lng)
   const url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=false`;
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(url, {
         headers: { "User-Agent": "TurboLanches/1.0" },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (res.status === 429 || res.status >= 500) {
         console.warn(`OSRM HTTP ${res.status}, attempt ${attempt}`);
-        await sleep(2000 * attempt);
+        await sleep(1500 * attempt);
         continue;
       }
 
@@ -69,7 +72,7 @@ async function getRoadDistanceKm(
       return null;
     } catch (e) {
       console.warn(`OSRM error attempt ${attempt}:`, e);
-      await sleep(2000 * attempt);
+      await sleep(1000 * attempt);
     }
   }
   return null;
@@ -311,7 +314,7 @@ Deno.serve(async (req) => {
       .select("id, neighborhood, distance_km")
       .gt("distance_km", MAX_ROAD_DISTANCE_KM)
       .order("distance_km", { ascending: false })
-      .limit(10);
+      .limit(20);
 
     const zones = (outlierZones && outlierZones.length > 0)
       ? outlierZones
@@ -320,7 +323,7 @@ Deno.serve(async (req) => {
           .select("id, neighborhood, distance_km")
       .is("distance_km", null)
       .order("neighborhood")
-      .limit(10)).data;
+      .limit(20)).data;
 
     if (!zones || zones.length === 0) {
       // Tudo processado — recalcular taxas
@@ -401,7 +404,7 @@ Deno.serve(async (req) => {
       processed++;
       console.log(`✅ ${zone.neighborhood}: ${distance}km → R$${fee}`);
 
-      await sleep(400);
+      await sleep(300);
     }
 
     // Contar restantes
