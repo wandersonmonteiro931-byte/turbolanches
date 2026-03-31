@@ -439,6 +439,80 @@ const AdminDashboard = () => {
     printDailyReport(orders, bruto, delivery, gastos, liquido);
   };
 
+  // Period report state
+  const [periodFrom, setPeriodFrom] = useState<Date | undefined>(undefined);
+  const [periodTo, setPeriodTo] = useState<Date | undefined>(undefined);
+  const [showPeriodReport, setShowPeriodReport] = useState(false);
+
+  const reprintPeriodReport = async () => {
+    if (!periodFrom || !periodTo) {
+      toast({ title: "Selecione as datas de início e fim", variant: "destructive" });
+      return;
+    }
+    const fromStr = format(periodFrom, "yyyy-MM-dd");
+    const toStr = format(periodTo, "yyyy-MM-dd");
+
+    const { data: reports } = await supabase
+      .from("daily_reports")
+      .select("*")
+      .gte("report_date", fromStr)
+      .lte("report_date", toStr)
+      .order("report_date");
+
+    if (!reports || reports.length === 0) {
+      toast({ title: "Nenhum relatório encontrado nesse período", variant: "destructive" });
+      return;
+    }
+
+    const totalBruto = reports.reduce((s, r) => s + Number(r.total_bruto), 0);
+    const totalDelivery = reports.reduce((s, r) => s + Number(r.total_delivery_fees), 0);
+    const totalGastos = reports.reduce((s, r) => s + Number(r.total_gastos), 0);
+    const totalLiquido = reports.reduce((s, r) => s + Number(r.total_liquido), 0);
+    const totalOrders = reports.reduce((s, r) => s + Number(r.total_orders), 0);
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+
+    const periodLabel = `${format(periodFrom, "dd/MM/yyyy")} a ${format(periodTo, "dd/MM/yyyy")}`;
+
+    const reportRows = reports.map(r => `
+      <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${Number(r.total_bruto).toFixed(2).replace(".",",")}</span><span>R$ ${Number(r.total_liquido).toFixed(2).replace(".",",")}</span></div>
+    `).join("");
+
+    w.document.write(`
+      <html><head><style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
+        .center { text-align:center; }
+        .sep { border-top:1px dashed #000; margin:3px 0; }
+        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; }
+        .big { font-size:14px; font-weight:900; }
+        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
+        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
+        @page { size:72mm auto; margin:0; }
+      </style></head><body>
+        <h1>TURBO LANCHES</h1>
+        <h2>RELATÓRIO DE PERÍODO</h2>
+        <div class="center">${periodLabel}</div>
+        <div class="sep"></div>
+        <div class="row" style="font-size:8px;color:#666"><span>Data</span><span>Pedidos</span><span>Bruto</span><span>Líquido</span></div>
+        ${reportRows}
+        <div class="sep"></div>
+        <div class="row"><span>Total Pedidos:</span><span>${totalOrders}</span></div>
+        <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${totalBruto.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Total Entregadores:</span><span>R$ ${totalDelivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Total Gastos:</span><span>R$ ${totalGastos.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de período gerado automaticamente</div>
+      </body></html>
+    `);
+    w.document.close();
+    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+  };
+
   const handleCloseDay = async () => {
     // Use business day (orders until 3AM count as previous day)
     const businessDay = getTodayBusinessDay();
