@@ -254,6 +254,14 @@ const AdminLabels = () => {
     // Set brand by name
     const matchedBrand = brands.find(b => b.name === label.brand);
     setSelectedBrandId(matchedBrand?.id ?? "");
+    // Set ingredient/product by name so the dropdown shows the correct item
+    if (label.source_kind === "ingredient") {
+      const matchedIngredient = ingredients.find(i => i.name === label.name);
+      if (matchedIngredient) setSelectedIngredientId(matchedIngredient.id);
+    } else if (label.source_kind === "product") {
+      const matchedProduct = products.find(p => p.name === label.name);
+      if (matchedProduct) setSelectedProductId(matchedProduct.id);
+    }
     toast({ title: "Etiqueta carregada para edição" });
   };
 
