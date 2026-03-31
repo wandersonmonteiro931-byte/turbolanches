@@ -1,6 +1,10 @@
 import "./index.css";
 import "@/lib/bootstrap";
 
+if (typeof globalThis !== "undefined" && typeof (globalThis as any).__LOVA_FIX_TRIGGER__ === "undefined") {
+  (globalThis as any).__LOVA_FIX_TRIGGER__ = false;
+}
+
 // Suppress harmless preview-environment artifact
 if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (e) => {
