@@ -210,6 +210,8 @@ const IngredientsTab = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // Remove related restock items first
+    await (supabase as any).from("restock_items").delete().eq("ingredient_id", id);
     const { error } = await supabase.from("ingredients").delete().eq("id", id);
     if (error) {
       toast({ title: "Não foi possível remover", description: error.message });
