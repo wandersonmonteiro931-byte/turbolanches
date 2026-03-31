@@ -113,7 +113,7 @@ const AdminLayout = () => {
   );
 
   return (
-    <div className="flex h-screen bg-muted/30 print:block print:h-auto print:bg-background">
+    <div className="flex min-h-screen bg-background print:block print:h-auto print:bg-background">
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block print:hidden">
         <NavContent />
       </aside>
