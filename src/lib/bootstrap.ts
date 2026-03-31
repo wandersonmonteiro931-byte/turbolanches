@@ -3,6 +3,15 @@ declare global {
 }
 
 try {
+  if (typeof window !== "undefined") {
+    window.addEventListener("unhandledrejection", (event) => {
+      const reasonText = String((event as PromiseRejectionEvent).reason ?? "");
+      if (reasonText.includes("__LOVA_FIX_TRIGGER__")) {
+        event.preventDefault();
+      }
+    });
+  }
+
   if (typeof globalThis.__LOVA_FIX_TRIGGER__ === "undefined") {
     Object.defineProperty(globalThis, "__LOVA_FIX_TRIGGER__", {
       configurable: true,
