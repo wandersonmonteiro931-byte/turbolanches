@@ -452,30 +452,87 @@ const AdminDashboard = () => {
     const fromStr = format(periodFrom, "yyyy-MM-dd");
     const toStr = format(periodTo, "yyyy-MM-dd");
 
-    const { data: reports } = await supabase
+    // Pull directly from orders table (daily_reports may not have data for all days)
+    const fromISO = `${fromStr}T00:00:00-03:00`;
+    const toISO = `${toStr}T23:59:59-03:00`;
+
+    let ordersQuery = supabase
+      .from("orders")
+      .select("total, delivery_fee, status, created_at")
+      .gte("created_at", fromISO)
+      .lte("created_at", toISO)
+      .neq("status", "cancelled");
+
+    if (storeId) {
+      ordersQuery = ordersQuery.eq("store_id", storeId);
+    }
+
+    const { data: ordersData } = await ordersQuery;
+
+    // Also try daily_reports as secondary source
+    let reportsQuery = supabase
       .from("daily_reports")
       .select("*")
       .gte("report_date", fromStr)
       .lte("report_date", toStr)
       .order("report_date");
 
-    // Build a map of existing reports by date
-    const reportMap = new Map<string, typeof reports extends (infer R)[] | null ? R : never>();
-    (reports ?? []).forEach(r => reportMap.set(r.report_date, r));
+    if (storeId) {
+      reportsQuery = reportsQuery.eq("store_id", storeId);
+    }
 
-    // Generate ALL dates in the range using eachDayOfInterval for reliability
+    const { data: reports } = await reportsQuery;
+
+    // Build a map of existing reports by date
+    const reportMap = new Map<string, any>();
+    (reports ?? []).forEach((r: any) => reportMap.set(r.report_date, r));
+
+    // Group orders by date
+    const ordersByDate = new Map<string, { count: number; bruto: number; delivery: number }>();
+    (ordersData ?? []).forEach((o: any) => {
+      const d = format(new Date(o.created_at), "yyyy-MM-dd");
+      const existing = ordersByDate.get(d) || { count: 0, bruto: 0, delivery: 0 };
+      existing.count += 1;
+      existing.bruto += Number(o.total) || 0;
+      existing.delivery += Number(o.delivery_fee) || 0;
+      ordersByDate.set(d, existing);
+    });
+
+    // Generate ALL dates in the range
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
-    // Build full rows with zeros for missing dates
+    // Build full rows - prefer orders data, fallback to daily_reports
     const fullRows = allDates.map(dateStr => {
-      const r = reportMap.get(dateStr);
+      const orderData = ordersByDate.get(dateStr);
+      const reportData = reportMap.get(dateStr);
+
+      if (orderData && orderData.count > 0) {
+        const gastos = orderData.delivery;
+        return {
+          report_date: dateStr,
+          total_orders: orderData.count,
+          total_bruto: orderData.bruto,
+          total_delivery_fees: orderData.delivery,
+          total_gastos: gastos,
+          total_liquido: orderData.bruto - gastos,
+        };
+      } else if (reportData) {
+        return {
+          report_date: dateStr,
+          total_orders: Number(reportData.total_orders) || 0,
+          total_bruto: Number(reportData.total_bruto) || 0,
+          total_delivery_fees: Number(reportData.total_delivery_fees) || 0,
+          total_gastos: Number(reportData.total_gastos) || 0,
+          total_liquido: Number(reportData.total_liquido) || 0,
+        };
+      }
       return {
         report_date: dateStr,
-        total_orders: r ? Number(r.total_orders) : 0,
-        total_bruto: r ? Number(r.total_bruto) : 0,
-        total_delivery_fees: r ? Number(r.total_delivery_fees) : 0,
-        total_gastos: r ? Number(r.total_gastos) : 0,
-        total_liquido: r ? Number(r.total_liquido) : 0,
+        total_orders: 0,
+        total_bruto: 0,
+        total_delivery_fees: 0,
+        total_gastos: 0,
+        total_liquido: 0,
       };
     });
 
