@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExtraCostsTab from "@/components/admin/pricing/ExtraCostsTab";
@@ -9,6 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const AdminPricing = () => {
   const [tab, setTab] = useState("items");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleTabChange = useCallback((newTab: string) => {
+    setTab(newTab);
+    setRefreshKey(k => k + 1);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -29,20 +35,20 @@ const AdminPricing = () => {
         </CardContent>
       </Card>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList className="flex h-auto w-full flex-wrap gap-2">
           <TabsTrigger value="costs">Custos Extras</TabsTrigger>
           <TabsTrigger value="items">Itens</TabsTrigger>
           <TabsTrigger value="profit">Lucro</TabsTrigger>
         </TabsList>
         <TabsContent value="costs">
-          <ExtraCostsTab />
+          <ExtraCostsTab key={`costs-${refreshKey}`} />
         </TabsContent>
         <TabsContent value="items">
-          <ItemsTab />
+          <ItemsTab key={`items-${refreshKey}`} />
         </TabsContent>
         <TabsContent value="profit">
-          <ProfitDashboard />
+          <ProfitDashboard key={`profit-${refreshKey}`} />
         </TabsContent>
       </Tabs>
     </div>
