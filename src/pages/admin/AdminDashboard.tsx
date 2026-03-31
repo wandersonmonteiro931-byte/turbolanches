@@ -9,7 +9,7 @@ import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
-import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
+import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/contexts/StoreContext";
@@ -473,11 +473,8 @@ const AdminDashboard = () => {
     }
     toast({ title: "Buscando pedidos do período..." });
 
-    const fromStr = format(periodFrom, "yyyy-MM-dd");
-    const toStr = format(periodTo, "yyyy-MM-dd");
-
-    const fromISO = `${fromStr}T00:00:00-03:00`;
-    const toISO = `${toStr}T23:59:59-03:00`;
+    const { start: fromISO } = getBusinessDayRange(periodFrom);
+    const { end: toISO } = getBusinessDayRange(periodTo);
 
     // Fetch ALL orders (paginate to avoid 1000 row limit)
     let allOrders: any[] = [];
@@ -500,20 +497,7 @@ const AdminDashboard = () => {
     }
     const ordersData = allOrders;
 
-    const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-
-    const toDateKey = (value: string) => {
-      const parts = dateKeyFormatter.formatToParts(new Date(value));
-      const year = parts.find((p) => p.type === "year")?.value ?? "0000";
-      const month = parts.find((p) => p.type === "month")?.value ?? "00";
-      const day = parts.find((p) => p.type === "day")?.value ?? "00";
-      return `${year}-${month}-${day}`;
-    };
+    const toDateKey = (value: string) => formatBusinessDate(new Date(value));
 
     // Group orders by date
     const ordersByDate = new Map<string, { count: number; bruto: number; delivery: number }>();
@@ -526,7 +510,7 @@ const AdminDashboard = () => {
       ordersByDate.set(d, existing);
     });
 
-    // Generate ALL dates in the range
+    // Generate ALL business dates in the range (inclusive)
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
     // Build full rows from current orders only (always up-to-date)
@@ -604,7 +588,7 @@ const AdminDashboard = () => {
   };
 
   const handleCloseDay = async () => {
-    // Use business day (orders until 3AM count as previous day)
+    // Use business day (orders until 6AM count as previous day)
     const businessDay = getTodayBusinessDay();
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
