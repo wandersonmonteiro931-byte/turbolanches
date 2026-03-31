@@ -790,7 +790,52 @@ const AdminDashboard = () => {
           <Printer size={16} />
           Reimprimir Relatório
         </button>
+
+        <button
+          onClick={() => setShowPeriodReport(!showPeriodReport)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <FileText size={16} />
+          Relatório de Período
+        </button>
       </div>
+
+      {showPeriodReport && (
+        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground">De</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[160px] justify-start text-left font-medium">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {periodFrom ? format(periodFrom, "dd/MM/yyyy") : "Início"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={periodFrom} onSelect={(d) => d && setPeriodFrom(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground">Até</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[160px] justify-start text-left font-medium">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {periodTo ? format(periodTo, "dd/MM/yyyy") : "Fim"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={periodTo} onSelect={(d) => d && setPeriodTo(d)} initialFocus className="p-3 pointer-events-auto" />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <Button onClick={reprintPeriodReport} disabled={!periodFrom || !periodTo}>
+            <Printer size={16} />
+            Imprimir Relatório de Período
+          </Button>
+        </div>
+      )}
 
 
       {/* Close Day Confirmation */}
