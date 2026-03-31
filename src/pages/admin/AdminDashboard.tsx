@@ -459,24 +459,47 @@ const AdminDashboard = () => {
       .lte("report_date", toStr)
       .order("report_date");
 
-    if (!reports || reports.length === 0) {
-      toast({ title: "Nenhum relatório encontrado nesse período", variant: "destructive" });
-      return;
+    // Build a map of existing reports by date
+    const reportMap = new Map<string, typeof reports extends (infer R)[] | null ? R : never>();
+    (reports ?? []).forEach(r => reportMap.set(r.report_date, r));
+
+    // Generate ALL dates in the range, even if no report exists
+    const allDates: string[] = [];
+    const cursor = new Date(periodFrom);
+    cursor.setHours(12, 0, 0, 0);
+    const endDate = new Date(periodTo);
+    endDate.setHours(12, 0, 0, 0);
+    while (cursor <= endDate) {
+      allDates.push(format(cursor, "yyyy-MM-dd"));
+      cursor.setDate(cursor.getDate() + 1);
     }
 
-    const totalBruto = reports.reduce((s, r) => s + Number(r.total_bruto), 0);
-    const totalDelivery = reports.reduce((s, r) => s + Number(r.total_delivery_fees), 0);
-    const totalGastos = reports.reduce((s, r) => s + Number(r.total_gastos), 0);
-    const totalLiquido = reports.reduce((s, r) => s + Number(r.total_liquido), 0);
-    const totalOrders = reports.reduce((s, r) => s + Number(r.total_orders), 0);
+    // Build full rows with zeros for missing dates
+    const fullRows = allDates.map(dateStr => {
+      const r = reportMap.get(dateStr);
+      return {
+        report_date: dateStr,
+        total_orders: r ? Number(r.total_orders) : 0,
+        total_bruto: r ? Number(r.total_bruto) : 0,
+        total_delivery_fees: r ? Number(r.total_delivery_fees) : 0,
+        total_gastos: r ? Number(r.total_gastos) : 0,
+        total_liquido: r ? Number(r.total_liquido) : 0,
+      };
+    });
+
+    const totalBruto = fullRows.reduce((s, r) => s + r.total_bruto, 0);
+    const totalDelivery = fullRows.reduce((s, r) => s + r.total_delivery_fees, 0);
+    const totalGastos = fullRows.reduce((s, r) => s + r.total_gastos, 0);
+    const totalLiquido = fullRows.reduce((s, r) => s + r.total_liquido, 0);
+    const totalOrders = fullRows.reduce((s, r) => s + r.total_orders, 0);
 
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
 
     const periodLabel = `${format(periodFrom, "dd/MM/yyyy")} a ${format(periodTo, "dd/MM/yyyy")}`;
 
-    const reportRows = reports.map(r => `
-      <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${Number(r.total_bruto).toFixed(2).replace(".",",")}</span><span>R$ ${Number(r.total_liquido).toFixed(2).replace(".",",")}</span></div>
+    const reportRows = fullRows.map(r => `
+      <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
     `).join("");
 
     w.document.write(`
