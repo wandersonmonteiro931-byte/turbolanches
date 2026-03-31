@@ -1,11 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Singleton background worker for delivery distance calculation.
- * Persists across route changes — once started, keeps running until done or cancelled.
- */
-
 interface CalcState {
   running: boolean;
   processed: number;
@@ -44,21 +39,30 @@ async function runLoop(recalcAll: boolean) {
   isRunning = true;
   abortFlag = false;
 
-  setState({ running: true, processed: 0, remaining: 999, failed: 0, message: "Iniciando cálculo..." });
+  setState({ running: true, processed: 0, remaining: 0, failed: 0, message: "Iniciando cálculo..." });
 
   try {
+    // If recalcAll, reset all distances
     if (recalcAll) {
+      setState({ message: "Resetando distâncias..." });
       await supabase.from("store_settings").update({ store_lat: null, store_lng: null } as any).not("id", "is", null);
       await supabase.from("delivery_zones").update({ distance_km: null, delivery_fee: 0 } as any).not("id", "is", null);
     }
 
-    let remaining = 999;
+    // Count total pending
+    const { count: totalPending } = await supabase
+      .from("delivery_zones")
+      .select("id", { count: "exact", head: true })
+      .is("distance_km", null);
+
+    const totalToProcess = totalPending || 0;
     let totalProcessed = 0;
     let totalFailed = 0;
     let consecutiveErrors = 0;
-    const MAX_CONSECUTIVE_ERRORS = 8;
 
-    while (remaining > 0) {
+    setState({ remaining: totalToProcess, message: `0 de ${totalToProcess} processados...` });
+
+    while (true) {
       if (abortFlag) {
         setState({ running: false, message: "⏹️ Cancelado" });
         break;
@@ -72,13 +76,11 @@ async function runLoop(recalcAll: boolean) {
         error = r.error;
       } catch (e) {
         consecutiveErrors++;
-        const waitMs = Math.min(2000 * consecutiveErrors, 10000);
-        setState({ message: `${totalProcessed} processados — reconectando (${consecutiveErrors})...` });
-        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          setState({ running: false, message: `❌ Muitos erros seguidos (${consecutiveErrors}). Tente novamente.` });
+        if (consecutiveErrors >= 5) {
+          setState({ running: false, message: `❌ Muitos erros seguidos. Tente novamente.` });
           break;
         }
-        await new Promise((r) => setTimeout(r, waitMs));
+        await new Promise((r) => setTimeout(r, 2000 * consecutiveErrors));
         continue;
       }
 
@@ -87,44 +89,40 @@ async function runLoop(recalcAll: boolean) {
         break;
       }
 
-      // Handle error/timeout: retry instead of breaking
       if (error || !data?.success) {
         consecutiveErrors++;
-        const waitMs = Math.min(2000 * consecutiveErrors, 10000);
-        const errMsg = data?.error || "timeout/erro";
-        console.warn(`Edge function error (${consecutiveErrors}):`, errMsg);
-        setState({
-          processed: totalProcessed,
-          remaining,
-          failed: totalFailed,
-          message: `${totalProcessed} processados — retentando após erro... (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS})`,
-        });
-        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
-          setState({ running: false, message: `❌ Muitos erros seguidos. Tente novamente.` });
+        if (consecutiveErrors >= 5) {
+          setState({ running: false, message: `❌ Erro: ${data?.error || "desconhecido"}` });
           break;
         }
-        await new Promise((r) => setTimeout(r, waitMs));
+        await new Promise((r) => setTimeout(r, 2000 * consecutiveErrors));
         continue;
       }
 
-      // Success — reset error counter
+      // Success
       consecutiveErrors = 0;
       totalProcessed += data.processed;
-      remaining = data.remaining;
       totalFailed = data.failed || 0;
+      const remaining = data.remaining || 0;
 
       const fMsg = totalFailed > 0 ? ` (${totalFailed} N/A)` : "";
+
+      if (remaining === 0) {
+        setState({
+          processed: totalProcessed,
+          remaining: 0,
+          failed: totalFailed,
+          message: `✅ ${totalProcessed} bairros calculados!${fMsg}`,
+        });
+        break;
+      }
+
       setState({
         processed: totalProcessed,
         remaining,
         failed: totalFailed,
-        message:
-          remaining > 0
-            ? `${totalProcessed} processados, ${remaining} restantes...${fMsg}`
-            : `✅ ${totalProcessed} bairros calculados!${fMsg}`,
+        message: `${totalProcessed} de ${totalProcessed + remaining} processados...${fMsg}`,
       });
-
-      if (remaining === 0 && data.processed === 0) break;
     }
   } catch {
     setState({ running: false, message: "❌ Erro inesperado" });
