@@ -5,7 +5,7 @@ import {
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
