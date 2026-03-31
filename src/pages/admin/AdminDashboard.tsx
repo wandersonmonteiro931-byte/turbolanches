@@ -115,6 +115,9 @@ const AdminDashboard = () => {
   const [cancellationReason, setCancellationReason] = useState("");
   const [togglingStore, setTogglingStore] = useState(false);
   const [showToggleConfirm, setShowToggleConfirm] = useState(false);
+  const [periodFrom, setPeriodFrom] = useState<Date | undefined>(undefined);
+  const [periodTo, setPeriodTo] = useState<Date | undefined>(undefined);
+  const [showPeriodReport, setShowPeriodReport] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
