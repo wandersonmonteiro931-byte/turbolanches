@@ -194,6 +194,11 @@ const IngredientsTab = () => {
     }
 
     if (editing) {
+      // Sync name/unit to restock_items across the system
+      await (supabase as any).from("restock_items").update({
+        ingredient_name: form.name.trim(),
+        unit: savedUnit,
+      }).eq("ingredient_id", editing.id);
       toast({ title: "Ingrediente atualizado!" });
     } else {
       toast({ title: "Ingrediente criado!" });
@@ -205,6 +210,8 @@ const IngredientsTab = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // Remove related restock items first
+    await (supabase as any).from("restock_items").delete().eq("ingredient_id", id);
     const { error } = await supabase.from("ingredients").delete().eq("id", id);
     if (error) {
       toast({ title: "Não foi possível remover", description: error.message });
