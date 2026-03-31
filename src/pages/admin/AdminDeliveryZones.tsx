@@ -475,12 +475,22 @@ const AdminDeliveryZones = () => {
           <div className={`mt-3 rounded-lg px-4 py-2.5 text-sm font-medium ${
             calcState.message.includes("❌") 
               ? "bg-destructive/10 text-destructive" 
+              : calcState.message.includes("✅")
+              ? "bg-green-500/10 text-green-700"
               : "bg-primary/10 text-primary"
           }`}>
             <div className="flex items-center justify-between">
               <span>{calcState.message}</span>
               {calcState.running && <RefreshCw size={14} className="animate-spin" />}
             </div>
+            {calcState.running && (calcState.processed + calcState.remaining) > 0 && (
+              <div className="mt-2 w-full bg-muted rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-primary h-full rounded-full transition-all duration-500"
+                  style={{ width: `${Math.round((calcState.processed / (calcState.processed + calcState.remaining)) * 100)}%` }}
+                />
+              </div>
+            )}
             {calcState.message.includes("❌") && zonesWithoutDistance > 0 && (
               <button
                 onClick={() => calculateDistances(false)}
