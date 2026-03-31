@@ -426,20 +426,42 @@ const AdminDashboard = () => {
 
   // Reprint daily report for any date
   const reprintDailyReport = async () => {
-    const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const { data: report } = await supabase
-      .from("daily_reports")
-      .select("*")
-      .eq("report_date", dateStr)
-      .single();
+    const { start, end } = getBusinessDayRange(selectedDate);
+    const PAGE_SIZE = 1000;
+    let page = 0;
+    let currentDayOrders: Order[] = [];
 
-    const allOrders = orders.filter(o => o.status !== "cancelled");
-    const bruto = report ? Number(report.total_bruto) : allOrders.reduce((s, o) => s + Number(o.total), 0);
-    const delivery = report ? Number(report.total_delivery_fees) : allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const gastos = report ? Number(report.total_gastos) : delivery;
-    const liquido = report ? Number(report.total_liquido) : bruto - delivery;
+    while (true) {
+      let query = supabase
+        .from("orders")
+        .select("*")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    printDailyReport(orders, bruto, delivery, gastos, liquido);
+      if (storeId) query = query.eq("store_id", storeId);
+
+      const { data, error } = await query;
+      if (error) {
+        toast({ title: "Erro ao buscar relatório atualizado", variant: "destructive" });
+        return;
+      }
+
+      const pageData = (data ?? []) as Order[];
+      if (pageData.length === 0) break;
+      currentDayOrders = currentDayOrders.concat(pageData);
+      if (pageData.length < PAGE_SIZE) break;
+      page += 1;
+    }
+
+    const validOrders = currentDayOrders.filter((o) => o.status !== "cancelled");
+    const bruto = validOrders.reduce((s, o) => s + Number(o.total), 0);
+    const delivery = validOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
+    const gastos = delivery;
+    const liquido = bruto - gastos;
+
+    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido);
   };
 
 
@@ -478,28 +500,25 @@ const AdminDashboard = () => {
     }
     const ordersData = allOrders;
 
-    // Also try daily_reports as secondary source
-    let reportsQuery = supabase
-      .from("daily_reports")
-      .select("*")
-      .gte("report_date", fromStr)
-      .lte("report_date", toStr)
-      .order("report_date");
+    const dateKeyFormatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
 
-    if (storeId) {
-      reportsQuery = reportsQuery.eq("store_id", storeId);
-    }
-
-    const { data: reports } = await reportsQuery;
-
-    // Build a map of existing reports by date
-    const reportMap = new Map<string, any>();
-    (reports ?? []).forEach((r: any) => reportMap.set(r.report_date, r));
+    const toDateKey = (value: string) => {
+      const parts = dateKeyFormatter.formatToParts(new Date(value));
+      const year = parts.find((p) => p.type === "year")?.value ?? "0000";
+      const month = parts.find((p) => p.type === "month")?.value ?? "00";
+      const day = parts.find((p) => p.type === "day")?.value ?? "00";
+      return `${year}-${month}-${day}`;
+    };
 
     // Group orders by date
     const ordersByDate = new Map<string, { count: number; bruto: number; delivery: number }>();
     (ordersData ?? []).forEach((o: any) => {
-      const d = format(new Date(o.created_at), "yyyy-MM-dd");
+      const d = toDateKey(o.created_at);
       const existing = ordersByDate.get(d) || { count: 0, bruto: 0, delivery: 0 };
       existing.count += 1;
       existing.bruto += Number(o.total) || 0;
@@ -510,10 +529,9 @@ const AdminDashboard = () => {
     // Generate ALL dates in the range
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
-    // Build full rows - prefer orders data, fallback to daily_reports
+    // Build full rows from current orders only (always up-to-date)
     const fullRows = allDates.map(dateStr => {
       const orderData = ordersByDate.get(dateStr);
-      const reportData = reportMap.get(dateStr);
 
       if (orderData && orderData.count > 0) {
         const gastos = orderData.delivery;
@@ -524,15 +542,6 @@ const AdminDashboard = () => {
           total_delivery_fees: orderData.delivery,
           total_gastos: gastos,
           total_liquido: orderData.bruto - gastos,
-        };
-      } else if (reportData) {
-        return {
-          report_date: dateStr,
-          total_orders: Number(reportData.total_orders) || 0,
-          total_bruto: Number(reportData.total_bruto) || 0,
-          total_delivery_fees: Number(reportData.total_delivery_fees) || 0,
-          total_gastos: Number(reportData.total_gastos) || 0,
-          total_liquido: Number(reportData.total_liquido) || 0,
         };
       }
       return {
