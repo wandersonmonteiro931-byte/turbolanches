@@ -1,5 +1,14 @@
 import "./index.css";
 import "@/lib/bootstrap";
+
+// Suppress harmless preview-environment artifact
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (e) => {
+    if (e.reason && String(e.reason).includes("__LOVA_FIX_TRIGGER__")) {
+      e.preventDefault();
+    }
+  });
+}
 import { createRoot } from "react-dom/client";
 import { cleanupLegacyPushServiceWorkers, PUSH_SW_URL, shouldEnableServiceWorker } from "@/lib/pwa";
 import App from "./App.tsx";
