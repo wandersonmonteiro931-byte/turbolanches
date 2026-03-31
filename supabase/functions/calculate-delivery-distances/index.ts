@@ -8,10 +8,7 @@ const corsHeaders = {
 
 const ANAPOLIS_CENTER = { lat: -16.3281, lng: -48.9534 };
 const MAX_DISTANCE_KM = 50;
-
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+const BATCH_SIZE = 8; // small batch to stay within timeout
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -29,35 +26,13 @@ function normalizeText(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
-function tokenize(value: string): string[] {
-  return normalizeText(value).split(/\s+/).filter((t) => t.length > 2);
-}
-
-function overlapScore(expected: string, candidate: string): number {
-  const expNorm = normalizeText(expected);
-  const candNorm = normalizeText(candidate);
-  if (!expNorm || !candNorm) return 0;
-  if (candNorm === expNorm) return 1;
-  if (candNorm.includes(expNorm) || expNorm.includes(candNorm)) return 0.9;
-  const expTokens = tokenize(expNorm);
-  const candTokens = new Set(tokenize(candNorm));
-  if (expTokens.length === 0) return 0;
-  let hit = 0;
-  for (const token of expTokens) {
-    if (candTokens.has(token)) hit++;
-  }
-  return hit / expTokens.length;
-}
-
 type NominatimPlace = {
   lat?: string;
   lon?: string;
-  name?: string;
   display_name?: string;
   address?: {
     city?: string; town?: string; municipality?: string; county?: string;
-    state?: string; state_district?: string;
-    suburb?: string; neighbourhood?: string; city_district?: string; quarter?: string;
+    state_district?: string;
   };
 };
 
@@ -74,76 +49,47 @@ type GeocodeResult =
   | { status: "ok"; coords: { lat: number; lng: number } }
   | { status: "not_found" };
 
-async function geocode(query: string, expectedNeighborhood: string): Promise<GeocodeResult> {
-  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=pt-BR&countrycodes=br&limit=8&dedupe=1&bounded=1&viewbox=-49.18,-16.20,-48.78,-16.56&q=${encodeURIComponent(query)}`;
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 6000);
-      const res = await fetch(url, { headers: { "User-Agent": "TurboLanches/1.0" }, signal: controller.signal });
-      clearTimeout(timeout);
-      if (res.status === 429 || res.status >= 500) { await sleep(1500 * attempt); continue; }
-      if (!res.ok) return { status: "not_found" };
-
-      const data = (await res.json()) as NominatimPlace[];
-      let best: { score: number; lat: number; lng: number } | null = null;
-
-      for (const place of data || []) {
-        const lat = Number(place.lat);
-        const lng = Number(place.lon);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-        if (!isInsideAnapolis(place, lat, lng)) continue;
-
-        const candidateText = [
-          place.name, place.address?.neighbourhood, place.address?.suburb,
-          place.address?.quarter, place.address?.city_district, place.display_name,
-        ].filter(Boolean).join(" | ");
-
-        const score = overlapScore(expectedNeighborhood, candidateText);
-        if (score < 0.45) continue;
-        if (!best || score > best.score) {
-          best = { score, lat, lng };
-        }
+async function geocodeSingle(query: string): Promise<GeocodeResult> {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&accept-language=pt-BR&countrycodes=br&limit=5&bounded=1&viewbox=-49.18,-16.20,-48.78,-16.56&q=${encodeURIComponent(query)}`;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(url, { headers: { "User-Agent": "TurboLanches/1.0" }, signal: controller.signal });
+    clearTimeout(timeout);
+    if (!res.ok) return { status: "not_found" };
+    const data = (await res.json()) as NominatimPlace[];
+    for (const place of data || []) {
+      const lat = Number(place.lat);
+      const lng = Number(place.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      if (isInsideAnapolis(place, lat, lng)) {
+        return { status: "ok", coords: { lat, lng } };
       }
-
-      if (best) return { status: "ok", coords: { lat: best.lat, lng: best.lng } };
-      return { status: "not_found" };
-    } catch (_e) {
-      await sleep(1500 * attempt);
     }
+    return { status: "not_found" };
+  } catch {
+    return { status: "not_found" };
   }
-  return { status: "not_found" };
-}
-
-function buildQueries(neighborhood: string): string[] {
-  const orig = neighborhood.replace(/\s+/g, " ").trim();
-  const noPrefix = orig.replace(/^(bairro|setor)\s+/i, "").trim();
-  const noStage = noPrefix
-    .replace(/\b\d+\s*(?:ª|a)?\s*etapa\b/gi, "")
-    .replace(/\b(i{1,3}|iv|v)\s*etapa\b/gi, "")
-    .replace(/\s+/g, " ").trim();
-
-  const candidates = Array.from(new Set([orig, noPrefix, noStage].filter(v => v.length > 2)));
-  const queries: string[] = [];
-  for (const c of candidates) {
-    queries.push(`${c}, Anápolis, Goiás, Brasil`);
-    queries.push(`Bairro ${c}, Anápolis, GO, Brasil`);
-  }
-  return Array.from(new Set(queries)).slice(0, 6);
 }
 
 async function geocodeNeighborhood(neighborhood: string): Promise<GeocodeResult> {
-  const queries = buildQueries(neighborhood);
-  for (const query of queries) {
-    const result = await geocode(query, neighborhood);
-    if (result.status === "ok") return result;
-    await sleep(400);
+  // Try just 2 queries max to stay fast
+  const clean = neighborhood.replace(/\s+/g, " ").trim();
+  const noPrefix = clean.replace(/^(bairro|setor)\s+/i, "").trim();
+  
+  const r1 = await geocodeSingle(`${clean}, Anápolis, GO, Brasil`);
+  if (r1.status === "ok") return r1;
+  
+  await new Promise(r => setTimeout(r, 300));
+  
+  if (noPrefix !== clean) {
+    const r2 = await geocodeSingle(`Bairro ${noPrefix}, Anápolis, GO, Brasil`);
+    if (r2.status === "ok") return r2;
   }
+  
   return { status: "not_found" };
 }
 
-// ── Handler principal ──────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -171,41 +117,39 @@ Deno.serve(async (req) => {
 
     if (!storeLat || !storeLng) {
       const storeQuery = `${settings.store_address}, ${settings.store_neighborhood}, Anápolis, GO, Brasil`;
-      const storeResult = await geocode(storeQuery, settings.store_neighborhood || settings.store_address || "loja");
+      const storeResult = await geocodeSingle(storeQuery);
 
       if (storeResult.status === "ok") {
         storeLat = storeResult.coords.lat;
         storeLng = storeResult.coords.lng;
       } else {
-        const fallback = await geocode(`${settings.store_neighborhood}, Anápolis, GO, Brasil`, settings.store_neighborhood || "loja");
-        if (fallback.status !== "ok") {
-          return new Response(
-            JSON.stringify({ success: false, error: "Não foi possível localizar o endereço da loja." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        storeLat = fallback.coords.lat;
-        storeLng = fallback.coords.lng;
+        // Fallback to city center
+        storeLat = ANAPOLIS_CENTER.lat;
+        storeLng = ANAPOLIS_CENTER.lng;
       }
 
       await supabase.from("store_settings")
         .update({ store_lat: storeLat, store_lng: storeLng })
         .not("id", "is", null);
-      await sleep(400);
     }
 
     const pricePerKm = settings.price_per_km || 2;
 
-    // ── Buscar zonas pendentes (null distance) ──
+    // Count total pending BEFORE processing
+    const { count: totalPending } = await supabase
+      .from("delivery_zones")
+      .select("id", { count: "exact", head: true })
+      .is("distance_km", null);
+
+    // Fetch small batch
     const { data: zones } = await supabase
       .from("delivery_zones")
-      .select("id, neighborhood, distance_km")
+      .select("id, neighborhood")
       .is("distance_km", null)
       .order("neighborhood")
-      .limit(50);
+      .limit(BATCH_SIZE);
 
     if (!zones || zones.length === 0) {
-      // Tudo processado — contar falhas
       const { count: failedCount } = await supabase
         .from("delivery_zones")
         .select("id", { count: "exact", head: true })
@@ -224,15 +168,17 @@ Deno.serve(async (req) => {
 
       if (geoResult.status !== "ok") {
         await supabase.from("delivery_zones").update({ distance_km: -1 }).eq("id", zone.id);
+        processed++;
+        console.log(`❌ ${zone.neighborhood}: não encontrado`);
         continue;
       }
 
-      // Haversine × 1.3 (approximation of road distance)
       const straightLine = haversineKm(storeLat!, storeLng!, geoResult.coords.lat, geoResult.coords.lng);
       const distance = Math.round(straightLine * 1.3 * 10) / 10;
 
       if (distance > MAX_DISTANCE_KM) {
         await supabase.from("delivery_zones").update({ distance_km: -1 }).eq("id", zone.id);
+        processed++;
         continue;
       }
 
@@ -243,14 +189,10 @@ Deno.serve(async (req) => {
 
       processed++;
       console.log(`✅ ${zone.neighborhood}: ${distance}km → R$${fee}`);
-      await sleep(200);
+      await new Promise(r => setTimeout(r, 300));
     }
 
-    // Contar restantes
-    const { count } = await supabase
-      .from("delivery_zones")
-      .select("id", { count: "exact", head: true })
-      .is("distance_km", null);
+    const remaining = Math.max(0, (totalPending || 0) - processed);
 
     const { count: totalFailed } = await supabase
       .from("delivery_zones")
@@ -261,7 +203,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         processed,
-        remaining: count || 0,
+        remaining,
         failed: totalFailed || 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
