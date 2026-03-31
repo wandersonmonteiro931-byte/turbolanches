@@ -35,6 +35,12 @@ interface RestockItem {
   notes: string;
 }
 
+interface Ingredient {
+  id: string;
+  name: string;
+  unit: string;
+}
+
 type RestockView = "current" | "history";
 
 const formatQuantity = (value: number) =>
@@ -53,7 +59,6 @@ const AdminRestock = () => {
   const { data: templates } = useReceiptTemplates();
 
   const [loading, setLoading] = useState(true);
-  const [closingShift, setClosingShift] = useState(false);
   const [view, setView] = useState<RestockView>("current");
   const [draftList, setDraftList] = useState<RestockList | null>(null);
   const [items, setItems] = useState<RestockItem[]>([]);
@@ -61,6 +66,11 @@ const AdminRestock = () => {
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
   const [historyItemsByList, setHistoryItemsByList] = useState<Record<string, RestockItem[]>>({});
   const [search, setSearch] = useState("");
+
+  // Ingredients from Cadastros
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [showIngredientPicker, setShowIngredientPicker] = useState(false);
 
   // Manual add form
   const [newItemName, setNewItemName] = useState("");
@@ -99,7 +109,7 @@ const AdminRestock = () => {
       .eq("status", "closed")
       .order("closed_at", { ascending: false })
       .order("updated_at", { ascending: false })
-      .limit(20);
+      .limit(50);
     if (error) throw error;
     return (data ?? []) as RestockList[];
   };
@@ -114,6 +124,13 @@ const AdminRestock = () => {
       .order("ingredient_name");
     if (error) throw error;
     return (data ?? []) as RestockItem[];
+  };
+
+  const fetchIngredients = async () => {
+    let query = db.from("ingredients").select("id, name, unit").order("name");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data } = await query;
+    setIngredients((data ?? []) as Ingredient[]);
   };
 
   const fetchHistoryItems = async (listId: string) => {
@@ -156,6 +173,7 @@ const AdminRestock = () => {
 
   useEffect(() => {
     void loadDashboard();
+    void fetchIngredients();
   }, [storeId, user?.id]);
 
   useEffect(() => {
@@ -195,6 +213,39 @@ const AdminRestock = () => {
     }
   };
 
+  const handleAddFromIngredient = async (ingredient: Ingredient) => {
+    if (!draftList) return;
+    // Check if already added
+    const alreadyAdded = items.some((i) => i.ingredient_id === ingredient.id);
+    if (alreadyAdded) {
+      toast({ title: "Ingrediente já está na lista" });
+      setShowIngredientPicker(false);
+      return;
+    }
+
+    const { data, error } = await db.from("restock_items").insert({
+      restock_list_id: draftList.id,
+      store_id: storeId ?? null,
+      ingredient_id: ingredient.id,
+      ingredient_name: ingredient.name,
+      unit: ingredient.unit,
+      quantity: 1,
+      checked: true,
+      notes: "",
+      sort_order: items.length,
+    }).select("*").single();
+
+    if (error) {
+      toast({ title: "Erro ao adicionar item", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setItems((current) => [...current, data as RestockItem]);
+    setShowIngredientPicker(false);
+    setIngredientSearch("");
+    toast({ title: `${ingredient.name} adicionado!` });
+  };
+
   const handleAddItem = async () => {
     if (!newItemName.trim() || !draftList) return;
 
@@ -230,46 +281,29 @@ const AdminRestock = () => {
     toast({ title: "Item removido!" });
   };
 
-  const handleCloseShift = async () => {
-    if (!draftList) return;
+  // Save current list to history automatically (on print)
+  const saveToHistory = async () => {
+    if (!draftList) return null;
     const checkedItems = items.filter((item) => item.checked);
+    if (checkedItems.length === 0) return null;
 
-    if (checkedItems.length === 0) {
-      toast({
-        title: "Marque pelo menos um item",
-        description: "Selecione o que precisa ser comprado antes de fechar o turno.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Close current draft as history
+    const { error } = await db
+      .from("restock_lists")
+      .update({
+        title: draftList.title.trim() || `Reposição ${new Date().toLocaleDateString("pt-BR")}`,
+        notes: draftList.notes,
+        status: "closed",
+        closed_at: new Date().toISOString(),
+      })
+      .eq("id", draftList.id);
 
-    setClosingShift(true);
+    if (error) throw error;
+    const savedId = draftList.id;
 
-    try {
-      const { error } = await db
-        .from("restock_lists")
-        .update({
-          title: draftList.title.trim() || `Reposição ${new Date().toLocaleDateString("pt-BR")}`,
-          notes: draftList.notes,
-          status: "closed",
-          closed_at: new Date().toISOString(),
-        })
-        .eq("id", draftList.id);
-
-      if (error) throw error;
-
-      setView("history");
-      await loadDashboard(draftList.id);
-      toast({ title: "Turno fechado", description: "A lista foi salva no histórico." });
-    } catch (error) {
-      toast({
-        title: "Não foi possível fechar o turno",
-        description: error instanceof Error ? error.message : "Tente novamente em instantes.",
-        variant: "destructive",
-      });
-    } finally {
-      setClosingShift(false);
-    }
+    // Create a new draft for future use
+    await loadDashboard(savedId);
+    return savedId;
   };
 
   const filteredItems = useMemo(() => {
@@ -278,6 +312,11 @@ const AdminRestock = () => {
       .filter((item) => !normalizedSearch || item.ingredient_name.toLowerCase().includes(normalizedSearch))
       .sort((left, right) => Number(right.checked) - Number(left.checked) || left.ingredient_name.localeCompare(right.ingredient_name));
   }, [items, search]);
+
+  const filteredIngredients = useMemo(() => {
+    const s = ingredientSearch.trim().toLowerCase();
+    return ingredients.filter((ing) => !s || ing.name.toLowerCase().includes(s));
+  }, [ingredients, ingredientSearch]);
 
   const currentSelectedItems = useMemo(() => items.filter((item) => item.checked), [items]);
   const totalSelectedQuantity = useMemo(
@@ -290,10 +329,20 @@ const AdminRestock = () => {
   const activeItems = view === "history" ? selectedHistoryItems.filter((item) => item.checked) : currentSelectedItems;
   const printTemplate = templates?.find((template) => template.template_type === "reposicao");
 
-  const handlePrintCleanList = () => {
+  const handlePrintCleanList = async () => {
     if (!activeList || activeItems.length === 0) {
       toast({ title: "Nada para imprimir", description: "Adicione itens marcados antes de gerar a lista.", variant: "destructive" });
       return;
+    }
+
+    // Auto-save to history when printing from current view
+    if (view === "current") {
+      try {
+        await saveToHistory();
+        toast({ title: "Lista salva no histórico automaticamente!" });
+      } catch (err) {
+        console.error("Erro ao salvar histórico:", err);
+      }
     }
 
     const printWindow = window.open("", "_blank", "width=520,height=720");
@@ -358,10 +407,9 @@ const AdminRestock = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <CardTitle className="text-xl">Compras / Reposição</CardTitle>
-              <Badge variant="secondary">Final de turno</Badge>
             </div>
             <CardDescription>
-              Adicione manualmente os itens que precisa comprar, marque quantidades e feche o turno.
+              Adicione itens dos cadastros ou manualmente. Ao imprimir, a lista é salva automaticamente no histórico.
             </CardDescription>
           </div>
 
@@ -369,13 +417,9 @@ const AdminRestock = () => {
             <Button variant="outline" asChild>
               <Link to="/admin/comandas?tipo=reposicao">Editar modelo de impressão</Link>
             </Button>
-            <Button variant="outline" onClick={handlePrintCleanList}>
+            <Button variant="outline" onClick={handlePrintCleanList} disabled={currentSelectedItems.length === 0 && view === "current"}>
               <Printer />
-              Gerar lista limpa
-            </Button>
-            <Button onClick={handleCloseShift} disabled={closingShift || currentSelectedItems.length === 0}>
-              <CheckCheck />
-              {closingShift ? "Fechando turno..." : "Fechar turno"}
+              Imprimir e salvar
             </Button>
           </div>
         </CardHeader>
@@ -387,7 +431,7 @@ const AdminRestock = () => {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button variant={view === "current" ? "default" : "outline"} onClick={() => setView("current")}><ClipboardList />Turno atual</Button>
+        <Button variant={view === "current" ? "default" : "outline"} onClick={() => setView("current")}><ClipboardList />Lista atual</Button>
         <Button variant={view === "history" ? "default" : "outline"} onClick={() => setView("history")}><History />Histórico</Button>
       </div>
 
@@ -400,10 +444,56 @@ const AdminRestock = () => {
                   <Input value={draftList?.title ?? ""} onChange={(event) => setDraftList((current) => (current ? { ...current, title: event.target.value } : current))} onBlur={(event) => void persistListPatch({ title: event.target.value.trim() || "Reposição" })} placeholder="Título da lista" />
                   <div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-9" placeholder="Pesquisar item" /></div>
                 </div>
-                <Textarea value={draftList?.notes ?? ""} onChange={(event) => setDraftList((current) => (current ? { ...current, notes: event.target.value } : current))} onBlur={(event) => void persistListPatch({ notes: event.target.value })} placeholder="Observações gerais do turno" rows={2} />
+                <Textarea value={draftList?.notes ?? ""} onChange={(event) => setDraftList((current) => (current ? { ...current, notes: event.target.value } : current))} onBlur={(event) => void persistListPatch({ notes: event.target.value })} placeholder="Observações gerais" rows={2} />
+
+                {/* Add from Cadastros (ingredients) */}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button variant="secondary" className="flex-1" onClick={() => { setShowIngredientPicker(!showIngredientPicker); setShowAddForm(false); }}>
+                    <Plus className="h-4 w-4" />
+                    Adicionar do Cadastro
+                  </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => { setShowAddForm(!showAddForm); setShowIngredientPicker(false); }}>
+                    <Plus className="h-4 w-4" />
+                    Adicionar manual
+                  </Button>
+                </div>
+
+                {/* Ingredient picker from Cadastros */}
+                {showIngredientPicker && (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input value={ingredientSearch} onChange={(e) => setIngredientSearch(e.target.value)} className="pl-9" placeholder="Buscar ingrediente cadastrado..." autoFocus />
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-1">
+                      {filteredIngredients.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Nenhum ingrediente encontrado. <Link to="/admin/cadastros" className="text-primary underline">Cadastre ingredientes</Link>
+                        </p>
+                      ) : filteredIngredients.map((ing) => {
+                        const alreadyAdded = items.some((i) => i.ingredient_id === ing.id);
+                        return (
+                          <button
+                            key={ing.id}
+                            onClick={() => handleAddFromIngredient(ing)}
+                            disabled={alreadyAdded}
+                            className={cn(
+                              "w-full text-left rounded-lg px-3 py-2 text-sm flex items-center justify-between transition-colors",
+                              alreadyAdded ? "opacity-50 bg-muted cursor-not-allowed" : "hover:bg-primary/10"
+                            )}
+                          >
+                            <span className="font-medium">{ing.name}</span>
+                            <span className="text-xs text-muted-foreground">{ing.unit}{alreadyAdded ? " • já adicionado" : ""}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => setShowIngredientPicker(false)} className="w-full">Fechar</Button>
+                  </div>
+                )}
 
                 {/* Manual add */}
-                {showAddForm ? (
+                {showAddForm && (
                   <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 sm:flex-row sm:items-end">
                     <div className="flex-1 space-y-1">
                       <p className="text-xs font-semibold text-muted-foreground">Nome do item</p>
@@ -420,14 +510,12 @@ const AdminRestock = () => {
                       <Button variant="ghost" onClick={() => setShowAddForm(false)}>Cancelar</Button>
                     </div>
                   </div>
-                ) : (
-                  <Button variant="outline" className="w-full" onClick={() => setShowAddForm(true)}><Plus className="h-4 w-4" />Adicionar item manualmente</Button>
                 )}
               </CardHeader>
 
               <CardContent className="space-y-3">
                 {filteredItems.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum item adicionado. Clique em "Adicionar item manualmente" acima.</div>
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum item adicionado. Use os botões acima para adicionar itens.</div>
                 ) : filteredItems.map((item) => (
                     <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
                       <div className="flex flex-col gap-4">
@@ -437,6 +525,7 @@ const AdminRestock = () => {
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-base font-bold text-foreground">{item.ingredient_name}</p>
                               <Badge variant={item.checked ? "default" : "outline"}>{item.unit}</Badge>
+                              {item.ingredient_id && <Badge variant="secondary" className="text-xs">Cadastro</Badge>}
                             </div>
                             <div className="grid gap-3 sm:grid-cols-[100px_140px_minmax(0,1fr)]">
                               <div className="space-y-2"><p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Quantidade</p><Input type="number" step="0.01" min="0" value={item.quantity} onChange={(event) => updateLocalItem(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} onBlur={(event) => void saveItemPatch(item.id, { quantity: Math.max(0, Number(event.target.value) || 0) })} /></div>
@@ -455,14 +544,21 @@ const AdminRestock = () => {
             </Card>
           ) : (
             <Card>
-              <CardHeader><CardTitle>Histórico de compras</CardTitle><CardDescription>Listas fechadas anteriormente.</CardDescription></CardHeader>
+              <CardHeader>
+                <CardTitle>Histórico de compras</CardTitle>
+                <CardDescription>Listas salvas automaticamente ao imprimir.</CardDescription>
+              </CardHeader>
               <CardContent>
                 {!selectedHistoryList ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum fechamento de turno disponível ainda.</div>
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum histórico disponível ainda. Imprima uma lista para salvar.</div>
                 ) : selectedHistoryItems.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando itens...</div>
                 ) : (
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold text-foreground">{selectedHistoryList.title}</p>
+                      <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                    </div>
                     {selectedHistoryItems.filter((item) => item.checked).map((item) => (
                       <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
                         <div className="space-y-1"><p className="text-base font-bold text-foreground">{item.ingredient_name}</p><p className="text-sm text-muted-foreground">{formatQuantity(Number(item.quantity))} {item.unit}</p></div>
@@ -480,7 +576,7 @@ const AdminRestock = () => {
           <Card>
             <CardHeader><CardTitle>Lista limpa para compra</CardTitle><CardDescription>{view === "current" ? "Prévia da lista atual." : "Prévia da lista fechada."}</CardDescription></CardHeader>
             <CardContent className="space-y-4">
-              {activeList ? <div className="rounded-2xl border border-border bg-background p-4"><p className="text-base font-bold text-foreground">{activeList.title}</p><p className="mt-1 text-sm text-muted-foreground">{activeList.closed_at ? `Fechado em ${new Date(activeList.closed_at).toLocaleString("pt-BR")}` : "Turno em aberto"}</p></div> : null}
+              {activeList ? <div className="rounded-2xl border border-border bg-background p-4"><p className="text-base font-bold text-foreground">{activeList.title}</p><p className="mt-1 text-sm text-muted-foreground">{activeList.closed_at ? `Salvo em ${new Date(activeList.closed_at).toLocaleString("pt-BR")}` : "Lista em edição"}</p></div> : null}
               {activeItems.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Nenhum item marcado.</div>
               ) : (
@@ -499,7 +595,7 @@ const AdminRestock = () => {
                 const isActive = list.id === selectedHistoryId;
                 return (
                   <button key={list.id} type="button" onClick={() => { setSelectedHistoryId(list.id); setView("history"); }} className={cn("w-full rounded-2xl border px-4 py-3 text-left transition-colors", isActive ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-foreground hover:bg-muted/30")}>
-                    <div className="flex items-center justify-between gap-3"><span className="font-semibold">{list.title}</span><Badge variant={isActive ? "secondary" : "outline"}>Fechado</Badge></div>
+                    <div className="flex items-center justify-between gap-3"><span className="font-semibold">{list.title}</span><Badge variant={isActive ? "secondary" : "outline"}>Salvo</Badge></div>
                     <p className={cn("mt-1 text-sm", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{new Date(list.closed_at ?? list.updated_at).toLocaleString("pt-BR")}</p>
                   </button>
                 );
