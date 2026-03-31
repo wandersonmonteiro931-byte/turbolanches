@@ -5,7 +5,7 @@ declare global {
 try {
   if (typeof window !== "undefined") {
     window.addEventListener("unhandledrejection", (event) => {
-      const reasonText = String((event as PromiseRejectionEvent).reason ?? "");
+      const reasonText = String((event as any).reason ?? "");
       if (reasonText.includes("__LOVA_FIX_TRIGGER__")) {
         event.preventDefault();
       }
