@@ -1,19 +1,19 @@
 /**
  * Business Day Logic
  * 
- * Orders placed until 03:00 AM are considered part of the PREVIOUS business day.
+ * Orders placed until 06:00 AM are considered part of the PREVIOUS business day.
  * E.g., an order at 2026-03-02 01:30 belongs to business day 2026-03-01.
  * 
  * Business day range for a given date:
- *   Start: date at 03:00:00 (Brasília)
- *   End:   date+1 at 02:59:59.999 (Brasília)
+ *   Start: date at 06:00:00 (Brasília)
+ *   End:   date+1 at 05:59:59.999 (Brasília)
  */
 
-const BUSINESS_DAY_CUTOFF_HOUR = 3; // 3 AM
+const BUSINESS_DAY_CUTOFF_HOUR = 6; // 6 AM
 
 /**
  * Returns the business day (as a Date at midnight) for a given timestamp.
- * If the time is before 3 AM, it belongs to the previous calendar day.
+ * If the time is before 6 AM, it belongs to the previous calendar day.
  */
 export function getBusinessDay(date: Date): Date {
   // Convert to Brasília time to check the hour
@@ -34,14 +34,14 @@ export function getBusinessDay(date: Date): Date {
  * Returns the UTC start and end timestamps for a business day.
  * 
  * For business day 2026-03-01:
- *   Start: 2026-03-01 03:00:00 Brasília (= UTC-3 → 2026-03-01 06:00:00 UTC)
- *   End:   2026-03-02 02:59:59.999 Brasília (= UTC-3 → 2026-03-02 05:59:59.999 UTC)
+ *   Start: 2026-03-01 06:00:00 Brasília (= UTC-3 → 2026-03-01 09:00:00 UTC)
+ *   End:   2026-03-02 05:59:59.999 Brasília (= UTC-3 → 2026-03-02 08:59:59.999 UTC)
  */
 export function getBusinessDayRange(selectedDate: Date): { start: string; end: string } {
   // We need to calculate based on Brasília timezone (UTC-3)
   // selectedDate is the business day (e.g., March 1st)
   
-  // Start: selectedDate at 03:00 Brasília = selectedDate at 06:00 UTC
+  // Start: selectedDate at 06:00 Brasília = selectedDate at 09:00 UTC
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
   const day = selectedDate.getDate();
