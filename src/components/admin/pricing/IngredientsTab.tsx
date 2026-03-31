@@ -194,6 +194,11 @@ const IngredientsTab = () => {
     }
 
     if (editing) {
+      // Sync name/unit to restock_items across the system
+      await (supabase as any).from("restock_items").update({
+        ingredient_name: form.name.trim(),
+        unit: savedUnit,
+      }).eq("ingredient_id", editing.id);
       toast({ title: "Ingrediente atualizado!" });
     } else {
       toast({ title: "Ingrediente criado!" });
