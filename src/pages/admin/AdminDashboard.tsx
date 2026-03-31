@@ -463,16 +463,8 @@ const AdminDashboard = () => {
     const reportMap = new Map<string, typeof reports extends (infer R)[] | null ? R : never>();
     (reports ?? []).forEach(r => reportMap.set(r.report_date, r));
 
-    // Generate ALL dates in the range, even if no report exists
-    const allDates: string[] = [];
-    const cursor = new Date(periodFrom);
-    cursor.setHours(12, 0, 0, 0);
-    const endDate = new Date(periodTo);
-    endDate.setHours(12, 0, 0, 0);
-    while (cursor <= endDate) {
-      allDates.push(format(cursor, "yyyy-MM-dd"));
-      cursor.setDate(cursor.getDate() + 1);
-    }
+    // Generate ALL dates in the range using eachDayOfInterval for reliability
+    const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
     // Build full rows with zeros for missing dates
     const fullRows = allDates.map(dateStr => {
