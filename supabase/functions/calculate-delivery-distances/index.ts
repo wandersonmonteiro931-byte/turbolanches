@@ -404,7 +404,7 @@ Deno.serve(async (req) => {
       processed++;
       console.log(`✅ ${zone.neighborhood}: ${distance}km → R$${fee}`);
 
-      await sleep(400);
+      await sleep(300);
     }
 
     // Contar restantes
