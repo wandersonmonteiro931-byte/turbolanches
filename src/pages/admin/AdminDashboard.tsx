@@ -449,25 +449,34 @@ const AdminDashboard = () => {
       toast({ title: "Selecione as datas de início e fim", variant: "destructive" });
       return;
     }
+    toast({ title: "Buscando pedidos do período..." });
+
     const fromStr = format(periodFrom, "yyyy-MM-dd");
     const toStr = format(periodTo, "yyyy-MM-dd");
 
-    // Pull directly from orders table (daily_reports may not have data for all days)
     const fromISO = `${fromStr}T00:00:00-03:00`;
     const toISO = `${toStr}T23:59:59-03:00`;
 
-    let ordersQuery = supabase
-      .from("orders")
-      .select("total, delivery_fee, status, created_at")
-      .gte("created_at", fromISO)
-      .lte("created_at", toISO)
-      .neq("status", "cancelled");
-
-    if (storeId) {
-      ordersQuery = ordersQuery.eq("store_id", storeId);
+    // Fetch ALL orders (paginate to avoid 1000 row limit)
+    let allOrders: any[] = [];
+    let page = 0;
+    const PAGE_SIZE = 1000;
+    while (true) {
+      let q = supabase
+        .from("orders")
+        .select("total, delivery_fee, status, created_at")
+        .gte("created_at", fromISO)
+        .lte("created_at", toISO)
+        .neq("status", "cancelled")
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (storeId) q = q.eq("store_id", storeId);
+      const { data } = await q;
+      if (!data || data.length === 0) break;
+      allOrders = allOrders.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      page++;
     }
-
-    const { data: ordersData } = await ordersQuery;
+    const ordersData = allOrders;
 
     // Also try daily_reports as secondary source
     let reportsQuery = supabase
