@@ -101,7 +101,7 @@ const AdminLabels = () => {
   const [responsible, setResponsible] = useState("");
   const [labelWidthMm, setLabelWidthMm] = useState("80");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
-  const [labelGapMm, setLabelGapMm] = useState("0.3");
+  const [labelGapMm, setLabelGapMm] = useState("1");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState("");
