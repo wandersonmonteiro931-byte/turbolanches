@@ -442,10 +442,7 @@ const AdminDashboard = () => {
     printDailyReport(orders, bruto, delivery, gastos, liquido);
   };
 
-  // Period report state
-  const [periodFrom, setPeriodFrom] = useState<Date | undefined>(undefined);
-  const [periodTo, setPeriodTo] = useState<Date | undefined>(undefined);
-  const [showPeriodReport, setShowPeriodReport] = useState(false);
+
 
   const reprintPeriodReport = async () => {
     if (!periodFrom || !periodTo) {
