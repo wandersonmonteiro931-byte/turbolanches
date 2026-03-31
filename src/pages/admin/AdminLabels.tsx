@@ -101,7 +101,7 @@ const AdminLabels = () => {
   const [responsible, setResponsible] = useState("");
   const [labelWidthMm, setLabelWidthMm] = useState("80");
   const [labelHeightMm, setLabelHeightMm] = useState("30");
-  const [labelGapMm, setLabelGapMm] = useState("0.3");
+  const [labelGapMm, setLabelGapMm] = useState("1");
   const [copies, setCopies] = useState("1");
   const [labelQueue, setLabelQueue] = useState<GeneratedLabel[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState("");
@@ -254,6 +254,14 @@ const AdminLabels = () => {
     // Set brand by name
     const matchedBrand = brands.find(b => b.name === label.brand);
     setSelectedBrandId(matchedBrand?.id ?? "");
+    // Set ingredient/product by name so the dropdown shows the correct item
+    if (label.source_kind === "ingredient") {
+      const matchedIngredient = ingredients.find(i => i.name === label.name);
+      if (matchedIngredient) setSelectedIngredientId(matchedIngredient.id);
+    } else if (label.source_kind === "product") {
+      const matchedProduct = products.find(p => p.name === label.name);
+      if (matchedProduct) setSelectedProductId(matchedProduct.id);
+    }
     toast({ title: "Etiqueta carregada para edição" });
   };
 
@@ -315,7 +323,22 @@ const AdminLabels = () => {
     setLabelQueue((prev) => [...prev, newLabel]);
 
     if (saveLabel) {
-      void handleSaveToDb({ name: newLabel.name });
+      // Check for duplicate saved labels (same name, source_kind, storage_type, brand, responsible)
+      const isDuplicate = savedLabels.some(s =>
+        s.name === newLabel.name &&
+        s.source_kind === sourceKind &&
+        s.storage_type === storageType &&
+        s.brand === (selectedBrand?.name ?? "") &&
+        s.responsible === newLabel.responsible &&
+        s.manufactured_on === newLabel.manufacturedOn &&
+        s.valid_until === newLabel.validUntil &&
+        !editingLabelId
+      );
+      if (isDuplicate) {
+        toast({ title: "Etiqueta já salva", description: "Uma etiqueta idêntica já existe nas salvas.", variant: "destructive" });
+      } else {
+        void handleSaveToDb({ name: newLabel.name });
+      }
     }
 
     toast({ title: "Adicionado à fila", description: `${newLabel.copies}x ${newLabel.name}` });

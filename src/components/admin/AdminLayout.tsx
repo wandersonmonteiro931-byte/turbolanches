@@ -113,7 +113,7 @@ const AdminLayout = () => {
   );
 
   return (
-    <div className="flex h-screen bg-muted/30 print:block print:h-auto print:bg-background">
+    <div className="flex min-h-screen bg-background print:block print:h-auto print:bg-background">
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block print:hidden">
         <NavContent />
       </aside>
@@ -136,7 +136,7 @@ const AdminLayout = () => {
             {navItems.find((n) => n.path === location.pathname)?.label || "Admin"}
           </h1>
         </header>
-        <main className="flex-1 overflow-auto bg-background p-4 print:overflow-visible print:p-0">
+        <main className="flex-1 overflow-auto bg-background p-4 print:overflow-visible print:p-0 min-h-0">
           <Outlet />
         </main>
       </div>

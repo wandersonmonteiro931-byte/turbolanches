@@ -83,7 +83,7 @@ const Checkout = () => {
     }
     Promise.all([
       supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, quadra, lote, city, state").eq("user_id", user.id).single(),
-      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
+      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery").eq("active", true),
       supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active, prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1).single(),
     ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
