@@ -313,7 +313,7 @@ const Kitchen = () => {
 
       <div className="kds-header">
         <div className="kds-header-left">
-          <img src={logoTurbo} alt="Logo" className="kds-logo" />
+          <img src={storeLogo || logoTurboFallback} alt="Logo" className="kds-logo" />
           <div>
             <div className="kds-title">COZINHA</div>
             <div className="kds-subtitle">EM PREPARO</div>
