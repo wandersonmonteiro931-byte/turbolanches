@@ -188,17 +188,18 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (tab === "history") fetchHistory();
   }, [tab, fetchHistory]);
 
-  // Realtime for pending updates
+  // Realtime for all order updates (assignments, completions, reassignments)
   useEffect(() => {
     const ch = supabase
-      .channel("courier-orders")
+      .channel("courier-orders-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
         fetchPending();
         fetchToday();
+        if (tab === "history") fetchHistory();
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [fetchPending, fetchToday]);
+  }, [fetchPending, fetchToday, fetchHistory, tab]);
 
   const handleAction = async () => {
     if (!confirmAction) return;
