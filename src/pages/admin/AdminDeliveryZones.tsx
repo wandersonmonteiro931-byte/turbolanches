@@ -33,60 +33,120 @@ interface Courier {
   name: string;
   fixed_fee: number;
   active: boolean;
+  code: string;
 }
 
-const DEFAULT_STORE: StoreConfig = {
-  store_address: "", store_neighborhood: "", price_per_km: 2,
-  free_delivery_min_order: 0, free_delivery_max_km: 0,
-  temp_free_delivery_all: false, max_serving_km: null, max_serving_km_active: false,
-};
+interface DailyFeeRow {
+  id: string;
+  courier_id: string;
+  day_of_week: number;
+  fixed_fee: number;
+}
+
+const DAY_NAMES_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 // ── Couriers Card ──────────────────────────────────────────────────
 function CouriersCard({ storeId }: { storeId: string | null }) {
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const [newName, setNewName] = useState("");
   const [newFee, setNewFee] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editFee, setEditFee] = useState("");
+  const [editCode, setEditCode] = useState("");
+  const [dailyFeesOpen, setDailyFeesOpen] = useState<string | null>(null);
+  const [dailyFees, setDailyFees] = useState<DailyFeeRow[]>([]);
+  const [dayFeeInputs, setDayFeeInputs] = useState<Record<number, string>>({});
   const { toast } = useToast();
 
-  const fetch = async () => {
-    let q = supabase.from("couriers" as any).select("*").order("created_at", { ascending: true });
+  const fetchCouriers = async () => {
+    let q = supabase.from("couriers").select("*").order("created_at", { ascending: true });
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
-    setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee), active: c.active })));
+    setCouriers((data as any[] ?? []).map((c: any) => ({
+      id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee), active: c.active, code: c.code || "",
+    })));
   };
 
-  useEffect(() => { fetch(); }, [storeId]);
+  useEffect(() => { fetchCouriers(); }, [storeId]);
+
+  const generateCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let result = "ENT";
+    for (let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
+    return result;
+  };
 
   const add = async () => {
     if (!newName.trim()) return;
-    await supabase.from("couriers" as any).insert({ name: newName.trim(), fixed_fee: Number(newFee) || 0, store_id: storeId } as any);
-    setNewName(""); setNewFee("");
+    const code = newCode.trim().toUpperCase() || generateCode();
+    await supabase.from("couriers").insert({
+      name: newName.trim(), fixed_fee: Number(newFee) || 0, code, store_id: storeId,
+    } as any);
+    setNewName(""); setNewFee(""); setNewCode("");
     toast({ title: "✅ Entregador cadastrado!" });
-    fetch();
+    fetchCouriers();
   };
 
   const save = async () => {
     if (!editingId) return;
-    await supabase.from("couriers" as any).update({ name: editName.trim(), fixed_fee: Number(editFee) || 0 } as any).eq("id", editingId);
+    await supabase.from("couriers").update({
+      name: editName.trim(), fixed_fee: Number(editFee) || 0, code: editCode.trim().toUpperCase(),
+    } as any).eq("id", editingId);
     setEditingId(null);
     toast({ title: "✅ Atualizado!" });
-    fetch();
+    fetchCouriers();
   };
 
   const toggleActive = async (c: Courier) => {
-    await supabase.from("couriers" as any).update({ active: !c.active } as any).eq("id", c.id);
+    await supabase.from("couriers").update({ active: !c.active } as any).eq("id", c.id);
     toast({ title: c.active ? "Desativado" : "Ativado" });
-    fetch();
+    fetchCouriers();
   };
 
   const remove = async (id: string) => {
     if (!confirm("Remover entregador?")) return;
-    await supabase.from("couriers" as any).delete().eq("id", id);
+    await supabase.from("couriers").delete().eq("id", id);
     toast({ title: "🗑️ Removido" });
-    fetch();
+    fetchCouriers();
+  };
+
+  const openDailyFees = async (courierId: string) => {
+    if (dailyFeesOpen === courierId) { setDailyFeesOpen(null); return; }
+    setDailyFeesOpen(courierId);
+    const { data } = await supabase.from("courier_daily_fees").select("*").eq("courier_id", courierId);
+    const fees = (data as any[] ?? []).map((d: any) => ({
+      id: d.id, courier_id: d.courier_id, day_of_week: d.day_of_week, fixed_fee: Number(d.fixed_fee),
+    }));
+    setDailyFees(fees);
+    const inputs: Record<number, string> = {};
+    for (let i = 0; i < 7; i++) {
+      const f = fees.find((x: DailyFeeRow) => x.day_of_week === i);
+      inputs[i] = f ? String(f.fixed_fee) : "";
+    }
+    setDayFeeInputs(inputs);
+  };
+
+  const saveDailyFees = async (courierId: string) => {
+    for (let dow = 0; dow < 7; dow++) {
+      const val = dayFeeInputs[dow]?.trim();
+      const existing = dailyFees.find(f => f.day_of_week === dow);
+      if (!val && existing) {
+        await supabase.from("courier_daily_fees").delete().eq("id", existing.id);
+      } else if (val) {
+        const fee = Number(val) || 0;
+        if (existing) {
+          await supabase.from("courier_daily_fees").update({ fixed_fee: fee } as any).eq("id", existing.id);
+        } else {
+          await supabase.from("courier_daily_fees").insert({
+            courier_id: courierId, day_of_week: dow, fixed_fee: fee, store_id: storeId,
+          } as any);
+        }
+      }
+    }
+    toast({ title: "✅ Valores por dia salvos!" });
+    setDailyFeesOpen(null);
   };
 
   return (
@@ -96,11 +156,13 @@ function CouriersCard({ storeId }: { storeId: string | null }) {
         Entregadores
       </h3>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome"
-          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-        <input value={newFee} onChange={e => setNewFee(e.target.value)} placeholder="Valor fixo (R$)" type="number" step="0.01"
-          className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+          className="flex-1 min-w-[120px] rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        <input value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())} placeholder="Código (auto)"
+          className="w-28 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        <input value={newFee} onChange={e => setNewFee(e.target.value)} placeholder="Fixo (R$)" type="number" step="0.01"
+          className="w-28 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
         <button onClick={add} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
           <Plus size={14} />
         </button>
@@ -109,33 +171,72 @@ function CouriersCard({ storeId }: { storeId: string | null }) {
       {couriers.length === 0 && <p className="text-xs text-muted-foreground">Nenhum entregador cadastrado.</p>}
 
       {couriers.map(c => (
-        <div key={c.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
-          {editingId === c.id ? (
-            <>
-              <input value={editName} onChange={e => setEditName(e.target.value)}
-                className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
-              <input value={editFee} onChange={e => setEditFee(e.target.value)} type="number" step="0.01"
-                className="w-24 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
-              <button onClick={save} className="rounded-lg bg-primary p-1.5 text-primary-foreground"><Save size={14} /></button>
-              <button onClick={() => setEditingId(null)} className="rounded-lg border border-border p-1.5 text-muted-foreground"><X size={14} /></button>
-            </>
-          ) : (
-            <>
-              <span className={`flex-1 text-sm font-semibold ${!c.active ? "text-muted-foreground line-through" : "text-foreground"}`}>{c.name}</span>
-              <span className="text-xs font-bold text-muted-foreground">R$ {c.fixed_fee.toFixed(2).replace(".",",")}</span>
-              <button onClick={() => toggleActive(c)} className={`rounded-lg border p-1.5 ${c.active ? "border-green-300 text-green-600" : "border-destructive/30 text-destructive"}`}>
-                {c.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+        <div key={c.id} className="space-y-2">
+          <div className="flex items-center gap-2 rounded-lg border border-border p-2">
+            {editingId === c.id ? (
+              <>
+                <input value={editName} onChange={e => setEditName(e.target.value)}
+                  className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
+                <input value={editCode} onChange={e => setEditCode(e.target.value.toUpperCase())} placeholder="Código"
+                  className="w-24 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
+                <input value={editFee} onChange={e => setEditFee(e.target.value)} type="number" step="0.01"
+                  className="w-20 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
+                <button onClick={save} className="rounded-lg bg-primary p-1.5 text-primary-foreground"><Save size={14} /></button>
+                <button onClick={() => setEditingId(null)} className="rounded-lg border border-border p-1.5 text-muted-foreground"><X size={14} /></button>
+              </>
+            ) : (
+              <>
+                <span className={`flex-1 text-sm font-semibold ${!c.active ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                  {c.name}
+                  {c.code && <span className="ml-1.5 text-xs font-mono text-muted-foreground">({c.code})</span>}
+                </span>
+                <span className="text-xs font-bold text-muted-foreground">R$ {c.fixed_fee.toFixed(2).replace(".",",")}</span>
+                <button onClick={() => openDailyFees(c.id)} title="Valores por dia da semana"
+                  className={`rounded-lg border p-1.5 text-xs ${dailyFeesOpen === c.id ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:bg-muted"}`}>
+                  📅
+                </button>
+                <button onClick={() => toggleActive(c)} className={`rounded-lg border p-1.5 ${c.active ? "border-green-300 text-green-600" : "border-destructive/30 text-destructive"}`}>
+                  {c.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                </button>
+                <button onClick={() => { setEditingId(c.id); setEditName(c.name); setEditFee(String(c.fixed_fee)); setEditCode(c.code); }}
+                  className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted"><Edit2 size={14} /></button>
+                <button onClick={() => remove(c.id)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"><Trash2 size={14} /></button>
+              </>
+            )}
+          </div>
+          {dailyFeesOpen === c.id && (
+            <div className="ml-4 rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-semibold text-foreground">Valor fixo por dia da semana (vazio = usa valor padrão R$ {c.fixed_fee.toFixed(2).replace(".",",")})</p>
+              <div className="grid grid-cols-7 gap-1">
+                {DAY_NAMES_SHORT.map((name, i) => (
+                  <div key={i} className="text-center space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground">{name}</p>
+                    <input
+                      value={dayFeeInputs[i] || ""}
+                      onChange={e => setDayFeeInputs(prev => ({ ...prev, [i]: e.target.value }))}
+                      type="number" step="0.01" placeholder="-"
+                      className="w-full rounded border border-border bg-background px-1 py-1 text-center text-xs text-foreground"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => saveDailyFees(c.id)}
+                className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground">
+                Salvar Valores
               </button>
-              <button onClick={() => { setEditingId(c.id); setEditName(c.name); setEditFee(String(c.fixed_fee)); }}
-                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted"><Edit2 size={14} /></button>
-              <button onClick={() => remove(c.id)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"><Trash2 size={14} /></button>
-            </>
+            </div>
           )}
         </div>
       ))}
     </div>
   );
 }
+
+const DEFAULT_STORE: StoreConfig = {
+  store_address: "", store_neighborhood: "", price_per_km: 2,
+  free_delivery_min_order: 0, free_delivery_max_km: 0,
+  temp_free_delivery_all: false, max_serving_km: null, max_serving_km_active: false,
+};
 
 // ── Sub-components ──────────────────────────────────────────────────
 

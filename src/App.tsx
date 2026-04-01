@@ -49,6 +49,7 @@ import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
 import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
+import CourierPortal from "./pages/CourierPortal";
 
 const queryClient = new QueryClient();
 
@@ -131,6 +132,7 @@ const AppInner = () => {
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
           <Route path="/cozinha" element={<Kitchen />} />
           <Route path="/admin/cardapio-png" element={<MenuExport />} />
+          <Route path="/entregador" element={<CourierPortal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
