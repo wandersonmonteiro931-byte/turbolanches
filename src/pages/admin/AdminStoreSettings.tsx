@@ -36,6 +36,12 @@ const AdminStoreSettings = () => {
   const [showNewStore, setShowNewStore] = useState(false);
   const [newStore, setNewStore] = useState({ name: "", slug: "", whatsapp_number: "", whatsapp_name: "" });
   const [creatingStore, setCreatingStore] = useState(false);
+  const { config: pwConfig, saveConfig: savePwConfig } = useAdminSectionPassword();
+  const [localPw, setLocalPw] = useState("");
+  const [localPwConfirm, setLocalPwConfirm] = useState("");
+  const [localLockedSections, setLocalLockedSections] = useState<string[]>([]);
+  const [showPw, setShowPw] = useState(false);
+  const [pwInitialized, setPwInitialized] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
