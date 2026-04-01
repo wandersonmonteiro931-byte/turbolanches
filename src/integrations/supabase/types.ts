@@ -260,9 +260,55 @@ export type Database = {
           },
         ]
       }
+      courier_daily_fees: {
+        Row: {
+          courier_id: string
+          created_at: string
+          day_of_week: number
+          fixed_fee: number
+          id: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          courier_id: string
+          created_at?: string
+          day_of_week: number
+          fixed_fee?: number
+          id?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          courier_id?: string
+          created_at?: string
+          day_of_week?: number
+          fixed_fee?: number
+          id?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courier_daily_fees_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
+            referencedRelation: "couriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courier_daily_fees_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       couriers: {
         Row: {
           active: boolean
+          code: string
           created_at: string
           fixed_fee: number
           id: string
@@ -272,6 +318,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          code?: string
           created_at?: string
           fixed_fee?: number
           id?: string
@@ -281,6 +328,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          code?: string
           created_at?: string
           fixed_fee?: number
           id?: string
