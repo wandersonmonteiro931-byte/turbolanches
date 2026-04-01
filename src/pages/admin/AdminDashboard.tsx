@@ -813,8 +813,11 @@ const AdminDashboard = () => {
           <div className="text-muted-foreground">
             <span className="font-bold text-foreground">{orders.length}</span> pedidos
           </div>
-          <div className="text-muted-foreground">
-            Faturamento: <span className="font-bold text-green-600">R$ {todayRevenue.toFixed(2).replace(".",",")}</span>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            Faturamento: <span className="font-bold text-green-600">{valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".",",")}` : "R$ •••••"}</span>
+            <button onClick={() => setValuesVisible(v => !v)} className="p-1 rounded hover:bg-muted">
+              {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
       </div>
