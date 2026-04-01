@@ -16,6 +16,7 @@ import StoreReviews from "@/components/StoreReviews";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
 import footerLogo from "@/assets/footer-logo-footer.png";
 
 const fadeUp = {
