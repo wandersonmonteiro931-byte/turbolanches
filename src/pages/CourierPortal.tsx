@@ -183,7 +183,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       .from("orders")
       .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
       .eq("courier_id", courier.id)
-      .in("status", ["delivered", "cancelled"])
+      .eq("status", "delivered")
       .gte("created_at", thirtyDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(200);
