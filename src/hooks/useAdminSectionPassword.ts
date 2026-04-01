@@ -64,7 +64,19 @@ export const useAdminSectionPassword = () => {
         } as any);
     }
     setConfig(newConfig);
+    // Dispatch event so AdminLayout picks up changes immediately
+    window.dispatchEvent(new CustomEvent("admin-pw-config-updated", { detail: newConfig }));
   };
+
+  // Listen for updates from other components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as AdminPasswordConfig;
+      if (detail) setConfig(detail);
+    };
+    window.addEventListener("admin-pw-config-updated", handler);
+    return () => window.removeEventListener("admin-pw-config-updated", handler);
+  }, []);
 
   const isSectionLocked = (sectionPath: string): boolean => {
     if (!config.password) return false;
