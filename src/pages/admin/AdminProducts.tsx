@@ -28,6 +28,7 @@ interface Category {
 }
 
 const AdminProducts = () => {
+  const navigate = useNavigate();
   const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
