@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCheck, ClipboardList, History, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { CheckCheck, ClipboardList, History, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -340,6 +340,37 @@ const AdminRestock = () => {
     return savedId;
   };
 
+  const handleEditSavedList = async (listId: string) => {
+    if (!user?.id) return;
+    try {
+      // If current draft is empty, delete it
+      if (draftList && items.length === 0) {
+        await db.from("restock_lists").delete().eq("id", draftList.id);
+      } else if (draftList) {
+        // Save current draft to history first
+        await db.from("restock_lists").update({ status: "closed", closed_at: new Date().toISOString() }).eq("id", draftList.id);
+      }
+
+      // Reopen the saved list as draft
+      await db.from("restock_lists").update({ status: "draft", closed_at: null }).eq("id", listId);
+
+      // Load its items
+      const listData = await db.from("restock_lists").select("*").eq("id", listId).single();
+      const listItems = await getRestockItems(listId);
+      const freshHistory = await getHistoryLists();
+
+      setDraftList(listData.data as RestockList);
+      setItems(listItems);
+      setHistoryLists(freshHistory);
+      setHistoryItemsByList((c) => { const copy = { ...c }; delete copy[listId]; return copy; });
+      setView("current");
+
+      toast({ title: "Lista aberta para edição!" });
+    } catch (err) {
+      toast({ title: "Erro ao editar lista", description: err instanceof Error ? err.message : "Erro", variant: "destructive" });
+    }
+  };
+
   const handleCreateEmptyList = async () => {
     if (!user?.id) return;
     try {
@@ -621,9 +652,12 @@ const AdminRestock = () => {
                   <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando itens...</div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-bold text-foreground">{selectedHistoryList.title}</p>
-                      <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="default" onClick={() => void handleEditSavedList(selectedHistoryList.id)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
+                        <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                      </div>
                     </div>
                     {selectedHistoryItems.filter((item) => item.checked).map((item) => (
                       <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
