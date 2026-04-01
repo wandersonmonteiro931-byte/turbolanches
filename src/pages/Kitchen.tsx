@@ -29,6 +29,7 @@ interface CancelledAlert {
 }
 
 const Kitchen = () => {
+  const storeLogo = useStoreLogo(logoTurboFallback);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
