@@ -150,6 +150,12 @@ const AdminProducts = () => {
         <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
           <Plus size={16} /> Novo
         </button>
+        <button
+          onClick={() => navigate("/admin/cardapio-png")}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <ImageIcon size={16} /> Salvar Cardápio PNG
+        </button>
       </div>
 
       {/* Search & Filters */}
