@@ -531,6 +531,8 @@ const AdminDeliveryZones = () => {
 
   return (
     <div className="space-y-4">
+      <CouriersCard storeId={storeId} />
+
       <StoreAddressCard config={storeConfig} onSaved={c => setStoreConfig(prev => ({ ...prev, ...c }))} />
 
       <FreeDeliveryCard config={storeConfig} onSaved={setStoreConfig} />
