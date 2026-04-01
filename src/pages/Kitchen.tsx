@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import logoTurbo from "@/assets/logo-turbo.jpeg";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
+import logoTurboFallback from "@/assets/logo-turbo.jpeg";
 import { useAlarmSound } from "@/hooks/useAlarmSound";
 
 interface KitchenOrder {
@@ -28,6 +29,7 @@ interface CancelledAlert {
 }
 
 const Kitchen = () => {
+  const storeLogo = useStoreLogo(logoTurboFallback);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
@@ -311,7 +313,7 @@ const Kitchen = () => {
 
       <div className="kds-header">
         <div className="kds-header-left">
-          <img src={logoTurbo} alt="Logo" className="kds-logo" />
+          <img src={storeLogo || logoTurboFallback} alt="Logo" className="kds-logo" />
           <div>
             <div className="kds-title">COZINHA</div>
             <div className="kds-subtitle">EM PREPARO</div>

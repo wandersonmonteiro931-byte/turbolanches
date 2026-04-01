@@ -16,6 +16,7 @@ import StoreReviews from "@/components/StoreReviews";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
 import footerLogo from "@/assets/footer-logo-footer.png";
 
 const fadeUp = {
@@ -42,6 +43,7 @@ const Index = () => {
   const [userName, setUserName] = useState("");
   const { defaultAddress, loading: addrLoading } = useAddresses();
   const [addrSelectorOpen, setAddrSelectorOpen] = useState(false);
+  const storeLogo = useStoreLogo();
   const [geoAddress, setGeoAddress] = useState("");
   const [activeBanner, setActiveBanner] = useState(0);
 
@@ -350,7 +352,7 @@ const Index = () => {
 
       <footer className="mx-auto mt-10 max-w-md border-t border-border px-4 pb-24 pt-6 text-center">
         <img
-          src={footerLogo}
+          src={storeLogo || footerLogo}
           alt="Novo logotipo Turbo Lanches"
           className="mx-auto h-auto w-full max-w-[280px] object-contain"
           loading="lazy"
