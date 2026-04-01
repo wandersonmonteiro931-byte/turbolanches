@@ -340,6 +340,37 @@ const AdminRestock = () => {
     return savedId;
   };
 
+  const handleEditSavedList = async (listId: string) => {
+    if (!user?.id) return;
+    try {
+      // If current draft is empty, delete it
+      if (draftList && items.length === 0) {
+        await db.from("restock_lists").delete().eq("id", draftList.id);
+      } else if (draftList) {
+        // Save current draft to history first
+        await db.from("restock_lists").update({ status: "closed", closed_at: new Date().toISOString() }).eq("id", draftList.id);
+      }
+
+      // Reopen the saved list as draft
+      await db.from("restock_lists").update({ status: "draft", closed_at: null }).eq("id", listId);
+
+      // Load its items
+      const listData = await db.from("restock_lists").select("*").eq("id", listId).single();
+      const listItems = await getRestockItems(listId);
+      const freshHistory = await getHistoryLists();
+
+      setDraftList(listData.data as RestockList);
+      setItems(listItems);
+      setHistoryLists(freshHistory);
+      setHistoryItemsByList((c) => { const copy = { ...c }; delete copy[listId]; return copy; });
+      setView("current");
+
+      toast({ title: "Lista aberta para edição!" });
+    } catch (err) {
+      toast({ title: "Erro ao editar lista", description: err instanceof Error ? err.message : "Erro", variant: "destructive" });
+    }
+  };
+
   const handleCreateEmptyList = async () => {
     if (!user?.id) return;
     try {
