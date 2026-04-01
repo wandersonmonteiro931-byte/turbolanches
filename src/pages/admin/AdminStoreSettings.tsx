@@ -49,7 +49,6 @@ const AdminStoreSettings = () => {
   const [localPwConfirm, setLocalPwConfirm] = useState("");
   const [localLockedSections, setLocalLockedSections] = useState<string[]>([]);
   const [showPw, setShowPw] = useState(false);
-  const [pwInitialized, setPwInitialized] = useState(false);
   const [localRequireOnEntry, setLocalRequireOnEntry] = useState(false);
   const [localSecurityQuestions, setLocalSecurityQuestions] = useState<SecurityQuestion[]>(DEFAULT_QUESTIONS);
 
@@ -74,7 +73,7 @@ const AdminStoreSettings = () => {
   }, [storeId]);
 
   useEffect(() => {
-    if (!pwInitialized && pwConfig.password !== undefined) {
+    if (pwConfig.password !== undefined) {
       setLocalPw(pwConfig.password);
       setLocalLockedSections(pwConfig.lockedSections);
       setLocalRequireOnEntry(pwConfig.requireOnEntry ?? false);
@@ -83,9 +82,8 @@ const AdminStoreSettings = () => {
           ? pwConfig.securityQuestions
           : DEFAULT_QUESTIONS
       );
-      setPwInitialized(true);
     }
-  }, [pwConfig, pwInitialized]);
+  }, [pwConfig]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
