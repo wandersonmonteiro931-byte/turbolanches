@@ -49,7 +49,6 @@ const AdminStoreSettings = () => {
   const [localPwConfirm, setLocalPwConfirm] = useState("");
   const [localLockedSections, setLocalLockedSections] = useState<string[]>([]);
   const [showPw, setShowPw] = useState(false);
-  const [pwInitialized, setPwInitialized] = useState(false);
   const [localRequireOnEntry, setLocalRequireOnEntry] = useState(false);
   const [localSecurityQuestions, setLocalSecurityQuestions] = useState<SecurityQuestion[]>(DEFAULT_QUESTIONS);
 
