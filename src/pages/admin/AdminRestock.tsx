@@ -340,6 +340,34 @@ const AdminRestock = () => {
     return savedId;
   };
 
+  const handleCreateEmptyList = async () => {
+    if (!user?.id) return;
+    try {
+      // Close existing draft if it has items
+      if (draftList && items.length > 0) {
+        await db
+          .from("restock_lists")
+          .update({ status: "closed", closed_at: new Date().toISOString() })
+          .eq("id", draftList.id);
+      } else if (draftList && items.length === 0) {
+        // Delete empty draft
+        await db.from("restock_lists").delete().eq("id", draftList.id);
+      }
+
+      const newDraft = await createDraftList();
+      setDraftList(newDraft);
+      setItems([]);
+      setView("current");
+
+      const freshHistory = await getHistoryLists();
+      setHistoryLists(freshHistory);
+
+      toast({ title: "Nova lista criada!" });
+    } catch (err) {
+      toast({ title: "Erro ao criar lista", description: err instanceof Error ? err.message : "Erro", variant: "destructive" });
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return [...items]
