@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
-import { Save, Store, MessageCircle, Image as ImageIcon, Plus, Building2 } from "lucide-react";
+import { Save, Store, MessageCircle, Image as ImageIcon, Plus, Building2, Lock, Eye, EyeOff } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
+import { useAdminSectionPassword, type AdminPasswordConfig } from "@/hooks/useAdminSectionPassword";
 
 interface StoreSettingsData {
   id: string;
