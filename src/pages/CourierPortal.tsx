@@ -164,7 +164,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       .from("orders")
       .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
       .eq("courier_id", courier.id)
-      .in("status", ["delivered", "cancelled"])
+      .eq("status", "delivered")
       .not("delivered_at", "is", null)
       .gte("delivered_at", start)
       .lte("delivered_at", end)
@@ -183,7 +183,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       .from("orders")
       .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
       .eq("courier_id", courier.id)
-      .in("status", ["delivered", "cancelled"])
+      .eq("status", "delivered")
       .gte("created_at", thirtyDaysAgo.toISOString())
       .order("created_at", { ascending: false })
       .limit(200);
@@ -246,7 +246,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     window.location.reload();
   };
 
-  const deliveredToday = todayOrders.filter(o => o.status !== "delivering" && o.delivered_at);
+  const deliveredToday = todayOrders.filter(o => o.status === "delivered" && o.delivered_at);
   const totalDeliveryFees = deliveredToday.reduce((sum, o) => sum + o.delivery_fee, 0);
   const todayFixed = getTodayFixedFee();
   const dailyBalance = todayFixed + totalDeliveryFees;
