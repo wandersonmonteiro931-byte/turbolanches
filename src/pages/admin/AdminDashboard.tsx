@@ -358,13 +358,23 @@ const AdminDashboard = () => {
   };
 
 
-  const updateStatus = async (orderId: string, newStatus: string) => {
+  const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    // If moving to delivering and couriers exist, show courier selector first
+    if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
+      setCourierSelectOrderId(orderId);
+      setSelectedCourierId(null);
+      return;
+    }
+
     const updateData: any = { status: newStatus };
-    const now = new Date().toISOString();
-    if (newStatus === "preparing") updateData.preparing_at = now;
-    if (newStatus === "ready") updateData.ready_at = now;
-    if (newStatus === "delivering") updateData.delivering_at = now;
-    if (newStatus === "delivered") updateData.delivered_at = now;
+    const nowISO = new Date().toISOString();
+    if (newStatus === "preparing") updateData.preparing_at = nowISO;
+    if (newStatus === "ready") updateData.ready_at = nowISO;
+    if (newStatus === "delivering") {
+      updateData.delivering_at = nowISO;
+      if (courierId) updateData.courier_id = courierId;
+    }
+    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
@@ -386,6 +396,12 @@ const AdminDashboard = () => {
         printReceipt(orderId, "obrigado");
       }
     }
+  };
+
+  const confirmCourierAndDeliver = async () => {
+    if (!courierSelectOrderId || !selectedCourierId) return;
+    setCourierSelectOrderId(null);
+    await updateStatus(courierSelectOrderId, "delivering", selectedCourierId);
   };
 
   const confirmPayment = async (orderId: string) => {
