@@ -47,6 +47,7 @@ import AdminRestock from "./pages/admin/AdminRestock";
 import AdminLabels from "./pages/admin/AdminLabels";
 import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
+import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
 
 const queryClient = new QueryClient();
@@ -129,6 +130,7 @@ const AppInner = () => {
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
           <Route path="/cozinha" element={<Kitchen />} />
+          <Route path="/admin/cardapio-png" element={<MenuExport />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

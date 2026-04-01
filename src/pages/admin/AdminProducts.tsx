@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { Plus, Pencil, Trash2, X, GripVertical, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, X, GripVertical, Search, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
@@ -27,6 +28,7 @@ interface Category {
 }
 
 const AdminProducts = () => {
+  const navigate = useNavigate();
   const { storeId } = useStore();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -147,6 +149,12 @@ const AdminProducts = () => {
         <p className="text-sm text-muted-foreground">{filteredProducts.length} de {products.length} produtos</p>
         <button onClick={openNew} className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
           <Plus size={16} /> Novo
+        </button>
+        <button
+          onClick={() => navigate("/admin/cardapio-png")}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <ImageIcon size={16} /> Salvar Cardápio PNG
         </button>
       </div>
 
