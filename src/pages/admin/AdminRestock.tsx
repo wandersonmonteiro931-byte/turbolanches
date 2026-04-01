@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCheck, ClipboardList, History, Plus, Printer, Search, Trash2 } from "lucide-react";
+import { CheckCheck, ClipboardList, History, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
