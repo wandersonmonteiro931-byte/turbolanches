@@ -399,6 +399,22 @@ const AdminRestock = () => {
     }
   };
 
+  const handleDeleteSavedList = async (listId: string) => {
+    try {
+      await db.from("restock_items").delete().eq("restock_list_id", listId);
+      await db.from("restock_lists").delete().eq("id", listId);
+      setHistoryLists((v) => v.filter((l) => l.id !== listId));
+      setHistoryItemsByList((v) => { const n = { ...v }; delete n[listId]; return n; });
+      if (selectedHistoryId === listId) {
+        setSelectedHistoryId(null);
+        setView("current");
+      }
+      toast({ title: "Lista excluída!" });
+    } catch {
+      toast({ title: "Erro ao excluir lista", variant: "destructive" });
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return [...items]
