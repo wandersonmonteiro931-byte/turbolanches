@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import { Plus, Pencil, Trash2, X, GripVertical, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, X, GripVertical, Search, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
