@@ -139,12 +139,11 @@ const AdminRestock = () => {
     setHistoryItemsByList((current) => ({ ...current, [listId]: loadedItems }));
   };
 
-  /** Auto-sync: add missing ingredients, update changed names/units, remove deleted */
+  /** Sync: update changed names/units, remove deleted ingredients (but do NOT auto-add new ones) */
   const syncIngredientsWithDraft = async (draftId: string, draftItems: RestockItem[], allIngredients: Ingredient[]) => {
     const ingMap = new Map(allIngredients.map((i) => [i.id, i]));
     const promises: Promise<any>[] = [];
 
-    // 1. Update name/unit for existing items whose ingredient was edited
     for (const item of draftItems) {
       if (!item.ingredient_id) continue;
       const ing = ingMap.get(item.ingredient_id);
@@ -158,29 +157,9 @@ const AdminRestock = () => {
       }
     }
 
-    // 2. Auto-add new ingredients not yet in draft
-    const existingIngIds = new Set(draftItems.filter((i) => i.ingredient_id).map((i) => i.ingredient_id));
-    const missing = allIngredients.filter((i) => !existingIngIds.has(i.id));
-    for (let idx = 0; idx < missing.length; idx++) {
-      const ing = missing[idx];
-      promises.push(
-        db.from("restock_items").insert({
-          restock_list_id: draftId,
-          store_id: storeId ?? null,
-          ingredient_id: ing.id,
-          ingredient_name: ing.name,
-          unit: ing.unit,
-          quantity: 1,
-          checked: true,
-          notes: "",
-          sort_order: draftItems.length + idx,
-        })
-      );
-    }
-
     if (promises.length > 0) {
       await Promise.all(promises);
-      return true; // changed
+      return true;
     }
     return false;
   };
