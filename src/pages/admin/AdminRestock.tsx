@@ -673,6 +673,7 @@ const AdminRestock = () => {
                       <div className="flex gap-2">
                         <Button size="sm" variant="default" onClick={() => void handleEditSavedList(selectedHistoryList.id)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
                         <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                        <Button size="sm" variant="destructive" onClick={() => void handleDeleteSavedList(selectedHistoryList.id)}><Trash2 className="h-3.5 w-3.5" />Excluir</Button>
                       </div>
                     </div>
                     {selectedHistoryItems.filter((item) => item.checked).map((item) => (
