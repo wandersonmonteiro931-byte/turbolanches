@@ -652,9 +652,12 @@ const AdminRestock = () => {
                   <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">Carregando itens...</div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-bold text-foreground">{selectedHistoryList.title}</p>
-                      <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="default" onClick={() => void handleEditSavedList(selectedHistoryList.id)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
+                        <Button size="sm" variant="outline" onClick={handlePrintCleanList}><Printer className="h-3.5 w-3.5" />Reimprimir</Button>
+                      </div>
                     </div>
                     {selectedHistoryItems.filter((item) => item.checked).map((item) => (
                       <div key={item.id} className="rounded-2xl border border-border bg-background p-4">
