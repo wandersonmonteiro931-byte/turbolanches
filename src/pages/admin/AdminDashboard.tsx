@@ -1376,6 +1376,21 @@ const AdminDashboard = () => {
                       ))}
                     </div>
 
+                    {/* Show courier info for delivering orders */}
+                    {order.status === "delivering" && order.courier_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          🚚 {couriers.find(c => c.id === order.courier_id)?.name || "Entregador"}
+                        </span>
+                        <button
+                          onClick={() => changeCourier(order.id, order.courier_id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                        >
+                          Trocar
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => printReceipt(order.id, "pedido")}
                         className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
