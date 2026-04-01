@@ -1457,7 +1457,50 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Report password modal */}
+      {/* Courier Selector Modal */}
+      {courierSelectOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+            <h3 className="text-lg font-bold text-foreground">🚚 Selecionar Entregador</h3>
+            <p className="text-sm text-muted-foreground">Escolha o entregador para esta entrega:</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {couriers.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCourierId(c.id)}
+                  className={cn(
+                    "w-full rounded-lg border p-3 text-left text-sm font-semibold transition-all",
+                    selectedCourierId === c.id
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-foreground hover:bg-muted"
+                  )}
+                >
+                  {c.name}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    (R$ {c.fixed_fee.toFixed(2).replace(".",",")}/entrega)
+                  </span>
+                </button>
+              ))}
+              {couriers.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum entregador cadastrado. Cadastre em Entregas.</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setCourierSelectOrderId(null)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+                Cancelar
+              </button>
+              <button
+                disabled={!selectedCourierId}
+                onClick={confirmCourierAndDeliver}
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-40"
+              >
+                Confirmar e Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showReportPwModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">
