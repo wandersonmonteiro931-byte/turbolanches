@@ -188,7 +188,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (tab === "history") fetchHistory();
   }, [tab, fetchHistory]);
 
-  // Realtime for all order updates (assignments, completions, reassignments)
+  // Realtime for order updates + courier daily fees changes
   useEffect(() => {
     const ch = supabase
       .channel("courier-orders-rt")
@@ -197,9 +197,15 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
         fetchToday();
         if (tab === "history") fetchHistory();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "courier_daily_fees" }, () => {
+        fetchDailyFees();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "couriers" }, () => {
+        fetchDailyFees();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [fetchPending, fetchToday, fetchHistory, tab]);
+  }, [fetchPending, fetchToday, fetchHistory, fetchDailyFees, tab]);
 
   const handleAction = async () => {
     if (!confirmAction) return;
@@ -378,16 +384,48 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
 
 export default function CourierPortal() {
   const [courier, setCourier] = useState<CourierInfo | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("courier_session");
-    if (saved) {
+    const restore = async () => {
+      const saved = localStorage.getItem("courier_session");
+      if (!saved) { setReady(true); return; }
       try {
-        setCourier(JSON.parse(saved));
-      } catch { /* ignore */ }
-    }
+        const parsed = JSON.parse(saved) as CourierInfo;
+        // Re-validate from DB to get fresh data (name, fixed_fee, active status)
+        const { data } = await supabase
+          .from("couriers")
+          .select("*")
+          .eq("id", parsed.id)
+          .eq("active", true)
+          .maybeSingle();
+        if (data) {
+          const fresh: CourierInfo = {
+            id: data.id,
+            name: data.name,
+            fixed_fee: Number(data.fixed_fee),
+            code: data.code,
+            store_id: data.store_id,
+          };
+          localStorage.setItem("courier_session", JSON.stringify(fresh));
+          setCourier(fresh);
+        } else {
+          // Courier deactivated or deleted
+          localStorage.removeItem("courier_session");
+        }
+      } catch {
+        localStorage.removeItem("courier_session");
+      }
+      setReady(true);
+    };
+    restore();
   }, []);
 
+  if (!ready) return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <p className="text-sm text-muted-foreground">Carregando...</p>
+    </div>
+  );
   if (!courier) return <LoginScreen onLogin={setCourier} />;
   return <CourierDashboard courier={courier} />;
 }
