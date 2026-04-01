@@ -188,7 +188,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (tab === "history") fetchHistory();
   }, [tab, fetchHistory]);
 
-  // Realtime for all order updates (assignments, completions, reassignments)
+  // Realtime for order updates + courier daily fees changes
   useEffect(() => {
     const ch = supabase
       .channel("courier-orders-rt")
@@ -197,9 +197,15 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
         fetchToday();
         if (tab === "history") fetchHistory();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "courier_daily_fees" }, () => {
+        fetchDailyFees();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "couriers" }, () => {
+        fetchDailyFees();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [fetchPending, fetchToday, fetchHistory, tab]);
+  }, [fetchPending, fetchToday, fetchHistory, fetchDailyFees, tab]);
 
   const handleAction = async () => {
     if (!confirmAction) return;
