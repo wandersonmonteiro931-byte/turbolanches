@@ -28,11 +28,114 @@ interface StoreConfig {
   max_serving_km_active: boolean;
 }
 
+interface Courier {
+  id: string;
+  name: string;
+  fixed_fee: number;
+  active: boolean;
+}
+
 const DEFAULT_STORE: StoreConfig = {
   store_address: "", store_neighborhood: "", price_per_km: 2,
   free_delivery_min_order: 0, free_delivery_max_km: 0,
   temp_free_delivery_all: false, max_serving_km: null, max_serving_km_active: false,
 };
+
+// ── Couriers Card ──────────────────────────────────────────────────
+function CouriersCard({ storeId }: { storeId: string | null }) {
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [newName, setNewName] = useState("");
+  const [newFee, setNewFee] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editFee, setEditFee] = useState("");
+  const { toast } = useToast();
+
+  const fetch = async () => {
+    let q = supabase.from("couriers" as any).select("*").order("created_at", { ascending: true });
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee), active: c.active })));
+  };
+
+  useEffect(() => { fetch(); }, [storeId]);
+
+  const add = async () => {
+    if (!newName.trim()) return;
+    await supabase.from("couriers" as any).insert({ name: newName.trim(), fixed_fee: Number(newFee) || 0, store_id: storeId } as any);
+    setNewName(""); setNewFee("");
+    toast({ title: "✅ Entregador cadastrado!" });
+    fetch();
+  };
+
+  const save = async () => {
+    if (!editingId) return;
+    await supabase.from("couriers" as any).update({ name: editName.trim(), fixed_fee: Number(editFee) || 0 } as any).eq("id", editingId);
+    setEditingId(null);
+    toast({ title: "✅ Atualizado!" });
+    fetch();
+  };
+
+  const toggleActive = async (c: Courier) => {
+    await supabase.from("couriers" as any).update({ active: !c.active } as any).eq("id", c.id);
+    toast({ title: c.active ? "Desativado" : "Ativado" });
+    fetch();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remover entregador?")) return;
+    await supabase.from("couriers" as any).delete().eq("id", id);
+    toast({ title: "🗑️ Removido" });
+    fetch();
+  };
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        <Truck size={16} className="text-primary" />
+        Entregadores
+      </h3>
+
+      <div className="flex gap-2">
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome"
+          className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        <input value={newFee} onChange={e => setNewFee(e.target.value)} placeholder="Valor fixo (R$)" type="number" step="0.01"
+          className="w-32 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+        <button onClick={add} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
+          <Plus size={14} />
+        </button>
+      </div>
+
+      {couriers.length === 0 && <p className="text-xs text-muted-foreground">Nenhum entregador cadastrado.</p>}
+
+      {couriers.map(c => (
+        <div key={c.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
+          {editingId === c.id ? (
+            <>
+              <input value={editName} onChange={e => setEditName(e.target.value)}
+                className="flex-1 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
+              <input value={editFee} onChange={e => setEditFee(e.target.value)} type="number" step="0.01"
+                className="w-24 rounded border border-border bg-background px-2 py-1 text-sm text-foreground" />
+              <button onClick={save} className="rounded-lg bg-primary p-1.5 text-primary-foreground"><Save size={14} /></button>
+              <button onClick={() => setEditingId(null)} className="rounded-lg border border-border p-1.5 text-muted-foreground"><X size={14} /></button>
+            </>
+          ) : (
+            <>
+              <span className={`flex-1 text-sm font-semibold ${!c.active ? "text-muted-foreground line-through" : "text-foreground"}`}>{c.name}</span>
+              <span className="text-xs font-bold text-muted-foreground">R$ {c.fixed_fee.toFixed(2).replace(".",",")}</span>
+              <button onClick={() => toggleActive(c)} className={`rounded-lg border p-1.5 ${c.active ? "border-green-300 text-green-600" : "border-destructive/30 text-destructive"}`}>
+                {c.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+              </button>
+              <button onClick={() => { setEditingId(c.id); setEditName(c.name); setEditFee(String(c.fixed_fee)); }}
+                className="rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-muted"><Edit2 size={14} /></button>
+              <button onClick={() => remove(c.id)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"><Trash2 size={14} /></button>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Sub-components ──────────────────────────────────────────────────
 
