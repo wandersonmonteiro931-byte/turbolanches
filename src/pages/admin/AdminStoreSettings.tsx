@@ -84,6 +84,14 @@ const AdminStoreSettings = () => {
       } as any)
       .eq("id", settings.id);
 
+    // Also update the stores table logo_url so StoreContext stays in sync
+    if (!error && storeId) {
+      await supabase
+        .from("stores")
+        .update({ logo_url: settings.store_logo_url } as any)
+        .eq("id", storeId);
+    }
+
     if (error) {
       toast({ title: "Erro ao salvar", variant: "destructive" });
     } else {
