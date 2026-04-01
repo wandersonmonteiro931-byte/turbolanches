@@ -2,16 +2,23 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 
+export interface SecurityQuestion {
+  question: string;
+  answer: string;
+}
+
 export interface AdminPasswordConfig {
   password: string;
   lockedSections: string[];
+  securityQuestions?: SecurityQuestion[];
+  requireOnEntry?: boolean;
 }
 
 const CONFIG_KEY = "admin_section_password";
 
 export const useAdminSectionPassword = () => {
   const { storeId } = useStore();
-  const [config, setConfig] = useState<AdminPasswordConfig>({ password: "", lockedSections: [] });
+  const [config, setConfig] = useState<AdminPasswordConfig>({ password: "", lockedSections: [], securityQuestions: [], requireOnEntry: false });
   const [loading, setLoading] = useState(true);
 
   const fetchConfig = useCallback(async () => {
@@ -25,9 +32,15 @@ export const useAdminSectionPassword = () => {
     const { data } = await query.maybeSingle();
     if (data?.value) {
       try {
-        setConfig(JSON.parse(data.value));
+        const parsed = JSON.parse(data.value);
+        setConfig({
+          password: parsed.password || "",
+          lockedSections: parsed.lockedSections || [],
+          securityQuestions: parsed.securityQuestions || [],
+          requireOnEntry: parsed.requireOnEntry ?? false,
+        });
       } catch {
-        setConfig({ password: "", lockedSections: [] });
+        setConfig({ password: "", lockedSections: [], securityQuestions: [], requireOnEntry: false });
       }
     }
     setLoading(false);
@@ -64,11 +77,9 @@ export const useAdminSectionPassword = () => {
         } as any);
     }
     setConfig(newConfig);
-    // Dispatch event so AdminLayout picks up changes immediately
     window.dispatchEvent(new CustomEvent("admin-pw-config-updated", { detail: newConfig }));
   };
 
-  // Listen for updates from other components
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail as AdminPasswordConfig;

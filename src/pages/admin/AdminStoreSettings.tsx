@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
-import { Save, Store, MessageCircle, Image as ImageIcon, Plus, Building2, Lock, Eye, EyeOff } from "lucide-react";
+import { Save, Store, MessageCircle, Image as ImageIcon, Plus, Building2, Lock, Eye, EyeOff, ShieldQuestion } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
-import { useAdminSectionPassword, type AdminPasswordConfig } from "@/hooks/useAdminSectionPassword";
+import { useAdminSectionPassword, type AdminPasswordConfig, type SecurityQuestion } from "@/hooks/useAdminSectionPassword";
 
 interface StoreSettingsData {
   id: string;
@@ -25,6 +25,14 @@ interface StoreData {
   active: boolean;
 }
 
+const DEFAULT_QUESTIONS: SecurityQuestion[] = [
+  { question: "Qual o nome do seu primeiro animal de estimação?", answer: "" },
+  { question: "Em qual cidade você nasceu?", answer: "" },
+  { question: "Qual o nome da sua mãe?", answer: "" },
+  { question: "Qual sua comida favorita?", answer: "" },
+  { question: "Qual o nome da sua escola primária?", answer: "" },
+];
+
 const AdminStoreSettings = () => {
   const { toast } = useToast();
   const { storeId } = useStore();
@@ -42,6 +50,8 @@ const AdminStoreSettings = () => {
   const [localLockedSections, setLocalLockedSections] = useState<string[]>([]);
   const [showPw, setShowPw] = useState(false);
   const [pwInitialized, setPwInitialized] = useState(false);
+  const [localRequireOnEntry, setLocalRequireOnEntry] = useState(false);
+  const [localSecurityQuestions, setLocalSecurityQuestions] = useState<SecurityQuestion[]>(DEFAULT_QUESTIONS);
 
   useEffect(() => {
     const fetch = async () => {
@@ -63,11 +73,16 @@ const AdminStoreSettings = () => {
     fetch();
   }, [storeId]);
 
-  // Sync password config when loaded
   useEffect(() => {
     if (!pwInitialized && pwConfig.password !== undefined) {
       setLocalPw(pwConfig.password);
       setLocalLockedSections(pwConfig.lockedSections);
+      setLocalRequireOnEntry(pwConfig.requireOnEntry ?? false);
+      setLocalSecurityQuestions(
+        pwConfig.securityQuestions?.length === 5
+          ? pwConfig.securityQuestions
+          : DEFAULT_QUESTIONS
+      );
       setPwInitialized(true);
     }
   }, [pwConfig, pwInitialized]);
@@ -100,7 +115,6 @@ const AdminStoreSettings = () => {
       } as any)
       .eq("id", settings.id);
 
-    // Also update the stores table logo_url so StoreContext stays in sync
     if (!error && storeId) {
       await supabase
         .from("stores")
@@ -140,7 +154,6 @@ const AdminStoreSettings = () => {
 
       if (error) throw error;
 
-      // Create default store_settings for this new store
       await supabase.from("store_settings").insert({
         store_id: store.id,
         store_display_name: newStore.name,
@@ -148,7 +161,6 @@ const AdminStoreSettings = () => {
         whatsapp_name: newStore.whatsapp_name,
       } as any);
 
-      // Create default schedule for this new store
       for (let day = 0; day <= 6; day++) {
         await supabase.from("store_schedule").insert({
           store_id: store.id,
@@ -163,7 +175,6 @@ const AdminStoreSettings = () => {
       setShowNewStore(false);
       setNewStore({ name: "", slug: "", whatsapp_number: "", whatsapp_name: "" });
 
-      // Refresh stores list
       const { data: storesData } = await supabase.from("stores").select("*").order("created_at");
       if (storesData) setStores(storesData as StoreData[]);
     } catch (err: any) {
@@ -183,6 +194,31 @@ const AdminStoreSettings = () => {
   const whatsappLink = settings?.whatsapp_number
     ? `https://wa.me/55${settings.whatsapp_number.replace(/\D/g, "")}`
     : "";
+
+  const allSections = [
+    { path: "/admin", label: "Dashboard" },
+    { path: "/admin/pedidos", label: "Pedidos" },
+    { path: "/admin/produtos", label: "Produtos" },
+    { path: "/admin/cadastros", label: "Cadastros" },
+    { path: "/admin/categorias", label: "Categorias" },
+    { path: "/admin/adicionais", label: "Adicionais" },
+    { path: "/admin/banners", label: "Banners" },
+    { path: "/admin/conteudo", label: "Conteúdo" },
+    { path: "/admin/entregas", label: "Entregas" },
+    { path: "/admin/horarios", label: "Horários" },
+    { path: "/admin/clientes", label: "Clientes" },
+    { path: "/admin/notificacoes", label: "Notificações" },
+    { path: "/admin/cupons", label: "Cupons" },
+    { path: "/admin/comandas", label: "Comandas" },
+    { path: "/admin/etiquetas", label: "Etiquetas" },
+    { path: "/admin/administradores", label: "Admins" },
+    { path: "/admin/raspadinha", label: "Raspadinha" },
+    { path: "/admin/avaliacoes", label: "Avaliações" },
+    { path: "/admin/precificacao", label: "Precificação" },
+    { path: "/admin/reposicao", label: "Reposição" },
+    { path: "/admin/ia", label: "IA do Sistema" },
+    { path: "/admin/configuracoes", label: "Configurações" },
+  ];
 
   if (loading) {
     return (
@@ -224,15 +260,11 @@ const AdminStoreSettings = () => {
               />
             </div>
 
-              <div>
+            <div>
               <label className="text-xs font-medium text-muted-foreground">Logotipo</label>
               <div className="mt-1 flex items-center gap-3">
                 {settings.store_logo_url && (
-                  <img
-                    src={settings.store_logo_url}
-                    alt="Logo"
-                    className="h-12 w-12 rounded-lg object-cover border border-border"
-                  />
+                  <img src={settings.store_logo_url} alt="Logo" className="h-12 w-12 rounded-lg object-cover border border-border" />
                 )}
                 <label className="flex items-center gap-2 cursor-pointer rounded-lg border border-border bg-background px-3 py-2 text-sm text-muted-foreground hover:bg-muted">
                   <ImageIcon size={14} />
@@ -251,7 +283,6 @@ const AdminStoreSettings = () => {
             </div>
           </div>
 
-          {/* Obrigado receipt toggle */}
           <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
             <div>
               <p className="text-sm font-bold text-foreground">Comanda Obrigado</p>
@@ -274,67 +305,38 @@ const AdminStoreSettings = () => {
             <MessageCircle size={20} className="text-green-600" />
             WhatsApp
           </h2>
-          <p className="text-xs text-muted-foreground">
-            Configure o número e nome que aparecerá no link de contato da loja.
-          </p>
-
+          <p className="text-xs text-muted-foreground">Configure o número e nome que aparecerá no link de contato da loja.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-muted-foreground">Nome do Contato</label>
-              <input
-                type="text"
-                value={settings.whatsapp_name}
-                onChange={(e) => setSettings({ ...settings, whatsapp_name: e.target.value })}
-                placeholder="Ex: Atendimento Turbo Lanches"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
-              />
+              <input type="text" value={settings.whatsapp_name} onChange={(e) => setSettings({ ...settings, whatsapp_name: e.target.value })} placeholder="Ex: Atendimento Turbo Lanches" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Número (DDD + Número)</label>
-              <input
-                type="text"
-                value={settings.whatsapp_number}
-                onChange={(e) => setSettings({ ...settings, whatsapp_number: e.target.value })}
-                placeholder="Ex: 62999999999"
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
-              />
+              <input type="text" value={settings.whatsapp_number} onChange={(e) => setSettings({ ...settings, whatsapp_number: e.target.value })} placeholder="Ex: 62999999999" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
             </div>
           </div>
-
           {whatsappLink && (
             <div className="rounded-lg bg-green-50 border border-green-200 p-3">
               <p className="text-xs text-green-700 font-medium">Link gerado:</p>
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-green-800 font-bold break-all hover:underline"
-              >
-                {whatsappLink}
-              </a>
+              <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="text-sm text-green-800 font-bold break-all hover:underline">{whatsappLink}</a>
             </div>
           )}
         </div>
       )}
 
-      {/* Multi-tenant: Stores Management */}
+      {/* Stores Management */}
       <div className="rounded-xl border border-border bg-card p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Building2 size={20} className="text-primary" />
             Lojas (Multi-tenant)
           </h2>
-          <button
-            onClick={() => setShowNewStore(!showNewStore)}
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
-          >
+          <button onClick={() => setShowNewStore(!showNewStore)} className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">
             <Plus size={16} /> Nova Loja
           </button>
         </div>
-
-        <p className="text-xs text-muted-foreground">
-          Crie novas lojas com cardápio e painel independente. Cada loja terá seu próprio subdomínio.
-        </p>
+        <p className="text-xs text-muted-foreground">Crie novas lojas com cardápio e painel independente.</p>
 
         {showNewStore && (
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3">
@@ -342,59 +344,28 @@ const AdminStoreSettings = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Nome da Loja *</label>
-                <input
-                  type="text"
-                  value={newStore.name}
-                  onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                  placeholder="Ex: Burger House"
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
+                <input type="text" value={newStore.name} onChange={(e) => setNewStore({ ...newStore, name: e.target.value })} placeholder="Ex: Burger House" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Slug (URL) *</label>
-                <input
-                  type="text"
-                  value={newStore.slug}
-                  onChange={(e) => setNewStore({ ...newStore, slug: e.target.value })}
-                  placeholder="Ex: burger-house"
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Acessível em: {newStore.slug || "slug"}.seudominio.com
-                </p>
+                <input type="text" value={newStore.slug} onChange={(e) => setNewStore({ ...newStore, slug: e.target.value })} placeholder="Ex: burger-house" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+                <p className="text-[10px] text-muted-foreground mt-1">Acessível em: {newStore.slug || "slug"}.seudominio.com</p>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">WhatsApp (DDD+Número)</label>
-                <input
-                  type="text"
-                  value={newStore.whatsapp_number}
-                  onChange={(e) => setNewStore({ ...newStore, whatsapp_number: e.target.value })}
-                  placeholder="Ex: 62999999999"
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
+                <input type="text" value={newStore.whatsapp_number} onChange={(e) => setNewStore({ ...newStore, whatsapp_number: e.target.value })} placeholder="Ex: 62999999999" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Nome do Contato</label>
-                <input
-                  type="text"
-                  value={newStore.whatsapp_name}
-                  onChange={(e) => setNewStore({ ...newStore, whatsapp_name: e.target.value })}
-                  placeholder="Ex: Atendimento"
-                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                />
+                <input type="text" value={newStore.whatsapp_name} onChange={(e) => setNewStore({ ...newStore, whatsapp_name: e.target.value })} placeholder="Ex: Atendimento" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
               </div>
             </div>
-            <button
-              onClick={createStore}
-              disabled={creatingStore}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
-            >
+            <button onClick={createStore} disabled={creatingStore} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">
               {creatingStore ? "Criando..." : "Criar Loja"}
             </button>
           </div>
         )}
 
-        {/* Stores list */}
         <div className="space-y-2">
           {stores.map((s) => (
             <div key={s.id} className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
@@ -415,18 +386,13 @@ const AdminStoreSettings = () => {
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${s.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                   {s.active ? "Ativa" : "Inativa"}
                 </span>
-                <button
-                  onClick={() => toggleStoreActive(s)}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-                >
+                <button onClick={() => toggleStoreActive(s)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                   {s.active ? "Desativar" : "Ativar"}
                 </button>
               </div>
             </div>
           ))}
-          {stores.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma loja criada ainda.</p>
-          )}
+          {stores.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Nenhuma loja criada ainda.</p>}
         </div>
       </div>
 
@@ -448,55 +414,39 @@ const AdminStoreSettings = () => {
                 type={showPw ? "text" : "password"}
                 value={localPw}
                 onChange={e => setLocalPw(e.target.value)}
-                placeholder="Definir senha"
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground"
+                placeholder=""
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground"
               />
-              <button
-                type="button"
-                onClick={() => setShowPw(v => !v)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-              >
+              <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">Confirmar Senha</label>
-            <input
-              type={showPw ? "text" : "password"}
-              value={localPwConfirm}
-              onChange={e => setLocalPwConfirm(e.target.value)}
-              placeholder="Confirmar senha"
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
-            />
+            <input type={showPw ? "text" : "password"} value={localPwConfirm} onChange={e => setLocalPwConfirm(e.target.value)} placeholder="" className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
           </div>
+        </div>
+
+        {/* Require on entry */}
+        <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+          <div>
+            <p className="text-sm font-bold text-foreground">Exigir senha ao entrar no sistema</p>
+            <p className="text-xs text-muted-foreground">Ao atualizar a página, será necessário digitar a senha para acessar o painel.</p>
+          </div>
+          <button
+            onClick={() => setLocalRequireOnEntry(v => !v)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${localRequireOnEntry ? "bg-primary" : "bg-muted-foreground/30"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localRequireOnEntry ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
         </div>
 
         {/* Lockable sections checkboxes */}
         <div>
           <label className="text-xs font-medium text-muted-foreground mb-2 block">Seções Bloqueadas</label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {[
-              { path: "/admin/produtos", label: "Produtos" },
-              { path: "/admin/cadastros", label: "Cadastros" },
-              { path: "/admin/categorias", label: "Categorias" },
-              { path: "/admin/adicionais", label: "Adicionais" },
-              { path: "/admin/banners", label: "Banners" },
-              { path: "/admin/conteudo", label: "Conteúdo" },
-              { path: "/admin/horarios", label: "Horários" },
-              { path: "/admin/clientes", label: "Clientes" },
-              { path: "/admin/notificacoes", label: "Notificações" },
-              { path: "/admin/cupons", label: "Cupons" },
-              { path: "/admin/comandas", label: "Comandas" },
-              { path: "/admin/etiquetas", label: "Etiquetas" },
-              { path: "/admin/administradores", label: "Admins" },
-              { path: "/admin/raspadinha", label: "Raspadinha" },
-              { path: "/admin/avaliacoes", label: "Avaliações" },
-              { path: "/admin/precificacao", label: "Precificação" },
-              { path: "/admin/reposicao", label: "Reposição" },
-              { path: "/admin/ia", label: "IA do Sistema" },
-              { path: "/admin/configuracoes", label: "Configurações" },
-            ].map(sec => (
+            {allSections.map(sec => (
               <label key={sec.path} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground cursor-pointer hover:bg-muted">
                 <input
                   type="checkbox"
@@ -516,6 +466,49 @@ const AdminStoreSettings = () => {
           </div>
         </div>
 
+        {/* Security Questions */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <ShieldQuestion size={16} className="text-primary" />
+            Perguntas de Segurança (Esqueci a senha)
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Configure 5 perguntas e respostas de segurança. Serão usadas para recuperar o acesso caso esqueça a senha.
+          </p>
+          {localSecurityQuestions.map((sq, i) => (
+            <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Pergunta {i + 1}</label>
+                <input
+                  type="text"
+                  value={sq.question}
+                  onChange={e => {
+                    const updated = [...localSecurityQuestions];
+                    updated[i] = { ...updated[i], question: e.target.value };
+                    setLocalSecurityQuestions(updated);
+                  }}
+                  placeholder=""
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Resposta {i + 1}</label>
+                <input
+                  type="text"
+                  value={sq.answer}
+                  onChange={e => {
+                    const updated = [...localSecurityQuestions];
+                    updated[i] = { ...updated[i], answer: e.target.value };
+                    setLocalSecurityQuestions(updated);
+                  }}
+                  placeholder=""
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="flex items-center gap-3">
           <button
             onClick={async () => {
@@ -523,7 +516,12 @@ const AdminStoreSettings = () => {
                 toast({ title: "As senhas não coincidem", variant: "destructive" });
                 return;
               }
-              await savePwConfig({ password: localPw, lockedSections: localLockedSections });
+              await savePwConfig({
+                password: localPw,
+                lockedSections: localLockedSections,
+                securityQuestions: localSecurityQuestions,
+                requireOnEntry: localRequireOnEntry,
+              });
               toast({ title: localPw ? "✅ Senha de seções salva!" : "✅ Proteção por senha removida!" });
             }}
             className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
@@ -537,7 +535,9 @@ const AdminStoreSettings = () => {
                 setLocalPw("");
                 setLocalPwConfirm("");
                 setLocalLockedSections([]);
-                await savePwConfig({ password: "", lockedSections: [] });
+                setLocalRequireOnEntry(false);
+                setLocalSecurityQuestions(DEFAULT_QUESTIONS);
+                await savePwConfig({ password: "", lockedSections: [], securityQuestions: [], requireOnEntry: false });
                 toast({ title: "✅ Proteção por senha removida!" });
               }}
               className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
@@ -556,7 +556,6 @@ const AdminStoreSettings = () => {
           <li>O <strong>link do WhatsApp</strong> será disponibilizado para os clientes no checkout e na tela de pedidos.</li>
           <li>Insira o número com DDD sem o +55 (ex: 62999999999).</li>
           <li>Cada <strong>loja criada</strong> terá produtos, categorias, pedidos e configurações independentes.</li>
-          <li>O <strong>slug</strong> define o subdomínio de acesso da loja.</li>
         </ul>
       </div>
     </div>
