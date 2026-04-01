@@ -400,8 +400,22 @@ const AdminDashboard = () => {
 
   const confirmCourierAndDeliver = async () => {
     if (!courierSelectOrderId || !selectedCourierId) return;
+    const oid = courierSelectOrderId;
+    const isReassign = orders.find(o => o.id === oid)?.status === "delivering";
     setCourierSelectOrderId(null);
-    await updateStatus(courierSelectOrderId, "delivering", selectedCourierId);
+    if (isReassign) {
+      // Just change courier, don't change status
+      await supabase.from("orders").update({ courier_id: selectedCourierId }).eq("id", oid);
+      toast({ title: "🔄 Entregador alterado!" });
+      await fetchOrders();
+    } else {
+      await updateStatus(oid, "delivering", selectedCourierId);
+    }
+  };
+
+  const changeCourier = (orderId: string, currentCourierId: string | null) => {
+    setCourierSelectOrderId(orderId);
+    setSelectedCourierId(currentCourierId);
   };
 
   const confirmPayment = async (orderId: string) => {
@@ -1361,6 +1375,21 @@ const AdminDashboard = () => {
                         </div>
                       ))}
                     </div>
+
+                    {/* Show courier info for delivering orders */}
+                    {order.status === "delivering" && order.courier_id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          🚚 {couriers.find(c => c.id === order.courier_id)?.name || "Entregador"}
+                        </span>
+                        <button
+                          onClick={() => changeCourier(order.id, order.courier_id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                        >
+                          Trocar
+                        </button>
+                      </div>
+                    )}
 
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => printReceipt(order.id, "pedido")}
