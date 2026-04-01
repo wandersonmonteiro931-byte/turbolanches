@@ -134,6 +134,27 @@ const AdminDashboard = () => {
   const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
+  const requireReportPassword = (action: () => void) => {
+    if (pwConfig.password) {
+      setPendingReportAction(() => action);
+      setReportPwInput("");
+      setReportPwError(false);
+      setShowReportPwModal(true);
+    } else {
+      action();
+    }
+  };
+
+  const handleReportPwSubmit = () => {
+    if (reportPwInput === pwConfig.password) {
+      setShowReportPwModal(false);
+      pendingReportAction?.();
+      setPendingReportAction(null);
+    } else {
+      setReportPwError(true);
+    }
+  };
+
   const fetchOrders = useCallback(async () => {
     const { start, end } = getBusinessDayRange(selectedDate);
 
