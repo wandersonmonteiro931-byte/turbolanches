@@ -400,8 +400,22 @@ const AdminDashboard = () => {
 
   const confirmCourierAndDeliver = async () => {
     if (!courierSelectOrderId || !selectedCourierId) return;
+    const oid = courierSelectOrderId;
+    const isReassign = orders.find(o => o.id === oid)?.status === "delivering";
     setCourierSelectOrderId(null);
-    await updateStatus(courierSelectOrderId, "delivering", selectedCourierId);
+    if (isReassign) {
+      // Just change courier, don't change status
+      await supabase.from("orders").update({ courier_id: selectedCourierId }).eq("id", oid);
+      toast({ title: "🔄 Entregador alterado!" });
+      await fetchOrders();
+    } else {
+      await updateStatus(oid, "delivering", selectedCourierId);
+    }
+  };
+
+  const changeCourier = (orderId: string, currentCourierId: string | null) => {
+    setCourierSelectOrderId(orderId);
+    setSelectedCourierId(currentCourierId);
   };
 
   const confirmPayment = async (orderId: string) => {
