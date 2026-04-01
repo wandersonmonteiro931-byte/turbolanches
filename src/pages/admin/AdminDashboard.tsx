@@ -282,6 +282,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchOrders();
     fetchStoreSettings();
+    fetchCouriers();
 
     const ordersChannel = supabase
       .channel("admin-dashboard-orders")
