@@ -63,6 +63,15 @@ const AdminStoreSettings = () => {
     fetch();
   }, [storeId]);
 
+  // Sync password config when loaded
+  useEffect(() => {
+    if (!pwInitialized && pwConfig.password !== undefined) {
+      setLocalPw(pwConfig.password);
+      setLocalLockedSections(pwConfig.lockedSections);
+      setPwInitialized(true);
+    }
+  }, [pwConfig, pwInitialized]);
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !settings) return;
