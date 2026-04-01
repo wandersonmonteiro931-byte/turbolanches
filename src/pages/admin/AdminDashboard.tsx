@@ -1022,6 +1022,14 @@ const AdminDashboard = () => {
           <FileText size={16} />
           Relatório de Período
         </button>
+
+        <button
+          onClick={() => setShowDeliveryReport(!showDeliveryReport)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Truck size={16} />
+          Relatório de Entregas
+        </button>
       </div>
 
       {showPeriodReport && (
