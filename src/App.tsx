@@ -132,6 +132,7 @@ const AppInner = () => {
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
           <Route path="/cozinha" element={<Kitchen />} />
           <Route path="/admin/cardapio-png" element={<MenuExport />} />
+          <Route path="/entregador" element={<CourierPortal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
