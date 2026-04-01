@@ -752,7 +752,84 @@ const AdminDashboard = () => {
     setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
 
-  // Filter orders by search
+  // ── Delivery Report ──
+  const printDeliveryReport = async () => {
+    if (!deliveryReportCourierId) {
+      toast({ title: "Selecione um entregador", variant: "destructive" });
+      return;
+    }
+
+    const { start, end } = getBusinessDayRange(selectedDate);
+    const PAGE_SIZE = 1000;
+    let allDeliveryOrders: any[] = [];
+    let page = 0;
+
+    while (true) {
+      let q = supabase
+        .from("orders")
+        .select("order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .eq("delivery_type", "delivery")
+        .eq("courier_id", deliveryReportCourierId)
+        .in("status", ["delivering", "delivered"])
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (storeId) q = q.eq("store_id", storeId);
+      const { data } = await q;
+      if (!data || data.length === 0) break;
+      allDeliveryOrders = allDeliveryOrders.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      page++;
+    }
+
+    const courier = couriers.find(c => c.id === deliveryReportCourierId);
+    const courierName = courier?.name || "Desconhecido";
+    const courierFixedFee = courier?.fixed_fee || 0;
+    const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+    const totalEntregador = allDeliveryOrders.length * courierFixedFee;
+    const date = format(selectedDate, "dd/MM/yyyy");
+
+    const rows = allDeliveryOrders.map(o => `
+      <div class="row"><span>${o.address_street || "S/R"}</span><span>${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+    `).join("");
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+
+    w.document.write(`
+      <html><head><style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
+        .center { text-align:center; }
+        .sep { border-top:1px dashed #000; margin:3px 0; }
+        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
+        .big { font-size:14px; font-weight:900; }
+        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
+        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
+        @page { size:72mm auto; margin:0; }
+      </style></head><body>
+        <h1>TURBO LANCHES</h1>
+        <h2>RELATÓRIO DE ENTREGAS</h2>
+        <div class="center">${date}</div>
+        <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
+        <div class="sep"></div>
+        <div class="row" style="font-size:8px;color:#666"><span>Rua</span><span>Bairro</span><span>Taxa</span></div>
+        ${rows}
+        <div class="sep"></div>
+        <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
+        <div class="row"><span>Total Taxas Cobradas:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Valor Fixo/Entrega:</span><span>R$ ${courierFixedFee.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de entregas gerado automaticamente</div>
+      </body></html>
+    `);
+    w.document.close();
+    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+  };
+
   const activeTabConfig = tabs.find(t => t.key === activeTab);
   const filteredOrders = orders
     .filter(o => activeTabConfig?.statuses.includes(o.status))
