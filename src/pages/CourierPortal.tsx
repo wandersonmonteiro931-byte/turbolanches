@@ -157,7 +157,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       .from("orders")
       .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
       .eq("courier_id", courier.id)
-      .in("status", ["delivered", "delivering"])
+      .in("status", ["delivered", "delivering", "cancelled"])
       .gte("created_at", start)
       .lte("created_at", end)
       .order("created_at", { ascending: false });
