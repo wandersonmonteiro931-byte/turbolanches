@@ -117,6 +117,7 @@ const AdminDashboard = () => {
   const [togglingStore, setTogglingStore] = useState(false);
   const [showToggleConfirm, setShowToggleConfirm] = useState(false);
   const [periodFrom, setPeriodFrom] = useState<Date | undefined>(undefined);
+  const [valuesVisible, setValuesVisible] = useState(false);
   const [periodTo, setPeriodTo] = useState<Date | undefined>(undefined);
   const [showPeriodReport, setShowPeriodReport] = useState(false);
   const { toast } = useToast();
