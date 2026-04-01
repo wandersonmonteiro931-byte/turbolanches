@@ -137,6 +137,11 @@ const AdminDashboard = () => {
   const [reportPwInput, setReportPwInput] = useState("");
   const [reportPwError, setReportPwError] = useState(false);
   const [pendingReportAction, setPendingReportAction] = useState<(() => void) | null>(null);
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [courierSelectOrderId, setCourierSelectOrderId] = useState<string | null>(null);
+  const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
+  const [showDeliveryReport, setShowDeliveryReport] = useState(false);
+  const [deliveryReportCourierId, setDeliveryReportCourierId] = useState<string>("");
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
