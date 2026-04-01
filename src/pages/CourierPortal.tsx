@@ -153,15 +153,27 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const fetchToday = useCallback(async () => {
     const bd = getTodayBusinessDay();
     const { start, end } = getBusinessDayRange(bd);
-    const { data } = await supabase
+    // Fetch delivering orders (no date filter - always show active)
+    // Plus delivered/cancelled within today's business day by delivered_at
+    const { data: activeData } = await supabase
       .from("orders")
       .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
       .eq("courier_id", courier.id)
-      .in("status", ["delivered", "delivering", "cancelled"])
-      .gte("created_at", start)
-      .lte("created_at", end)
-      .order("created_at", { ascending: false });
-    setTodayOrders(data ?? []);
+      .eq("status", "delivering");
+    const { data: doneData } = await supabase
+      .from("orders")
+      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
+      .eq("courier_id", courier.id)
+      .in("status", ["delivered", "cancelled"])
+      .not("delivered_at", "is", null)
+      .gte("delivered_at", start)
+      .lte("delivered_at", end)
+      .order("delivered_at", { ascending: false });
+    const combined = [...(activeData ?? []), ...(doneData ?? [])];
+    // Deduplicate by id
+    const seen = new Set<string>();
+    const unique = combined.filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true; });
+    setTodayOrders(unique);
   }, [courier.id]);
 
   const fetchHistory = useCallback(async () => {
