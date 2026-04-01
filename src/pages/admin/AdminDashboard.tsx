@@ -1309,6 +1309,40 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Report password modal */}
+      {showReportPwModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">
+            <h3 className="text-lg font-bold text-foreground">🔒 Senha do Administrador</h3>
+            <p className="text-sm text-muted-foreground">Digite a senha para imprimir o relatório.</p>
+            <input
+              type="password"
+              value={reportPwInput}
+              onChange={e => { setReportPwInput(e.target.value); setReportPwError(false); }}
+              onKeyDown={e => e.key === "Enter" && handleReportPwSubmit()}
+              placeholder="Senha"
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              autoFocus
+            />
+            {reportPwError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowReportPwModal(false); setPendingReportAction(null); }}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReportPwSubmit}
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
+              >
+                Desbloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
