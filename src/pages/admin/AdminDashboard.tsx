@@ -145,7 +145,14 @@ const AdminDashboard = () => {
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
-  const todayBD = getTodayBusinessDay();
+  // Fetch couriers
+  const fetchCouriers = useCallback(async () => {
+    let q = supabase.from("couriers" as any).select("id, name, fixed_fee").eq("active", true);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee) })));
+  }, [storeId]);
+
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
   const requireReportPassword = (action: () => void) => {
