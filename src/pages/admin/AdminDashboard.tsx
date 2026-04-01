@@ -936,7 +936,7 @@ const AdminDashboard = () => {
               </PopoverContent>
             </Popover>
           </div>
-          <Button onClick={reprintPeriodReport} disabled={!periodFrom || !periodTo}>
+          <Button onClick={() => requireReportPassword(reprintPeriodReport)} disabled={!periodFrom || !periodTo}>
             <Printer size={16} />
             Imprimir Relatório de Período
           </Button>
