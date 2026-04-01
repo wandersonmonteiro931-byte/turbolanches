@@ -64,6 +64,11 @@ const AdminLayout = () => {
     }
   }, [loading, isAdmin]);
 
+  // Reset unlocked sections when config changes (e.g. new password saved)
+  useEffect(() => {
+    setUnlockedSections(new Set());
+  }, [config.password, config.lockedSections.length]);
+
   // Check if current route needs password
   useEffect(() => {
     const currentPath = location.pathname;

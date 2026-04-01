@@ -14,6 +14,7 @@ import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/contexts/StoreContext";
+import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -122,11 +123,37 @@ const AdminDashboard = () => {
   const [showPeriodReport, setShowPeriodReport] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { config: pwConfig } = useAdminSectionPassword();
+  const [showReportPwModal, setShowReportPwModal] = useState(false);
+  const [reportPwInput, setReportPwInput] = useState("");
+  const [reportPwError, setReportPwError] = useState(false);
+  const [pendingReportAction, setPendingReportAction] = useState<(() => void) | null>(null);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
   const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
+
+  const requireReportPassword = (action: () => void) => {
+    if (pwConfig.password) {
+      setPendingReportAction(() => action);
+      setReportPwInput("");
+      setReportPwError(false);
+      setShowReportPwModal(true);
+    } else {
+      action();
+    }
+  };
+
+  const handleReportPwSubmit = () => {
+    if (reportPwInput === pwConfig.password) {
+      setShowReportPwModal(false);
+      pendingReportAction?.();
+      setPendingReportAction(null);
+    } else {
+      setReportPwError(true);
+    }
+  };
 
   const fetchOrders = useCallback(async () => {
     const { start, end } = getBusinessDayRange(selectedDate);
@@ -863,7 +890,7 @@ const AdminDashboard = () => {
         </div>
 
         <button
-          onClick={reprintDailyReport}
+          onClick={() => requireReportPassword(reprintDailyReport)}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
         >
           <Printer size={16} />
@@ -909,7 +936,7 @@ const AdminDashboard = () => {
               </PopoverContent>
             </Popover>
           </div>
-          <Button onClick={reprintPeriodReport} disabled={!periodFrom || !periodTo}>
+          <Button onClick={() => requireReportPassword(reprintPeriodReport)} disabled={!periodFrom || !periodTo}>
             <Printer size={16} />
             Imprimir Relatório de Período
           </Button>
@@ -1277,6 +1304,40 @@ const AdminDashboard = () => {
                 className="flex-1 rounded-lg bg-destructive py-2.5 text-sm font-bold text-destructive-foreground disabled:opacity-40"
               >
                 Confirmar Recusa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report password modal */}
+      {showReportPwModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">
+            <h3 className="text-lg font-bold text-foreground">🔒 Senha do Administrador</h3>
+            <p className="text-sm text-muted-foreground">Digite a senha para imprimir o relatório.</p>
+            <input
+              type="password"
+              value={reportPwInput}
+              onChange={e => { setReportPwInput(e.target.value); setReportPwError(false); }}
+              onKeyDown={e => e.key === "Enter" && handleReportPwSubmit()}
+              placeholder="Senha"
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              autoFocus
+            />
+            {reportPwError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowReportPwModal(false); setPendingReportAction(null); }}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReportPwSubmit}
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
+              >
+                Desbloquear
               </button>
             </div>
           </div>
