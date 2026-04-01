@@ -49,6 +49,7 @@ import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
 import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
+import CourierPortal from "./pages/CourierPortal";
 
 const queryClient = new QueryClient();
 
