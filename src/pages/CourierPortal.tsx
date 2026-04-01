@@ -246,7 +246,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     window.location.reload();
   };
 
-  const deliveredToday = todayOrders.filter(o => o.status !== "delivering" && o.delivered_at);
+  const deliveredToday = todayOrders.filter(o => o.status === "delivered" && o.delivered_at);
   const totalDeliveryFees = deliveredToday.reduce((sum, o) => sum + o.delivery_fee, 0);
   const todayFixed = getTodayFixedFee();
   const dailyBalance = todayFixed + totalDeliveryFees;
