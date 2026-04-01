@@ -52,6 +52,9 @@ interface Order {
   payment_confirmed: boolean;
   change_for: number | null;
   coupon_code: string | null;
+  courier_id: string | null;
+  delivering_at: string | null;
+  delivered_at: string | null;
 }
 
 interface OrderItem {
@@ -61,6 +64,12 @@ interface OrderItem {
   unit_price: number;
   observations: string | null;
   addons_json: any;
+}
+
+interface Courier {
+  id: string;
+  name: string;
+  fixed_fee: number;
 }
 
 interface StoreSettings {
