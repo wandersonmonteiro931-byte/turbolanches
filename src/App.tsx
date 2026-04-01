@@ -47,6 +47,7 @@ import AdminRestock from "./pages/admin/AdminRestock";
 import AdminLabels from "./pages/admin/AdminLabels";
 import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
+import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
 
 const queryClient = new QueryClient();
