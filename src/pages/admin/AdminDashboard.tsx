@@ -153,6 +153,7 @@ const AdminDashboard = () => {
     setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee) })));
   }, [storeId]);
 
+  const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
 
   const requireReportPassword = (action: () => void) => {
