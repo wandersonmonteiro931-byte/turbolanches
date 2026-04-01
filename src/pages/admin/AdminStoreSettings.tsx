@@ -430,6 +430,124 @@ const AdminStoreSettings = () => {
         </div>
       </div>
 
+      {/* Password Protection Section */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <Lock size={20} className="text-primary" />
+          Senha de Seções
+        </h2>
+        <p className="text-xs text-muted-foreground">
+          Defina uma senha para proteger seções do painel. Sempre que acessar uma seção bloqueada, será necessário digitar a senha.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Senha</label>
+            <div className="relative mt-1">
+              <input
+                type={showPw ? "text" : "password"}
+                value={localPw}
+                onChange={e => setLocalPw(e.target.value)}
+                placeholder="Definir senha"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 pr-10 text-sm text-foreground placeholder:text-muted-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw(v => !v)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground">Confirmar Senha</label>
+            <input
+              type={showPw ? "text" : "password"}
+              value={localPwConfirm}
+              onChange={e => setLocalPwConfirm(e.target.value)}
+              placeholder="Confirmar senha"
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+
+        {/* Lockable sections checkboxes */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">Seções Bloqueadas</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[
+              { path: "/admin/produtos", label: "Produtos" },
+              { path: "/admin/cadastros", label: "Cadastros" },
+              { path: "/admin/categorias", label: "Categorias" },
+              { path: "/admin/adicionais", label: "Adicionais" },
+              { path: "/admin/banners", label: "Banners" },
+              { path: "/admin/conteudo", label: "Conteúdo" },
+              { path: "/admin/horarios", label: "Horários" },
+              { path: "/admin/clientes", label: "Clientes" },
+              { path: "/admin/notificacoes", label: "Notificações" },
+              { path: "/admin/cupons", label: "Cupons" },
+              { path: "/admin/comandas", label: "Comandas" },
+              { path: "/admin/etiquetas", label: "Etiquetas" },
+              { path: "/admin/administradores", label: "Admins" },
+              { path: "/admin/raspadinha", label: "Raspadinha" },
+              { path: "/admin/avaliacoes", label: "Avaliações" },
+              { path: "/admin/precificacao", label: "Precificação" },
+              { path: "/admin/reposicao", label: "Reposição" },
+              { path: "/admin/ia", label: "IA do Sistema" },
+              { path: "/admin/configuracoes", label: "Configurações" },
+            ].map(sec => (
+              <label key={sec.path} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground cursor-pointer hover:bg-muted">
+                <input
+                  type="checkbox"
+                  checked={localLockedSections.includes(sec.path)}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setLocalLockedSections(prev => [...prev, sec.path]);
+                    } else {
+                      setLocalLockedSections(prev => prev.filter(p => p !== sec.path));
+                    }
+                  }}
+                  className="rounded"
+                />
+                {sec.label}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              if (localPw && localPw !== localPwConfirm) {
+                toast({ title: "As senhas não coincidem", variant: "destructive" });
+                return;
+              }
+              await savePwConfig({ password: localPw, lockedSections: localLockedSections });
+              toast({ title: localPw ? "✅ Senha de seções salva!" : "✅ Proteção por senha removida!" });
+            }}
+            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+          >
+            <Save size={16} />
+            Salvar Configuração de Senha
+          </button>
+          {pwConfig.password && (
+            <button
+              onClick={async () => {
+                setLocalPw("");
+                setLocalPwConfirm("");
+                setLocalLockedSections([]);
+                await savePwConfig({ password: "", lockedSections: [] });
+                toast({ title: "✅ Proteção por senha removida!" });
+              }}
+              className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10"
+            >
+              Remover Senha
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="rounded-xl border border-border bg-card p-4">
         <h3 className="text-sm font-bold text-foreground mb-2">💡 Dicas</h3>
         <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
