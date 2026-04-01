@@ -1321,7 +1321,8 @@ const AdminDashboard = () => {
               value={reportPwInput}
               onChange={e => { setReportPwInput(e.target.value); setReportPwError(false); }}
               onKeyDown={e => e.key === "Enter" && handleReportPwSubmit()}
-              placeholder="Senha"
+              placeholder=""
+              autoComplete="new-password"
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               autoFocus
             />
