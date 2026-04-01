@@ -232,6 +232,12 @@ function CouriersCard({ storeId }: { storeId: string | null }) {
   );
 }
 
+const DEFAULT_STORE: StoreConfig = {
+  store_address: "", store_neighborhood: "", price_per_km: 2,
+  free_delivery_min_order: 0, free_delivery_max_km: 0,
+  temp_free_delivery_all: false, max_serving_km: null, max_serving_km_active: false,
+};
+
 // ── Sub-components ──────────────────────────────────────────────────
 
 function StoreAddressCard({ config, onSaved }: { config: StoreConfig; onSaved: (c: StoreConfig) => void }) {
