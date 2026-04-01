@@ -476,6 +476,10 @@ const AdminRestock = () => {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={handleCreateEmptyList}>
+              <Plus className="h-4 w-4" />
+              Nova lista vazia
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/admin/comandas?tipo=reposicao">Editar modelo de impressão</Link>
             </Button>
