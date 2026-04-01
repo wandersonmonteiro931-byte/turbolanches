@@ -43,6 +43,7 @@ const Index = () => {
   const [userName, setUserName] = useState("");
   const { defaultAddress, loading: addrLoading } = useAddresses();
   const [addrSelectorOpen, setAddrSelectorOpen] = useState(false);
+  const storeLogo = useStoreLogo();
   const [geoAddress, setGeoAddress] = useState("");
   const [activeBanner, setActiveBanner] = useState(0);
 
