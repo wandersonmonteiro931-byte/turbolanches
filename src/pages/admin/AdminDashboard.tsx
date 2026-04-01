@@ -123,6 +123,11 @@ const AdminDashboard = () => {
   const [showPeriodReport, setShowPeriodReport] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { config: pwConfig } = useAdminSectionPassword();
+  const [showReportPwModal, setShowReportPwModal] = useState(false);
+  const [reportPwInput, setReportPwInput] = useState("");
+  const [reportPwError, setReportPwError] = useState(false);
+  const [pendingReportAction, setPendingReportAction] = useState<(() => void) | null>(null);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
