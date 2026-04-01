@@ -352,7 +352,7 @@ const Index = () => {
 
       <footer className="mx-auto mt-10 max-w-md border-t border-border px-4 pb-24 pt-6 text-center">
         <img
-          src={footerLogo}
+          src={storeLogo || footerLogo}
           alt="Novo logotipo Turbo Lanches"
           className="mx-auto h-auto w-full max-w-[280px] object-contain"
           loading="lazy"
