@@ -52,6 +52,9 @@ interface Order {
   payment_confirmed: boolean;
   change_for: number | null;
   coupon_code: string | null;
+  courier_id: string | null;
+  delivering_at: string | null;
+  delivered_at: string | null;
 }
 
 interface OrderItem {
@@ -61,6 +64,12 @@ interface OrderItem {
   unit_price: number;
   observations: string | null;
   addons_json: any;
+}
+
+interface Courier {
+  id: string;
+  name: string;
+  fixed_fee: number;
 }
 
 interface StoreSettings {
@@ -128,8 +137,21 @@ const AdminDashboard = () => {
   const [reportPwInput, setReportPwInput] = useState("");
   const [reportPwError, setReportPwError] = useState(false);
   const [pendingReportAction, setPendingReportAction] = useState<(() => void) | null>(null);
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const [courierSelectOrderId, setCourierSelectOrderId] = useState<string | null>(null);
+  const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
+  const [showDeliveryReport, setShowDeliveryReport] = useState(false);
+  const [deliveryReportCourierId, setDeliveryReportCourierId] = useState<string>("");
 
   // Alarm is now global via useAdminAlarm in App.tsx
+
+  // Fetch couriers
+  const fetchCouriers = useCallback(async () => {
+    let q = supabase.from("couriers" as any).select("id, name, fixed_fee").eq("active", true);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee) })));
+  }, [storeId]);
 
   const todayBD = getTodayBusinessDay();
   const isToday = selectedDate.toDateString() === todayBD.toDateString();
@@ -260,6 +282,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchOrders();
     fetchStoreSettings();
+    fetchCouriers();
 
     const ordersChannel = supabase
       .channel("admin-dashboard-orders")
@@ -282,7 +305,7 @@ const AdminDashboard = () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(storeChannel);
     };
-  }, [fetchOrders, fetchStoreSettings, isToday]);
+  }, [fetchOrders, fetchStoreSettings, fetchCouriers, isToday]);
 
   // Only tick the timer when there are preparing orders visible (saves CPU)
   const hasPreparingVisible = activeTab === "preparing" && orders.some(o => o.status === "preparing");
@@ -335,13 +358,23 @@ const AdminDashboard = () => {
   };
 
 
-  const updateStatus = async (orderId: string, newStatus: string) => {
+  const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    // If moving to delivering and couriers exist, show courier selector first
+    if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
+      setCourierSelectOrderId(orderId);
+      setSelectedCourierId(null);
+      return;
+    }
+
     const updateData: any = { status: newStatus };
-    const now = new Date().toISOString();
-    if (newStatus === "preparing") updateData.preparing_at = now;
-    if (newStatus === "ready") updateData.ready_at = now;
-    if (newStatus === "delivering") updateData.delivering_at = now;
-    if (newStatus === "delivered") updateData.delivered_at = now;
+    const nowISO = new Date().toISOString();
+    if (newStatus === "preparing") updateData.preparing_at = nowISO;
+    if (newStatus === "ready") updateData.ready_at = nowISO;
+    if (newStatus === "delivering") {
+      updateData.delivering_at = nowISO;
+      if (courierId) updateData.courier_id = courierId;
+    }
+    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
@@ -363,6 +396,12 @@ const AdminDashboard = () => {
         printReceipt(orderId, "obrigado");
       }
     }
+  };
+
+  const confirmCourierAndDeliver = async () => {
+    if (!courierSelectOrderId || !selectedCourierId) return;
+    setCourierSelectOrderId(null);
+    await updateStatus(courierSelectOrderId, "delivering", selectedCourierId);
   };
 
   const confirmPayment = async (orderId: string) => {
@@ -713,7 +752,84 @@ const AdminDashboard = () => {
     setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
 
-  // Filter orders by search
+  // ── Delivery Report ──
+  const printDeliveryReport = async () => {
+    if (!deliveryReportCourierId) {
+      toast({ title: "Selecione um entregador", variant: "destructive" });
+      return;
+    }
+
+    const { start, end } = getBusinessDayRange(selectedDate);
+    const PAGE_SIZE = 1000;
+    let allDeliveryOrders: any[] = [];
+    let page = 0;
+
+    while (true) {
+      let q = supabase
+        .from("orders")
+        .select("order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status")
+        .gte("created_at", start)
+        .lte("created_at", end)
+        .eq("delivery_type", "delivery")
+        .eq("courier_id", deliveryReportCourierId)
+        .in("status", ["delivering", "delivered"])
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      if (storeId) q = q.eq("store_id", storeId);
+      const { data } = await q;
+      if (!data || data.length === 0) break;
+      allDeliveryOrders = allDeliveryOrders.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      page++;
+    }
+
+    const courier = couriers.find(c => c.id === deliveryReportCourierId);
+    const courierName = courier?.name || "Desconhecido";
+    const courierFixedFee = courier?.fixed_fee || 0;
+    const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
+    const totalEntregador = allDeliveryOrders.length * courierFixedFee;
+    const date = format(selectedDate, "dd/MM/yyyy");
+
+    const rows = allDeliveryOrders.map(o => `
+      <div class="row"><span>${o.address_street || "S/R"}</span><span>${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+    `).join("");
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+
+    w.document.write(`
+      <html><head><style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
+        .center { text-align:center; }
+        .sep { border-top:1px dashed #000; margin:3px 0; }
+        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
+        .big { font-size:14px; font-weight:900; }
+        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
+        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
+        @page { size:72mm auto; margin:0; }
+      </style></head><body>
+        <h1>TURBO LANCHES</h1>
+        <h2>RELATÓRIO DE ENTREGAS</h2>
+        <div class="center">${date}</div>
+        <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
+        <div class="sep"></div>
+        <div class="row" style="font-size:8px;color:#666"><span>Rua</span><span>Bairro</span><span>Taxa</span></div>
+        ${rows}
+        <div class="sep"></div>
+        <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
+        <div class="row"><span>Total Taxas Cobradas:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Valor Fixo/Entrega:</span><span>R$ ${courierFixedFee.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de entregas gerado automaticamente</div>
+      </body></html>
+    `);
+    w.document.close();
+    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+  };
+
   const activeTabConfig = tabs.find(t => t.key === activeTab);
   const filteredOrders = orders
     .filter(o => activeTabConfig?.statuses.includes(o.status))
@@ -906,6 +1022,14 @@ const AdminDashboard = () => {
           <FileText size={16} />
           Relatório de Período
         </button>
+
+        <button
+          onClick={() => setShowDeliveryReport(!showDeliveryReport)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Truck size={16} />
+          Relatório de Entregas
+        </button>
       </div>
 
       {showPeriodReport && (
@@ -945,8 +1069,29 @@ const AdminDashboard = () => {
         </div>
       )}
 
+      {showDeliveryReport && (
+        <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted-foreground">Entregador</label>
+            <select
+              value={deliveryReportCourierId}
+              onChange={e => setDeliveryReportCourierId(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground min-w-[180px]"
+            >
+              <option value="">Selecione...</option>
+              {couriers.map(c => (
+                <option key={c.id} value={c.id}>{c.name} (R$ {c.fixed_fee.toFixed(2).replace(".",",")})</option>
+              ))}
+            </select>
+          </div>
+          <Button onClick={() => requireReportPassword(printDeliveryReport)} disabled={!deliveryReportCourierId}>
+            <Printer size={16} />
+            Imprimir Relatório de Entregas
+          </Button>
+        </div>
+      )}
 
-      {/* Close Day Confirmation */}
+
       {showCloseDay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
@@ -1312,7 +1457,50 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Report password modal */}
+      {/* Courier Selector Modal */}
+      {courierSelectOrderId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+            <h3 className="text-lg font-bold text-foreground">🚚 Selecionar Entregador</h3>
+            <p className="text-sm text-muted-foreground">Escolha o entregador para esta entrega:</p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {couriers.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelectedCourierId(c.id)}
+                  className={cn(
+                    "w-full rounded-lg border p-3 text-left text-sm font-semibold transition-all",
+                    selectedCourierId === c.id
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-foreground hover:bg-muted"
+                  )}
+                >
+                  {c.name}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    (R$ {c.fixed_fee.toFixed(2).replace(".",",")}/entrega)
+                  </span>
+                </button>
+              ))}
+              {couriers.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum entregador cadastrado. Cadastre em Entregas.</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setCourierSelectOrderId(null)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+                Cancelar
+              </button>
+              <button
+                disabled={!selectedCourierId}
+                onClick={confirmCourierAndDeliver}
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-40"
+              >
+                Confirmar e Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showReportPwModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">

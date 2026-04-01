@@ -260,6 +260,44 @@ export type Database = {
           },
         ]
       }
+      couriers: {
+        Row: {
+          active: boolean
+          created_at: string
+          fixed_fee: number
+          id: string
+          name: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          fixed_fee?: number
+          id?: string
+          name: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          fixed_fee?: number
+          id?: string
+          name?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "couriers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_addresses: {
         Row: {
           city: string
@@ -562,6 +600,7 @@ export type Database = {
           cancellation_reason: string | null
           change_for: number | null
           coupon_code: string | null
+          courier_id: string | null
           created_at: string
           delivered_at: string | null
           delivering_at: string | null
@@ -598,6 +637,7 @@ export type Database = {
           cancellation_reason?: string | null
           change_for?: number | null
           coupon_code?: string | null
+          courier_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivering_at?: string | null
@@ -634,6 +674,7 @@ export type Database = {
           cancellation_reason?: string | null
           change_for?: number | null
           coupon_code?: string | null
+          courier_id?: string | null
           created_at?: string
           delivered_at?: string | null
           delivering_at?: string | null
@@ -663,6 +704,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_courier_id_fkey"
+            columns: ["courier_id"]
+            isOneToOne: false
+            referencedRelation: "couriers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]
