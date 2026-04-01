@@ -305,7 +305,7 @@ const AdminDashboard = () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(storeChannel);
     };
-  }, [fetchOrders, fetchStoreSettings, isToday]);
+  }, [fetchOrders, fetchStoreSettings, fetchCouriers, isToday]);
 
   // Only tick the timer when there are preparing orders visible (saves CPU)
   const hasPreparingVisible = activeTab === "preparing" && orders.some(o => o.status === "preparing");
