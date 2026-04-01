@@ -139,12 +139,11 @@ const AdminRestock = () => {
     setHistoryItemsByList((current) => ({ ...current, [listId]: loadedItems }));
   };
 
-  /** Auto-sync: add missing ingredients, update changed names/units, remove deleted */
+  /** Sync: update changed names/units, remove deleted ingredients (but do NOT auto-add new ones) */
   const syncIngredientsWithDraft = async (draftId: string, draftItems: RestockItem[], allIngredients: Ingredient[]) => {
     const ingMap = new Map(allIngredients.map((i) => [i.id, i]));
     const promises: Promise<any>[] = [];
 
-    // 1. Update name/unit for existing items whose ingredient was edited
     for (const item of draftItems) {
       if (!item.ingredient_id) continue;
       const ing = ingMap.get(item.ingredient_id);
@@ -158,29 +157,9 @@ const AdminRestock = () => {
       }
     }
 
-    // 2. Auto-add new ingredients not yet in draft
-    const existingIngIds = new Set(draftItems.filter((i) => i.ingredient_id).map((i) => i.ingredient_id));
-    const missing = allIngredients.filter((i) => !existingIngIds.has(i.id));
-    for (let idx = 0; idx < missing.length; idx++) {
-      const ing = missing[idx];
-      promises.push(
-        db.from("restock_items").insert({
-          restock_list_id: draftId,
-          store_id: storeId ?? null,
-          ingredient_id: ing.id,
-          ingredient_name: ing.name,
-          unit: ing.unit,
-          quantity: 1,
-          checked: true,
-          notes: "",
-          sort_order: draftItems.length + idx,
-        })
-      );
-    }
-
     if (promises.length > 0) {
       await Promise.all(promises);
-      return true; // changed
+      return true;
     }
     return false;
   };
@@ -361,6 +340,34 @@ const AdminRestock = () => {
     return savedId;
   };
 
+  const handleCreateEmptyList = async () => {
+    if (!user?.id) return;
+    try {
+      // Close existing draft if it has items
+      if (draftList && items.length > 0) {
+        await db
+          .from("restock_lists")
+          .update({ status: "closed", closed_at: new Date().toISOString() })
+          .eq("id", draftList.id);
+      } else if (draftList && items.length === 0) {
+        // Delete empty draft
+        await db.from("restock_lists").delete().eq("id", draftList.id);
+      }
+
+      const newDraft = await createDraftList();
+      setDraftList(newDraft);
+      setItems([]);
+      setView("current");
+
+      const freshHistory = await getHistoryLists();
+      setHistoryLists(freshHistory);
+
+      toast({ title: "Nova lista criada!" });
+    } catch (err) {
+      toast({ title: "Erro ao criar lista", description: err instanceof Error ? err.message : "Erro", variant: "destructive" });
+    }
+  };
+
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return [...items]
@@ -469,6 +476,10 @@ const AdminRestock = () => {
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={handleCreateEmptyList}>
+              <Plus className="h-4 w-4" />
+              Nova lista vazia
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/admin/comandas?tipo=reposicao">Editar modelo de impressão</Link>
             </Button>
