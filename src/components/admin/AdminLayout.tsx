@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus } from "lucide-react";
-import { useState } from "react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -30,12 +30,23 @@ const navItems = [
   { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
+// Sections that can be password-protected (all except Dashboard and Pedidos which are always open)
+const LOCKABLE_SECTIONS = navItems
+  .filter(n => n.path !== "/admin" && n.path !== "/admin/pedidos")
+  .map(n => n.path);
+
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, loading } = useAdmin();
   const { signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { config, isSectionLocked } = useAdminSectionPassword();
+  const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -52,6 +63,45 @@ const AdminLayout = () => {
       }
     }
   }, [loading, isAdmin]);
+
+  // Check if current route needs password
+  useEffect(() => {
+    const currentPath = location.pathname;
+    if (isSectionLocked(currentPath) && !unlockedSections.has(currentPath)) {
+      setPendingPath(currentPath);
+      setShowPasswordInput(true);
+      setPasswordInput("");
+      setPasswordError(false);
+    }
+  }, [location.pathname, config]);
+
+  const handleNavClick = (path: string) => {
+    if (isSectionLocked(path) && !unlockedSections.has(path)) {
+      setPendingPath(path);
+      setShowPasswordInput(true);
+      setPasswordInput("");
+      setPasswordError(false);
+      setSidebarOpen(false);
+      return;
+    }
+    navigate(path);
+    setSidebarOpen(false);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === config.password) {
+      if (pendingPath) {
+        setUnlockedSections(prev => new Set(prev).add(pendingPath));
+        navigate(pendingPath);
+      }
+      setShowPasswordInput(false);
+      setPendingPath(null);
+      setPasswordInput("");
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
 
   if (loading) {
     return (
@@ -77,16 +127,14 @@ const AdminLayout = () => {
         <span className="text-lg font-bold text-foreground">Turbo Lanches</span>
       </div>
 
-      <nav className="flex-1 space-y-1 p-3">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const isLocked = isSectionLocked(item.path) && !unlockedSections.has(item.path);
           return (
             <button
               key={item.path}
-              onClick={() => {
-                navigate(item.path);
-                setSidebarOpen(false);
-              }}
+              onClick={() => handleNavClick(item.path)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
@@ -95,6 +143,7 @@ const AdminLayout = () => {
             >
               <item.icon size={18} />
               {item.label}
+              {isLocked && <Lock size={14} className="ml-auto opacity-50" />}
             </button>
           );
         })}
@@ -111,6 +160,9 @@ const AdminLayout = () => {
       </div>
     </div>
   );
+
+  // Determine if current section is locked and not yet unlocked
+  const currentLocked = isSectionLocked(location.pathname) && !unlockedSections.has(location.pathname);
 
   return (
     <div className="flex min-h-screen bg-background print:block print:h-auto print:bg-background">
@@ -137,9 +189,72 @@ const AdminLayout = () => {
           </h1>
         </header>
         <main className="flex-1 overflow-auto bg-background p-4 print:overflow-visible print:p-0 min-h-0">
-          <Outlet />
+          {currentLocked ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-full max-w-xs space-y-4 text-center">
+                <Lock size={48} className="mx-auto text-muted-foreground" />
+                <h2 className="text-lg font-bold text-foreground">Seção Protegida</h2>
+                <p className="text-sm text-muted-foreground">Digite a senha para acessar esta seção.</p>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+                  onKeyDown={e => e.key === "Enter" && handlePasswordSubmit()}
+                  placeholder="Senha"
+                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  autoFocus
+                />
+                {passwordError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
+                <button
+                  onClick={handlePasswordSubmit}
+                  className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                >
+                  Desbloquear
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
+
+      {/* Password modal for nav clicks */}
+      {showPasswordInput && !currentLocked && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">
+            <div className="flex items-center gap-3">
+              <Lock size={24} className="text-primary" />
+              <h3 className="text-lg font-bold text-foreground">Seção Protegida</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Digite a senha para acessar esta seção.</p>
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
+              onKeyDown={e => e.key === "Enter" && handlePasswordSubmit()}
+              placeholder="Senha"
+              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              autoFocus
+            />
+            {passwordError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowPasswordInput(false); setPendingPath(null); }}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePasswordSubmit}
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
+              >
+                Desbloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

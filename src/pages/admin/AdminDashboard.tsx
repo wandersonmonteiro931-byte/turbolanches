@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
-  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw
+  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
+  Eye, EyeOff
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -116,6 +117,7 @@ const AdminDashboard = () => {
   const [togglingStore, setTogglingStore] = useState(false);
   const [showToggleConfirm, setShowToggleConfirm] = useState(false);
   const [periodFrom, setPeriodFrom] = useState<Date | undefined>(undefined);
+  const [valuesVisible, setValuesVisible] = useState(false);
   const [periodTo, setPeriodTo] = useState<Date | undefined>(undefined);
   const [showPeriodReport, setShowPeriodReport] = useState(false);
   const { toast } = useToast();
@@ -811,8 +813,11 @@ const AdminDashboard = () => {
           <div className="text-muted-foreground">
             <span className="font-bold text-foreground">{orders.length}</span> pedidos
           </div>
-          <div className="text-muted-foreground">
-            Faturamento: <span className="font-bold text-green-600">R$ {todayRevenue.toFixed(2).replace(".",",")}</span>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            Faturamento: <span className="font-bold text-green-600">{valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".",",")}` : "R$ •••••"}</span>
+            <button onClick={() => setValuesVisible(v => !v)} className="p-1 rounded hover:bg-muted">
+              {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
           </div>
         </div>
       </div>
