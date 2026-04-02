@@ -125,6 +125,7 @@ const AdminPrint = () => {
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
+  const [courierName, setCourierName] = useState("");
 
   const resolveType = (t: string) => {
     if (t === "cozinha" || t === "entrega") return "pedido";
@@ -150,6 +151,17 @@ const AdminPrint = () => {
       setItems(itemsRes.data || []);
       setProfile(profileRes.data);
       setTpl((tplRes.data as unknown as ReceiptTemplate) || null);
+
+      // Fetch courier name if assigned
+      if (orderData.courier_id) {
+        const { data: courierData } = await supabase
+          .from("couriers")
+          .select("name")
+          .eq("id", orderData.courier_id)
+          .maybeSingle();
+        setCourierName(courierData?.name || "");
+      }
+
       setReady(true);
     };
     load();
@@ -249,6 +261,7 @@ const AdminPrint = () => {
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[RODAPÉ]": rodape,
       "[DIVULGAÇÃO]": divulgacao,
+      "[NOMEENTREGADOR]": courierName || "",
     };
 
     const buildItemsTableHtml = () => {

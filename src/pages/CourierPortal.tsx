@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package } from "lucide-react";
+import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
@@ -118,6 +118,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [dailyFees, setDailyFees] = useState<DailyFee[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "delivered" | "not_delivered" } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const fetchDailyFees = useCallback(async () => {
@@ -316,9 +317,23 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
               <p className="text-xs text-muted-foreground">Código: {courier.code}</p>
             </div>
           </div>
-          <button onClick={logout} className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted">
-            <LogOut size={16} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                setRefreshing(true);
+                await Promise.all([fetchDailyFees(), fetchPending(), fetchToday(), tab === "history" ? fetchHistory() : Promise.resolve()]);
+                setRefreshing(false);
+                toast({ title: "✅ Atualizado!" });
+              }}
+              disabled={refreshing}
+              className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+            </button>
+            <button onClick={logout} className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted">
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -49,6 +49,7 @@ const VARIABLES = [
   { key: "[ARMAZENAR]", desc: "Tipo de armazenamento (RESFRIADO ou CONGELADO ou AMBIENTE)" },
   { key: "[GRAUS]", desc: "Temperatura em °C (ex: -18°C)" },
   { key: "[FRASEARMAZ]", desc: "Frase configurável de armazenamento" },
+  { key: "[NOMEENTREGADOR]", desc: "Nome do entregador designado para a entrega" },
 ];
 
 const FORMATTING = [
