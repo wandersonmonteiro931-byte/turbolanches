@@ -261,6 +261,7 @@ const AdminPrint = () => {
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[RODAPÉ]": rodape,
       "[DIVULGAÇÃO]": divulgacao,
+      "[NOMEENTREGADOR]": courierName || "",
     };
 
     const buildItemsTableHtml = () => {
