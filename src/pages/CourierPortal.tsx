@@ -118,6 +118,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [dailyFees, setDailyFees] = useState<DailyFee[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "delivered" | "not_delivered" } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
 
   const fetchDailyFees = useCallback(async () => {
