@@ -151,6 +151,17 @@ const AdminPrint = () => {
       setItems(itemsRes.data || []);
       setProfile(profileRes.data);
       setTpl((tplRes.data as unknown as ReceiptTemplate) || null);
+
+      // Fetch courier name if assigned
+      if (orderData.courier_id) {
+        const { data: courierData } = await supabase
+          .from("couriers")
+          .select("name")
+          .eq("id", orderData.courier_id)
+          .maybeSingle();
+        setCourierName(courierData?.name || "");
+      }
+
       setReady(true);
     };
     load();
