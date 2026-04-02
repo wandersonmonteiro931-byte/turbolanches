@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package } from "lucide-react";
+import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
