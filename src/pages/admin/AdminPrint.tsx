@@ -125,6 +125,7 @@ const AdminPrint = () => {
   const [items, setItems] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [tpl, setTpl] = useState<ReceiptTemplate | null>(null);
+  const [courierName, setCourierName] = useState("");
 
   const resolveType = (t: string) => {
     if (t === "cozinha" || t === "entrega") return "pedido";
