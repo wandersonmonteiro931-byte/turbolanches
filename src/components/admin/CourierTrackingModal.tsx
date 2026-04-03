@@ -288,13 +288,22 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
               {destinationAddress && <><span className="inline-block w-4 h-0.5 border-t-2 border-dashed border-red-500" /> Rota até destino</>}
             </div>
 
-            <button
-              onClick={openInMaps}
-              className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2"
-            >
-              <ExternalLink size={14} />
-              Abrir no Google Maps
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { fetchLocation(); if (mapRef.current) mapRef.current.invalidateSize(); }}
+                className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2 hover:bg-muted"
+              >
+                <RefreshCw size={14} />
+                Atualizar Localização
+              </button>
+              <button
+                onClick={openInMaps}
+                className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2 hover:bg-muted"
+              >
+                <ExternalLink size={14} />
+                Google Maps
+              </button>
+            </div>
           </div>
         )}
 
