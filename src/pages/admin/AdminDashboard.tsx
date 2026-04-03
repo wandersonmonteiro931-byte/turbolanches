@@ -767,7 +767,7 @@ const AdminDashboard = () => {
         <div class="sep"></div>
         <div class="row"><span>Total Pedidos:</span><span>${totalOrders}</span></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${totalBruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Entregadores:</span><span>R$ ${totalDelivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Pago Entregadores:</span><span>R$ ${totalCourierPaid.toFixed(2).replace(".",",")}</span></div>
         <div class="row"><span>Total Gastos:</span><span>R$ ${totalGastos.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
