@@ -759,6 +759,10 @@ const AdminDashboard = () => {
       .map(([key, count]) => `<div class="row"><span>${statusLabels[key]}:</span><span>${count}</span></div>`)
       .join("");
 
+    const expenseRows = expensesList.length > 0
+      ? expensesList.map(e => `<div class="row"><span>${e.description}</span><span>R$ ${e.amount.toFixed(2).replace(".",",")}</span></div>`).join("")
+      : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
+
     w.document.write(`
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -767,9 +771,11 @@ const AdminDashboard = () => {
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; }
+        .row span:last-child { white-space:nowrap; flex-shrink:0; }
         .big { font-size:14px; font-weight:900; }
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
+        .sub { font-size:9px; font-weight:700; margin:4px 0 2px; color:#333; }
         @page { size:72mm auto; margin:0; }
       </style></head><body>
         <h1>TURBO LANCHES</h1>
@@ -781,6 +787,9 @@ const AdminDashboard = () => {
         <div class="sep"></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
         <div class="row"><span>Total Entregadores:</span><span>R$ ${delivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="sub">GASTOS DO DIA:</div>
+        ${expenseRows}
         <div class="row"><span>Total Gastos:</span><span>R$ ${gastos.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${liquido.toFixed(2).replace(".",",")}</span></div>
