@@ -776,47 +776,83 @@ const AdminDashboard = () => {
       return;
     }
 
-    const { start, end } = getBusinessDayRange(selectedDate);
+    const isPeriod = deliveryReportMode === "period";
+    if (isPeriod && (!deliveryPeriodFrom || !deliveryPeriodTo)) {
+      toast({ title: "Selecione o período", variant: "destructive" });
+      return;
+    }
+
+    // Build date ranges
+    const dateRanges: { start: string; end: string; date: Date }[] = [];
+    if (isPeriod && deliveryPeriodFrom && deliveryPeriodTo) {
+      const days = eachDayOfInterval({ start: deliveryPeriodFrom, end: deliveryPeriodTo });
+      days.forEach(d => {
+        const r = getBusinessDayRange(d);
+        dateRanges.push({ start: r.start, end: r.end, date: d });
+      });
+    } else {
+      const r = getBusinessDayRange(selectedDate);
+      dateRanges.push({ start: r.start, end: r.end, date: selectedDate });
+    }
+
     const PAGE_SIZE = 1000;
     let allDeliveryOrders: any[] = [];
-    let page = 0;
 
-    while (true) {
-      let q = supabase
-        .from("orders")
-        .select("order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status")
-        .gte("created_at", start)
-        .lte("created_at", end)
-        .eq("delivery_type", "delivery")
-        .eq("courier_id", deliveryReportCourierId)
-        .in("status", ["delivering", "delivered"])
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (storeId) q = q.eq("store_id", storeId);
-      const { data } = await q;
-      if (!data || data.length === 0) break;
-      allDeliveryOrders = allDeliveryOrders.concat(data);
-      if (data.length < PAGE_SIZE) break;
-      page++;
+    for (const range of dateRanges) {
+      let page = 0;
+      while (true) {
+        let q = supabase
+          .from("orders")
+          .select("order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status")
+          .gte("created_at", range.start)
+          .lte("created_at", range.end)
+          .eq("delivery_type", "delivery")
+          .eq("courier_id", deliveryReportCourierId)
+          .eq("status", "delivered")
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (storeId) q = q.eq("store_id", storeId);
+        const { data } = await q;
+        if (!data || data.length === 0) break;
+        allDeliveryOrders = allDeliveryOrders.concat(data);
+        if (data.length < PAGE_SIZE) break;
+        page++;
+      }
     }
 
     const courier = couriers.find(c => c.id === deliveryReportCourierId);
     const courierName = courier?.name || "Desconhecido";
 
-    // Fetch daily fixed fee for the selected date's day of week
-    const reportDow = selectedDate.getDay();
-    const { data: dailyFeeData } = await supabase
-      .from("courier_daily_fees")
-      .select("fixed_fee")
-      .eq("courier_id", deliveryReportCourierId)
-      .eq("day_of_week", reportDow)
-      .maybeSingle();
-    const courierFixedFee = dailyFeeData ? Number(dailyFeeData.fixed_fee) : (courier?.fixed_fee || 0);
+    // Calculate fixed fees
+    let totalFixedFees = 0;
+    if (isPeriod && deliveryPeriodFrom && deliveryPeriodTo) {
+      const days = eachDayOfInterval({ start: deliveryPeriodFrom, end: deliveryPeriodTo });
+      const { data: allDailyFees } = await supabase
+        .from("courier_daily_fees")
+        .select("day_of_week, fixed_fee")
+        .eq("courier_id", deliveryReportCourierId);
+      const feeMap = new Map<number, number>();
+      (allDailyFees || []).forEach((f: any) => feeMap.set(f.day_of_week, Number(f.fixed_fee)));
+      days.forEach(d => {
+        totalFixedFees += feeMap.get(d.getDay()) ?? (courier?.fixed_fee || 0);
+      });
+    } else {
+      const reportDow = selectedDate.getDay();
+      const { data: dailyFeeData } = await supabase
+        .from("courier_daily_fees")
+        .select("fixed_fee")
+        .eq("courier_id", deliveryReportCourierId)
+        .eq("day_of_week", reportDow)
+        .maybeSingle();
+      totalFixedFees = dailyFeeData ? Number(dailyFeeData.fixed_fee) : (courier?.fixed_fee || 0);
+    }
 
     const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
-    const totalEntregador = courierFixedFee + totalTaxas;
-    const date = format(selectedDate, "dd/MM/yyyy");
+    const totalEntregador = totalFixedFees + totalTaxas;
 
-    // Sort by delivering_at or created_at and number them
+    const dateLabel = isPeriod && deliveryPeriodFrom && deliveryPeriodTo
+      ? `${format(deliveryPeriodFrom, "dd/MM/yyyy")} a ${format(deliveryPeriodTo, "dd/MM/yyyy")}`
+      : format(selectedDate, "dd/MM/yyyy");
+
     allDeliveryOrders.sort((a, b) => {
       const tA = a.delivering_at || a.created_at;
       const tB = b.delivering_at || b.created_at;
@@ -824,8 +860,10 @@ const AdminDashboard = () => {
     });
 
     const rows = allDeliveryOrders.map((o, idx) => `
-      <div class="row"><span>${idx + 1} - ${o.address_street || "S/R"}, ${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+      <div class="row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${o.address_street || "S/R"}, ${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
     `).join("");
+
+    const fixedFeeLabel = isPeriod ? "Taxa Fixa (período)" : "Taxa Fixa do Dia";
 
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
@@ -845,7 +883,7 @@ const AdminDashboard = () => {
       </style></head><body>
         <h1>TURBO LANCHES</h1>
         <h2>RELATÓRIO DE ENTREGAS</h2>
-        <div class="center">${date}</div>
+        <div class="center">${dateLabel}</div>
         <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
         <div class="sep"></div>
         <div class="row" style="font-size:8px;color:#666"><span>Endereço</span><span>Taxa</span></div>
@@ -853,7 +891,7 @@ const AdminDashboard = () => {
         <div class="sep"></div>
         <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
         <div class="row"><span>Total Taxas de Entrega:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Taxa Fixa do Dia:</span><span>R$ ${courierFixedFee.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>${fixedFeeLabel}:</span><span>R$ ${totalFixedFees.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
