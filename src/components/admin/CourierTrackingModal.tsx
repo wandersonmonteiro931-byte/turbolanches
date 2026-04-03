@@ -1,28 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, X, Navigation, ExternalLink } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Fix default marker icon
-try {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  });
-} catch {}
-
-const courierIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-});
+import { MapPin, X, Navigation, ExternalLink, RefreshCw } from "lucide-react";
 
 interface Props {
   courierId: string;
@@ -39,19 +17,16 @@ interface LocationData {
   updated_at: string;
 }
 
-function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([lat, lng], map.getZoom(), { animate: true });
-  }, [lat, lng, map]);
-  return null;
-}
-
 export default function CourierTrackingModal({ courierId, courierName, onClose }: Props) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
 
-  const fetchLocation = async () => {
+  const fetchLocation = useCallback(async () => {
     const { data } = await supabase
       .from("courier_locations" as any)
       .select("lat, lng, speed, heading, accuracy, updated_at")
@@ -59,8 +34,89 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
       .maybeSingle();
     if (data) setLocation(data as any);
     setLoading(false);
-  };
+  }, [courierId]);
 
+  // Init map imperatively
+  useEffect(() => {
+    if (!location || mapReady) return;
+    const el = mapContainerRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+
+    const initMap = async () => {
+      try {
+        const L = (await import("leaflet")).default;
+        await import("leaflet/dist/leaflet.css");
+
+        if (cancelled || !el) return;
+
+        leafletRef.current = L;
+
+        // Fix default icon
+        try {
+          delete (L.Icon.Default.prototype as any)._getIconUrl;
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+            shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+          });
+        } catch {}
+
+        const map = L.map(el, {
+          center: [location.lat, location.lng],
+          zoom: 16,
+          zoomControl: true,
+          attributionControl: false,
+        });
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+        const icon = L.icon({
+          iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+          iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+          shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+        });
+
+        const marker = L.marker([location.lat, location.lng], { icon }).addTo(map);
+        marker.bindPopup(courierName);
+
+        mapRef.current = map;
+        markerRef.current = marker;
+        setMapReady(true);
+
+        // Force resize after render
+        setTimeout(() => map.invalidateSize(), 200);
+      } catch (err) {
+        console.error("Leaflet init error:", err);
+      }
+    };
+
+    initMap();
+
+    return () => {
+      cancelled = true;
+      if (mapRef.current) {
+        try { mapRef.current.remove(); } catch {}
+        mapRef.current = null;
+        markerRef.current = null;
+        setMapReady(false);
+      }
+    };
+  }, [location, mapReady, courierName]);
+
+  // Update marker position when location changes
+  useEffect(() => {
+    if (!mapReady || !location || !mapRef.current || !markerRef.current) return;
+    const latlng = [location.lat, location.lng] as [number, number];
+    markerRef.current.setLatLng(latlng);
+    mapRef.current.setView(latlng, mapRef.current.getZoom(), { animate: true });
+  }, [location, mapReady]);
+
+  // Fetch + subscribe
   useEffect(() => {
     fetchLocation();
 
@@ -92,7 +148,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
       supabase.removeChannel(ch);
       clearInterval(interval);
     };
-  }, [courierId]);
+  }, [courierId, fetchLocation]);
 
   const timeSince = (dateStr: string) => {
     const diff = Math.max(0, Date.now() - new Date(dateStr).getTime());
@@ -109,8 +165,8 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-card p-5 space-y-3 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Navigation size={20} className="text-primary" />
@@ -125,6 +181,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
 
         {loading ? (
           <div className="py-8 text-center">
+            <RefreshCw size={20} className="mx-auto animate-spin text-primary mb-2" />
             <p className="text-sm text-muted-foreground">Buscando localização...</p>
           </div>
         ) : !location ? (
@@ -136,24 +193,12 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
           </div>
         ) : (
           <div className="space-y-3">
-            {/* Live Map */}
-            <div className="rounded-xl overflow-hidden border border-border" style={{ height: 280 }}>
-              <MapContainer
-                center={[location.lat, location.lng]}
-                zoom={16}
-                style={{ height: "100%", width: "100%" }}
-                zoomControl={false}
-                attributionControl={false}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <MapUpdater lat={location.lat} lng={location.lng} />
-                <Marker position={[location.lat, location.lng]} icon={courierIcon}>
-                  <Popup>{courierName}</Popup>
-                </Marker>
-              </MapContainer>
-            </div>
+            <div
+              ref={mapContainerRef}
+              className="rounded-xl overflow-hidden border border-border"
+              style={{ height: 280, width: "100%" }}
+            />
 
-            {/* Info */}
             <div className="rounded-xl border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
               <div>
                 <span className="text-muted-foreground">Velocidade</span>
