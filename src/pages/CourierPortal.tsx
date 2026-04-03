@@ -386,20 +386,20 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       <div className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Truck size={20} className="text-primary" />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <Truck size={20} className="text-primary" />
+            )}
             <div>
               <p className="text-sm font-bold text-foreground">{courier.name}</p>
               <p className="text-xs text-muted-foreground">Código: {courier.code}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => trackingActive ? stopTracking() : startTracking()}
-              className={`rounded-lg border p-2 ${trackingActive ? "border-green-500 bg-green-500/10 text-green-600" : "border-border text-muted-foreground hover:bg-muted"}`}
-              title={trackingActive ? "Rastreamento ativo - clique para desativar" : "Ativar rastreamento GPS"}
-            >
-              <Navigation size={16} className={trackingActive ? "animate-pulse" : ""} />
-            </button>
+            {trackingActive && (
+              <Navigation size={16} className="animate-pulse text-green-600" />
+            )}
             <button
               onClick={async () => {
                 setRefreshing(true);
