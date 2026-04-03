@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw } from "lucide-react";
+import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw, Navigation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
@@ -119,7 +119,65 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [dailyFees, setDailyFees] = useState<DailyFee[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "delivered" | "not_delivered" } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [trackingActive, setTrackingActive] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
   const { toast } = useToast();
+
+  // GPS Tracking - send location to DB
+  const sendLocation = useCallback(async (position: GeolocationPosition) => {
+    const { latitude, longitude, accuracy, speed, heading } = position.coords;
+    await supabase
+      .from("courier_locations" as any)
+      .upsert({
+        courier_id: courier.id,
+        lat: latitude,
+        lng: longitude,
+        accuracy: accuracy || 0,
+        speed: speed || 0,
+        heading: heading || 0,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: "courier_id" });
+  }, [courier.id]);
+
+  const startTracking = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      toast({ title: "GPS não disponível neste dispositivo", variant: "destructive" });
+      return;
+    }
+    const id = navigator.geolocation.watchPosition(
+      (pos) => { sendLocation(pos); setTrackingActive(true); },
+      (err) => { console.error("GPS error:", err); toast({ title: "Erro ao acessar localização", variant: "destructive" }); },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+    watchIdRef.current = id;
+    setTrackingActive(true);
+    toast({ title: "📍 Rastreamento ativado!" });
+  }, [sendLocation, toast]);
+
+  const stopTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setTrackingActive(false);
+    toast({ title: "Rastreamento desativado" });
+  }, [toast]);
+
+  // Auto-start tracking when there are pending deliveries
+  useEffect(() => {
+    if (pendingOrders.length > 0 && !trackingActive && watchIdRef.current === null) {
+      startTracking();
+    }
+  }, [pendingOrders.length, trackingActive, startTracking]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
 
   const fetchDailyFees = useCallback(async () => {
     const { data } = await supabase
@@ -328,6 +386,13 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => trackingActive ? stopTracking() : startTracking()}
+              className={`rounded-lg border p-2 ${trackingActive ? "border-green-500 bg-green-500/10 text-green-600" : "border-border text-muted-foreground hover:bg-muted"}`}
+              title={trackingActive ? "Rastreamento ativo - clique para desativar" : "Ativar rastreamento GPS"}
+            >
+              <Navigation size={16} className={trackingActive ? "animate-pulse" : ""} />
+            </button>
             <button
               onClick={async () => {
                 setRefreshing(true);

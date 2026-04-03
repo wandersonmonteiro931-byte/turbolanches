@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
+import CourierTrackingModal from "@/components/admin/CourierTrackingModal";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -145,6 +146,7 @@ const AdminDashboard = () => {
   const [deliveryReportMode, setDeliveryReportMode] = useState<"daily" | "period">("daily");
   const [deliveryPeriodFrom, setDeliveryPeriodFrom] = useState<Date | undefined>(undefined);
   const [deliveryPeriodTo, setDeliveryPeriodTo] = useState<Date | undefined>(undefined);
+  const [trackingCourierId, setTrackingCourierId] = useState<string | null>(null);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
@@ -876,6 +878,8 @@ const AdminDashboard = () => {
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
+        .row span:last-child { white-space:nowrap; flex-shrink:0; }
+        .row span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .big { font-size:14px; font-weight:900; }
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
@@ -1489,6 +1493,12 @@ const AdminDashboard = () => {
                         >
                           Trocar
                         </button>
+                        <button
+                          onClick={() => setTrackingCourierId(order.courier_id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10"
+                        >
+                          📍 Rastrear
+                        </button>
                       </div>
                     )}
 
@@ -1663,6 +1673,15 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Courier Tracking Modal */}
+      {trackingCourierId && (
+        <CourierTrackingModal
+          courierId={trackingCourierId}
+          courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
+          onClose={() => setTrackingCourierId(null)}
+        />
       )}
     </div>
   );
