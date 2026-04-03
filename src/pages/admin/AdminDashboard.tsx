@@ -875,7 +875,7 @@ const AdminDashboard = () => {
         ${statusRows}
         <div class="sep"></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Entregadores:</span><span>R$ ${delivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Pago Entregadores:</span><span>R$ ${expensesList.filter(e => e.category === "diario").reduce((s, e) => s + e.amount, 0).toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="sub">GASTOS DO DIA:</div>
         ${expenseRows}
