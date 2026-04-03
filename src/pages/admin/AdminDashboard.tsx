@@ -1715,13 +1715,6 @@ const AdminDashboard = () => {
               >
                 Desbloquear
               </button>
-
-      {showExpenseManager && (
-        <ExpenseManager
-          selectedDate={selectedDate}
-          onClose={() => setShowExpenseManager(false)}
-        />
-      )}
     </div>
           </div>
         </div>
