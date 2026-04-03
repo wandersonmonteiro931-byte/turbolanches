@@ -1735,6 +1735,13 @@ const AdminDashboard = () => {
           </Suspense>
         );
       })()}
+
+      {showExpenseManager && (
+        <ExpenseManager
+          selectedDate={selectedDate}
+          onClose={() => setShowExpenseManager(false)}
+        />
+      )}
     </div>
   );
 };
