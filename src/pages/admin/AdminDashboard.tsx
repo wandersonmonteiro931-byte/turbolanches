@@ -1493,6 +1493,12 @@ const AdminDashboard = () => {
                         >
                           Trocar
                         </button>
+                        <button
+                          onClick={() => setTrackingCourierId(order.courier_id)}
+                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10"
+                        >
+                          📍 Rastrear
+                        </button>
                       </div>
                     )}
 
