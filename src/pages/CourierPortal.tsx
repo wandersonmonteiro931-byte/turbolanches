@@ -66,11 +66,17 @@ function LoginScreen({ onLogin }: { onLogin: (c: CourierInfo) => void }) {
     onLogin(courier);
   };
 
+  const logoUrl = useStoreLogo();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg space-y-6">
         <div className="text-center space-y-2">
-          <Truck className="mx-auto text-primary" size={48} />
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="mx-auto h-16 w-16 rounded-full object-cover" />
+          ) : (
+            <Truck className="mx-auto text-primary" size={48} />
+          )}
           <h1 className="text-xl font-bold text-foreground">Portal do Entregador</h1>
           <p className="text-sm text-muted-foreground">Digite seu código de acesso</p>
         </div>
