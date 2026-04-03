@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff
+  Eye, EyeOff, Wallet
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,6 +17,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
+import ExpenseManager from "@/components/admin/ExpenseManager";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -148,6 +149,7 @@ const AdminDashboard = () => {
   const [deliveryPeriodFrom, setDeliveryPeriodFrom] = useState<Date | undefined>(undefined);
   const [deliveryPeriodTo, setDeliveryPeriodTo] = useState<Date | undefined>(undefined);
   const [trackingCourierId, setTrackingCourierId] = useState<string | null>(null);
+  const [showExpenseManager, setShowExpenseManager] = useState(false);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
@@ -513,6 +515,20 @@ const AdminDashboard = () => {
   };
 
   // Reprint daily report for any date
+  const fetchExpensesForDate = async (dateStr: string) => {
+    let q = supabase.from("report_expenses" as any).select("amount, category, description").eq("expense_date", dateStr);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description }));
+  };
+
+  const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
+    let q = supabase.from("report_expenses" as any).select("amount, category, description, expense_date").gte("expense_date", fromDate).lte("expense_date", toDate);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
+  };
+
   const reprintDailyReport = async () => {
     const { start, end } = getBusinessDayRange(selectedDate);
     const PAGE_SIZE = 1000;
@@ -543,13 +559,16 @@ const AdminDashboard = () => {
       page += 1;
     }
 
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const expenses = await fetchExpensesForDate(dateStr);
+
     const validOrders = currentDayOrders.filter((o) => o.status !== "cancelled");
     const bruto = validOrders.reduce((s, o) => s + Number(o.total), 0);
     const delivery = validOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const gastos = delivery;
+    const gastos = expenses.reduce((s, e) => s + e.amount, 0);
     const liquido = bruto - gastos;
 
-    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido);
+    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido, expenses);
   };
 
 
@@ -598,22 +617,29 @@ const AdminDashboard = () => {
       ordersByDate.set(d, existing);
     });
 
+    // Fetch expenses for the period
+    const allExpenses = await fetchExpensesForRange(format(periodFrom, "yyyy-MM-dd"), format(periodTo, "yyyy-MM-dd"));
+    const expensesByDate = new Map<string, number>();
+    allExpenses.forEach(e => {
+      expensesByDate.set(e.expense_date, (expensesByDate.get(e.expense_date) || 0) + e.amount);
+    });
+
     // Generate ALL business dates in the range (inclusive)
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
     // Build full rows from current orders only (always up-to-date)
     const fullRows = allDates.map(dateStr => {
       const orderData = ordersByDate.get(dateStr);
+      const dayExpenses = expensesByDate.get(dateStr) || 0;
 
       if (orderData && orderData.count > 0) {
-        const gastos = orderData.delivery;
         return {
           report_date: dateStr,
           total_orders: orderData.count,
           total_bruto: orderData.bruto,
           total_delivery_fees: orderData.delivery,
-          total_gastos: gastos,
-          total_liquido: orderData.bruto - gastos,
+          total_gastos: dayExpenses,
+          total_liquido: orderData.bruto - dayExpenses,
         };
       }
       return {
@@ -621,8 +647,8 @@ const AdminDashboard = () => {
         total_orders: 0,
         total_bruto: 0,
         total_delivery_fees: 0,
-        total_gastos: 0,
-        total_liquido: 0,
+        total_gastos: dayExpenses,
+        total_liquido: -dayExpenses,
       };
     });
 
@@ -676,17 +702,18 @@ const AdminDashboard = () => {
   };
 
   const handleCloseDay = async () => {
-    // Use business day (orders until 6AM count as previous day)
     const businessDay = getTodayBusinessDay();
+    const dateStr = format(businessDay, "yyyy-MM-dd");
+    const expenses = await fetchExpensesForDate(dateStr);
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
     const totalDelivery = allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const totalGastos = totalDelivery;
+    const totalGastos = expenses.reduce((s, e) => s + e.amount, 0);
     const totalLiquido = totalBruto - totalGastos;
 
     await supabase.from("daily_reports").upsert({
-      report_date: format(businessDay, "yyyy-MM-dd"),
+      report_date: dateStr,
       total_orders: allOrders.length,
       total_bruto: totalBruto,
       total_delivery_fees: totalDelivery,
@@ -704,12 +731,12 @@ const AdminDashboard = () => {
       }).eq("id", storeSettings.id);
     }
 
-    printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido);
+    printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido, expenses);
     setShowCloseDay(false);
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
 
-  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number) => {
+  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number, expensesList: { amount: number; category: string; description: string }[] = []) => {
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     const date = format(selectedDate, "dd/MM/yyyy");
@@ -739,6 +766,10 @@ const AdminDashboard = () => {
       .map(([key, count]) => `<div class="row"><span>${statusLabels[key]}:</span><span>${count}</span></div>`)
       .join("");
 
+    const expenseRows = expensesList.length > 0
+      ? expensesList.map(e => `<div class="row"><span>${e.description}</span><span>R$ ${e.amount.toFixed(2).replace(".",",")}</span></div>`).join("")
+      : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
+
     w.document.write(`
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
@@ -747,9 +778,11 @@ const AdminDashboard = () => {
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; }
+        .row span:last-child { white-space:nowrap; flex-shrink:0; }
         .big { font-size:14px; font-weight:900; }
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
+        .sub { font-size:9px; font-weight:700; margin:4px 0 2px; color:#333; }
         @page { size:72mm auto; margin:0; }
       </style></head><body>
         <h1>TURBO LANCHES</h1>
@@ -761,6 +794,9 @@ const AdminDashboard = () => {
         <div class="sep"></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
         <div class="row"><span>Total Entregadores:</span><span>R$ ${delivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="sep"></div>
+        <div class="sub">GASTOS DO DIA:</div>
+        ${expenseRows}
         <div class="row"><span>Total Gastos:</span><span>R$ ${gastos.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${liquido.toFixed(2).replace(".",",")}</span></div>
@@ -1106,6 +1142,14 @@ const AdminDashboard = () => {
         >
           <Truck size={16} />
           Relatório de Entregas
+        </button>
+
+        <button
+          onClick={() => setShowExpenseManager(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Wallet size={16} />
+          Gastos
         </button>
       </div>
 
@@ -1671,7 +1715,14 @@ const AdminDashboard = () => {
               >
                 Desbloquear
               </button>
-            </div>
+
+      {showExpenseManager && (
+        <ExpenseManager
+          selectedDate={selectedDate}
+          onClose={() => setShowExpenseManager(false)}
+        />
+      )}
+    </div>
           </div>
         </div>
       )}
