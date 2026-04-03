@@ -142,6 +142,9 @@ const AdminDashboard = () => {
   const [selectedCourierId, setSelectedCourierId] = useState<string | null>(null);
   const [showDeliveryReport, setShowDeliveryReport] = useState(false);
   const [deliveryReportCourierId, setDeliveryReportCourierId] = useState<string>("");
+  const [deliveryReportMode, setDeliveryReportMode] = useState<"daily" | "period">("daily");
+  const [deliveryPeriodFrom, setDeliveryPeriodFrom] = useState<Date | undefined>(undefined);
+  const [deliveryPeriodTo, setDeliveryPeriodTo] = useState<Date | undefined>(undefined);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
