@@ -119,6 +119,7 @@ function ElapsedTimer({ since }: { since: string }) {
 }
 
 function CourierDashboard({ courier }: { courier: CourierInfo }) {
+  const logoUrl = useStoreLogo();
   const [tab, setTab] = useState<"pending" | "today" | "history">("pending");
   const [pendingOrders, setPendingOrders] = useState<DeliveryOrder[]>([]);
   const [todayOrders, setTodayOrders] = useState<DeliveryOrder[]>([]);
