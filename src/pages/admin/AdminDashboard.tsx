@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
-import CourierTrackingModal from "@/components/admin/CourierTrackingModal";
+import { lazy, Suspense } from "react";
+const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -1677,11 +1678,13 @@ const AdminDashboard = () => {
 
       {/* Courier Tracking Modal */}
       {trackingCourierId && (
-        <CourierTrackingModal
-          courierId={trackingCourierId}
-          courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
-          onClose={() => setTrackingCourierId(null)}
-        />
+        <Suspense fallback={<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><p className="text-white">Carregando mapa...</p></div>}>
+          <CourierTrackingModal
+            courierId={trackingCourierId}
+            courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
+            onClose={() => setTrackingCourierId(null)}
+          />
+        </Suspense>
       )}
     </div>
   );
