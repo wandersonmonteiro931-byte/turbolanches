@@ -731,7 +731,7 @@ const AdminDashboard = () => {
       };
     });
     const totalBruto = fullRows.reduce((s, r) => s + r.total_bruto, 0);
-    const totalDelivery = fullRows.reduce((s, r) => s + r.total_delivery_fees, 0);
+    const totalCourierPaid = Array.from(courierCostsByDate.values()).reduce((s, v) => s + v, 0);
     const totalGastos = fullRows.reduce((s, r) => s + r.total_gastos, 0);
     const totalLiquido = fullRows.reduce((s, r) => s + r.total_liquido, 0);
     const totalOrders = fullRows.reduce((s, r) => s + r.total_orders, 0);
