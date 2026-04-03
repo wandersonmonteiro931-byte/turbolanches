@@ -1674,6 +1674,15 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Courier Tracking Modal */}
+      {trackingCourierId && (
+        <CourierTrackingModal
+          courierId={trackingCourierId}
+          courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
+          onClose={() => setTrackingCourierId(null)}
+        />
+      )}
     </div>
   );
 };
