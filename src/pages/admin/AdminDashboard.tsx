@@ -17,6 +17,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
+import ExpenseManager from "@/components/admin/ExpenseManager";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
