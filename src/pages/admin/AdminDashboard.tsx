@@ -514,19 +514,79 @@ const AdminDashboard = () => {
     fetchOrders();
   };
 
+  // Calculate courier costs for a given date from delivered orders
+  const fetchCourierCostsForDate = async (dateStr: string, ordersForDay?: Order[]) => {
+    const { start, end } = getBusinessDayRange(new Date(dateStr + "T12:00:00"));
+    let deliveredOrders: any[] = ordersForDay
+      ? ordersForDay.filter(o => o.status === "delivered" && o.courier_id)
+      : [];
+
+    if (!ordersForDay) {
+      const PAGE_SIZE = 1000;
+      let page = 0;
+      while (true) {
+        let q = supabase.from("orders").select("courier_id, delivery_fee, status")
+          .gte("created_at", start).lte("created_at", end)
+          .eq("status", "delivered").not("courier_id", "is", null)
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (storeId) q = q.eq("store_id", storeId);
+        const { data } = await q;
+        if (!data || data.length === 0) break;
+        deliveredOrders = deliveredOrders.concat(data);
+        if (data.length < PAGE_SIZE) break;
+        page++;
+      }
+    }
+
+    // Group delivery fees by courier
+    const courierFees = new Map<string, number>();
+    const courierIds = new Set<string>();
+    deliveredOrders.forEach((o: any) => {
+      if (!o.courier_id) return;
+      courierIds.add(o.courier_id);
+      courierFees.set(o.courier_id, (courierFees.get(o.courier_id) || 0) + Number(o.delivery_fee || 0));
+    });
+
+    if (courierIds.size === 0) return [];
+
+    // Get courier names
+    const { data: courierData } = await supabase.from("couriers" as any).select("id, name").in("id", Array.from(courierIds));
+    const courierNames = new Map<string, string>();
+    (courierData as any[] ?? []).forEach((c: any) => courierNames.set(c.id, c.name));
+
+    // Get daily fixed fees for the day of week
+    const dayOfWeek = new Date(dateStr + "T12:00:00").getDay();
+    let dfq = supabase.from("courier_daily_fees" as any).select("courier_id, fixed_fee").eq("day_of_week", dayOfWeek).in("courier_id", Array.from(courierIds));
+    if (storeId) dfq = dfq.eq("store_id", storeId);
+    const { data: dailyFeeData } = await dfq;
+    const dailyFixedFees = new Map<string, number>();
+    (dailyFeeData as any[] ?? []).forEach((d: any) => dailyFixedFees.set(d.courier_id, Number(d.fixed_fee)));
+
+    // Also check couriers table default fixed_fee
+    const { data: defaultFees } = await supabase.from("couriers" as any).select("id, fixed_fee").in("id", Array.from(courierIds));
+    const defaultFixedFees = new Map<string, number>();
+    (defaultFees as any[] ?? []).forEach((c: any) => defaultFixedFees.set(c.id, Number(c.fixed_fee)));
+
+    const expenses: { amount: number; category: string; description: string }[] = [];
+    courierIds.forEach(cid => {
+      const name = courierNames.get(cid) || "Entregador";
+      const fixedFee = dailyFixedFees.has(cid) ? dailyFixedFees.get(cid)! : (defaultFixedFees.get(cid) || 0);
+      const deliveryTotal = courierFees.get(cid) || 0;
+      const total = fixedFee + deliveryTotal;
+      if (total > 0) {
+        expenses.push({ amount: total, category: "diario", description: `${name} (Fixa R$${fixedFee.toFixed(2).replace(".",",")} + Taxas R$${deliveryTotal.toFixed(2).replace(".",",")})` });
+      }
+    });
+
+    return expenses;
+  };
+
   // Reprint daily report for any date
   const fetchExpensesForDate = async (dateStr: string) => {
     let q = supabase.from("report_expenses" as any).select("amount, category, description").eq("expense_date", dateStr);
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
     return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description }));
-  };
-
-  const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
-    let q = supabase.from("report_expenses" as any).select("amount, category, description, expense_date").gte("expense_date", fromDate).lte("expense_date", toDate);
-    if (storeId) q = q.eq("store_id", storeId);
-    const { data } = await q;
-    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
   };
 
   const reprintDailyReport = async () => {
@@ -560,7 +620,11 @@ const AdminDashboard = () => {
     }
 
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const expenses = await fetchExpensesForDate(dateStr);
+    const [manualExpenses, courierExpenses] = await Promise.all([
+      fetchExpensesForDate(dateStr),
+      fetchCourierCostsForDate(dateStr, currentDayOrders),
+    ]);
+    const expenses = [...courierExpenses, ...manualExpenses];
 
     const validOrders = currentDayOrders.filter((o) => o.status !== "cancelled");
     const bruto = validOrders.reduce((s, o) => s + Number(o.total), 0);
@@ -572,6 +636,12 @@ const AdminDashboard = () => {
   };
 
 
+  const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
+    let q = supabase.from("report_expenses" as any).select("amount, category, description, expense_date").gte("expense_date", fromDate).lte("expense_date", toDate);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
+  };
 
   const reprintPeriodReport = async () => {
     if (!periodFrom || !periodTo) {
@@ -583,14 +653,14 @@ const AdminDashboard = () => {
     const { start: fromISO } = getBusinessDayRange(periodFrom);
     const { end: toISO } = getBusinessDayRange(periodTo);
 
-    // Fetch ALL orders (paginate to avoid 1000 row limit)
+    // Fetch ALL orders (paginate to avoid 1000 row limit) - include courier_id for courier cost calc
     let allOrders: any[] = [];
     let page = 0;
     const PAGE_SIZE = 1000;
     while (true) {
       let q = supabase
         .from("orders")
-        .select("total, delivery_fee, status, created_at")
+        .select("total, delivery_fee, status, created_at, courier_id")
         .gte("created_at", fromISO)
         .lte("created_at", toISO)
         .neq("status", "cancelled")
@@ -617,20 +687,29 @@ const AdminDashboard = () => {
       ordersByDate.set(d, existing);
     });
 
-    // Fetch expenses for the period
-    const allExpenses = await fetchExpensesForRange(format(periodFrom, "yyyy-MM-dd"), format(periodTo, "yyyy-MM-dd"));
-    const expensesByDate = new Map<string, number>();
-    allExpenses.forEach(e => {
-      expensesByDate.set(e.expense_date, (expensesByDate.get(e.expense_date) || 0) + e.amount);
+    // Fetch manual expenses for the period
+    const allManualExpenses = await fetchExpensesForRange(format(periodFrom, "yyyy-MM-dd"), format(periodTo, "yyyy-MM-dd"));
+    const manualExpensesByDate = new Map<string, number>();
+    allManualExpenses.forEach(e => {
+      manualExpensesByDate.set(e.expense_date, (manualExpensesByDate.get(e.expense_date) || 0) + e.amount);
     });
 
-    // Generate ALL business dates in the range (inclusive)
+    // Calculate courier costs per date
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
+    
+    const courierCostsByDate = new Map<string, number>();
+    for (const dateStr of allDates) {
+      const courierExpenses = await fetchCourierCostsForDate(dateStr);
+      const total = courierExpenses.reduce((s, e) => s + e.amount, 0);
+      if (total > 0) courierCostsByDate.set(dateStr, total);
+    }
 
-    // Build full rows from current orders only (always up-to-date)
+    // Build full rows
     const fullRows = allDates.map(dateStr => {
       const orderData = ordersByDate.get(dateStr);
-      const dayExpenses = expensesByDate.get(dateStr) || 0;
+      const manualExp = manualExpensesByDate.get(dateStr) || 0;
+      const courierExp = courierCostsByDate.get(dateStr) || 0;
+      const dayExpenses = manualExp + courierExp;
 
       if (orderData && orderData.count > 0) {
         return {
@@ -651,7 +730,6 @@ const AdminDashboard = () => {
         total_liquido: -dayExpenses,
       };
     });
-
     const totalBruto = fullRows.reduce((s, r) => s + r.total_bruto, 0);
     const totalDelivery = fullRows.reduce((s, r) => s + r.total_delivery_fees, 0);
     const totalGastos = fullRows.reduce((s, r) => s + r.total_gastos, 0);
@@ -704,7 +782,11 @@ const AdminDashboard = () => {
   const handleCloseDay = async () => {
     const businessDay = getTodayBusinessDay();
     const dateStr = format(businessDay, "yyyy-MM-dd");
-    const expenses = await fetchExpensesForDate(dateStr);
+    const [manualExpenses, courierExpenses] = await Promise.all([
+      fetchExpensesForDate(dateStr),
+      fetchCourierCostsForDate(dateStr, orders),
+    ]);
+    const expenses = [...courierExpenses, ...manualExpenses];
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
