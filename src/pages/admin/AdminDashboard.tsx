@@ -515,6 +515,20 @@ const AdminDashboard = () => {
   };
 
   // Reprint daily report for any date
+  const fetchExpensesForDate = async (dateStr: string) => {
+    let q = supabase.from("report_expenses" as any).select("amount, category, description").eq("expense_date", dateStr);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description }));
+  };
+
+  const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
+    let q = supabase.from("report_expenses" as any).select("amount, category, description, expense_date").gte("expense_date", fromDate).lte("expense_date", toDate);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
+  };
+
   const reprintDailyReport = async () => {
     const { start, end } = getBusinessDayRange(selectedDate);
     const PAGE_SIZE = 1000;
@@ -545,13 +559,16 @@ const AdminDashboard = () => {
       page += 1;
     }
 
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const expenses = await fetchExpensesForDate(dateStr);
+
     const validOrders = currentDayOrders.filter((o) => o.status !== "cancelled");
     const bruto = validOrders.reduce((s, o) => s + Number(o.total), 0);
     const delivery = validOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const gastos = delivery;
+    const gastos = expenses.reduce((s, e) => s + e.amount, 0);
     const liquido = bruto - gastos;
 
-    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido);
+    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido, expenses);
   };
 
 
