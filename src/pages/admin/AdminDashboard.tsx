@@ -1109,6 +1109,14 @@ const AdminDashboard = () => {
           <Truck size={16} />
           Relatório de Entregas
         </button>
+
+        <button
+          onClick={() => setShowExpenseManager(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Wallet size={16} />
+          Gastos
+        </button>
       </div>
 
       {showPeriodReport && (
