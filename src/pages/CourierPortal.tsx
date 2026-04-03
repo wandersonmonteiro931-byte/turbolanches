@@ -163,12 +163,12 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     setTrackingActive(false);
   }, []);
 
-  // Auto-start tracking when there are pending deliveries
+  // Always start tracking on mount
   useEffect(() => {
-    if (pendingOrders.length > 0 && !trackingActive && watchIdRef.current === null) {
+    if (!trackingActive && watchIdRef.current === null) {
       startTracking();
     }
-  }, [pendingOrders.length, trackingActive, startTracking]);
+  }, [trackingActive, startTracking]);
 
   // Cleanup on unmount
   useEffect(() => {
