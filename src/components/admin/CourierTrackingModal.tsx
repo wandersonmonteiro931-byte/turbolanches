@@ -1,6 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, X, Navigation } from "lucide-react";
+import { MapPin, X, Navigation, ExternalLink } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix default marker icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+const courierIcon = new L.Icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
 
 interface Props {
   courierId: string;
@@ -17,6 +37,14 @@ interface LocationData {
   updated_at: string;
 }
 
+function MapUpdater({ lat, lng }: { lat: number; lng: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lng], map.getZoom(), { animate: true });
+  }, [lat, lng, map]);
+  return null;
+}
+
 export default function CourierTrackingModal({ courierId, courierName, onClose }: Props) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,9 +55,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
       .select("lat, lng, speed, heading, accuracy, updated_at")
       .eq("courier_id", courierId)
       .maybeSingle();
-    if (data) {
-      setLocation(data as any);
-    }
+    if (data) setLocation(data as any);
     setLoading(false);
   };
 
@@ -58,7 +84,6 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
       })
       .subscribe();
 
-    // Also poll every 3s as fallback
     const interval = setInterval(fetchLocation, 3000);
 
     return () => {
@@ -83,7 +108,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4">
+      <div className="w-full max-w-md rounded-2xl bg-card p-5 space-y-3 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
             <Navigation size={20} className="text-primary" />
@@ -94,9 +119,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
           </button>
         </div>
 
-        <div className="text-center space-y-1">
-          <p className="text-sm font-bold text-foreground">🚚 {courierName}</p>
-        </div>
+        <p className="text-center text-sm font-bold text-foreground">🚚 {courierName}</p>
 
         {loading ? (
           <div className="py-8 text-center">
@@ -111,26 +134,36 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Latitude</span>
-                <span className="font-mono font-bold text-foreground">{location.lat.toFixed(6)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Longitude</span>
-                <span className="font-mono font-bold text-foreground">{location.lng.toFixed(6)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
+            {/* Live Map */}
+            <div className="rounded-xl overflow-hidden border border-border" style={{ height: 280 }}>
+              <MapContainer
+                center={[location.lat, location.lng]}
+                zoom={16}
+                style={{ height: "100%", width: "100%" }}
+                zoomControl={false}
+                attributionControl={false}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <MapUpdater lat={location.lat} lng={location.lng} />
+                <Marker position={[location.lat, location.lng]} icon={courierIcon}>
+                  <Popup>{courierName}</Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+
+            {/* Info */}
+            <div className="rounded-xl border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
+              <div>
                 <span className="text-muted-foreground">Velocidade</span>
-                <span className="font-bold text-foreground">
+                <p className="font-bold text-foreground">
                   {location.speed > 0 ? `${(location.speed * 3.6).toFixed(0)} km/h` : "Parado"}
-                </span>
+                </p>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div>
                 <span className="text-muted-foreground">Precisão</span>
-                <span className="font-bold text-foreground">~{location.accuracy.toFixed(0)}m</span>
+                <p className="font-bold text-foreground">~{location.accuracy.toFixed(0)}m</p>
               </div>
-              <div className="flex items-center justify-between text-sm">
+              <div className="col-span-2 flex items-center justify-between">
                 <span className="text-muted-foreground">Atualizado</span>
                 <span className="font-bold text-primary">{timeSince(location.updated_at)}</span>
               </div>
@@ -138,9 +171,9 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
 
             <button
               onClick={openInMaps}
-              className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground flex items-center justify-center gap-2"
+              className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2"
             >
-              <MapPin size={16} />
+              <ExternalLink size={14} />
               Abrir no Google Maps
             </button>
           </div>
@@ -148,7 +181,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
 
         <button
           onClick={onClose}
-          className="w-full rounded-xl border border-border py-2.5 text-sm font-medium text-foreground"
+          className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-primary-foreground"
         >
           Fechar
         </button>
