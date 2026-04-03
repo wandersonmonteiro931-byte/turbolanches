@@ -201,6 +201,16 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (tab === "history") fetchHistory();
   }, [tab, fetchHistory]);
 
+  // Auto-refresh every 1 second for pending + today
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPending();
+      fetchToday();
+      fetchDailyFees();
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [fetchPending, fetchToday, fetchDailyFees]);
+
   // Realtime for order updates + courier daily fees changes
   useEffect(() => {
     const ch = supabase

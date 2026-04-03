@@ -798,13 +798,30 @@ const AdminDashboard = () => {
 
     const courier = couriers.find(c => c.id === deliveryReportCourierId);
     const courierName = courier?.name || "Desconhecido";
-    const courierFixedFee = courier?.fixed_fee || 0;
+
+    // Fetch daily fixed fee for the selected date's day of week
+    const reportDow = selectedDate.getDay();
+    const { data: dailyFeeData } = await supabase
+      .from("courier_daily_fees")
+      .select("fixed_fee")
+      .eq("courier_id", deliveryReportCourierId)
+      .eq("day_of_week", reportDow)
+      .maybeSingle();
+    const courierFixedFee = dailyFeeData ? Number(dailyFeeData.fixed_fee) : (courier?.fixed_fee || 0);
+
     const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
-    const totalEntregador = allDeliveryOrders.length * courierFixedFee;
+    const totalEntregador = courierFixedFee + totalTaxas;
     const date = format(selectedDate, "dd/MM/yyyy");
 
-    const rows = allDeliveryOrders.map(o => `
-      <div class="row"><span>${o.address_street || "S/R"}</span><span>${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+    // Sort by delivering_at or created_at and number them
+    allDeliveryOrders.sort((a, b) => {
+      const tA = a.delivering_at || a.created_at;
+      const tB = b.delivering_at || b.created_at;
+      return new Date(tA).getTime() - new Date(tB).getTime();
+    });
+
+    const rows = allDeliveryOrders.map((o, idx) => `
+      <div class="row"><span>${idx + 1} - ${o.address_street || "S/R"}, ${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
     `).join("");
 
     const w = window.open("", "_blank", "width=400,height=600");
@@ -828,12 +845,12 @@ const AdminDashboard = () => {
         <div class="center">${date}</div>
         <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
         <div class="sep"></div>
-        <div class="row" style="font-size:8px;color:#666"><span>Rua</span><span>Bairro</span><span>Taxa</span></div>
+        <div class="row" style="font-size:8px;color:#666"><span>Endereço</span><span>Taxa</span></div>
         ${rows}
         <div class="sep"></div>
         <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
-        <div class="row"><span>Total Taxas Cobradas:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Valor Fixo/Entrega:</span><span>R$ ${courierFixedFee.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Total Taxas de Entrega:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Taxa Fixa do Dia:</span><span>R$ ${courierFixedFee.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
