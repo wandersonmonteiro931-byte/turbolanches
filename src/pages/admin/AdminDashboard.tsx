@@ -617,22 +617,29 @@ const AdminDashboard = () => {
       ordersByDate.set(d, existing);
     });
 
+    // Fetch expenses for the period
+    const allExpenses = await fetchExpensesForRange(format(periodFrom, "yyyy-MM-dd"), format(periodTo, "yyyy-MM-dd"));
+    const expensesByDate = new Map<string, number>();
+    allExpenses.forEach(e => {
+      expensesByDate.set(e.expense_date, (expensesByDate.get(e.expense_date) || 0) + e.amount);
+    });
+
     // Generate ALL business dates in the range (inclusive)
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
 
     // Build full rows from current orders only (always up-to-date)
     const fullRows = allDates.map(dateStr => {
       const orderData = ordersByDate.get(dateStr);
+      const dayExpenses = expensesByDate.get(dateStr) || 0;
 
       if (orderData && orderData.count > 0) {
-        const gastos = orderData.delivery;
         return {
           report_date: dateStr,
           total_orders: orderData.count,
           total_bruto: orderData.bruto,
           total_delivery_fees: orderData.delivery,
-          total_gastos: gastos,
-          total_liquido: orderData.bruto - gastos,
+          total_gastos: dayExpenses,
+          total_liquido: orderData.bruto - dayExpenses,
         };
       }
       return {
@@ -640,8 +647,8 @@ const AdminDashboard = () => {
         total_orders: 0,
         total_bruto: 0,
         total_delivery_fees: 0,
-        total_gastos: 0,
-        total_liquido: 0,
+        total_gastos: dayExpenses,
+        total_liquido: -dayExpenses,
       };
     });
 
