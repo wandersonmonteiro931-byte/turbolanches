@@ -876,6 +876,8 @@ const AdminDashboard = () => {
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
+        .row span:last-child { white-space:nowrap; flex-shrink:0; }
+        .row span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .big { font-size:14px; font-weight:900; }
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
