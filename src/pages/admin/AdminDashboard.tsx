@@ -695,17 +695,18 @@ const AdminDashboard = () => {
   };
 
   const handleCloseDay = async () => {
-    // Use business day (orders until 6AM count as previous day)
     const businessDay = getTodayBusinessDay();
+    const dateStr = format(businessDay, "yyyy-MM-dd");
+    const expenses = await fetchExpensesForDate(dateStr);
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
     const totalDelivery = allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
-    const totalGastos = totalDelivery;
+    const totalGastos = expenses.reduce((s, e) => s + e.amount, 0);
     const totalLiquido = totalBruto - totalGastos;
 
     await supabase.from("daily_reports").upsert({
-      report_date: format(businessDay, "yyyy-MM-dd"),
+      report_date: dateStr,
       total_orders: allOrders.length,
       total_bruto: totalBruto,
       total_delivery_fees: totalDelivery,
@@ -723,12 +724,12 @@ const AdminDashboard = () => {
       }).eq("id", storeSettings.id);
     }
 
-    printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido);
+    printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido, expenses);
     setShowCloseDay(false);
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
 
-  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number) => {
+  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number, expensesList: { amount: number; category: string; description: string }[] = []) => {
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     const date = format(selectedDate, "dd/MM/yyyy");
