@@ -782,7 +782,11 @@ const AdminDashboard = () => {
   const handleCloseDay = async () => {
     const businessDay = getTodayBusinessDay();
     const dateStr = format(businessDay, "yyyy-MM-dd");
-    const expenses = await fetchExpensesForDate(dateStr);
+    const [manualExpenses, courierExpenses] = await Promise.all([
+      fetchExpensesForDate(dateStr),
+      fetchCourierCostsForDate(dateStr, orders),
+    ]);
+    const expenses = [...courierExpenses, ...manualExpenses];
 
     const allOrders = orders.filter(o => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
