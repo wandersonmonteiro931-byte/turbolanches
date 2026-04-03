@@ -161,8 +161,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       watchIdRef.current = null;
     }
     setTrackingActive(false);
-    toast({ title: "Rastreamento desativado" });
-  }, [toast]);
+  }, []);
 
   // Auto-start tracking when there are pending deliveries
   useEffect(() => {
