@@ -1677,15 +1677,20 @@ const AdminDashboard = () => {
       )}
 
       {/* Courier Tracking Modal */}
-      {trackingCourierId && (
-        <Suspense fallback={<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><p className="text-white">Carregando mapa...</p></div>}>
-          <CourierTrackingModal
-            courierId={trackingCourierId}
-            courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
-            onClose={() => setTrackingCourierId(null)}
-          />
-        </Suspense>
-      )}
+      {trackingCourierId && (() => {
+        const trackingOrder = orders.find(o => o.courier_id === trackingCourierId && o.status === "delivering");
+        return (
+          <Suspense fallback={<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><p className="text-white">Carregando mapa...</p></div>}>
+            <CourierTrackingModal
+              courierId={trackingCourierId}
+              courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
+              destinationAddress={trackingOrder ? `${trackingOrder.address_street || ""} ${trackingOrder.address_number || ""}`.trim() : undefined}
+              destinationNeighborhood={trackingOrder?.address_neighborhood || undefined}
+              onClose={() => setTrackingCourierId(null)}
+            />
+          </Suspense>
+        );
+      })()}
     </div>
   );
 };

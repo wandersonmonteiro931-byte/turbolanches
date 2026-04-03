@@ -5,6 +5,8 @@ import { MapPin, X, Navigation, ExternalLink, RefreshCw } from "lucide-react";
 interface Props {
   courierId: string;
   courierName: string;
+  destinationAddress?: string;
+  destinationNeighborhood?: string;
   onClose: () => void;
 }
 
@@ -17,14 +19,18 @@ interface LocationData {
   updated_at: string;
 }
 
-export default function CourierTrackingModal({ courierId, courierName, onClose }: Props) {
+export default function CourierTrackingModal({ courierId, courierName, destinationAddress, destinationNeighborhood, onClose }: Props) {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mapReady, setMapReady] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const destMarkerRef = useRef<any>(null);
+  const routeLineRef = useRef<any>(null);
   const leafletRef = useRef<any>(null);
+  const initDoneRef = useRef(false);
+  const locationHistoryRef = useRef<[number, number][]>([]);
+  const trailLineRef = useRef<any>(null);
 
   const fetchLocation = useCallback(async () => {
     const { data } = await supabase
@@ -36,9 +42,46 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
     setLoading(false);
   }, [courierId]);
 
-  // Init map imperatively
+  // Geocode destination once
+  const geocodeDestination = useCallback(async (L: any, map: any) => {
+    if (!destinationAddress || destMarkerRef.current) return;
+    const query = `${destinationAddress}${destinationNeighborhood ? ", " + destinationNeighborhood : ""}`;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const results = await res.json();
+      if (results.length > 0) {
+        const destLat = parseFloat(results[0].lat);
+        const destLng = parseFloat(results[0].lon);
+
+        const destIcon = L.divIcon({
+          className: "",
+          html: `<div style="background:#ef4444;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);">🏠</div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        });
+
+        destMarkerRef.current = L.marker([destLat, destLng], { icon: destIcon }).addTo(map);
+        destMarkerRef.current.bindPopup(`Destino: ${query}`);
+
+        // Draw route line from courier to destination
+        if (markerRef.current) {
+          const courierPos = markerRef.current.getLatLng();
+          routeLineRef.current = L.polyline(
+            [[courierPos.lat, courierPos.lng], [destLat, destLng]],
+            { color: "#ef4444", weight: 3, dashArray: "8, 8", opacity: 0.7 }
+          ).addTo(map);
+
+          // Fit bounds to show both markers
+          const bounds = L.latLngBounds([courierPos, [destLat, destLng]]);
+          map.fitBounds(bounds, { padding: [40, 40] });
+        }
+      }
+    } catch {}
+  }, [destinationAddress, destinationNeighborhood]);
+
+  // Init map ONCE when first location arrives
   useEffect(() => {
-    if (!location || mapReady) return;
+    if (!location || initDoneRef.current) return;
     const el = mapContainerRef.current;
     if (!el) return;
 
@@ -52,16 +95,6 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
         if (cancelled || !el) return;
 
         leafletRef.current = L;
-
-        // Fix default icon
-        try {
-          delete (L.Icon.Default.prototype as any)._getIconUrl;
-          L.Icon.Default.mergeOptions({
-            iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-            shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-          });
-        } catch {}
 
         const map = L.map(el, {
           center: [location.lat, location.lng],
@@ -84,12 +117,22 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
         const marker = L.marker([location.lat, location.lng], { icon }).addTo(map);
         marker.bindPopup(courierName);
 
+        // Init trail
+        locationHistoryRef.current = [[location.lat, location.lng]];
+        trailLineRef.current = L.polyline([[location.lat, location.lng]], {
+          color: "#3b82f6",
+          weight: 3,
+          opacity: 0.6,
+        }).addTo(map);
+
         mapRef.current = map;
         markerRef.current = marker;
-        setMapReady(true);
+        initDoneRef.current = true;
 
-        // Force resize after render
         setTimeout(() => map.invalidateSize(), 200);
+
+        // Geocode destination
+        geocodeDestination(L, map);
       } catch (err) {
         console.error("Leaflet init error:", err);
       }
@@ -99,22 +142,43 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
 
     return () => {
       cancelled = true;
+    };
+  }, [location, courierName, geocodeDestination]);
+
+  // Update marker position when location changes (no map recreate)
+  useEffect(() => {
+    if (!initDoneRef.current || !location || !mapRef.current || !markerRef.current) return;
+    const latlng: [number, number] = [location.lat, location.lng];
+    markerRef.current.setLatLng(latlng);
+    mapRef.current.setView(latlng, mapRef.current.getZoom(), { animate: true });
+
+    // Update trail
+    locationHistoryRef.current.push(latlng);
+    if (trailLineRef.current) {
+      trailLineRef.current.setLatLngs(locationHistoryRef.current);
+    }
+
+    // Update route line to destination
+    if (routeLineRef.current && destMarkerRef.current) {
+      const destPos = destMarkerRef.current.getLatLng();
+      routeLineRef.current.setLatLngs([latlng, [destPos.lat, destPos.lng]]);
+    }
+  }, [location]);
+
+  // Cleanup map on unmount
+  useEffect(() => {
+    return () => {
       if (mapRef.current) {
         try { mapRef.current.remove(); } catch {}
         mapRef.current = null;
         markerRef.current = null;
-        setMapReady(false);
+        destMarkerRef.current = null;
+        routeLineRef.current = null;
+        trailLineRef.current = null;
+        initDoneRef.current = false;
       }
     };
-  }, [location, mapReady, courierName]);
-
-  // Update marker position when location changes
-  useEffect(() => {
-    if (!mapReady || !location || !mapRef.current || !markerRef.current) return;
-    const latlng = [location.lat, location.lng] as [number, number];
-    markerRef.current.setLatLng(latlng);
-    mapRef.current.setView(latlng, mapRef.current.getZoom(), { animate: true });
-  }, [location, mapReady]);
+  }, []);
 
   // Fetch + subscribe
   useEffect(() => {
@@ -178,6 +242,9 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
         </div>
 
         <p className="text-center text-sm font-bold text-foreground">🚚 {courierName}</p>
+        {destinationAddress && (
+          <p className="text-center text-xs text-muted-foreground">📍 {destinationAddress}{destinationNeighborhood ? ` - ${destinationNeighborhood}` : ""}</p>
+        )}
 
         {loading ? (
           <div className="py-8 text-center">
@@ -196,7 +263,7 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
             <div
               ref={mapContainerRef}
               className="rounded-xl overflow-hidden border border-border"
-              style={{ height: 280, width: "100%" }}
+              style={{ height: 300, width: "100%" }}
             />
 
             <div className="rounded-xl border border-border bg-muted/30 p-3 grid grid-cols-2 gap-2 text-sm">
@@ -214,6 +281,11 @@ export default function CourierTrackingModal({ courierId, courierName, onClose }
                 <span className="text-muted-foreground">Atualizado</span>
                 <span className="font-bold text-primary">{timeSince(location.updated_at)}</span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-muted-foreground justify-center">
+              <span className="inline-block w-4 h-0.5 bg-blue-500 rounded" /> Trajeto percorrido
+              {destinationAddress && <><span className="inline-block w-4 h-0.5 border-t-2 border-dashed border-red-500" /> Rota até destino</>}
             </div>
 
             <button
