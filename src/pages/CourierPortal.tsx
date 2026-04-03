@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw, Navigation } from "lucide-react";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
 import { useToast } from "@/hooks/use-toast";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
@@ -65,11 +66,17 @@ function LoginScreen({ onLogin }: { onLogin: (c: CourierInfo) => void }) {
     onLogin(courier);
   };
 
+  const logoUrl = useStoreLogo();
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-lg space-y-6">
         <div className="text-center space-y-2">
-          <Truck className="mx-auto text-primary" size={48} />
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="mx-auto h-16 w-16 rounded-full object-cover" />
+          ) : (
+            <Truck className="mx-auto text-primary" size={48} />
+          )}
           <h1 className="text-xl font-bold text-foreground">Portal do Entregador</h1>
           <p className="text-sm text-muted-foreground">Digite seu código de acesso</p>
         </div>
@@ -112,6 +119,7 @@ function ElapsedTimer({ since }: { since: string }) {
 }
 
 function CourierDashboard({ courier }: { courier: CourierInfo }) {
+  const logoUrl = useStoreLogo();
   const [tab, setTab] = useState<"pending" | "today" | "history">("pending");
   const [pendingOrders, setPendingOrders] = useState<DeliveryOrder[]>([]);
   const [todayOrders, setTodayOrders] = useState<DeliveryOrder[]>([]);
@@ -160,15 +168,14 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       watchIdRef.current = null;
     }
     setTrackingActive(false);
-    toast({ title: "Rastreamento desativado" });
-  }, [toast]);
+  }, []);
 
-  // Auto-start tracking when there are pending deliveries
+  // Always start tracking on mount
   useEffect(() => {
-    if (pendingOrders.length > 0 && !trackingActive && watchIdRef.current === null) {
+    if (!trackingActive && watchIdRef.current === null) {
       startTracking();
     }
-  }, [pendingOrders.length, trackingActive, startTracking]);
+  }, [trackingActive, startTracking]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -379,20 +386,20 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       <div className="sticky top-0 z-10 border-b border-border bg-card px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Truck size={20} className="text-primary" />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+            ) : (
+              <Truck size={20} className="text-primary" />
+            )}
             <div>
               <p className="text-sm font-bold text-foreground">{courier.name}</p>
               <p className="text-xs text-muted-foreground">Código: {courier.code}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => trackingActive ? stopTracking() : startTracking()}
-              className={`rounded-lg border p-2 ${trackingActive ? "border-green-500 bg-green-500/10 text-green-600" : "border-border text-muted-foreground hover:bg-muted"}`}
-              title={trackingActive ? "Rastreamento ativo - clique para desativar" : "Ativar rastreamento GPS"}
-            >
-              <Navigation size={16} className={trackingActive ? "animate-pulse" : ""} />
-            </button>
+            {trackingActive && (
+              <Navigation size={16} className="animate-pulse text-green-600" />
+            )}
             <button
               onClick={async () => {
                 setRefreshing(true);
