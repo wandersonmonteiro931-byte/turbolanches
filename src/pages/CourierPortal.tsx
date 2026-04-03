@@ -413,12 +413,21 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       </div>
 
       {/* Balance Card */}
-      <div className="mx-4 mt-4 rounded-xl border border-border bg-card p-4">
-        <p className="text-xs text-muted-foreground mb-1">Saldo do dia</p>
-        <p className="text-2xl font-bold text-foreground">R$ {dailyBalance.toFixed(2).replace(".", ",")}</p>
-        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-          <span>Fixo: R$ {todayFixed.toFixed(2).replace(".", ",")}</span>
-          <span>Taxas ({deliveredToday.length}): R$ {totalDeliveryFees.toFixed(2).replace(".", ",")}</span>
+      <div className="mx-4 mt-4 rounded-xl border-2 border-primary/30 bg-primary/5 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <DollarSign size={20} className="text-primary" />
+          <p className="text-sm font-bold text-foreground">Saldo do Dia</p>
+        </div>
+        <p className="text-3xl font-black text-primary">R$ {dailyBalance.toFixed(2).replace(".", ",")}</p>
+        <div className="flex gap-4 mt-3 text-xs">
+          <div className="rounded-lg bg-card border border-border px-3 py-1.5">
+            <span className="text-muted-foreground">Diária Fixa: </span>
+            <span className="font-bold text-foreground">R$ {todayFixed.toFixed(2).replace(".", ",")}</span>
+          </div>
+          <div className="rounded-lg bg-card border border-border px-3 py-1.5">
+            <span className="text-muted-foreground">Taxas ({deliveredToday.length}): </span>
+            <span className="font-bold text-foreground">R$ {totalDeliveryFees.toFixed(2).replace(".", ",")}</span>
+          </div>
         </div>
       </div>
 
