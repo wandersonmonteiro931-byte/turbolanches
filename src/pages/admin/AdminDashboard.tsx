@@ -1678,11 +1678,13 @@ const AdminDashboard = () => {
 
       {/* Courier Tracking Modal */}
       {trackingCourierId && (
-        <CourierTrackingModal
-          courierId={trackingCourierId}
-          courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
-          onClose={() => setTrackingCourierId(null)}
-        />
+        <Suspense fallback={<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><p className="text-white">Carregando mapa...</p></div>}>
+          <CourierTrackingModal
+            courierId={trackingCourierId}
+            courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
+            onClose={() => setTrackingCourierId(null)}
+          />
+        </Suspense>
       )}
     </div>
   );
