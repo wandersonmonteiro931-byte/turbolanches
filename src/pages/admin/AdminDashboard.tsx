@@ -731,7 +731,7 @@ const AdminDashboard = () => {
       };
     });
     const totalBruto = fullRows.reduce((s, r) => s + r.total_bruto, 0);
-    const totalDelivery = fullRows.reduce((s, r) => s + r.total_delivery_fees, 0);
+    const totalCourierPaid = Array.from(courierCostsByDate.values()).reduce((s, v) => s + v, 0);
     const totalGastos = fullRows.reduce((s, r) => s + r.total_gastos, 0);
     const totalLiquido = fullRows.reduce((s, r) => s + r.total_liquido, 0);
     const totalOrders = fullRows.reduce((s, r) => s + r.total_orders, 0);
@@ -767,7 +767,7 @@ const AdminDashboard = () => {
         <div class="sep"></div>
         <div class="row"><span>Total Pedidos:</span><span>${totalOrders}</span></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${totalBruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Entregadores:</span><span>R$ ${totalDelivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Pago Entregadores:</span><span>R$ ${totalCourierPaid.toFixed(2).replace(".",",")}</span></div>
         <div class="row"><span>Total Gastos:</span><span>R$ ${totalGastos.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
@@ -875,7 +875,7 @@ const AdminDashboard = () => {
         ${statusRows}
         <div class="sep"></div>
         <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Entregadores:</span><span>R$ ${delivery.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Pago Entregadores:</span><span>R$ ${expensesList.filter(e => e.category === "diario").reduce((s, e) => s + e.amount, 0).toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="sub">GASTOS DO DIA:</div>
         ${expenseRows}
