@@ -387,6 +387,13 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => trackingActive ? stopTracking() : startTracking()}
+              className={`rounded-lg border p-2 ${trackingActive ? "border-green-500 bg-green-500/10 text-green-600" : "border-border text-muted-foreground hover:bg-muted"}`}
+              title={trackingActive ? "Rastreamento ativo - clique para desativar" : "Ativar rastreamento GPS"}
+            >
+              <Navigation size={16} className={trackingActive ? "animate-pulse" : ""} />
+            </button>
+            <button
               onClick={async () => {
                 setRefreshing(true);
                 await Promise.all([fetchDailyFees(), fetchPending(), fetchToday(), tab === "history" ? fetchHistory() : Promise.resolve()]);
