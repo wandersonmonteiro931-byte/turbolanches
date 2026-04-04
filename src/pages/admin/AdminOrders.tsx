@@ -35,6 +35,7 @@ interface Order {
   priority: boolean;
   change_for: number | null;
   cancellation_reason: string | null;
+  courier_id: string | null;
 }
 
 interface OrderItem {
