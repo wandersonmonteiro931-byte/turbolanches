@@ -212,6 +212,23 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [requestWakeLock, sendLocation, startTracking]);
 
+  // Listen for admin ping to send fresh location immediately
+  useEffect(() => {
+    const ch = supabase
+      .channel(`ping-courier-${courier.id}`)
+      .on("broadcast", { event: "location_ping" }, () => {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => sendLocation(pos),
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+          );
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [courier.id, sendLocation]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
