@@ -127,7 +127,7 @@ const AdminOrders = () => {
     while (hasMore) {
       let query = supabase
         .from("orders")
-        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
+        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id")
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
 
