@@ -338,12 +338,17 @@ const AdminOrders = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    // If moving to delivered, require route closure confirmation
+    if (newStatus === "delivered") {
+      setShowRouteClosureModal(orderId);
+      return;
+    }
+
     const updateData: any = { status: newStatus };
     const now = new Date().toISOString();
     if (newStatus === "preparing") updateData.preparing_at = now;
     if (newStatus === "ready") updateData.ready_at = now;
     if (newStatus === "delivering") updateData.delivering_at = now;
-    if (newStatus === "delivered") updateData.delivered_at = now;
 
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
@@ -361,6 +366,20 @@ const AdminOrders = () => {
         safePrint(`/admin/imprimir/${orderId}?tipo=obrigado`);
       }
     }
+  };
+
+  const confirmRouteClosure = async (orderId: string) => {
+    const { error } = await supabase.from("orders").update({
+      status: "delivered",
+      delivered_at: new Date().toISOString(),
+    }).eq("id", orderId);
+    if (error) {
+      toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Entrega finalizada com Fechamento de Rota!" });
+    setShowRouteClosureModal(null);
+    await fetchOrders();
   };
 
   const safePrint = (url: string) => {
