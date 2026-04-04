@@ -255,8 +255,15 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
           <div className="py-8 text-center space-y-2">
             <MapPin size={32} className="mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Localização não disponível. O entregador precisa ativar o rastreamento no celular.
+              Localização não disponível. O entregador precisa abrir o portal no celular ao menos uma vez.
             </p>
+            <button
+              onClick={fetchLocation}
+              className="mx-auto mt-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground flex items-center justify-center gap-2 hover:bg-muted"
+            >
+              <RefreshCw size={14} />
+              Tentar Novamente
+            </button>
           </div>
         ) : (
           <div className="space-y-3">
