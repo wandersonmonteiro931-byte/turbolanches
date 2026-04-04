@@ -95,6 +95,7 @@ const AdminOrders = () => {
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
+  const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
