@@ -141,13 +141,14 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
   let buffer = "";
 
   const pushBuffer = (isInsideWrapper = false) => {
-    const content = trimEmptyEdges(buffer);
-    // If inside a wrapper (e.g. [QUADRADONEGRITO]), preserve blank-line-only content
-    if (!content.trim() && !isInsideWrapper) {
+    // Inside wrappers, preserve ALL blank lines (no trimming)
+    const content = isInsideWrapper ? buffer.replace(/^\n/, "").replace(/\n$/, "") : trimEmptyEdges(buffer);
+    if (!content && !isInsideWrapper) {
       buffer = "";
       return;
     }
-    if (!content && !isInsideWrapper) {
+    // Outside wrappers, skip empty-only content
+    if (!isInsideWrapper && !content.trim()) {
       buffer = "";
       return;
     }
