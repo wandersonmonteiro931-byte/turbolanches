@@ -114,8 +114,7 @@ const AdminOrders = () => {
   // Product names for items filter - load all items for filtered orders
   const [allItems, setAllItems] = useState<Record<string, OrderItem[]>>({});
 
-  const hasPendingOrders = allOrders.some((o) => o.status === "pending" || o.status === "paid");
-  useAlarmSound(hasPendingOrders);
+
 
   const fetchOrders = useCallback(async () => {
     let all: Order[] = [];

@@ -38,8 +38,7 @@ const Kitchen = () => {
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
-  // Alarm: plays while there are pending orders
-  useAlarmSound(pendingCount > 0);
+
 
   const fetchOrders = useCallback(async () => {
     // Fetch preparing orders for display
