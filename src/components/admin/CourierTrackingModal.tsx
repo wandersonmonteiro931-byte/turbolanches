@@ -308,7 +308,7 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
 
             <div className="flex gap-2">
               <button
-                onClick={() => { fetchLocation(); if (mapRef.current) mapRef.current.invalidateSize(); }}
+                onClick={() => { requestFreshLocation(); if (mapRef.current) mapRef.current.invalidateSize(); }}
                 className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2 hover:bg-muted"
               >
                 <RefreshCw size={14} />
