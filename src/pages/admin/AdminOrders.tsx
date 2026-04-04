@@ -763,6 +763,12 @@ const AdminOrders = () => {
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Obrigado
                   </button>
+                  {order.courier_id && (
+                    <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
+                      className="flex items-center gap-1 rounded-lg border border-cyan-500 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-50">
+                      <Printer size={14} /> Fechamento de Rota
+                    </button>
+                  )}
                 </div>
 
                 {/* Action buttons */}
