@@ -440,6 +440,7 @@ const AdminManualOrder = () => {
       if (itemsError) throw itemsError;
 
       toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+      clearDraft();
       window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
       navigate("/admin");
     } catch (error: any) {
