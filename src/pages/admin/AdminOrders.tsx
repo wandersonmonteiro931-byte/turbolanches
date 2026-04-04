@@ -663,10 +663,15 @@ const AdminOrders = () => {
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
                     {status.label}
                   </span>
-                  {order.priority && (
-                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
-                  )}
-                  {!order.payment_confirmed && order.status !== "cancelled" && (
+                   {order.priority && (
+                     <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                   )}
+                   {order.status === "ready" && order.courier_id && (
+                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
+                       ⚠️ DEVOLVIDO
+                     </span>
+                   )}
+                   {!order.payment_confirmed && order.status !== "cancelled" && (
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
                   )}
                 </div>
