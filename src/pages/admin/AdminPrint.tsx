@@ -257,6 +257,7 @@ const AdminPrint = () => {
       "[DATAHORAPEDIDO]": dataHoraPedido,
       "[DATAHORAENTREGA]": horarioMax,
       "[DATAHORASAÍDAENTREGA]": horarioSaida,
+      "[HORASAIDA]": horarioSaida,
       "[OBS]": obsText ? `OBS: ${obsText}` : "",
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[RODAPÉ]": rodape,
