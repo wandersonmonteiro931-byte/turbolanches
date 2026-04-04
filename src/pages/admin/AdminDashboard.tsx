@@ -440,6 +440,8 @@ const AdminDashboard = () => {
       await fetchOrders();
     } else {
       await updateStatus(oid, "delivering", selectedCourierId);
+      // Auto-print Fechamento de Rota receipt
+      printReceipt(oid, "entregador");
     }
   };
 
