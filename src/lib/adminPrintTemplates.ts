@@ -140,15 +140,20 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
   let cursor = 0;
   let buffer = "";
 
-  const pushBuffer = () => {
+  const pushBuffer = (isInsideWrapper = false) => {
     const content = trimEmptyEdges(buffer);
-    if (!content.trim()) {
+    // If inside a wrapper (e.g. [QUADRADONEGRITO]), preserve blank-line-only content
+    if (!content.trim() && !isInsideWrapper) {
+      buffer = "";
+      return;
+    }
+    if (!content && !isInsideWrapper) {
       buffer = "";
       return;
     }
 
     sections.push({
-      content,
+      content: content || "",
       wrapperClass: activeRule?.className ?? "",
     });
 
@@ -164,7 +169,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     }
 
     buffer += template.slice(cursor, nextMatch.index);
-    pushBuffer();
+    pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
       if (activeRule?.className === nextMatch.rule.className) {
@@ -179,7 +184,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     cursor = nextMatch.index + nextMatch.token.length;
   }
 
-  pushBuffer();
+  pushBuffer(!!activeRule);
 
   if (sections.length === 0) {
     return [{ content: template.trim(), wrapperClass: "" }];
