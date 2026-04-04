@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
 import logoTurboFallback from "@/assets/logo-turbo.jpeg";
-import { useAlarmSound } from "@/hooks/useAlarmSound";
+
 
 interface KitchenOrder {
   id: string;
