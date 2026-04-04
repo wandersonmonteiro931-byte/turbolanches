@@ -12,6 +12,7 @@ import { useSearchParams } from "react-router-dom";
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
   { type: "obrigado", label: "Comanda Obrigado", icon: Heart },
+  { type: "entregador", label: "Fechamento de Rota", icon: Truck },
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
