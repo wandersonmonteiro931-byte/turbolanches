@@ -140,15 +140,20 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
   let cursor = 0;
   let buffer = "";
 
-  const pushBuffer = () => {
+  const pushBuffer = (isInsideWrapper = false) => {
     const content = trimEmptyEdges(buffer);
-    if (!content.trim()) {
+    // If inside a wrapper (e.g. [QUADRADONEGRITO]), preserve blank-line-only content
+    if (!content.trim() && !isInsideWrapper) {
+      buffer = "";
+      return;
+    }
+    if (!content && !isInsideWrapper) {
       buffer = "";
       return;
     }
 
     sections.push({
-      content,
+      content: content || "",
       wrapperClass: activeRule?.className ?? "",
     });
 
