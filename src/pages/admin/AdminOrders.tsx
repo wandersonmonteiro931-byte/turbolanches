@@ -390,7 +390,7 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado", delayMs?: number) => {
+  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
