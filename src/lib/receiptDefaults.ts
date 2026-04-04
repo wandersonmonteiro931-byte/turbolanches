@@ -73,12 +73,32 @@ ITENS MARCADOS: [TOTALITENS]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_ENTREGADOR = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+---
+[CENTRO][TXTGIGANTE]PEDIDO [NUMEROPEDIDO][/TXTGIGANTE][/CENTRO]
+HORÁRIO DE SAÍDA: [HORASAIDA]
+---
+[CAIXA][TXTGIGANTE][ENDEREÇO][/TXTGIGANTE][/CAIXA]
+---
+TIPO: [DELIVERYRETIRADAVIAGEM]
+PAGAMENTO: [FORMAPAGTO]
+---
+[GRANDE][CENTRO][CAIXA]TOTAL A RECEBER: [TOTALRECEBER][/CAIXA][/CENTRO][/GRANDE]
+---
+[CENTRO]CARIMBO DA LOJA[/CENTRO]
+[CENTRO]_________________________[/CENTRO]
+[CENTRO](Confirmação de Pagamento)[/CENTRO]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
     case "pedido": return DEFAULT_PEDIDO;
     case "obrigado": return DEFAULT_OBRIGADO;
     case "etiquetas": return DEFAULT_ETIQUETAS;
     case "reposicao": return DEFAULT_REPOSICAO;
+    case "entregador": return DEFAULT_ENTREGADOR;
     // Legacy fallbacks
     case "cozinha": return DEFAULT_PEDIDO;
     case "entrega": return DEFAULT_PEDIDO;

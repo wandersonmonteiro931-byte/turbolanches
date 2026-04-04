@@ -103,7 +103,7 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
           {tabConfig.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
               <tab.icon size={16} className="text-primary" />
