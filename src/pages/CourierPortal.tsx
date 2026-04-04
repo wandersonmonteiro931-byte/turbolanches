@@ -353,13 +353,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const handleAction = async () => {
     if (!confirmAction) return;
     const { orderId, action } = confirmAction;
-    if (action === "delivered") {
-      await supabase.from("orders").update({
-        status: "delivered",
-        delivered_at: new Date().toISOString(),
-      }).eq("id", orderId);
-      toast({ title: "✅ Entrega confirmada!" });
-    } else {
+    if (action === "not_delivered") {
       await supabase.from("orders").update({
         status: "ready",
         delivering_at: null,
