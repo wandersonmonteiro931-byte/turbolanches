@@ -1503,6 +1503,11 @@ const AdminDashboard = () => {
                           💰 PAGO
                         </span>
                       )}
+                      {order.status === "ready" && order.courier_id && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
+                          ⚠️ DEVOLVIDO
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
