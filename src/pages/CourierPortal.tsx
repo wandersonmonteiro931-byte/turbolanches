@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Truck, Clock, CheckCircle, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw, Navigation } from "lucide-react";
+import { Truck, Clock, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw, Navigation } from "lucide-react";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
 import { useToast } from "@/hooks/use-toast";
 import { getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
@@ -125,7 +125,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [todayOrders, setTodayOrders] = useState<DeliveryOrder[]>([]);
   const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [dailyFees, setDailyFees] = useState<DailyFee[]>([]);
-  const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "delivered" | "not_delivered" } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "not_delivered" } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingActive, setTrackingActive] = useState(false);
   const watchIdRef = useRef<number | null>(null);
@@ -353,13 +353,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const handleAction = async () => {
     if (!confirmAction) return;
     const { orderId, action } = confirmAction;
-    if (action === "delivered") {
-      await supabase.from("orders").update({
-        status: "delivered",
-        delivered_at: new Date().toISOString(),
-      }).eq("id", orderId);
-      toast({ title: "✅ Entrega confirmada!" });
-    } else {
+    if (action === "not_delivered") {
       await supabase.from("orders").update({
         status: "ready",
         delivering_at: null,
@@ -415,16 +409,14 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
             <span className="font-bold text-green-600">R$ {o.delivery_fee.toFixed(2).replace(".", ",")}</span>
           </div>
           {showActions && (
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setConfirmAction({ orderId: o.id, action: "delivered" })}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2 text-xs font-bold text-white"
-              >
-                <CheckCircle size={14} /> Entregue
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
+                <Clock size={14} className="text-amber-700" />
+                <span className="text-xs font-bold text-amber-700">Aguardando Fechamento de Rota</span>
+              </div>
               <button
                 onClick={() => setConfirmAction({ orderId: o.id, action: "not_delivered" })}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-xs font-bold text-white"
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-xs font-bold text-white"
               >
                 <XCircle size={14} /> Não Entregue
               </button>
@@ -528,9 +520,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4">
             <p className="text-center text-sm font-bold text-foreground">
-              {confirmAction.action === "delivered"
-                ? "Confirmar que o pedido foi entregue?"
-                : "Confirmar que o pedido NÃO foi entregue? Ele voltará para a loja."}
+              Confirmar que o pedido NÃO foi entregue? Ele voltará para a loja.
             </p>
             <div className="flex gap-3">
               <button
@@ -541,9 +531,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
               </button>
               <button
                 onClick={handleAction}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-bold text-white ${
-                  confirmAction.action === "delivered" ? "bg-green-600" : "bg-destructive"
-                }`}
+                className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white bg-destructive"
               >
                 Confirmar
               </button>

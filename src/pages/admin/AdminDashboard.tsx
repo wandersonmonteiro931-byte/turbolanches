@@ -366,11 +366,19 @@ const AdminDashboard = () => {
   };
 
 
+  const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
+
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
     // If moving to delivering and couriers exist, show courier selector first
     if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
       setCourierSelectOrderId(orderId);
       setSelectedCourierId(null);
+      return;
+    }
+
+    // If moving to delivered, require route closure confirmation
+    if (newStatus === "delivered") {
+      setShowRouteClosureModal(orderId);
       return;
     }
 
@@ -382,7 +390,6 @@ const AdminDashboard = () => {
       updateData.delivering_at = nowISO;
       if (courierId) updateData.courier_id = courierId;
     }
-    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
@@ -406,6 +413,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const confirmRouteClosure = async (orderId: string) => {
+    const updateData: any = {
+      status: "delivered",
+      delivered_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
+    if (error) {
+      toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Entrega finalizada com Fechamento de Rota!" });
+    setShowRouteClosureModal(null);
+    await fetchOrders();
+  };
+
   const confirmCourierAndDeliver = async () => {
     if (!courierSelectOrderId || !selectedCourierId) return;
     const oid = courierSelectOrderId;
@@ -418,6 +440,8 @@ const AdminDashboard = () => {
       await fetchOrders();
     } else {
       await updateStatus(oid, "delivering", selectedCourierId);
+      // Auto-print Fechamento de Rota receipt
+      printReceipt(oid, "entregador");
     }
   };
 
@@ -1798,6 +1822,35 @@ const AdminDashboard = () => {
                 Desbloquear
               </button>
     </div>
+          </div>
+        </div>
+      )}
+
+      {/* Route Closure Confirmation Modal */}
+      {showRouteClosureModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
+            <h3 className="text-lg font-bold text-foreground">📋 Fechamento de Rota</h3>
+            <p className="text-sm text-muted-foreground">
+              Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Confirme que o entregador devolveu a comanda com o carimbo de confirmação de pagamento.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRouteClosureModal(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Não
+              </button>
+              <button
+                onClick={() => confirmRouteClosure(showRouteClosureModal)}
+                className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+              >
+                Sim, Finalizar
+              </button>
+            </div>
           </div>
         </div>
       )}

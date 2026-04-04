@@ -6,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
   { type: "obrigado", label: "Comanda Obrigado", icon: Heart },
+  { type: "entregador", label: "Fechamento de Rota", icon: Truck },
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
@@ -19,6 +20,7 @@ const tabConfig = [
 const DEFAULT_LABELS: Record<string, string> = {
   pedido: "PEDIDO",
   obrigado: "OBRIGADO!",
+  entregador: "FECHAMENTO DE ROTA",
   etiquetas: "ETIQUETA",
   reposicao: "LISTA DE COMPRAS",
 };
@@ -101,7 +103,7 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
           {tabConfig.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
               <tab.icon size={16} className="text-primary" />

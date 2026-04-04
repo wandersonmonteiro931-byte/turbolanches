@@ -95,6 +95,7 @@ const AdminOrders = () => {
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
+  const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -337,12 +338,17 @@ const AdminOrders = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    // If moving to delivered, require route closure confirmation
+    if (newStatus === "delivered") {
+      setShowRouteClosureModal(orderId);
+      return;
+    }
+
     const updateData: any = { status: newStatus };
     const now = new Date().toISOString();
     if (newStatus === "preparing") updateData.preparing_at = now;
     if (newStatus === "ready") updateData.ready_at = now;
     if (newStatus === "delivering") updateData.delivering_at = now;
-    if (newStatus === "delivered") updateData.delivered_at = now;
 
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
@@ -360,6 +366,20 @@ const AdminOrders = () => {
         safePrint(`/admin/imprimir/${orderId}?tipo=obrigado`);
       }
     }
+  };
+
+  const confirmRouteClosure = async (orderId: string) => {
+    const { error } = await supabase.from("orders").update({
+      status: "delivered",
+      delivered_at: new Date().toISOString(),
+    }).eq("id", orderId);
+    if (error) {
+      toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Entrega finalizada com Fechamento de Rota!" });
+    setShowRouteClosureModal(null);
+    await fetchOrders();
   };
 
   const safePrint = (url: string) => {
@@ -791,6 +811,34 @@ const AdminOrders = () => {
           </div>
         );
       })}
+      {/* Route Closure Confirmation Modal */}
+      {showRouteClosureModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
+            <h3 className="text-lg font-bold text-foreground">📋 Fechamento de Rota</h3>
+            <p className="text-sm text-muted-foreground">
+              Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Confirme que o entregador devolveu a comanda com o carimbo de confirmação de pagamento.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRouteClosureModal(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
+                Não
+              </button>
+              <button
+                onClick={() => confirmRouteClosure(showRouteClosureModal)}
+                className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+              >
+                Sim, Finalizar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
