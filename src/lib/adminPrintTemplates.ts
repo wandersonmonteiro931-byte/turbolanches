@@ -317,7 +317,8 @@ export const renderAdminTemplateMarkup = (
 
   const renderTextLine = (rawLine: string) => {
     const trimmedLine = rawLine.trim();
-    if (!trimmedLine) return "";
+    // Preserve empty lines as spacing
+    if (!trimmedLine) return '<div class="info">&nbsp;</div>';
 
     if (shouldHideOptionalLine(rawLine, variables)) return "";
 
@@ -335,11 +336,13 @@ export const renderAdminTemplateMarkup = (
     const classes = resolveTemplateLineClasses(rawLine);
     const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
-    if (!content) return "";
+    // Allow lines that are entirely formatting (boxes, etc.) with empty content
     const markup = renderInlineTemplateMarkup(replaced);
-    if (!markup) return "";
+    if (!content && !markup) return "";
+    // If content is empty but markup has structure (spans etc), render with nbsp
+    const finalMarkup = markup || "&nbsp;";
 
-    return `<div class="${classes}">${markup}</div>`;
+    return `<div class="${classes}">${finalMarkup}</div>`;
   };
 
   const renderLineWithBlocks = (rawLine: string) => {
@@ -376,13 +379,13 @@ export const renderAdminTemplateMarkup = (
       const line = rawLine.trimEnd();
       const trimmed = line.trim();
 
-      if (!trimmed) return "";
+      // Preserve empty lines as spacing
+      if (!trimmed) return '<div class="info">&nbsp;</div>';
       if (trimmed === "---") return '<div class="separator"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
     })
-    .filter(Boolean)
     .join("");
 };
 

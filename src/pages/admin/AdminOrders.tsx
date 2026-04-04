@@ -820,7 +820,7 @@ const AdminOrders = () => {
               Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?
             </p>
             <p className="text-xs text-muted-foreground">
-              Confirme que o entregador devolveu a comanda com o carimbo de confirmação de pagamento.
+              Confirme que o entregador devolveu a comanda e realize o carimbo de confirmação de pagamento.
             </p>
             <div className="flex gap-3">
               <button

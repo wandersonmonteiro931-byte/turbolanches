@@ -225,7 +225,14 @@ const AdminPrint = () => {
 
     const storeName = tpl?.store_name || "TURBO LANCHES";
     const resolvedType = resolveType(tipo);
-    const tipoLabel = tpl?.label || (resolvedType === "obrigado" ? "OBRIGADO!" : "PEDIDO");
+    const defaultLabels: Record<string, string> = {
+      pedido: "PEDIDO",
+      obrigado: "OBRIGADO!",
+      entregador: "FECHAMENTO DE ROTA",
+      etiquetas: "ETIQUETA",
+      reposicao: "LISTA DE COMPRAS",
+    };
+    const tipoLabel = tpl?.label || defaultLabels[resolvedType] || "PEDIDO";
     const divulgacao = tpl?.custom_message || "";
     const rodape = tpl?.footer_message || "";
 
@@ -257,6 +264,7 @@ const AdminPrint = () => {
       "[DATAHORAPEDIDO]": dataHoraPedido,
       "[DATAHORAENTREGA]": horarioMax,
       "[DATAHORASAÍDAENTREGA]": horarioSaida,
+      "[HORASAIDA]": horarioSaida,
       "[OBS]": obsText ? `OBS: ${obsText}` : "",
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[RODAPÉ]": rodape,

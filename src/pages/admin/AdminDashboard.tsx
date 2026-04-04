@@ -1474,7 +1474,9 @@ const AdminDashboard = () => {
 
             return (
               <div key={order.id} className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
-                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" : "border-border"
+                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
+                (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
+                "border-border"
               }`}>
                 <button
                   onClick={() => {
@@ -1499,6 +1501,11 @@ const AdminDashboard = () => {
                       {order.status === "paid" && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
                           💰 PAGO
+                        </span>
+                      )}
+                      {order.status === "ready" && order.courier_id && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
+                          ⚠️ DEVOLVIDO
                         </span>
                       )}
                     </div>
@@ -1827,33 +1834,42 @@ const AdminDashboard = () => {
       )}
 
       {/* Route Closure Confirmation Modal */}
-      {showRouteClosureModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
-            <h3 className="text-lg font-bold text-foreground">📋 Fechamento de Rota</h3>
-            <p className="text-sm text-muted-foreground">
-              Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Confirme que o entregador devolveu a comanda com o carimbo de confirmação de pagamento.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRouteClosureModal(null)}
-                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
-              >
-                Não
-              </button>
-              <button
-                onClick={() => confirmRouteClosure(showRouteClosureModal)}
-                className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
-              >
-                Sim, Finalizar
-              </button>
+      {showRouteClosureModal && (() => {
+        const closureOrder = orders.find(o => o.id === showRouteClosureModal);
+        const isReturned = closureOrder?.status === "ready" && !!closureOrder?.courier_id;
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
+              <h3 className="text-lg font-bold text-foreground">
+                {isReturned ? "⚠️ Pedido Devolvido" : "📋 Fechamento de Rota"}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {isReturned
+                  ? <>O pedido foi <span className="font-bold text-foreground">devolvido</span>?</>
+                  : <>Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?</>
+                }
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Confirme que o entregador devolveu a comanda e realize o carimbo de confirmação de pagamento.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowRouteClosureModal(null)}
+                  className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+                >
+                  Não
+                </button>
+                <button
+                  onClick={() => confirmRouteClosure(showRouteClosureModal)}
+                  className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+                >
+                  Sim, Finalizar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Courier Tracking Modal */}
       {trackingCourierId && (() => {
