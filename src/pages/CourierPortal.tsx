@@ -125,7 +125,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [todayOrders, setTodayOrders] = useState<DeliveryOrder[]>([]);
   const [historyOrders, setHistoryOrders] = useState<DeliveryOrder[]>([]);
   const [dailyFees, setDailyFees] = useState<DailyFee[]>([]);
-  const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "delivered" | "not_delivered" } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ orderId: string; action: "not_delivered" } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [trackingActive, setTrackingActive] = useState(false);
   const watchIdRef = useRef<number | null>(null);
