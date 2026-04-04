@@ -129,7 +129,18 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   const [refreshing, setRefreshing] = useState(false);
   const [trackingActive, setTrackingActive] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
   const { toast } = useToast();
+
+  // Wake Lock - keep screen on so GPS stays active
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ("wakeLock" in navigator && !wakeLockRef.current) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request("screen");
+        wakeLockRef.current.addEventListener("release", () => { wakeLockRef.current = null; });
+      }
+    } catch {}
+  }, []);
 
   // GPS Tracking - send location to DB
   const sendLocation = useCallback(async (position: GeolocationPosition) => {
@@ -159,8 +170,9 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     );
     watchIdRef.current = id;
     setTrackingActive(true);
+    requestWakeLock();
     toast({ title: "📍 Rastreamento ativado!" });
-  }, [sendLocation, toast]);
+  }, [sendLocation, toast, requestWakeLock]);
 
   const stopTracking = useCallback(() => {
     if (watchIdRef.current !== null) {
@@ -177,11 +189,37 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     }
   }, [trackingActive, startTracking]);
 
+  // Re-acquire wake lock and force GPS update when page becomes visible again
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
+        // Force a fresh GPS reading
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => sendLocation(pos),
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+          );
+        }
+        // Restart watchPosition if it was lost
+        if (watchIdRef.current === null) {
+          startTracking();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [requestWakeLock, sendLocation, startTracking]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      if (wakeLockRef.current) {
+        try { wakeLockRef.current.release(); } catch {}
       }
     };
   }, []);
