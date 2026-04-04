@@ -336,11 +336,13 @@ export const renderAdminTemplateMarkup = (
     const classes = resolveTemplateLineClasses(rawLine);
     const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
-    if (!content) return "";
+    // Allow lines that are entirely formatting (boxes, etc.) with empty content
     const markup = renderInlineTemplateMarkup(replaced);
-    if (!markup) return "";
+    if (!content && !markup) return "";
+    // If content is empty but markup has structure (spans etc), render with nbsp
+    const finalMarkup = markup || "&nbsp;";
 
-    return `<div class="${classes}">${markup}</div>`;
+    return `<div class="${classes}">${finalMarkup}</div>`;
   };
 
   const renderLineWithBlocks = (rawLine: string) => {
