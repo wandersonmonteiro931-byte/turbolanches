@@ -35,6 +35,7 @@ interface Order {
   priority: boolean;
   change_for: number | null;
   cancellation_reason: string | null;
+  courier_id: string | null;
 }
 
 interface OrderItem {
@@ -126,7 +127,7 @@ const AdminOrders = () => {
     while (hasMore) {
       let query = supabase
         .from("orders")
-        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason")
+        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id")
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -389,7 +390,7 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado", delayMs?: number) => {
+  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
@@ -639,7 +640,9 @@ const AdminOrders = () => {
             className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
               order.status === "pending" || order.status === "paid"
                 ? "border-amber-400 animate-pulse ring-1 ring-amber-300"
-                : "border-border"
+                : (order.status === "ready" && order.courier_id)
+                  ? "border-red-500 border-2 animate-pulse"
+                  : "border-border"
             }`}
           >
             <button
@@ -660,10 +663,15 @@ const AdminOrders = () => {
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
                     {status.label}
                   </span>
-                  {order.priority && (
-                    <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
-                  )}
-                  {!order.payment_confirmed && order.status !== "cancelled" && (
+                   {order.priority && (
+                     <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                   )}
+                   {order.status === "ready" && order.courier_id && (
+                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
+                       ⚠️ DEVOLVIDO
+                     </span>
+                   )}
+                   {!order.payment_confirmed && order.status !== "cancelled" && (
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
                   )}
                 </div>
@@ -755,6 +763,12 @@ const AdminOrders = () => {
                     className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
                     <Printer size={14} /> Obrigado
                   </button>
+                  {order.courier_id && (
+                    <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
+                      className="flex items-center gap-1 rounded-lg border border-cyan-500 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-50">
+                      <Printer size={14} /> Fechamento de Rota
+                    </button>
+                  )}
                 </div>
 
                 {/* Action buttons */}
