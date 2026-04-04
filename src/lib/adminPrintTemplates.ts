@@ -317,7 +317,8 @@ export const renderAdminTemplateMarkup = (
 
   const renderTextLine = (rawLine: string) => {
     const trimmedLine = rawLine.trim();
-    if (!trimmedLine) return "";
+    // Preserve empty lines as spacing
+    if (!trimmedLine) return '<div class="info">&nbsp;</div>';
 
     if (shouldHideOptionalLine(rawLine, variables)) return "";
 
