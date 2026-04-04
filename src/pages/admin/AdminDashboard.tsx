@@ -1474,7 +1474,9 @@ const AdminDashboard = () => {
 
             return (
               <div key={order.id} className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
-                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" : "border-border"
+                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
+                (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
+                "border-border"
               }`}>
                 <button
                   onClick={() => {
