@@ -409,16 +409,14 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
             <span className="font-bold text-green-600">R$ {o.delivery_fee.toFixed(2).replace(".", ",")}</span>
           </div>
           {showActions && (
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setConfirmAction({ orderId: o.id, action: "delivered" })}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-green-600 py-2 text-xs font-bold text-white"
-              >
-                <CheckCircle size={14} /> Entregue
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-2">
+                <Clock size={14} className="text-amber-700" />
+                <span className="text-xs font-bold text-amber-700">Aguardando Fechamento de Rota</span>
+              </div>
               <button
                 onClick={() => setConfirmAction({ orderId: o.id, action: "not_delivered" })}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-xs font-bold text-white"
+                className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-destructive py-2 text-xs font-bold text-white"
               >
                 <XCircle size={14} /> Não Entregue
               </button>
