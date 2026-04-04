@@ -119,28 +119,61 @@ const SectionBlock = ({
   </div>
 );
 
+const DRAFT_KEY = "admin_manual_order_draft";
+
+interface DraftState {
+  cart: CartItem[];
+  deliveryType: string;
+  paymentMethod: string;
+  isPaid: boolean;
+  customerName: string;
+  customerPhone: string;
+  selectedCustomerId: string | null;
+  selectedCustomerCode: string;
+  tableNumber: string;
+  addressStreet: string;
+  addressNumber: string;
+  addressNeighborhood: string;
+  addressComplement: string;
+  observations: string;
+  changeFor: string;
+  customDeliveryFee: string;
+  deliveryFeeOverridden: boolean;
+  discount: string;
+}
+
+const loadDraft = (): Partial<DraftState> => {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+};
+
+const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
+
 const AdminManualOrder = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(draft.cart ?? []);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState("mesa");
-  const [paymentMethod, setPaymentMethod] = useState("dinheiro");
-  const [isPaid, setIsPaid] = useState(false);
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>("");
-  const [tableNumber, setTableNumber] = useState("");
-  const [addressStreet, setAddressStreet] = useState("");
-  const [addressNumber, setAddressNumber] = useState("");
-  const [addressNeighborhood, setAddressNeighborhood] = useState("");
-  const [addressComplement, setAddressComplement] = useState("");
-  const [observations, setObservations] = useState("");
-  const [changeFor, setChangeFor] = useState("");
+  const [deliveryType, setDeliveryType] = useState(draft.deliveryType ?? "mesa");
+  const [paymentMethod, setPaymentMethod] = useState(draft.paymentMethod ?? "dinheiro");
+  const [isPaid, setIsPaid] = useState(draft.isPaid ?? false);
+  const [customerName, setCustomerName] = useState(draft.customerName ?? "");
+  const [customerPhone, setCustomerPhone] = useState(draft.customerPhone ?? "");
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(draft.selectedCustomerId ?? null);
+  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>(draft.selectedCustomerCode ?? "");
+  const [tableNumber, setTableNumber] = useState(draft.tableNumber ?? "");
+  const [addressStreet, setAddressStreet] = useState(draft.addressStreet ?? "");
+  const [addressNumber, setAddressNumber] = useState(draft.addressNumber ?? "");
+  const [addressNeighborhood, setAddressNeighborhood] = useState(draft.addressNeighborhood ?? "");
+  const [addressComplement, setAddressComplement] = useState(draft.addressComplement ?? "");
+  const [observations, setObservations] = useState(draft.observations ?? "");
+  const [changeFor, setChangeFor] = useState(draft.changeFor ?? "");
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -148,15 +181,29 @@ const AdminManualOrder = () => {
     free_delivery_max_km: 0,
     temp_free_delivery_all: false,
   });
-  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>("");
-  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(false);
-  const [discount, setDiscount] = useState<string>("");
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>(draft.customDeliveryFee ?? "");
+  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(draft.deliveryFeeOverridden ?? false);
+  const [discount, setDiscount] = useState<string>(draft.discount ?? "");
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const comboSelectionInitializedRef = useRef(false);
+
+  // Persist draft on every relevant change
+  useEffect(() => {
+    const d: DraftState = {
+      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+      selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
+      addressNumber, addressNeighborhood, addressComplement, observations,
+      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
+    };
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
+  }, [cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+    selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
+    addressNumber, addressNeighborhood, addressComplement, observations,
+    changeFor, customDeliveryFee, deliveryFeeOverridden, discount]);
 
   useEffect(() => {
     const cartIds = cart.map((item) => item.product.id);
@@ -393,6 +440,7 @@ const AdminManualOrder = () => {
       if (itemsError) throw itemsError;
 
       toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+      clearDraft();
       window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
       navigate("/admin");
     } catch (error: any) {
