@@ -169,7 +169,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     }
 
     buffer += template.slice(cursor, nextMatch.index);
-    pushBuffer();
+    pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
       if (activeRule?.className === nextMatch.rule.className) {
@@ -184,7 +184,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     cursor = nextMatch.index + nextMatch.token.length;
   }
 
-  pushBuffer();
+  pushBuffer(!!activeRule);
 
   if (sections.length === 0) {
     return [{ content: template.trim(), wrapperClass: "" }];
