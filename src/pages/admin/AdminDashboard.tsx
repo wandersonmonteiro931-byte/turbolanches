@@ -366,11 +366,19 @@ const AdminDashboard = () => {
   };
 
 
+  const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
+
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
     // If moving to delivering and couriers exist, show courier selector first
     if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
       setCourierSelectOrderId(orderId);
       setSelectedCourierId(null);
+      return;
+    }
+
+    // If moving to delivered, require route closure confirmation
+    if (newStatus === "delivered") {
+      setShowRouteClosureModal(orderId);
       return;
     }
 
@@ -382,7 +390,6 @@ const AdminDashboard = () => {
       updateData.delivering_at = nowISO;
       if (courierId) updateData.courier_id = courierId;
     }
-    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
@@ -404,6 +411,21 @@ const AdminDashboard = () => {
         printReceipt(orderId, "obrigado");
       }
     }
+  };
+
+  const confirmRouteClosure = async (orderId: string) => {
+    const updateData: any = {
+      status: "delivered",
+      delivered_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
+    if (error) {
+      toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Entrega finalizada com Fechamento de Rota!" });
+    setShowRouteClosureModal(null);
+    await fetchOrders();
   };
 
   const confirmCourierAndDeliver = async () => {
