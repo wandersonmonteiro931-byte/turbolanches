@@ -180,6 +180,17 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
     };
   }, []);
 
+  // Request fresh location from courier device via broadcast
+  const requestFreshLocation = useCallback(() => {
+    supabase.channel(`ping-courier-${courierId}`).send({
+      type: "broadcast",
+      event: "location_ping",
+      payload: { requestedAt: Date.now() },
+    });
+    // Also fetch DB immediately
+    fetchLocation();
+  }, [courierId, fetchLocation]);
+
   // Fetch + subscribe
   useEffect(() => {
     fetchLocation();
