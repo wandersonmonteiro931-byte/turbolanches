@@ -379,13 +379,13 @@ export const renderAdminTemplateMarkup = (
       const line = rawLine.trimEnd();
       const trimmed = line.trim();
 
-      if (!trimmed) return "";
+      // Preserve empty lines as spacing
+      if (!trimmed) return '<div class="info">&nbsp;</div>';
       if (trimmed === "---") return '<div class="separator"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
     })
-    .filter(Boolean)
     .join("");
 };
 
