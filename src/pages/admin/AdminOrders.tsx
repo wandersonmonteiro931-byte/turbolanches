@@ -639,7 +639,9 @@ const AdminOrders = () => {
             className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
               order.status === "pending" || order.status === "paid"
                 ? "border-amber-400 animate-pulse ring-1 ring-amber-300"
-                : "border-border"
+                : (order.status === "ready" && order.courier_id)
+                  ? "border-red-500 border-2 animate-pulse"
+                  : "border-border"
             }`}
           >
             <button
