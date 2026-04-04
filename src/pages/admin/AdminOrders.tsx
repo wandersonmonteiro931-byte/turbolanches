@@ -4,7 +4,7 @@ import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, F
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
-import { useAlarmSound } from "@/hooks/useAlarmSound";
+
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBusinessDayRange } from "@/lib/businessDay";
@@ -114,8 +114,7 @@ const AdminOrders = () => {
   // Product names for items filter - load all items for filtered orders
   const [allItems, setAllItems] = useState<Record<string, OrderItem[]>>({});
 
-  const hasPendingOrders = allOrders.some((o) => o.status === "pending" || o.status === "paid");
-  useAlarmSound(hasPendingOrders);
+
 
   const fetchOrders = useCallback(async () => {
     let all: Order[] = [];
