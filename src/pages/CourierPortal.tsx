@@ -520,9 +520,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4">
             <p className="text-center text-sm font-bold text-foreground">
-              {confirmAction.action === "delivered"
-                ? "Confirmar que o pedido foi entregue?"
-                : "Confirmar que o pedido NÃO foi entregue? Ele voltará para a loja."}
+              Confirmar que o pedido NÃO foi entregue? Ele voltará para a loja.
             </p>
             <div className="flex gap-3">
               <button
@@ -533,9 +531,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
               </button>
               <button
                 onClick={handleAction}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-bold text-white ${
-                  confirmAction.action === "delivered" ? "bg-green-600" : "bg-destructive"
-                }`}
+                className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white bg-destructive"
               >
                 Confirmar
               </button>
