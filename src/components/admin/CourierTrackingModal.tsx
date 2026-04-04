@@ -180,6 +180,17 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
     };
   }, []);
 
+  // Request fresh location from courier device via broadcast
+  const requestFreshLocation = useCallback(() => {
+    supabase.channel(`ping-courier-${courierId}`).send({
+      type: "broadcast",
+      event: "location_ping",
+      payload: { requestedAt: Date.now() },
+    });
+    // Also fetch DB immediately
+    fetchLocation();
+  }, [courierId, fetchLocation]);
+
   // Fetch + subscribe
   useEffect(() => {
     fetchLocation();
@@ -297,7 +308,7 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
 
             <div className="flex gap-2">
               <button
-                onClick={() => { fetchLocation(); if (mapRef.current) mapRef.current.invalidateSize(); }}
+                onClick={() => { requestFreshLocation(); if (mapRef.current) mapRef.current.invalidateSize(); }}
                 className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium text-foreground flex items-center justify-center gap-2 hover:bg-muted"
               >
                 <RefreshCw size={14} />
