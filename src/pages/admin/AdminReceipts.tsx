@@ -20,6 +20,7 @@ const tabConfig = [
 const DEFAULT_LABELS: Record<string, string> = {
   pedido: "PEDIDO",
   obrigado: "OBRIGADO!",
+  entregador: "FECHAMENTO DE ROTA",
   etiquetas: "ETIQUETA",
   reposicao: "LISTA DE COMPRAS",
 };
