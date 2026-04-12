@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet
+  Eye, EyeOff, Wallet, Trash2, PlusCircle
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -126,6 +126,11 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
+  const [editItems, setEditItems] = useState<OrderItem[]>([]);
+  const [addItemName, setAddItemName] = useState("");
+  const [addItemQty, setAddItemQty] = useState(1);
+  const [addItemPrice, setAddItemPrice] = useState(0);
+  const [productSuggestions, setProductSuggestions] = useState<{ name: string; price: number }[]>([]);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [togglingStore, setTogglingStore] = useState(false);
@@ -505,7 +510,7 @@ const AdminDashboard = () => {
   };
 
   // Edit order
-  const startEdit = (order: Order) => {
+  const startEdit = async (order: Order) => {
     setEditingOrder(order.id);
     setEditData({
       observations: order.observations || "",
@@ -518,17 +523,64 @@ const AdminDashboard = () => {
       discount: order.discount,
       delivery_fee: order.delivery_fee,
     });
+    setAddItemName("");
+    setAddItemQty(1);
+    setAddItemPrice(0);
+    setProductSuggestions([]);
+    // Load items for editing
+    const { data } = await supabase.from("order_items").select("*").eq("order_id", order.id);
+    setEditItems(data || []);
+    // Also update main items cache
+    if (data) setItems(prev => ({ ...prev, [order.id]: data }));
   };
 
-  const saveEdit = async (orderId: string) => {
-    const order = orders.find(o => o.id === orderId);
-    const newDeliveryFee = Number(editData.delivery_fee ?? order?.delivery_fee ?? 0);
-    const newDiscount = Number(editData.discount || 0);
-    const newTotal = Number(order?.subtotal || 0) + newDeliveryFee - newDiscount;
+  const searchProducts = async (term: string) => {
+    if (term.length < 2) { setProductSuggestions([]); return; }
+    let q = supabase.from("products").select("name, price").ilike("name", `%${term}%`).eq("active", true).limit(8);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    setProductSuggestions(data || []);
+  };
 
+  const updateEditItem = (itemId: string, field: "quantity" | "unit_price" | "product_name" | "observations", value: any) => {
+    setEditItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+  };
+
+  const removeEditItem = (itemId: string) => {
+    setEditItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const addNewItem = () => {
+    if (!addItemName.trim()) return;
+    const newItem: OrderItem = {
+      id: `new-${Date.now()}`,
+      product_name: addItemName.trim(),
+      quantity: addItemQty,
+      unit_price: addItemPrice,
+      observations: null,
+      addons_json: [],
+    };
+    setEditItems(prev => [...prev, newItem]);
+    setAddItemName("");
+    setAddItemQty(1);
+    setAddItemPrice(0);
+    setProductSuggestions([]);
+  };
+
+  const calcEditSubtotal = () => editItems.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0);
+
+  const saveEdit = async (orderId: string, reprint = false) => {
+    const newSubtotal = calcEditSubtotal();
+    const newDeliveryFee = Number(editData.delivery_fee ?? 0);
+    const newDiscount = Number(editData.discount || 0);
+    const newTotal = newSubtotal + newDeliveryFee - newDiscount;
+
+    // Update order
     const { error } = await supabase.from("orders").update({
       ...editData,
+      subtotal: newSubtotal,
       delivery_fee: newDeliveryFee,
+      discount: newDiscount,
       total: newTotal,
     }).eq("id", orderId);
 
@@ -536,9 +588,33 @@ const AdminDashboard = () => {
       toast({ title: "Erro ao salvar", variant: "destructive" });
       return;
     }
+
+    // Delete existing items and re-insert
+    await supabase.from("order_items").delete().eq("order_id", orderId);
+    
+    const itemsToInsert = editItems.map(item => ({
+      order_id: orderId,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      observations: item.observations || "",
+      addons_json: item.addons_json || [],
+    }));
+    
+    if (itemsToInsert.length > 0) {
+      await supabase.from("order_items").insert(itemsToInsert);
+    }
+
     setEditingOrder(null);
+    // Refresh items cache
+    setItems(prev => { const copy = { ...prev }; delete copy[orderId]; return copy; });
     toast({ title: "✅ Pedido atualizado!" });
-    fetchOrders();
+    await fetchOrders();
+    await fetchItems(orderId);
+
+    if (reprint) {
+      printReceipt(orderId, "pedido");
+    }
   };
 
   // Calculate courier costs for a given date from delivered orders
@@ -1559,6 +1635,8 @@ const AdminDashboard = () => {
                               <option value="pix">PIX</option>
                               <option value="dinheiro">Dinheiro</option>
                               <option value="cartao">Cartão</option>
+                              <option value="credito">Crédito</option>
+                              <option value="debito">Débito</option>
                               <option value="fiado">Fiado</option>
                             </select>
                           </div>
@@ -1607,10 +1685,98 @@ const AdminDashboard = () => {
                             onChange={e => setEditData(d => ({ ...d, observations: e.target.value }))}
                             className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" rows={2} />
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Items editing */}
+                        <div className="space-y-2">
+                          <h5 className="text-[10px] font-bold text-muted-foreground uppercase">Itens do Pedido</h5>
+                          {editItems.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 rounded border border-border bg-background p-2">
+                              <input
+                                type="number" min={1} value={item.quantity}
+                                onChange={e => updateEditItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
+                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                              />
+                              <span className="text-xs text-muted-foreground">×</span>
+                              <input
+                                type="text" value={item.product_name}
+                                onChange={e => updateEditItem(item.id, "product_name", e.target.value)}
+                                className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground min-w-0"
+                              />
+                              <input
+                                type="number" step="0.01" value={item.unit_price}
+                                onChange={e => updateEditItem(item.id, "unit_price", Number(e.target.value))}
+                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                                title="Preço unitário"
+                              />
+                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                = R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                              </span>
+                              <button onClick={() => removeEditItem(item.id)} className="text-destructive hover:text-destructive/80 p-0.5" title="Remover item">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add new item */}
+                          <div className="rounded border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text" placeholder="Adicionar produto..."
+                                  value={addItemName}
+                                  onChange={e => { setAddItemName(e.target.value); searchProducts(e.target.value); }}
+                                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
+                                />
+                                {productSuggestions.length > 0 && (
+                                  <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-32 overflow-y-auto">
+                                    {productSuggestions.map((p, i) => (
+                                      <button key={i} onClick={() => {
+                                        setAddItemName(p.name);
+                                        setAddItemPrice(p.price);
+                                        setProductSuggestions([]);
+                                      }} className="w-full text-left px-2 py-1.5 text-xs text-foreground hover:bg-muted flex justify-between">
+                                        <span>{p.name}</span>
+                                        <span className="text-muted-foreground">R$ {p.price.toFixed(2).replace(".", ",")}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <input type="number" min={1} value={addItemQty}
+                                onChange={e => setAddItemQty(Math.max(1, Number(e.target.value)))}
+                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                                title="Quantidade"
+                              />
+                              <input type="number" step="0.01" value={addItemPrice}
+                                onChange={e => setAddItemPrice(Number(e.target.value))}
+                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                                placeholder="R$"
+                                title="Preço unitário"
+                              />
+                              <button onClick={addNewItem} disabled={!addItemName.trim()}
+                                className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Adicionar item">
+                                <PlusCircle size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Totals preview */}
+                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-xs">
+                          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (itens)</span><span className="font-bold text-foreground">R$ {calcEditSubtotal().toFixed(2).replace(".", ",")}</span></div>
+                          <div className="flex justify-between"><span className="text-muted-foreground">+ Entrega</span><span className="text-foreground">R$ {Number(editData.delivery_fee ?? 0).toFixed(2).replace(".", ",")}</span></div>
+                          {(editData.discount || 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">- Desconto</span><span className="text-green-600">R$ {Number(editData.discount || 0).toFixed(2).replace(".", ",")}</span></div>}
+                          <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {(calcEditSubtotal() + Number(editData.delivery_fee ?? 0) - Number(editData.discount || 0)).toFixed(2).replace(".", ",")}</span></div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
                           <button onClick={() => saveEdit(order.id)}
                             className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
                             <Save size={14} /> Salvar
+                          </button>
+                          <button onClick={() => saveEdit(order.id, true)}
+                            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">
+                            <Printer size={14} /> Salvar e Reimprimir
                           </button>
                           <button onClick={() => setEditingOrder(null)}
                             className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground">
