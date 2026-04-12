@@ -84,6 +84,7 @@ interface StoreSettings {
   scheduled_close: string | null;
   use_schedule: boolean;
   obrigado_receipt_enabled?: boolean;
+  entregador_receipt_enabled?: boolean;
 }
 
 const tabs = [
@@ -224,7 +225,7 @@ const AdminDashboard = () => {
   const fetchStoreSettings = useCallback(async () => {
     let query = supabase
       .from("store_settings")
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled, entregador_receipt_enabled")
       .limit(1);
 
     if (storeId) {
@@ -440,8 +441,10 @@ const AdminDashboard = () => {
       await fetchOrders();
     } else {
       await updateStatus(oid, "delivering", selectedCourierId);
-      // Auto-print Fechamento de Rota receipt
-      printReceipt(oid, "entregador");
+      // Auto-print Fechamento de Rota receipt if enabled
+      if (storeSettings?.entregador_receipt_enabled !== false) {
+        printReceipt(oid, "entregador");
+      }
     }
   };
 
