@@ -510,7 +510,7 @@ const AdminDashboard = () => {
   };
 
   // Edit order
-  const startEdit = (order: Order) => {
+  const startEdit = async (order: Order) => {
     setEditingOrder(order.id);
     setEditData({
       observations: order.observations || "",
@@ -523,17 +523,64 @@ const AdminDashboard = () => {
       discount: order.discount,
       delivery_fee: order.delivery_fee,
     });
+    setAddItemName("");
+    setAddItemQty(1);
+    setAddItemPrice(0);
+    setProductSuggestions([]);
+    // Load items for editing
+    const { data } = await supabase.from("order_items").select("*").eq("order_id", order.id);
+    setEditItems(data || []);
+    // Also update main items cache
+    if (data) setItems(prev => ({ ...prev, [order.id]: data }));
   };
 
-  const saveEdit = async (orderId: string) => {
-    const order = orders.find(o => o.id === orderId);
-    const newDeliveryFee = Number(editData.delivery_fee ?? order?.delivery_fee ?? 0);
-    const newDiscount = Number(editData.discount || 0);
-    const newTotal = Number(order?.subtotal || 0) + newDeliveryFee - newDiscount;
+  const searchProducts = async (term: string) => {
+    if (term.length < 2) { setProductSuggestions([]); return; }
+    let q = supabase.from("products").select("name, price").ilike("name", `%${term}%`).eq("active", true).limit(8);
+    if (storeId) q = q.eq("store_id", storeId);
+    const { data } = await q;
+    setProductSuggestions(data || []);
+  };
 
+  const updateEditItem = (itemId: string, field: "quantity" | "unit_price" | "product_name" | "observations", value: any) => {
+    setEditItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+  };
+
+  const removeEditItem = (itemId: string) => {
+    setEditItems(prev => prev.filter(item => item.id !== itemId));
+  };
+
+  const addNewItem = () => {
+    if (!addItemName.trim()) return;
+    const newItem: OrderItem = {
+      id: `new-${Date.now()}`,
+      product_name: addItemName.trim(),
+      quantity: addItemQty,
+      unit_price: addItemPrice,
+      observations: null,
+      addons_json: [],
+    };
+    setEditItems(prev => [...prev, newItem]);
+    setAddItemName("");
+    setAddItemQty(1);
+    setAddItemPrice(0);
+    setProductSuggestions([]);
+  };
+
+  const calcEditSubtotal = () => editItems.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0);
+
+  const saveEdit = async (orderId: string, reprint = false) => {
+    const newSubtotal = calcEditSubtotal();
+    const newDeliveryFee = Number(editData.delivery_fee ?? 0);
+    const newDiscount = Number(editData.discount || 0);
+    const newTotal = newSubtotal + newDeliveryFee - newDiscount;
+
+    // Update order
     const { error } = await supabase.from("orders").update({
       ...editData,
+      subtotal: newSubtotal,
       delivery_fee: newDeliveryFee,
+      discount: newDiscount,
       total: newTotal,
     }).eq("id", orderId);
 
@@ -541,9 +588,33 @@ const AdminDashboard = () => {
       toast({ title: "Erro ao salvar", variant: "destructive" });
       return;
     }
+
+    // Delete existing items and re-insert
+    await supabase.from("order_items").delete().eq("order_id", orderId);
+    
+    const itemsToInsert = editItems.map(item => ({
+      order_id: orderId,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      observations: item.observations || "",
+      addons_json: item.addons_json || [],
+    }));
+    
+    if (itemsToInsert.length > 0) {
+      await supabase.from("order_items").insert(itemsToInsert);
+    }
+
     setEditingOrder(null);
+    // Refresh items cache
+    setItems(prev => { const copy = { ...prev }; delete copy[orderId]; return copy; });
     toast({ title: "✅ Pedido atualizado!" });
-    fetchOrders();
+    await fetchOrders();
+    await fetchItems(orderId);
+
+    if (reprint) {
+      printReceipt(orderId, "pedido");
+    }
   };
 
   // Calculate courier costs for a given date from delivered orders
