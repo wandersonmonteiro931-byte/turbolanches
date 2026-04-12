@@ -1635,6 +1635,8 @@ const AdminDashboard = () => {
                               <option value="pix">PIX</option>
                               <option value="dinheiro">Dinheiro</option>
                               <option value="cartao">Cartão</option>
+                              <option value="credito">Crédito</option>
+                              <option value="debito">Débito</option>
                               <option value="fiado">Fiado</option>
                             </select>
                           </div>
@@ -1683,10 +1685,98 @@ const AdminDashboard = () => {
                             onChange={e => setEditData(d => ({ ...d, observations: e.target.value }))}
                             className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" rows={2} />
                         </div>
-                        <div className="flex gap-2">
+
+                        {/* Items editing */}
+                        <div className="space-y-2">
+                          <h5 className="text-[10px] font-bold text-muted-foreground uppercase">Itens do Pedido</h5>
+                          {editItems.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 rounded border border-border bg-background p-2">
+                              <input
+                                type="number" min={1} value={item.quantity}
+                                onChange={e => updateEditItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
+                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                              />
+                              <span className="text-xs text-muted-foreground">×</span>
+                              <input
+                                type="text" value={item.product_name}
+                                onChange={e => updateEditItem(item.id, "product_name", e.target.value)}
+                                className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground min-w-0"
+                              />
+                              <input
+                                type="number" step="0.01" value={item.unit_price}
+                                onChange={e => updateEditItem(item.id, "unit_price", Number(e.target.value))}
+                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                                title="Preço unitário"
+                              />
+                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                = R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                              </span>
+                              <button onClick={() => removeEditItem(item.id)} className="text-destructive hover:text-destructive/80 p-0.5" title="Remover item">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+
+                          {/* Add new item */}
+                          <div className="rounded border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <div className="relative flex-1">
+                                <input
+                                  type="text" placeholder="Adicionar produto..."
+                                  value={addItemName}
+                                  onChange={e => { setAddItemName(e.target.value); searchProducts(e.target.value); }}
+                                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
+                                />
+                                {productSuggestions.length > 0 && (
+                                  <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-32 overflow-y-auto">
+                                    {productSuggestions.map((p, i) => (
+                                      <button key={i} onClick={() => {
+                                        setAddItemName(p.name);
+                                        setAddItemPrice(p.price);
+                                        setProductSuggestions([]);
+                                      }} className="w-full text-left px-2 py-1.5 text-xs text-foreground hover:bg-muted flex justify-between">
+                                        <span>{p.name}</span>
+                                        <span className="text-muted-foreground">R$ {p.price.toFixed(2).replace(".", ",")}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <input type="number" min={1} value={addItemQty}
+                                onChange={e => setAddItemQty(Math.max(1, Number(e.target.value)))}
+                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                                title="Quantidade"
+                              />
+                              <input type="number" step="0.01" value={addItemPrice}
+                                onChange={e => setAddItemPrice(Number(e.target.value))}
+                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                                placeholder="R$"
+                                title="Preço unitário"
+                              />
+                              <button onClick={addNewItem} disabled={!addItemName.trim()}
+                                className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Adicionar item">
+                                <PlusCircle size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Totals preview */}
+                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-xs">
+                          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (itens)</span><span className="font-bold text-foreground">R$ {calcEditSubtotal().toFixed(2).replace(".", ",")}</span></div>
+                          <div className="flex justify-between"><span className="text-muted-foreground">+ Entrega</span><span className="text-foreground">R$ {Number(editData.delivery_fee ?? 0).toFixed(2).replace(".", ",")}</span></div>
+                          {(editData.discount || 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">- Desconto</span><span className="text-green-600">R$ {Number(editData.discount || 0).toFixed(2).replace(".", ",")}</span></div>}
+                          <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {(calcEditSubtotal() + Number(editData.delivery_fee ?? 0) - Number(editData.discount || 0)).toFixed(2).replace(".", ",")}</span></div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
                           <button onClick={() => saveEdit(order.id)}
                             className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
                             <Save size={14} /> Salvar
+                          </button>
+                          <button onClick={() => saveEdit(order.id, true)}
+                            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">
+                            <Printer size={14} /> Salvar e Reimprimir
                           </button>
                           <button onClick={() => setEditingOrder(null)}
                             className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground">
