@@ -13,6 +13,7 @@ interface StoreSettingsData {
   whatsapp_number: string;
   whatsapp_name: string;
   obrigado_receipt_enabled: boolean;
+  entregador_receipt_enabled: boolean;
 }
 
 interface StoreData {
@@ -56,7 +57,7 @@ const AdminStoreSettings = () => {
     const fetch = async () => {
       let settingsQuery = supabase
         .from("store_settings")
-        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name, obrigado_receipt_enabled")
+        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name, obrigado_receipt_enabled, entregador_receipt_enabled")
         .limit(1);
       if (storeId) settingsQuery = settingsQuery.eq("store_id", storeId);
 
@@ -110,6 +111,7 @@ const AdminStoreSettings = () => {
         whatsapp_number: settings.whatsapp_number,
         whatsapp_name: settings.whatsapp_name,
         obrigado_receipt_enabled: settings.obrigado_receipt_enabled,
+        entregador_receipt_enabled: settings.entregador_receipt_enabled,
       } as any)
       .eq("id", settings.id);
 
