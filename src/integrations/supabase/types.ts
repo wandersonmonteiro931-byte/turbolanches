@@ -1913,6 +1913,7 @@ export type Database = {
           closed_at: string | null
           created_at: string
           delivery_time_minutes: number
+          entregador_receipt_enabled: boolean
           free_delivery_max_km: number
           free_delivery_min_order: number
           id: string
@@ -1944,6 +1945,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           delivery_time_minutes?: number
+          entregador_receipt_enabled?: boolean
           free_delivery_max_km?: number
           free_delivery_min_order?: number
           id?: string
@@ -1975,6 +1977,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           delivery_time_minutes?: number
+          entregador_receipt_enabled?: boolean
           free_delivery_max_km?: number
           free_delivery_min_order?: number
           id?: string
