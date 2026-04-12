@@ -57,6 +57,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -64,7 +65,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  if (!user) return <Navigate to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  if (!user) return <Navigate to={`/auth?redirect=${encodeURIComponent(redirectTarget)}`} replace />;
   return <>{children}</>;
 };
 
@@ -105,7 +106,7 @@ const AppInner = () => {
           <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
 
           {/* Admin routes */}
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="pedidos" element={<AdminOrders />} />
             <Route path="produtos" element={<AdminProducts />} />

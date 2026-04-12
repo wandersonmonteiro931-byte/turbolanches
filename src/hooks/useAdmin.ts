@@ -8,22 +8,36 @@ export const useAdmin = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      setLoading(false);
-      return;
-    }
+    let isMounted = true;
 
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .then(({ data }) => {
-        setIsAdmin((data?.length ?? 0) > 0);
+    const checkAdminRole = async () => {
+      if (authLoading) return;
+
+      if (!user) {
+        if (!isMounted) return;
+        setIsAdmin(false);
         setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      const { data, error } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
       });
+
+      if (!isMounted) return;
+
+      setIsAdmin(!error && Boolean(data));
+      setLoading(false);
+    };
+
+    void checkAdminRole();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading]);
 
   return { isAdmin, loading };
