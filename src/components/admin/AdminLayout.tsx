@@ -55,9 +55,9 @@ const AdminLayout = () => {
 
   useEffect(() => {
     if (!loading && !isAdmin) {
-      navigate("/auth");
+      navigate(`/auth?redirect=${encodeURIComponent(location.pathname)}`);
     }
-  }, [isAdmin, loading, navigate]);
+  }, [isAdmin, loading, navigate, location.pathname]);
 
   useEffect(() => {
     if (!loading && isAdmin) {

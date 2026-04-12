@@ -1,0 +1,1 @@
+ALTER TABLE public.store_settings ADD COLUMN IF NOT EXISTS entregador_receipt_enabled boolean NOT NULL DEFAULT true;

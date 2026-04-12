@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { CartProvider } from "@/contexts/CartContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { StoreProvider } from "@/contexts/StoreContext";
@@ -56,6 +56,7 @@ const queryClient = new QueryClient();
 // Protected route - requires authentication
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -63,7 +64,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       </div>
     );
   }
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   return <>{children}</>;
 };
 

@@ -13,6 +13,7 @@ interface StoreSettingsData {
   whatsapp_number: string;
   whatsapp_name: string;
   obrigado_receipt_enabled: boolean;
+  entregador_receipt_enabled: boolean;
 }
 
 interface StoreData {
@@ -56,7 +57,7 @@ const AdminStoreSettings = () => {
     const fetch = async () => {
       let settingsQuery = supabase
         .from("store_settings")
-        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name, obrigado_receipt_enabled")
+        .select("id, store_display_name, store_logo_url, whatsapp_number, whatsapp_name, obrigado_receipt_enabled, entregador_receipt_enabled")
         .limit(1);
       if (storeId) settingsQuery = settingsQuery.eq("store_id", storeId);
 
@@ -110,6 +111,7 @@ const AdminStoreSettings = () => {
         whatsapp_number: settings.whatsapp_number,
         whatsapp_name: settings.whatsapp_name,
         obrigado_receipt_enabled: settings.obrigado_receipt_enabled,
+        entregador_receipt_enabled: settings.entregador_receipt_enabled,
       } as any)
       .eq("id", settings.id);
 
@@ -281,6 +283,18 @@ const AdminStoreSettings = () => {
             </div>
           </div>
 
+          <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">Comanda do Entregador</p>
+              <p className="text-xs text-muted-foreground">Se desativada, a comanda de fechamento de rota nunca será impressa automaticamente.</p>
+            </div>
+            <button
+              onClick={() => setSettings({ ...settings, entregador_receipt_enabled: !settings.entregador_receipt_enabled })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.entregador_receipt_enabled ? "bg-primary" : "bg-muted-foreground/30"}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.entregador_receipt_enabled ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
           <div className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
             <div>
               <p className="text-sm font-bold text-foreground">Comanda Obrigado</p>
