@@ -126,6 +126,11 @@ const AdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
+  const [editItems, setEditItems] = useState<OrderItem[]>([]);
+  const [addItemName, setAddItemName] = useState("");
+  const [addItemQty, setAddItemQty] = useState(1);
+  const [addItemPrice, setAddItemPrice] = useState(0);
+  const [productSuggestions, setProductSuggestions] = useState<{ name: string; price: number }[]>([]);
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [togglingStore, setTogglingStore] = useState(false);
