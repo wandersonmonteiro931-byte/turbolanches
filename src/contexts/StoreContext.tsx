@@ -101,26 +101,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // For admin users, fetch their assigned store_id
   useEffect(() => {
-    if (!user) {
-      setAdminStoreId(null);
-      return;
-    }
+    let isMounted = true;
 
-    supabase
-      .from("user_roles")
-      .select("store_id")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .limit(1)
-      .single()
-      .then(({ data }) => {
-        if (data?.store_id) {
-          setAdminStoreId(data.store_id);
-        } else if (store?.id) {
-          // Fallback: use detected store
-          setAdminStoreId(store.id);
-        }
+    const resolveAdminStore = async () => {
+      if (!user) {
+        if (!isMounted) return;
+        setAdminStoreId(null);
+        return;
+      }
+
+      const { data } = await supabase.rpc("get_admin_store_id", {
+        _user_id: user.id,
       });
+
+      if (!isMounted) return;
+
+      if (data) {
+        setAdminStoreId(data);
+        return;
+      }
+
+      setAdminStoreId(store?.id ?? null);
+    };
+
+    void resolveAdminStore();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, store]);
 
   const storeId = adminStoreId || store?.id || null;

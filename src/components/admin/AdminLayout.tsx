@@ -34,7 +34,7 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin, loading } = useAdmin();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { config, isSectionLocked, loading: pwLoading } = useAdminSectionPassword();
   const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
@@ -52,12 +52,20 @@ const AdminLayout = () => {
   const [forgotAttempts, setForgotAttempts] = useState(0);
   const [forgotError, setForgotError] = useState("");
   const [forgotContext, setForgotContext] = useState<"entry" | "section">("entry");
+  const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
-      navigate(`/auth?redirect=${encodeURIComponent(location.pathname)}`);
+    if (loading) return;
+
+    if (!user) {
+      navigate(`/auth?redirect=${encodeURIComponent(redirectTarget)}`, { replace: true });
+      return;
     }
-  }, [isAdmin, loading, navigate, location.pathname]);
+
+    if (!isAdmin) {
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, loading, navigate, redirectTarget, user]);
 
   useEffect(() => {
     if (!loading && isAdmin) {

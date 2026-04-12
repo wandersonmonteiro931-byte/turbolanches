@@ -3,6 +3,17 @@ declare global {
 }
 
 try {
+  if (typeof document !== "undefined") {
+    try {
+      const script = document.createElement("script");
+      script.text = "if (typeof __LOVA_FIX_TRIGGER__ === 'undefined') { var __LOVA_FIX_TRIGGER__ = false; }";
+      (document.head || document.documentElement).prepend(script);
+      script.remove();
+    } catch {
+      // ignore DOM restrictions
+    }
+  }
+
   try {
     // Ensure a real global variable binding exists for preview sentinels that
     // may reference __LOVA_FIX_TRIGGER__ directly (without globalThis/window).
@@ -12,6 +23,13 @@ try {
   }
 
   if (typeof window !== "undefined") {
+    window.addEventListener("error", (event) => {
+      const messageText = String((event as ErrorEvent).message ?? "");
+      if (messageText.includes("__LOVA_FIX_TRIGGER__")) {
+        event.preventDefault();
+      }
+    });
+
     window.addEventListener("unhandledrejection", (event) => {
       const reasonText = String((event as any).reason ?? "");
       if (reasonText.includes("__LOVA_FIX_TRIGGER__")) {
