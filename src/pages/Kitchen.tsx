@@ -401,15 +401,18 @@ const Kitchen = () => {
           {sortedOrders.map((order) => {
             const { minutes, seconds } = getElapsed(order);
             const timerClass = getTimerClass(minutes);
-            const cardClass = order.priority
-              ? " kds-card-priority"
-              : minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
+            const isEdited = editedOrderIds.has(order.id);
+            const cardClass = isEdited
+              ? " kds-card-edited"
+              : order.priority
+                ? " kds-card-priority"
+                : minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
             const orderItems = items[order.id] || [];
 
             return (
               <div key={order.id} className={`kds-card${cardClass}`}>
-                {order.priority && (
-                  <div className="kds-priority-banner">⚡ PRIORIDADE ⚡</div>
+                {isEdited && (
+                  <div className="kds-edited-banner">✏️ PEDIDO ALTERADO ✏️</div>
                 )}
                 <div className="kds-card-head">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
