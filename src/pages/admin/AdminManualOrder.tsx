@@ -255,6 +255,114 @@ const AdminManualOrder = () => {
 
   useEffect(() => { void loadLatestData(); }, [loadLatestData]);
 
+  // Load existing order for editing
+  useEffect(() => {
+    if (!editOrderId || editLoadedRef.current) return;
+    editLoadedRef.current = true;
+
+    const loadOrder = async () => {
+      // Wait for products to be loaded
+      const [orderRes, itemsRes] = await Promise.all([
+        supabase.from("orders").select("*").eq("id", editOrderId).single(),
+        supabase.from("order_items").select("*").eq("order_id", editOrderId),
+      ]);
+
+      if (!orderRes.data) {
+        toast.error("Pedido não encontrado");
+        navigate("/admin");
+        return;
+      }
+
+      const order = orderRes.data;
+      const orderItems = itemsRes.data || [];
+
+      // Preserve original metadata
+      setEditOriginalOrderNumber(order.order_number);
+      setEditOriginalCreatedAt(order.created_at);
+      setEditOriginalUserId(order.user_id);
+
+      // Set order fields
+      setDeliveryType(order.delivery_type || "mesa");
+      setAddressStreet(order.address_street || "");
+      setAddressNumber(order.address_number || "");
+      setAddressNeighborhood(order.address_neighborhood || "");
+      setAddressComplement(order.address_complement || "");
+      setObservations(order.observations || "");
+      setDiscount(String(order.discount || 0));
+      setCustomDeliveryFee(String(order.delivery_fee || 0));
+      setDeliveryFeeOverridden(true);
+      setChangeFor(order.change_for ? String(order.change_for) : "");
+      setIsPaid(order.payment_confirmed || false);
+
+      // Map payment method
+      const pm = order.payment_method;
+      if (pm === "pix") {
+        setPaymentMethod(order.payment_confirmed ? "pix_pago" : "pix_entrega");
+      } else {
+        setPaymentMethod(pm || "dinheiro");
+      }
+
+      // Load customer info from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, customer_code, user_id")
+        .eq("user_id", order.user_id)
+        .single();
+
+      if (profile) {
+        setCustomerName(profile.full_name || "");
+        setCustomerPhone(profile.phone || "");
+        setSelectedCustomerId(profile.user_id);
+        setSelectedCustomerCode(profile.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
+      }
+
+      // Parse observations for table number
+      const obsMatch = order.observations?.match(/Mesa:\s*(\S+)/);
+      if (obsMatch) setTableNumber(obsMatch[1]);
+
+      // Wait for products to load, then build cart
+      const { data: allProducts } = await supabase
+        .from("products")
+        .select("id, name, price, category_id, image_url, is_combo, combo_item_count")
+        .eq("active", true);
+
+      const productMap = new Map((allProducts || []).map(p => [p.id, p]));
+
+      const cartItems: CartItem[] = orderItems.map((item: any) => {
+        const product = item.product_id ? productMap.get(item.product_id) : null;
+        const cartProduct: Product = product || {
+          id: item.product_id || `custom-${item.id}`,
+          name: item.product_name,
+          price: Number(item.unit_price),
+          category_id: null,
+          image_url: null,
+        };
+
+        const addons: CartItemAddon[] = Array.isArray(item.addons_json)
+          ? item.addons_json.map((a: any) => ({
+              addon_id: a.addon_id || a.id || `addon-${Math.random()}`,
+              name: a.name,
+              price: Number(a.price),
+              quantity: Number(a.quantity || 1),
+            }))
+          : [];
+
+        return {
+          product: cartProduct,
+          quantity: item.quantity,
+          observations: item.observations || "",
+          customPrice: Number(item.unit_price),
+          isCombo: Boolean(product?.is_combo),
+          addons,
+        };
+      });
+
+      setCart(cartItems);
+    };
+
+    void loadOrder();
+  }, [editOrderId, navigate]);
+
   useEffect(() => {
     const handleFocus = () => void loadLatestData();
     const handleVisibility = () => { if (document.visibilityState === "visible") void loadLatestData(); };
