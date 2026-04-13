@@ -153,27 +153,29 @@ const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {
 
 const AdminManualOrder = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editOrderId = searchParams.get("edit");
   const { user } = useAuth();
   const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cart, setCart] = useState<CartItem[]>(draft.cart ?? []);
+  const [cart, setCart] = useState<CartItem[]>(editOrderId ? [] : (draft.cart ?? []));
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState(draft.deliveryType ?? "mesa");
-  const [paymentMethod, setPaymentMethod] = useState(draft.paymentMethod ?? "dinheiro");
-  const [isPaid, setIsPaid] = useState(draft.isPaid ?? false);
-  const [customerName, setCustomerName] = useState(draft.customerName ?? "");
-  const [customerPhone, setCustomerPhone] = useState(draft.customerPhone ?? "");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(draft.selectedCustomerId ?? null);
-  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>(draft.selectedCustomerCode ?? "");
-  const [tableNumber, setTableNumber] = useState(draft.tableNumber ?? "");
-  const [addressStreet, setAddressStreet] = useState(draft.addressStreet ?? "");
-  const [addressNumber, setAddressNumber] = useState(draft.addressNumber ?? "");
-  const [addressNeighborhood, setAddressNeighborhood] = useState(draft.addressNeighborhood ?? "");
-  const [addressComplement, setAddressComplement] = useState(draft.addressComplement ?? "");
-  const [observations, setObservations] = useState(draft.observations ?? "");
-  const [changeFor, setChangeFor] = useState(draft.changeFor ?? "");
+  const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
+  const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
+  const [isPaid, setIsPaid] = useState(editOrderId ? false : (draft.isPaid ?? false));
+  const [customerName, setCustomerName] = useState(editOrderId ? "" : (draft.customerName ?? ""));
+  const [customerPhone, setCustomerPhone] = useState(editOrderId ? "" : (draft.customerPhone ?? ""));
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(editOrderId ? null : (draft.selectedCustomerId ?? null));
+  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>(editOrderId ? "" : (draft.selectedCustomerCode ?? ""));
+  const [tableNumber, setTableNumber] = useState(editOrderId ? "" : (draft.tableNumber ?? ""));
+  const [addressStreet, setAddressStreet] = useState(editOrderId ? "" : (draft.addressStreet ?? ""));
+  const [addressNumber, setAddressNumber] = useState(editOrderId ? "" : (draft.addressNumber ?? ""));
+  const [addressNeighborhood, setAddressNeighborhood] = useState(editOrderId ? "" : (draft.addressNeighborhood ?? ""));
+  const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
+  const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
+  const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -181,15 +183,21 @@ const AdminManualOrder = () => {
     free_delivery_max_km: 0,
     temp_free_delivery_all: false,
   });
-  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>(draft.customDeliveryFee ?? "");
-  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(draft.deliveryFeeOverridden ?? false);
-  const [discount, setDiscount] = useState<string>(draft.discount ?? "");
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>(editOrderId ? "0" : (draft.customDeliveryFee ?? ""));
+  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(editOrderId ? true : (draft.deliveryFeeOverridden ?? false));
+  const [discount, setDiscount] = useState<string>(editOrderId ? "0" : (draft.discount ?? ""));
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const comboSelectionInitializedRef = useRef(false);
+  const editLoadedRef = useRef(false);
+
+  // Edit mode: original order metadata preserved
+  const [editOriginalOrderNumber, setEditOriginalOrderNumber] = useState<number | null>(null);
+  const [editOriginalCreatedAt, setEditOriginalCreatedAt] = useState<string | null>(null);
+  const [editOriginalUserId, setEditOriginalUserId] = useState<string | null>(null);
 
   // Persist draft on every relevant change
   useEffect(() => {
