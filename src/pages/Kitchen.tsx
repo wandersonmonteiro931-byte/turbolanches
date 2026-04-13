@@ -147,6 +147,9 @@ const Kitchen = () => {
         }
         fetchOrders();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => {
+        fetchOrders();
+      })
       .subscribe((status) => {
         console.log("[Kitchen] Realtime subscription status:", status);
       });
