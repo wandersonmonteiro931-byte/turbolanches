@@ -200,13 +200,6 @@ const AdminManualOrder = () => {
   const [editOriginalUserId, setEditOriginalUserId] = useState<string | null>(null);
 
   // Persist draft on every relevant change
-  useEffect(() => {
-    const d: DraftState = {
-      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
-      selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
-      addressNumber, addressNeighborhood, addressComplement, observations,
-      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
-    };
   // Persist draft on every relevant change (skip in edit mode)
   useEffect(() => {
     if (editOrderId) return;

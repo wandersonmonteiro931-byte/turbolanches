@@ -13,6 +13,7 @@ interface KitchenOrder {
   delivery_type: string;
   created_at: string;
   priority: boolean;
+  updated_at: string;
 }
 
 interface KitchenItem {
@@ -36,6 +37,7 @@ const Kitchen = () => {
   const [now, setNow] = useState(Date.now());
   const [brasiliaTime, setBrasiliaTime] = useState("");
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
+  const [editedOrderIds, setEditedOrderIds] = useState<Set<string>>(new Set());
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
 
@@ -44,7 +46,7 @@ const Kitchen = () => {
     // Fetch preparing orders for display
     const { data, error } = await supabase
       .from("orders")
-      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority")
+      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority, updated_at")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
     if (error) {
@@ -73,6 +75,28 @@ const Kitchen = () => {
           return [...prev, ...newAlerts];
         });
       }
+    }
+
+    // Detect edited orders (updated_at changed while still preparing)
+    const prevMap = new Map(prevOrdersRef.current.map(o => [o.id, o.updated_at]));
+    const newlyEdited = (rows as KitchenOrder[]).filter(o => {
+      const prev = prevMap.get(o.id);
+      return prev && prev !== o.updated_at;
+    }).map(o => o.id);
+    if (newlyEdited.length > 0) {
+      setEditedOrderIds(prev => {
+        const next = new Set(prev);
+        newlyEdited.forEach(id => next.add(id));
+        return next;
+      });
+      // Auto-clear flash after 30 seconds
+      setTimeout(() => {
+        setEditedOrderIds(prev => {
+          const next = new Set(prev);
+          newlyEdited.forEach(id => next.delete(id));
+          return next;
+        });
+      }, 30000);
     }
 
     setOrders(rows as KitchenOrder[]);
@@ -121,6 +145,9 @@ const Kitchen = () => {
             }]);
           }
         }
+        fetchOrders();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "order_items" }, () => {
         fetchOrders();
       })
       .subscribe((status) => {
@@ -236,6 +263,26 @@ const Kitchen = () => {
           background: #7c3aed; color: white; text-align: center;
           font-size: 14px; font-weight: 900; padding: 6px;
           letter-spacing: 3px; text-transform: uppercase;
+        }
+
+        .kds-card-edited {
+          border-color: #2563eb !important;
+          animation: kds-edited-blink 0.7s ease-in-out infinite;
+          box-shadow: 0 0 0 4px rgba(37,99,235,0.35), 0 3px 10px rgba(0,0,0,0.1);
+        }
+        @keyframes kds-edited-blink {
+          0%, 100% { background: #ffffff; border-color: #2563eb; }
+          50% { background: #dbeafe; border-color: #3b82f6; }
+        }
+        .kds-edited-banner {
+          background: #2563eb; color: white; text-align: center;
+          font-size: 16px; font-weight: 900; padding: 8px;
+          letter-spacing: 3px; text-transform: uppercase;
+          animation: kds-edited-text 0.7s ease-in-out infinite;
+        }
+        @keyframes kds-edited-text {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
 
         .kds-card-cancelled {
@@ -354,14 +401,20 @@ const Kitchen = () => {
           {sortedOrders.map((order) => {
             const { minutes, seconds } = getElapsed(order);
             const timerClass = getTimerClass(minutes);
-            const cardClass = order.priority
-              ? " kds-card-priority"
-              : minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
+            const isEdited = editedOrderIds.has(order.id);
+            const cardClass = isEdited
+              ? " kds-card-edited"
+              : order.priority
+                ? " kds-card-priority"
+                : minutes >= 20 ? " kds-card-late" : minutes >= 15 ? " kds-card-warning" : "";
             const orderItems = items[order.id] || [];
 
             return (
               <div key={order.id} className={`kds-card${cardClass}`}>
-                {order.priority && (
+                {isEdited && (
+                  <div className="kds-edited-banner">✏️ PEDIDO ALTERADO ✏️</div>
+                )}
+                {order.priority && !isEdited && (
                   <div className="kds-priority-banner">⚡ PRIORIDADE ⚡</div>
                 )}
                 <div className="kds-card-head">
