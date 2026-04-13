@@ -265,6 +265,26 @@ const Kitchen = () => {
           letter-spacing: 3px; text-transform: uppercase;
         }
 
+        .kds-card-edited {
+          border-color: #2563eb !important;
+          animation: kds-edited-blink 0.7s ease-in-out infinite;
+          box-shadow: 0 0 0 4px rgba(37,99,235,0.35), 0 3px 10px rgba(0,0,0,0.1);
+        }
+        @keyframes kds-edited-blink {
+          0%, 100% { background: #ffffff; border-color: #2563eb; }
+          50% { background: #dbeafe; border-color: #3b82f6; }
+        }
+        .kds-edited-banner {
+          background: #2563eb; color: white; text-align: center;
+          font-size: 16px; font-weight: 900; padding: 8px;
+          letter-spacing: 3px; text-transform: uppercase;
+          animation: kds-edited-text 0.7s ease-in-out infinite;
+        }
+        @keyframes kds-edited-text {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+
         .kds-card-cancelled {
           border-color: #dc3545 !important;
           background: #fff5f5 !important;
