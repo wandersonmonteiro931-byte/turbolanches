@@ -207,8 +207,17 @@ const AdminManualOrder = () => {
       addressNumber, addressNeighborhood, addressComplement, observations,
       changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
     };
+  // Persist draft on every relevant change (skip in edit mode)
+  useEffect(() => {
+    if (editOrderId) return;
+    const d: DraftState = {
+      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+      selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
+      addressNumber, addressNeighborhood, addressComplement, observations,
+      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
+    };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+  }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
     changeFor, customDeliveryFee, deliveryFeeOverridden, discount]);
