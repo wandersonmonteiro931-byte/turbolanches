@@ -510,55 +510,104 @@ const AdminManualOrder = () => {
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
       const actualPaid = isPixPago || isPaid;
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          subtotal,
-          delivery_fee: deliveryFee,
-          discount: discountValue,
-          total,
-          status: "preparing",
-          preparing_at: new Date().toISOString(),
-          delivery_type: deliveryType,
-          payment_method: actualPaymentMethod,
-          payment_confirmed: actualPaid,
-          address_street: deliveryType === "delivery" ? addressStreet : null,
-          address_number: deliveryType === "delivery" ? addressNumber : null,
-          address_complement: deliveryType === "delivery" ? addressComplement : null,
-          address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
-          observations: [
-            "[PDV]",
-            customerName ? `Cliente: ${customerName}` : null,
-            customerPhone ? `Tel: ${customerPhone}` : null,
-            selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
-            tableNumber ? `Mesa: ${tableNumber}` : null,
-            observations || null,
-          ].filter(Boolean).join(" | ") || "[PDV]",
-          change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-        })
-        .select("id, order_number")
-        .single();
+      const obsText = [
+        "[PDV]",
+        customerName ? `Cliente: ${customerName}` : null,
+        customerPhone ? `Tel: ${customerPhone}` : null,
+        selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
+        tableNumber ? `Mesa: ${tableNumber}` : null,
+        observations || null,
+      ].filter(Boolean).join(" | ") || "[PDV]";
 
-      if (orderError) throw orderError;
+      if (editOrderId) {
+        // UPDATE existing order - preserve original date, number, and user
+        const { error: orderError } = await supabase
+          .from("orders")
+          .update({
+            subtotal,
+            delivery_fee: deliveryFee,
+            discount: discountValue,
+            total,
+            delivery_type: deliveryType,
+            payment_method: actualPaymentMethod,
+            payment_confirmed: actualPaid,
+            address_street: deliveryType === "delivery" ? addressStreet : null,
+            address_number: deliveryType === "delivery" ? addressNumber : null,
+            address_complement: deliveryType === "delivery" ? addressComplement : null,
+            address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
+            observations: obsText,
+            change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+          })
+          .eq("id", editOrderId);
 
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.customPrice,
-        observations: item.observations || null,
-        addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
-      }));
+        if (orderError) throw orderError;
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
+        // Delete existing items and re-insert
+        await supabase.from("order_items").delete().eq("order_id", editOrderId);
 
-      toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
-      clearDraft();
-      window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
-      navigate("/admin");
+        const orderItems = cart.map((item) => ({
+          order_id: editOrderId,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.customPrice,
+          observations: item.observations || null,
+          addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+        }));
+
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
+        toast.success(`Pedido #${orderNum} atualizado!`);
+        clearDraft();
+        window.open(`/admin/imprimir/${editOrderId}?tipo=pedido`, "_blank", "width=300,height=600");
+        navigate("/admin");
+      } else {
+        // CREATE new order
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .insert({
+            user_id: user.id,
+            subtotal,
+            delivery_fee: deliveryFee,
+            discount: discountValue,
+            total,
+            status: "preparing",
+            preparing_at: new Date().toISOString(),
+            delivery_type: deliveryType,
+            payment_method: actualPaymentMethod,
+            payment_confirmed: actualPaid,
+            address_street: deliveryType === "delivery" ? addressStreet : null,
+            address_number: deliveryType === "delivery" ? addressNumber : null,
+            address_complement: deliveryType === "delivery" ? addressComplement : null,
+            address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
+            observations: obsText,
+            change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+          })
+          .select("id, order_number")
+          .single();
+
+        if (orderError) throw orderError;
+
+        const orderItems = cart.map((item) => ({
+          order_id: order.id,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.customPrice,
+          observations: item.observations || null,
+          addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+        }));
+
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+        clearDraft();
+        window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
+        navigate("/admin");
+      }
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar pedido");
     } finally {
