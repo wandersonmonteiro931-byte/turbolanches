@@ -629,8 +629,16 @@ const AdminManualOrder = () => {
             <ArrowLeft size={20} className="text-foreground" />
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-foreground">Novo Pedido Manual</h1>
-            <p className="text-xs text-muted-foreground">Tela redesenhada com atualização dinâmica de produtos, frete e adicionais.</p>
+            <h1 className="text-xl font-black tracking-tight text-foreground">
+              {editOrderId
+                ? `Editando Pedido #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "..."}`
+                : "Novo Pedido Manual"}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {editOrderId
+                ? "Edite os itens, valores e dados. Data/hora e número do pedido serão preservados."
+                : "Tela redesenhada com atualização dinâmica de produtos, frete e adicionais."}
+            </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button
