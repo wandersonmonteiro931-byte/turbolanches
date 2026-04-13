@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,27 +153,29 @@ const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {
 
 const AdminManualOrder = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editOrderId = searchParams.get("edit");
   const { user } = useAuth();
   const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cart, setCart] = useState<CartItem[]>(draft.cart ?? []);
+  const [cart, setCart] = useState<CartItem[]>(editOrderId ? [] : (draft.cart ?? []));
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [deliveryType, setDeliveryType] = useState(draft.deliveryType ?? "mesa");
-  const [paymentMethod, setPaymentMethod] = useState(draft.paymentMethod ?? "dinheiro");
-  const [isPaid, setIsPaid] = useState(draft.isPaid ?? false);
-  const [customerName, setCustomerName] = useState(draft.customerName ?? "");
-  const [customerPhone, setCustomerPhone] = useState(draft.customerPhone ?? "");
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(draft.selectedCustomerId ?? null);
-  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>(draft.selectedCustomerCode ?? "");
-  const [tableNumber, setTableNumber] = useState(draft.tableNumber ?? "");
-  const [addressStreet, setAddressStreet] = useState(draft.addressStreet ?? "");
-  const [addressNumber, setAddressNumber] = useState(draft.addressNumber ?? "");
-  const [addressNeighborhood, setAddressNeighborhood] = useState(draft.addressNeighborhood ?? "");
-  const [addressComplement, setAddressComplement] = useState(draft.addressComplement ?? "");
-  const [observations, setObservations] = useState(draft.observations ?? "");
-  const [changeFor, setChangeFor] = useState(draft.changeFor ?? "");
+  const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
+  const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
+  const [isPaid, setIsPaid] = useState(editOrderId ? false : (draft.isPaid ?? false));
+  const [customerName, setCustomerName] = useState(editOrderId ? "" : (draft.customerName ?? ""));
+  const [customerPhone, setCustomerPhone] = useState(editOrderId ? "" : (draft.customerPhone ?? ""));
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(editOrderId ? null : (draft.selectedCustomerId ?? null));
+  const [selectedCustomerCode, setSelectedCustomerCode] = useState<string>(editOrderId ? "" : (draft.selectedCustomerCode ?? ""));
+  const [tableNumber, setTableNumber] = useState(editOrderId ? "" : (draft.tableNumber ?? ""));
+  const [addressStreet, setAddressStreet] = useState(editOrderId ? "" : (draft.addressStreet ?? ""));
+  const [addressNumber, setAddressNumber] = useState(editOrderId ? "" : (draft.addressNumber ?? ""));
+  const [addressNeighborhood, setAddressNeighborhood] = useState(editOrderId ? "" : (draft.addressNeighborhood ?? ""));
+  const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
+  const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
+  const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -181,15 +183,21 @@ const AdminManualOrder = () => {
     free_delivery_max_km: 0,
     temp_free_delivery_all: false,
   });
-  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>(draft.customDeliveryFee ?? "");
-  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(draft.deliveryFeeOverridden ?? false);
-  const [discount, setDiscount] = useState<string>(draft.discount ?? "");
+  const [customDeliveryFee, setCustomDeliveryFee] = useState<string>(editOrderId ? "0" : (draft.customDeliveryFee ?? ""));
+  const [deliveryFeeOverridden, setDeliveryFeeOverridden] = useState(editOrderId ? true : (draft.deliveryFeeOverridden ?? false));
+  const [discount, setDiscount] = useState<string>(editOrderId ? "0" : (draft.discount ?? ""));
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const comboSelectionInitializedRef = useRef(false);
+  const editLoadedRef = useRef(false);
+
+  // Edit mode: original order metadata preserved
+  const [editOriginalOrderNumber, setEditOriginalOrderNumber] = useState<number | null>(null);
+  const [editOriginalCreatedAt, setEditOriginalCreatedAt] = useState<string | null>(null);
+  const [editOriginalUserId, setEditOriginalUserId] = useState<string | null>(null);
 
   // Persist draft on every relevant change
   useEffect(() => {
@@ -199,8 +207,17 @@ const AdminManualOrder = () => {
       addressNumber, addressNeighborhood, addressComplement, observations,
       changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
     };
+  // Persist draft on every relevant change (skip in edit mode)
+  useEffect(() => {
+    if (editOrderId) return;
+    const d: DraftState = {
+      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+      selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
+      addressNumber, addressNeighborhood, addressComplement, observations,
+      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
+    };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+  }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
     changeFor, customDeliveryFee, deliveryFeeOverridden, discount]);
@@ -246,6 +263,114 @@ const AdminManualOrder = () => {
   }, []);
 
   useEffect(() => { void loadLatestData(); }, [loadLatestData]);
+
+  // Load existing order for editing
+  useEffect(() => {
+    if (!editOrderId || editLoadedRef.current) return;
+    editLoadedRef.current = true;
+
+    const loadOrder = async () => {
+      // Wait for products to be loaded
+      const [orderRes, itemsRes] = await Promise.all([
+        supabase.from("orders").select("*").eq("id", editOrderId).single(),
+        supabase.from("order_items").select("*").eq("order_id", editOrderId),
+      ]);
+
+      if (!orderRes.data) {
+        toast.error("Pedido não encontrado");
+        navigate("/admin");
+        return;
+      }
+
+      const order = orderRes.data;
+      const orderItems = itemsRes.data || [];
+
+      // Preserve original metadata
+      setEditOriginalOrderNumber(order.order_number);
+      setEditOriginalCreatedAt(order.created_at);
+      setEditOriginalUserId(order.user_id);
+
+      // Set order fields
+      setDeliveryType(order.delivery_type || "mesa");
+      setAddressStreet(order.address_street || "");
+      setAddressNumber(order.address_number || "");
+      setAddressNeighborhood(order.address_neighborhood || "");
+      setAddressComplement(order.address_complement || "");
+      setObservations(order.observations || "");
+      setDiscount(String(order.discount || 0));
+      setCustomDeliveryFee(String(order.delivery_fee || 0));
+      setDeliveryFeeOverridden(true);
+      setChangeFor(order.change_for ? String(order.change_for) : "");
+      setIsPaid(order.payment_confirmed || false);
+
+      // Map payment method
+      const pm = order.payment_method;
+      if (pm === "pix") {
+        setPaymentMethod(order.payment_confirmed ? "pix_pago" : "pix_entrega");
+      } else {
+        setPaymentMethod(pm || "dinheiro");
+      }
+
+      // Load customer info from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone, customer_code, user_id")
+        .eq("user_id", order.user_id)
+        .single();
+
+      if (profile) {
+        setCustomerName(profile.full_name || "");
+        setCustomerPhone(profile.phone || "");
+        setSelectedCustomerId(profile.user_id);
+        setSelectedCustomerCode(profile.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
+      }
+
+      // Parse observations for table number
+      const obsMatch = order.observations?.match(/Mesa:\s*(\S+)/);
+      if (obsMatch) setTableNumber(obsMatch[1]);
+
+      // Wait for products to load, then build cart
+      const { data: allProducts } = await supabase
+        .from("products")
+        .select("id, name, price, category_id, image_url, is_combo, combo_item_count")
+        .eq("active", true);
+
+      const productMap = new Map((allProducts || []).map(p => [p.id, p]));
+
+      const cartItems: CartItem[] = orderItems.map((item: any) => {
+        const product = item.product_id ? productMap.get(item.product_id) : null;
+        const cartProduct: Product = product || {
+          id: item.product_id || `custom-${item.id}`,
+          name: item.product_name,
+          price: Number(item.unit_price),
+          category_id: null,
+          image_url: null,
+        };
+
+        const addons: CartItemAddon[] = Array.isArray(item.addons_json)
+          ? item.addons_json.map((a: any) => ({
+              addon_id: a.addon_id || a.id || `addon-${Math.random()}`,
+              name: a.name,
+              price: Number(a.price),
+              quantity: Number(a.quantity || 1),
+            }))
+          : [];
+
+        return {
+          product: cartProduct,
+          quantity: item.quantity,
+          observations: item.observations || "",
+          customPrice: Number(item.unit_price),
+          isCombo: Boolean(product?.is_combo),
+          addons,
+        };
+      });
+
+      setCart(cartItems);
+    };
+
+    void loadOrder();
+  }, [editOrderId, navigate]);
 
   useEffect(() => {
     const handleFocus = () => void loadLatestData();
@@ -394,55 +519,104 @@ const AdminManualOrder = () => {
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
       const actualPaid = isPixPago || isPaid;
 
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          subtotal,
-          delivery_fee: deliveryFee,
-          discount: discountValue,
-          total,
-          status: "preparing",
-          preparing_at: new Date().toISOString(),
-          delivery_type: deliveryType,
-          payment_method: actualPaymentMethod,
-          payment_confirmed: actualPaid,
-          address_street: deliveryType === "delivery" ? addressStreet : null,
-          address_number: deliveryType === "delivery" ? addressNumber : null,
-          address_complement: deliveryType === "delivery" ? addressComplement : null,
-          address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
-          observations: [
-            "[PDV]",
-            customerName ? `Cliente: ${customerName}` : null,
-            customerPhone ? `Tel: ${customerPhone}` : null,
-            selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
-            tableNumber ? `Mesa: ${tableNumber}` : null,
-            observations || null,
-          ].filter(Boolean).join(" | ") || "[PDV]",
-          change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-        })
-        .select("id, order_number")
-        .single();
+      const obsText = [
+        "[PDV]",
+        customerName ? `Cliente: ${customerName}` : null,
+        customerPhone ? `Tel: ${customerPhone}` : null,
+        selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
+        tableNumber ? `Mesa: ${tableNumber}` : null,
+        observations || null,
+      ].filter(Boolean).join(" | ") || "[PDV]";
 
-      if (orderError) throw orderError;
+      if (editOrderId) {
+        // UPDATE existing order - preserve original date, number, and user
+        const { error: orderError } = await supabase
+          .from("orders")
+          .update({
+            subtotal,
+            delivery_fee: deliveryFee,
+            discount: discountValue,
+            total,
+            delivery_type: deliveryType,
+            payment_method: actualPaymentMethod,
+            payment_confirmed: actualPaid,
+            address_street: deliveryType === "delivery" ? addressStreet : null,
+            address_number: deliveryType === "delivery" ? addressNumber : null,
+            address_complement: deliveryType === "delivery" ? addressComplement : null,
+            address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
+            observations: obsText,
+            change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+          })
+          .eq("id", editOrderId);
 
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        product_id: item.product.id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.customPrice,
-        observations: item.observations || null,
-        addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
-      }));
+        if (orderError) throw orderError;
 
-      const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-      if (itemsError) throw itemsError;
+        // Delete existing items and re-insert
+        await supabase.from("order_items").delete().eq("order_id", editOrderId);
 
-      toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
-      clearDraft();
-      window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
-      navigate("/admin");
+        const orderItems = cart.map((item) => ({
+          order_id: editOrderId,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.customPrice,
+          observations: item.observations || null,
+          addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+        }));
+
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
+        toast.success(`Pedido #${orderNum} atualizado!`);
+        clearDraft();
+        window.open(`/admin/imprimir/${editOrderId}?tipo=pedido`, "_blank", "width=300,height=600");
+        navigate("/admin");
+      } else {
+        // CREATE new order
+        const { data: order, error: orderError } = await supabase
+          .from("orders")
+          .insert({
+            user_id: user.id,
+            subtotal,
+            delivery_fee: deliveryFee,
+            discount: discountValue,
+            total,
+            status: "preparing",
+            preparing_at: new Date().toISOString(),
+            delivery_type: deliveryType,
+            payment_method: actualPaymentMethod,
+            payment_confirmed: actualPaid,
+            address_street: deliveryType === "delivery" ? addressStreet : null,
+            address_number: deliveryType === "delivery" ? addressNumber : null,
+            address_complement: deliveryType === "delivery" ? addressComplement : null,
+            address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
+            observations: obsText,
+            change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+          })
+          .select("id, order_number")
+          .single();
+
+        if (orderError) throw orderError;
+
+        const orderItems = cart.map((item) => ({
+          order_id: order.id,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.customPrice,
+          observations: item.observations || null,
+          addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+        }));
+
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) throw itemsError;
+
+        toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+        clearDraft();
+        window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
+        navigate("/admin");
+      }
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar pedido");
     } finally {
@@ -464,8 +638,16 @@ const AdminManualOrder = () => {
             <ArrowLeft size={20} className="text-foreground" />
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-tight text-foreground">Novo Pedido Manual</h1>
-            <p className="text-xs text-muted-foreground">Tela redesenhada com atualização dinâmica de produtos, frete e adicionais.</p>
+            <h1 className="text-xl font-black tracking-tight text-foreground">
+              {editOrderId
+                ? `Editando Pedido #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "..."}`
+                : "Novo Pedido Manual"}
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              {editOrderId
+                ? "Edite os itens, valores e dados. Data/hora e número do pedido serão preservados."
+                : "Tela redesenhada com atualização dinâmica de produtos, frete e adicionais."}
+            </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -966,7 +1148,11 @@ const AdminManualOrder = () => {
           disabled={loading || !hasCart}
           className="mx-auto block w-full max-w-2xl rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
         >
-          {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
+          {loading
+            ? (editOrderId ? "Salvando..." : "Criando pedido...")
+            : editOrderId
+              ? `Salvar e Reimprimir · R$ ${fmt(total)}`
+              : `Criar Pedido · R$ ${fmt(total)}`}
         </motion.button>
       </div>
     </div>

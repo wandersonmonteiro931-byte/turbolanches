@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 /**
  * Global admin alarm that works across all admin pages.
  * Polls for pending orders and plays alarm sound continuously.
- * Uses Notification API for background/closed tab alerts.
+ * Uses a single persistent AudioContext with user-interaction resume.
  */
 export function useAdminAlarm() {
   const { user } = useAuth();
@@ -18,6 +18,7 @@ export function useAdminAlarm() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const alarmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wasPlayingRef = useRef(false);
+  const resumedRef = useRef(false);
 
   // Check admin role
   useEffect(() => {
@@ -30,18 +31,49 @@ export function useAdminAlarm() {
       .then(({ data }) => setIsAdmin((data?.length ?? 0) > 0));
   }, [user]);
 
+  // Ensure AudioContext is created and resumed on any user interaction
+  const ensureAudioContext = useCallback(() => {
+    if (!audioCtxRef.current) {
+      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    const ctx = audioCtxRef.current;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
+    return ctx;
+  }, []);
+
+  // Resume AudioContext on first user interaction (click/touch/keydown)
+  useEffect(() => {
+    if (resumedRef.current) return;
+    const handler = () => {
+      ensureAudioContext();
+      resumedRef.current = true;
+      window.removeEventListener("click", handler, true);
+      window.removeEventListener("touchstart", handler, true);
+      window.removeEventListener("keydown", handler, true);
+    };
+    window.addEventListener("click", handler, true);
+    window.addEventListener("touchstart", handler, true);
+    window.addEventListener("keydown", handler, true);
+    return () => {
+      window.removeEventListener("click", handler, true);
+      window.removeEventListener("touchstart", handler, true);
+      window.removeEventListener("keydown", handler, true);
+    };
+  }, [ensureAudioContext]);
+
   // Poll for pending orders + realtime
   useEffect(() => {
     if (!isAdmin || !user) return;
 
     const checkPending = async () => {
-      const { data, count } = await supabase
+      const { data } = await supabase
         .from("orders")
         .select("id, status, payment_method", { count: "exact", head: false })
         .in("status", ["pending", "paid"]);
 
       const filtered = (data || []).filter(o => {
-        // Exclude unpaid PIX
         if (o.payment_method === "pix" && o.status === "pending") return false;
         return true;
       });
@@ -69,14 +101,14 @@ export function useAdminAlarm() {
     const shouldPlay = pendingCount > 0 && isAdmin && isOnAdminRoute;
 
     if (shouldPlay) {
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-
       const playAlarm = () => {
-        const ctx = audioCtxRef.current;
-        if (!ctx) return;
-        if (ctx.state === "suspended") ctx.resume();
+        const ctx = ensureAudioContext();
+        if (!ctx || ctx.state === "closed") return;
+        // Force resume every time in case it got suspended
+        if (ctx.state === "suspended") {
+          ctx.resume().catch(() => {});
+          return; // will play on next interval tick after resume
+        }
 
         const t = ctx.currentTime;
         const notes = [
@@ -103,7 +135,8 @@ export function useAdminAlarm() {
       };
 
       playAlarm();
-      alarmIntervalRef.current = setInterval(playAlarm, 2500);
+      // Use shorter interval (2s) for more reliable playback
+      alarmIntervalRef.current = setInterval(playAlarm, 2000);
 
       // Send browser notification for background tabs
       if (!wasPlayingRef.current && "Notification" in window && Notification.permission === "granted") {
@@ -129,7 +162,7 @@ export function useAdminAlarm() {
         alarmIntervalRef.current = null;
       }
     };
-  }, [pendingCount, isAdmin, isOnAdminRoute]);
+  }, [pendingCount, isAdmin, isOnAdminRoute, ensureAudioContext]);
 
   return { pendingCount };
 }
