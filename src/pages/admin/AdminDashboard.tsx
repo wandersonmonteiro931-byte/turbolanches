@@ -781,11 +781,16 @@ const AdminDashboard = () => {
     const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
     
     const courierCostsByDate = new Map<string, number>();
-    for (const dateStr of allDates) {
-      const courierExpenses = await fetchCourierCostsForDate(dateStr);
-      const total = courierExpenses.reduce((s, e) => s + e.amount, 0);
+    const courierResults = await Promise.all(
+      allDates.map(async (dateStr) => {
+        const courierExpenses = await fetchCourierCostsForDate(dateStr);
+        const total = courierExpenses.reduce((s, e) => s + e.amount, 0);
+        return { dateStr, total };
+      })
+    );
+    courierResults.forEach(({ dateStr, total }) => {
       if (total > 0) courierCostsByDate.set(dateStr, total);
-    }
+    });
 
     // Build full rows
     const fullRows = allDates.map(dateStr => {
@@ -828,11 +833,10 @@ const AdminDashboard = () => {
       <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
     `).join("");
 
-    w.document.write(`
+    w.document.write(`<!DOCTYPE html>
       <html><head><style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
+        body { font-family:'Courier New',monospace; width:72mm; padding:2mm; font-size:10px; }
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; }
@@ -856,10 +860,10 @@ const AdminDashboard = () => {
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="center" style="margin-top:8px;font-size:8px;">Relatório de período gerado automaticamente</div>
+        <script>window.onload=function(){window.print();}</script>
       </body></html>
     `);
     w.document.close();
-    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
 
   const handleCloseDay = async () => {
