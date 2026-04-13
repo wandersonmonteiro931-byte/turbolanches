@@ -46,7 +46,7 @@ const Kitchen = () => {
     // Fetch preparing orders for display
     const { data, error } = await supabase
       .from("orders")
-      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority")
+      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority, updated_at")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
     if (error) {
