@@ -414,6 +414,9 @@ const Kitchen = () => {
                 {isEdited && (
                   <div className="kds-edited-banner">✏️ PEDIDO ALTERADO ✏️</div>
                 )}
+                {order.priority && !isEdited && (
+                  <div className="kds-priority-banner">⚡ PRIORIDADE ⚡</div>
+                )}
                 <div className="kds-card-head">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span className="kds-order-num">#{String(order.order_number).padStart(5, "0")}</span>
