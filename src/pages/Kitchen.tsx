@@ -77,6 +77,28 @@ const Kitchen = () => {
       }
     }
 
+    // Detect edited orders (updated_at changed while still preparing)
+    const prevMap = new Map(prevOrdersRef.current.map(o => [o.id, o.updated_at]));
+    const newlyEdited = (rows as KitchenOrder[]).filter(o => {
+      const prev = prevMap.get(o.id);
+      return prev && prev !== o.updated_at;
+    }).map(o => o.id);
+    if (newlyEdited.length > 0) {
+      setEditedOrderIds(prev => {
+        const next = new Set(prev);
+        newlyEdited.forEach(id => next.add(id));
+        return next;
+      });
+      // Auto-clear flash after 30 seconds
+      setTimeout(() => {
+        setEditedOrderIds(prev => {
+          const next = new Set(prev);
+          newlyEdited.forEach(id => next.delete(id));
+          return next;
+        });
+      }, 30000);
+    }
+
     setOrders(rows as KitchenOrder[]);
     const ids = rows.map((o) => o.id);
     if (ids.length > 0) {
