@@ -13,6 +13,7 @@ interface KitchenOrder {
   delivery_type: string;
   created_at: string;
   priority: boolean;
+  updated_at: string;
 }
 
 interface KitchenItem {
@@ -36,6 +37,7 @@ const Kitchen = () => {
   const [now, setNow] = useState(Date.now());
   const [brasiliaTime, setBrasiliaTime] = useState("");
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
+  const [editedOrderIds, setEditedOrderIds] = useState<Set<string>>(new Set());
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
 
