@@ -1139,7 +1139,11 @@ const AdminManualOrder = () => {
           disabled={loading || !hasCart}
           className="mx-auto block w-full max-w-2xl rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
         >
-          {loading ? "Criando pedido..." : `Criar Pedido · R$ ${fmt(total)}`}
+          {loading
+            ? (editOrderId ? "Salvando..." : "Criando pedido...")
+            : editOrderId
+              ? `Salvar e Reimprimir · R$ ${fmt(total)}`
+              : `Criar Pedido · R$ ${fmt(total)}`}
         </motion.button>
       </div>
     </div>
