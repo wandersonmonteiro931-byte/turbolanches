@@ -509,29 +509,9 @@ const AdminDashboard = () => {
     fetchOrders();
   };
 
-  // Edit order
-  const startEdit = async (order: Order) => {
-    setEditingOrder(order.id);
-    setEditData({
-      observations: order.observations || "",
-      address_street: order.address_street || "",
-      address_number: order.address_number || "",
-      address_complement: order.address_complement || "",
-      address_neighborhood: order.address_neighborhood || "",
-      delivery_type: order.delivery_type,
-      payment_method: order.payment_method,
-      discount: order.discount,
-      delivery_fee: order.delivery_fee,
-    });
-    setAddItemName("");
-    setAddItemQty(1);
-    setAddItemPrice(0);
-    setProductSuggestions([]);
-    // Load items for editing
-    const { data } = await supabase.from("order_items").select("*").eq("order_id", order.id);
-    setEditItems(data || []);
-    // Also update main items cache
-    if (data) setItems(prev => ({ ...prev, [order.id]: data }));
+  // Edit order - navigate to manual order page with edit mode
+  const startEdit = (order: Order) => {
+    navigate(`/admin/novo-pedido?edit=${order.id}`);
   };
 
   const searchProducts = async (term: string) => {
