@@ -1593,27 +1593,23 @@ const AdminDashboard = () => {
           <p className="text-sm">{searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredOrders.map((order) => {
             const next = order.status === "awaiting_payment" ? null : nextStatus[order.status];
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
             const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
             const isEditing = editingOrder === order.id;
+            // Auto-load items so every card shows full info without a click
+            if (!items[order.id]) void fetchItems(order.id);
 
             return (
-              <div key={order.id} className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
+              <div key={order.id} className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
                 (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
                 (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
                 "border-border"
               }`}>
-                <button
-                  onClick={() => {
-                    if (expandedOrder === order.id) setExpandedOrder(null);
-                    else { setExpandedOrder(order.id); fetchItems(order.id); }
-                  }}
-                  className="flex w-full items-center gap-3 p-4 text-left"
-                >
+                <div className="flex items-start gap-3 p-4 border-b border-border">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-base font-bold text-foreground">
