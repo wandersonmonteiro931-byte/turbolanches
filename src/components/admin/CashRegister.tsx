@@ -483,7 +483,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       ...register,
       ...payload,
     } as CashRegister;
-    printRegisterReport(reportData, paymentTotals, closeSummary);
+    printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
   };
 
   /** Fetch history of all registers */
