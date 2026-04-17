@@ -95,11 +95,16 @@ export function useProducts() {
         ? supabase.from("product_ingredients").select("product_id, ingredient_id").eq("store_id", storeId)
         : supabase.from("product_ingredients").select("product_id, ingredient_id"),
       storeId
-        ? supabase.from("ingredients").select("id, name").eq("store_id", storeId)
-        : supabase.from("ingredients").select("id, name"),
+        ? supabase.from("ingredients").select("id, name, is_internal").eq("store_id", storeId)
+        : supabase.from("ingredients").select("id, name, is_internal"),
     ]);
 
-    const ingNameMap = new Map<string, string>((ingRes.data ?? []).map((i: any) => [i.id, i.name]));
+    // Exclude internal ingredients (packaging, sachets, etc.) from customer-facing menu
+    const ingNameMap = new Map<string, string>(
+      (ingRes.data ?? [])
+        .filter((i: any) => !i.is_internal)
+        .map((i: any) => [i.id, i.name])
+    );
     const ingredientsByProduct = new Map<string, string[]>();
     (prodIngRes.data ?? []).forEach((pi: any) => {
       const name = ingNameMap.get(pi.ingredient_id);
