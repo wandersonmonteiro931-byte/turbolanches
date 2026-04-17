@@ -407,8 +407,19 @@ const AdminDashboard = () => {
 
 
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
+  const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    // Block finalization if cash register is closed
+    if (newStatus === "delivered" && !cashRegisterOpen) {
+      toast({
+        title: "🔒 Caixa fechado",
+        description: "Abra o caixa antes de finalizar pedidos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // If moving to delivering and couriers exist, show courier selector first
     if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
       setCourierSelectOrderId(orderId);
