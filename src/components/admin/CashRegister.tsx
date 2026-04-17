@@ -584,24 +584,38 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const saveRegisterEdits = async () => {
     if (!editingReg) return;
     const { id, ...rest } = editingReg as any;
-    const { error } = await supabase
-      .from("cash_registers")
-      .update({
-        opening_cash: Number(rest.opening_cash) || 0,
-        opening_card: Number(rest.opening_card) || 0,
-        opening_change_reserve: Number(rest.opening_change_reserve) || 0,
-        expense_employees: Number(rest.expense_employees) || 0,
-        expense_couriers: Number(rest.expense_couriers) || 0,
-        expense_purchases: Number(rest.expense_purchases) || 0,
-        expense_gasoline: Number(rest.expense_gasoline) || 0,
-        expense_ads: Number(rest.expense_ads) || 0,
-        expense_other: Number(rest.expense_other) || 0,
-        closing_pix: Number(rest.closing_pix) || 0,
-        closing_card: Number(rest.closing_card) || 0,
-        closing_cash: Number(rest.closing_cash) || 0,
-        notes: rest.notes || "",
-      })
-      .eq("id", id);
+    // Reconstruir notes: [Aberto por: X] [Fechado por: Y] + obs limpas
+    const openTag = rest._opened_by_name?.trim()
+      ? `[Aberto por: ${rest._opened_by_name.trim()}]`
+      : "";
+    const closeTag = rest._closed_by_name?.trim()
+      ? `[Fechado por: ${rest._closed_by_name.trim()}]`
+      : "";
+    const cleanObs = String(rest._clean_notes ?? rest.notes ?? "")
+      .replace(/\[Aberto por:[^\]]*\]/g, "")
+      .replace(/\[Fechado por:[^\]]*\]/g, "")
+      .trim();
+    const finalNotes = [openTag, closeTag, cleanObs].filter(Boolean).join(" ").trim();
+
+    const payload: Record<string, unknown> = {
+      opening_cash: Number(rest.opening_cash) || 0,
+      opening_card: Number(rest.opening_card) || 0,
+      opening_change_reserve: Number(rest.opening_change_reserve) || 0,
+      expense_employees: Number(rest.expense_employees) || 0,
+      expense_couriers: Number(rest.expense_couriers) || 0,
+      expense_purchases: Number(rest.expense_purchases) || 0,
+      expense_gasoline: Number(rest.expense_gasoline) || 0,
+      expense_ads: Number(rest.expense_ads) || 0,
+      expense_other: Number(rest.expense_other) || 0,
+      closing_pix: Number(rest.closing_pix) || 0,
+      closing_card: Number(rest.closing_card) || 0,
+      closing_cash: Number(rest.closing_cash) || 0,
+      notes: finalNotes,
+    };
+    if (rest.opened_at) payload.opened_at = rest.opened_at;
+    if (rest.closed_at) payload.closed_at = rest.closed_at;
+
+    const { error } = await supabase.from("cash_registers").update(payload).eq("id", id);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
