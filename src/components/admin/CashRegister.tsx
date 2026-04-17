@@ -63,6 +63,9 @@ export default function CashRegister({ onChange }: Props) {
   const [loading, setLoading] = useState(true);
   const [showOpen, setShowOpen] = useState(false);
   const [showClose, setShowClose] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<CashRegister[]>([]);
+  const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
   const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
     pix: 0, card: 0, cash: 0, other: 0, total: 0,
   });
