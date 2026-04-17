@@ -955,7 +955,7 @@ function Row({ label, value, bold, negative, warn }: { label: string; value: str
 }
 
 // ============== Helpers ==============
-function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
+function computeSummary(reg: CashRegister, totals: PaymentBreakdown, cogs?: { totalCost: number; missingCount: number; totalProducts: number }) {
   const expensesTotal =
     (reg.expense_employees || 0) + (reg.expense_couriers || 0) + (reg.expense_purchases || 0) +
     (reg.expense_gasoline || 0) + (reg.expense_ads || 0) + (reg.expense_other || 0);
@@ -967,11 +967,17 @@ function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
   const expectedCard = totals.card;
   const expectedCash = totals.cash;
   const expectedTotal = expectedCash + expectedPix + expectedCard;
+  const productsCost = cogs?.totalCost || 0;
+  const cogsIsEstimate = (cogs?.missingCount || 0) > 0;
+  const grossRevenue = totals.total;
+  const netRevenue = grossRevenue - expensesTotal;
+  const netAfterCogs = netRevenue - productsCost;
   return {
     expensesTotal, declaredTotal, expectedTotal, expectedCash, expectedPix, expectedCard,
     diffCash: declaredCash - expectedCash, diffPix: declaredPix - expectedPix,
     diffCard: declaredCard - expectedCard, diffTotal: declaredTotal - expectedTotal,
-    grossRevenue: totals.total, netRevenue: totals.total - expensesTotal,
+    grossRevenue, netRevenue, productsCost, netAfterCogs, cogsIsEstimate,
+    missingCostUnits: cogs?.missingCount || 0, totalSoldUnits: cogs?.totalProducts || 0,
   };
 }
 
@@ -987,6 +993,7 @@ h1 { font-size: 14px; text-align: center; margin: 4px 0; }
 .row { display: flex; justify-content: space-between; }
 hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
 .warn { color: #b45309; }
+.big { font-size: 13px; }
 </style></head><body>
 <h1>RELATÓRIO DE CAIXA</h1>
 <div class="row"><span>Dia:</span><strong>${reg.business_day}</strong></div>
