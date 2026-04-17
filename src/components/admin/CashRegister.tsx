@@ -271,6 +271,81 @@ export default function CashRegister({ onChange }: Props) {
     toast({ title: "🔒 Caixa fechado!" });
     setShowClose(false);
     await fetchRegister();
+    // Imprime relatório automaticamente após fechar
+    const reportData: CashRegister = {
+      ...register,
+      ...payload,
+    } as CashRegister;
+    printRegisterReport(reportData, paymentTotals, closeSummary);
+  };
+
+  /** Fetch history of all registers */
+  const fetchHistory = useCallback(async () => {
+    if (!storeId) return;
+    const { data } = await supabase
+      .from("cash_registers")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("business_day", { ascending: false })
+      .limit(120);
+    setHistory((data || []) as CashRegister[]);
+  }, [storeId]);
+
+  useEffect(() => { if (showHistory) fetchHistory(); }, [showHistory, fetchHistory]);
+
+  /** Reprint a saved register */
+  const reprintRegister = async (reg: CashRegister) => {
+    const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
+    const { data } = await supabase
+      .from("orders")
+      .select("payment_method, total, status")
+      .gte("created_at", start)
+      .lte("created_at", end)
+      .eq("store_id", reg.store_id)
+      .in("status", ["delivered", "ready", "delivering", "preparing"]);
+    const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
+    (data || []).forEach((o: any) => {
+      const m = String(o.payment_method || "").toLowerCase();
+      const t = Number(o.total) || 0;
+      totals.total += t;
+      if (m === "pix") totals.pix += t;
+      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit")) totals.card += t;
+      else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
+      else totals.other += t;
+    });
+    const summary = computeSummary(reg, totals);
+    printRegisterReport(reg, totals, summary);
+  };
+
+  /** Save edits to a saved register */
+  const saveRegisterEdits = async () => {
+    if (!editingReg) return;
+    const { id, ...rest } = editingReg as any;
+    const { error } = await supabase
+      .from("cash_registers")
+      .update({
+        opening_cash: Number(rest.opening_cash) || 0,
+        opening_card: Number(rest.opening_card) || 0,
+        opening_change_reserve: Number(rest.opening_change_reserve) || 0,
+        expense_employees: Number(rest.expense_employees) || 0,
+        expense_couriers: Number(rest.expense_couriers) || 0,
+        expense_purchases: Number(rest.expense_purchases) || 0,
+        expense_gasoline: Number(rest.expense_gasoline) || 0,
+        expense_other: Number(rest.expense_other) || 0,
+        closing_pix: Number(rest.closing_pix) || 0,
+        closing_card: Number(rest.closing_card) || 0,
+        closing_cash: Number(rest.closing_cash) || 0,
+        notes: rest.notes || "",
+      })
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Relatório atualizado" });
+    setEditingReg(null);
+    await fetchHistory();
+    await fetchRegister();
   };
 
   // Reopen check: allowed if same business day OR before 6am of next day
