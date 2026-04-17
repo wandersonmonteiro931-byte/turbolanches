@@ -356,9 +356,30 @@ const AdminPrint = () => {
     if (!printableDocument || !ready) return;
 
     const timer = setTimeout(() => {
-      document.open();
-      document.write(printableDocument);
-      document.close();
+      try {
+        document.open();
+        document.write(printableDocument);
+        document.close();
+      } catch (e) {
+        console.error("[AdminPrint] write error", e);
+        return;
+      }
+
+      const triggerPrint = () => {
+        try {
+          window.focus();
+          window.print();
+        } catch (e) {
+          console.error("[AdminPrint] print error", e);
+        }
+        // Close after print dialog (user closes or auto on kiosk printing)
+        setTimeout(() => {
+          try { window.close(); } catch { /* noop */ }
+        }, 800);
+      };
+
+      // Wait a tick so the new document fully parses before printing
+      setTimeout(triggerPrint, 250);
     }, Math.max(60, printDelayMs));
 
     return () => clearTimeout(timer);
