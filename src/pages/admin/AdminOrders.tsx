@@ -36,6 +36,7 @@ interface Order {
   change_for: number | null;
   cancellation_reason: string | null;
   courier_id: string | null;
+  trashed_at: string | null;
 }
 
 interface OrderItem {
@@ -127,7 +128,7 @@ const AdminOrders = () => {
     while (hasMore) {
       let query = supabase
         .from("orders")
-        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id")
+        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id, trashed_at")
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -629,13 +630,14 @@ const AdminOrders = () => {
 
       {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
       {(() => {
-        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; blink?: boolean }> = [
+        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; blink?: boolean; trashed?: boolean }> = [
           { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-amber-400 bg-amber-50 text-amber-800", blink: true },
           { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-purple-400 bg-purple-50 text-purple-800" },
           { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-emerald-400 bg-emerald-50 text-emerald-800" },
           { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-cyan-400 bg-cyan-50 text-cyan-800" },
           { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-green-500 bg-green-50 text-green-800" },
           { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-red-400 bg-red-50 text-red-800" },
+          { key: "lixeira", label: "🗑️ Lixeira", statuses: ["cancelled"], accent: "border-gray-400 bg-gray-100 text-gray-700", trashed: true },
         ];
 
         // Auto-load items for any visible order so cards show full info without clicks
@@ -644,7 +646,10 @@ const AdminOrders = () => {
         });
 
         return sectionDefs.map((section) => {
-          const sectionOrders = filteredOrders.filter((o) => section.statuses.includes(o.status));
+          const sectionOrders = filteredOrders.filter((o) => {
+            if (section.trashed) return o.status === "cancelled" && !!o.trashed_at;
+            return section.statuses.includes(o.status) && !o.trashed_at;
+          });
           if (sectionOrders.length === 0) return null;
           const hasPending = section.blink && sectionOrders.length > 0;
 
@@ -844,6 +849,31 @@ const AdminOrders = () => {
                             className="rounded-lg border border-destructive px-3 py-2 text-xs font-bold text-destructive"
                           >
                             {(order.status === "pending" || order.status === "paid") ? "Recusar" : "Cancelar"}
+                          </button>
+                        )}
+                        {order.status === "cancelled" && !order.trashed_at && (
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm("Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.")) return;
+                              await supabase.from("orders").update({ trashed_at: new Date().toISOString() }).eq("id", order.id);
+                              toast({ title: "🗑️ Pedido movido para a lixeira" });
+                              fetchOrders();
+                            }}
+                            className="flex-1 rounded-lg border border-gray-500 py-2 text-xs font-bold text-gray-700"
+                          >
+                            🗑️ Excluir
+                          </button>
+                        )}
+                        {order.status === "cancelled" && order.trashed_at && (
+                          <button
+                            onClick={async () => {
+                              await supabase.from("orders").update({ trashed_at: null }).eq("id", order.id);
+                              toast({ title: "♻️ Pedido restaurado para Recusados" });
+                              fetchOrders();
+                            }}
+                            className="flex-1 rounded-lg border border-blue-500 py-2 text-xs font-bold text-blue-700"
+                          >
+                            ♻️ Restaurar
                           </button>
                         )}
                       </div>

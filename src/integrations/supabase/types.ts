@@ -855,6 +855,7 @@ export type Database = {
           store_id: string | null
           subtotal: number
           total: number
+          trashed_at: string | null
           updated_at: string
           user_id: string
         }
@@ -892,6 +893,7 @@ export type Database = {
           store_id?: string | null
           subtotal: number
           total: number
+          trashed_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -929,6 +931,7 @@ export type Database = {
           store_id?: string | null
           subtotal?: number
           total?: number
+          trashed_at?: string | null
           updated_at?: string
           user_id?: string
         }

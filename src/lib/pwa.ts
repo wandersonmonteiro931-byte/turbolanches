@@ -62,8 +62,9 @@ export async function enforceLatestAppVersion() {
     }
   } catch {}
 
-  if (previousVersion && sessionStorage.getItem(reloadKey) !== APP_VERSION) {
+  // ⚠️ Recarregamento automático REMOVIDO. O usuário deve recarregar manualmente (F5) quando quiser pegar a versão nova.
+  // Apenas marcamos a versão para não repetir o trabalho de limpeza.
+  if (previousVersion) {
     sessionStorage.setItem(reloadKey, APP_VERSION);
-    window.location.reload();
   }
 }
