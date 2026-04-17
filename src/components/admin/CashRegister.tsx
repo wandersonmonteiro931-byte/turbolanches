@@ -954,6 +954,7 @@ ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>Entregadores:</span><span>${f(reg.expense_couriers)}</span></div>
 <div class="row"><span>Compras:</span><span>${f(reg.expense_purchases)}</span></div>
 <div class="row"><span>Gasolina:</span><span>${f(reg.expense_gasoline)}</span></div>
+<div class="row"><span>Anúncios/Divulg.:</span><span>${f(reg.expense_ads)}</span></div>
 <div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>
 <div class="row"><span>TOTAL GASTOS:</span><strong>${f(summary.expensesTotal)}</strong></div>
 <hr/>
