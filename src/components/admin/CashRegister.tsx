@@ -420,6 +420,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     });
     toast({ title: "🔒 Caixa fechado!" });
     setShowClose(false);
+    try { localStorage.removeItem(closeDraftKey); } catch {}
+    setCloseForm(defaultCloseForm);
     await fetchRegister();
     // Imprime relatório automaticamente após fechar
     const reportData: CashRegister = {
