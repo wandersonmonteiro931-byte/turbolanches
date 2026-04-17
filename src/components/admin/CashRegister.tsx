@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
 interface CashRegister {
@@ -584,24 +585,38 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const saveRegisterEdits = async () => {
     if (!editingReg) return;
     const { id, ...rest } = editingReg as any;
-    const { error } = await supabase
-      .from("cash_registers")
-      .update({
-        opening_cash: Number(rest.opening_cash) || 0,
-        opening_card: Number(rest.opening_card) || 0,
-        opening_change_reserve: Number(rest.opening_change_reserve) || 0,
-        expense_employees: Number(rest.expense_employees) || 0,
-        expense_couriers: Number(rest.expense_couriers) || 0,
-        expense_purchases: Number(rest.expense_purchases) || 0,
-        expense_gasoline: Number(rest.expense_gasoline) || 0,
-        expense_ads: Number(rest.expense_ads) || 0,
-        expense_other: Number(rest.expense_other) || 0,
-        closing_pix: Number(rest.closing_pix) || 0,
-        closing_card: Number(rest.closing_card) || 0,
-        closing_cash: Number(rest.closing_cash) || 0,
-        notes: rest.notes || "",
-      })
-      .eq("id", id);
+    // Reconstruir notes: [Aberto por: X] [Fechado por: Y] + obs limpas
+    const openTag = rest._opened_by_name?.trim()
+      ? `[Aberto por: ${rest._opened_by_name.trim()}]`
+      : "";
+    const closeTag = rest._closed_by_name?.trim()
+      ? `[Fechado por: ${rest._closed_by_name.trim()}]`
+      : "";
+    const cleanObs = String(rest._clean_notes ?? rest.notes ?? "")
+      .replace(/\[Aberto por:[^\]]*\]/g, "")
+      .replace(/\[Fechado por:[^\]]*\]/g, "")
+      .trim();
+    const finalNotes = [openTag, closeTag, cleanObs].filter(Boolean).join(" ").trim();
+
+    const payload: Record<string, unknown> = {
+      opening_cash: Number(rest.opening_cash) || 0,
+      opening_card: Number(rest.opening_card) || 0,
+      opening_change_reserve: Number(rest.opening_change_reserve) || 0,
+      expense_employees: Number(rest.expense_employees) || 0,
+      expense_couriers: Number(rest.expense_couriers) || 0,
+      expense_purchases: Number(rest.expense_purchases) || 0,
+      expense_gasoline: Number(rest.expense_gasoline) || 0,
+      expense_ads: Number(rest.expense_ads) || 0,
+      expense_other: Number(rest.expense_other) || 0,
+      closing_pix: Number(rest.closing_pix) || 0,
+      closing_card: Number(rest.closing_card) || 0,
+      closing_cash: Number(rest.closing_cash) || 0,
+      notes: finalNotes,
+    };
+    if (rest.opened_at) payload.opened_at = rest.opened_at;
+    if (rest.closed_at) payload.closed_at = rest.closed_at;
+
+    const { error } = await supabase.from("cash_registers").update(payload).eq("id", id);
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
@@ -1023,7 +1038,21 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   <Button size="sm" variant="outline" onClick={() => reprintRegister(r)}>
                     <Printer size={14} className="mr-1" /> Imprimir
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditingReg({ ...r })}>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const notes = r.notes || "";
+                    const oM = notes.match(/\[Aberto por:\s*([^\]]+)\]/);
+                    const cM = notes.match(/\[Fechado por:\s*([^\]]+)\]/);
+                    const cleanNotes = notes
+                      .replace(/\[Aberto por:[^\]]*\]/g, "")
+                      .replace(/\[Fechado por:[^\]]*\]/g, "")
+                      .trim();
+                    setEditingReg({
+                      ...r,
+                      _opened_by_name: oM ? oM[1].trim() : "",
+                      _closed_by_name: cM ? cM[1].trim() : "",
+                      _clean_notes: cleanNotes,
+                    } as any);
+                  }}>
                     <Pencil size={14} className="mr-1" /> Editar
                   </Button>
                 </div>
@@ -1036,49 +1065,129 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL — replica das telas originais (Abertura + Fechamento) */}
       <Dialog open={!!editingReg} onOpenChange={(o) => !o && setEditingReg(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Caixa — {editingReg?.business_day}</DialogTitle>
           </DialogHeader>
-          {editingReg && (
-            <div className="space-y-3 py-2 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ["opening_cash", "Abertura: Dinheiro"],
-                  ["opening_card", "Abertura: Máquina/Conta"],
-                  ["opening_change_reserve", "Abertura: Troco reserva"],
-                  ["expense_employees", "Gasto: Funcionários"],
-                  ["expense_couriers", "Gasto: Entregadores"],
-                  ["expense_purchases", "Gasto: Compras"],
-                  ["expense_gasoline", "Gasto: Gasolina"],
-                  ["expense_ads", "Gasto: Anúncios/Divulgação"],
-                  ["expense_other", "Gasto: Outros"],
-                  ["closing_pix", "Fechamento: PIX"],
-                  ["closing_card", "Fechamento: Cartão"],
-                  ["closing_cash", "Fechamento: Dinheiro"],
-                ].map(([k, l]) => (
-                  <div key={k}>
-                    <Label className="text-xs">{l}</Label>
+          {editingReg && (() => {
+            const er = editingReg as any;
+            const set = (patch: Record<string, unknown>) => setEditingReg({ ...er, ...patch });
+            const numField = (key: string) => ({
+              type: "number" as const,
+              step: "0.01",
+              value: er[key] ?? 0,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => set({ [key]: e.target.value }),
+            });
+            const toLocalInput = (iso: string | null | undefined) => {
+              if (!iso) return "";
+              const d = new Date(iso);
+              const pad = (n: number) => String(n).padStart(2, "0");
+              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+            return (
+              <Tabs defaultValue="abertura" className="py-2">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="abertura">📂 Abertura</TabsTrigger>
+                  <TabsTrigger value="fechamento" disabled={!er.closed_at}>
+                    🔒 Fechamento {!er.closed_at && "(em aberto)"}
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* TAB ABERTURA — espelha o modal de Abrir Caixa */}
+                <TabsContent value="abertura" className="space-y-3 pt-3">
+                  <div>
+                    <Label>Data/Hora da abertura</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      value={(editingReg as any)[k] ?? 0}
-                      onChange={(e) => setEditingReg({ ...editingReg, [k]: Number(e.target.value) } as any)}
+                      type="datetime-local"
+                      value={toLocalInput(er.opened_at)}
+                      onChange={(e) => set({ opened_at: new Date(e.target.value).toISOString() })}
                     />
                   </div>
-                ))}
-              </div>
-              <div>
-                <Label className="text-xs">Observações</Label>
-                <Input
-                  value={editingReg.notes || ""}
-                  onChange={(e) => setEditingReg({ ...editingReg, notes: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
+                  <div>
+                    <Label>Responsável pela abertura <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="Nome de quem abriu o caixa"
+                      value={er._opened_by_name || ""}
+                      onChange={(e) => set({ _opened_by_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Dinheiro em caixa (R$)</Label>
+                    <Input {...numField("opening_cash")} />
+                  </div>
+                  <div>
+                    <Label>Saldo em máquina/conta (R$)</Label>
+                    <Input {...numField("opening_card")} />
+                  </div>
+                  <div>
+                    <Label>Troco reserva (R$)</Label>
+                    <Input {...numField("opening_change_reserve")} />
+                  </div>
+                </TabsContent>
+
+                {/* TAB FECHAMENTO — espelha o modal de Fechar Caixa */}
+                <TabsContent value="fechamento" className="space-y-4 pt-3">
+                  <div>
+                    <Label>Data/Hora do fechamento</Label>
+                    <Input
+                      type="datetime-local"
+                      value={toLocalInput(er.closed_at)}
+                      onChange={(e) => set({ closed_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Responsável pelo fechamento <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="Nome de quem fechou o caixa"
+                      value={er._closed_by_name || ""}
+                      onChange={(e) => set({ _closed_by_name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="font-bold text-sm">💸 Gastos do dia</div>
+                    {[
+                      ["expense_employees", "Funcionários"],
+                      ["expense_couriers", "Entregadores"],
+                      ["expense_purchases", "Compras"],
+                      ["expense_gasoline", "Gasolina"],
+                      ["expense_ads", "Anúncios / Divulgação"],
+                      ["expense_other", "Outros"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
+                        <Label className="text-sm">{label}</Label>
+                        <Input className="w-40" {...numField(key as string)} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="font-bold text-sm">💰 Saldo final em caixa</div>
+                    {[
+                      ["closing_pix", "PIX"],
+                      ["closing_card", "Máquina de cartão"],
+                      ["closing_cash", "Dinheiro"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
+                        <Label className="text-sm">{label}</Label>
+                        <Input className="w-40" {...numField(key as string)} />
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <div className="pt-3">
+                  <Label>Observações</Label>
+                  <Input
+                    value={er._clean_notes ?? ""}
+                    onChange={(e) => set({ _clean_notes: e.target.value })}
+                  />
+                </div>
+              </Tabs>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingReg(null)}>Cancelar</Button>
             <Button onClick={saveRegisterEdits} className="bg-primary text-primary-foreground">Salvar alterações</Button>
