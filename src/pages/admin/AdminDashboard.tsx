@@ -1167,7 +1167,12 @@ const AdminDashboard = () => {
   };
 
   const activeTabConfig = tabs.find(t => t.key === activeTab);
-  const filteredOrders = orders
+  // Hide PIX orders that have NOT been paid yet — they should only appear after payment confirmation
+  const visibleOrders = useMemo(() => orders.filter(o => {
+    if (o.payment_method === "pix" && !o.payment_confirmed && o.status !== "paid") return false;
+    return true;
+  }), [orders]);
+  const filteredOrders = visibleOrders
     .filter(o => activeTabConfig?.statuses.includes(o.status))
     .filter(o => {
       if (!searchQuery.trim()) return true;
