@@ -479,6 +479,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       (Number(closeForm.expense_couriers) || 0) +
       (Number(closeForm.expense_purchases) || 0) +
       (Number(closeForm.expense_gasoline) || 0) +
+      (Number(closeForm.expense_ads) || 0) +
       (Number(closeForm.expense_other) || 0);
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
@@ -489,7 +490,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
 
     // Expected values are based STRICTLY on the sum of each order's payment for the current business day.
-    // Opening balances and expenses are tracked separately in the summary, not embedded into the expected totals.
     const expectedPix = paymentTotals.pix;
     const expectedCard = paymentTotals.card;
     const expectedCash = paymentTotals.cash;
@@ -502,14 +502,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     const grossRevenue = paymentTotals.total;
     const netRevenue = grossRevenue - expensesTotal;
+    // Lucro líquido com custo dos produtos vendidos (COGS) descontado
+    const netAfterCogs = netRevenue - productsCostInfo.totalCost;
+    // Se algum produto vendido não tem custo cadastrado → estimado
+    const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
     return {
       opening, expensesTotal, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       grossRevenue, netRevenue,
+      productsCost: productsCostInfo.totalCost,
+      netAfterCogs, cogsIsEstimate,
+      missingCostUnits: productsCostInfo.missingCount,
+      totalSoldUnits: productsCostInfo.totalProducts,
     };
-  }, [closeForm, register, paymentTotals]);
+  }, [closeForm, register, paymentTotals, productsCostInfo]);
 
   // ============== UI ==============
   if (loading) {
