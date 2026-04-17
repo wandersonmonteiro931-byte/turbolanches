@@ -96,6 +96,7 @@ const AdminOrders = () => {
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const { toast } = useToast();
