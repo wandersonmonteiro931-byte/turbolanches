@@ -96,6 +96,7 @@ const tabs = [
   { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
   { key: "delivered", label: "Finalizados", icon: Check, color: "bg-green-600", statuses: ["delivered"] },
   { key: "cancelled", label: "Recusados", icon: X, color: "bg-red-500", statuses: ["cancelled"] },
+  { key: "trashed", label: "Lixeira", icon: Trash2, color: "bg-gray-600", statuses: ["cancelled"] },
 ];
 
 const nextStatus: Record<string, string> = {
