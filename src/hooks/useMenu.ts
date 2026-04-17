@@ -2,9 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
-import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-hide-internal-descriptions";
+const MENU_CACHE_VERSION = "2026-04-17-admin-only-ingredients";
 
 // Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
@@ -90,33 +89,12 @@ export function useProducts() {
       categoriesQuery = categoriesQuery.eq("store_id", storeId);
     }
 
-    const [productsRes, addonsRes, linksRes, categoriesRes, prodIngRes, ingRes] = await Promise.all([
+    const [productsRes, addonsRes, linksRes, categoriesRes] = await Promise.all([
       productsQuery,
       addonsQuery,
       supabase.from("addon_product_links").select("addon_id, product_id"),
       categoriesQuery,
-      storeId
-        ? supabase.from("product_ingredients").select("product_id, ingredient_id").eq("store_id", storeId)
-        : supabase.from("product_ingredients").select("product_id, ingredient_id"),
-      storeId
-        ? supabase.from("ingredients").select("id, name, is_internal").eq("store_id", storeId)
-        : supabase.from("ingredients").select("id, name, is_internal"),
     ]);
-
-    // Exclude internal ingredients (packaging, sachets, etc.) from customer-facing menu
-    const ingNameMap = new Map<string, string>(
-      (ingRes.data ?? [])
-        .filter((i: any) => !i.is_internal)
-        .map((i: any) => [i.id, i.name])
-    );
-    const ingredientsByProduct = new Map<string, string[]>();
-    (prodIngRes.data ?? []).forEach((pi: any) => {
-      const name = ingNameMap.get(pi.ingredient_id);
-      if (!name) return;
-      const existing = ingredientsByProduct.get(pi.product_id) || [];
-      if (existing.includes(name)) return;
-      ingredientsByProduct.set(pi.product_id, [...existing, name]);
-    });
 
     const linksMap = new Map<string, string[]>();
     if (linksRes.data) {
@@ -164,7 +142,7 @@ export function useProducts() {
       const mapped = productsRes.data.map((p: any) => ({
         id: p.id,
         name: p.name,
-        description: sanitizeCustomerDescription(p.description),
+        description: "",
         price: p.price,
         originalPrice: p.original_price ?? undefined,
         image: p.image_url || "/placeholder.svg",
@@ -176,7 +154,6 @@ export function useProducts() {
         isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
         comboItemCount: p.combo_item_count || 1,
         addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
-        // Ingredientes (ficha técnica) nunca são expostos no cardápio do cliente
         ingredients: [],
       }));
       productsCache.set(key, mapped);
