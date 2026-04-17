@@ -1,4 +1,5 @@
-export const SW_VERSION = "v59";
+export const SW_VERSION = "v60";
+export const APP_VERSION = "2026-04-17-menu-fix-v2";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 export const shouldEnableServiceWorker = () => {
@@ -34,4 +35,35 @@ export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | 
       }),
     );
   } catch {}
+}
+
+export async function enforceLatestAppVersion() {
+  if (typeof window === "undefined") return;
+
+  const storageKey = "__turbo_app_version__";
+  const reloadKey = "__turbo_app_version_reload__";
+  const previousVersion = localStorage.getItem(storageKey);
+
+  if (previousVersion === APP_VERSION) return;
+
+  localStorage.setItem(storageKey, APP_VERSION);
+
+  try {
+    if ("caches" in window) {
+      const cacheKeys = await window.caches.keys();
+      await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
+    }
+  } catch {}
+
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.update().catch(() => undefined)));
+    }
+  } catch {}
+
+  if (previousVersion && sessionStorage.getItem(reloadKey) !== APP_VERSION) {
+    sessionStorage.setItem(reloadKey, APP_VERSION);
+    window.location.reload();
+  }
 }
