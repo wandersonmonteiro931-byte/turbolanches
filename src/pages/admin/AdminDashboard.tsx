@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle
+  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
