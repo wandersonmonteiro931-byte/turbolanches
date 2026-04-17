@@ -642,6 +642,34 @@ const OrderTracking = () => {
           </motion.div>
         )}
 
+        {/* Cancel Order — only available before kitchen accepts */}
+        {!isCancelled && (order.status === "pending" || order.status === "paid" || order.status === "awaiting_payment") && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.66 }}
+          >
+            <button
+              onClick={async () => {
+                if (!window.confirm("Tem certeza que deseja cancelar este pedido? Esta ação não pode ser desfeita.")) return;
+                const { error } = await supabase
+                  .from("orders")
+                  .update({ status: "cancelled", cancellation_reason: "Cancelado pelo cliente" })
+                  .eq("id", order.id);
+                if (error) {
+                  toast.error("Não foi possível cancelar o pedido.");
+                  return;
+                }
+                toast.success("Pedido cancelado.");
+                navigate("/pedidos");
+              }}
+              className="w-full rounded-xl border-2 border-destructive bg-card py-3 text-sm font-bold text-destructive transition-all hover:bg-destructive/5"
+            >
+              ❌ Cancelar Pedido
+            </button>
+          </motion.div>
+        )}
+
 
 
         {/* Review Button */}
