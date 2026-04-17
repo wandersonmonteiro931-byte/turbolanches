@@ -171,23 +171,41 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const cached = registerCache.get(storeId);
     if (!cached) setLoading(true);
 
-    const { data } = await supabase
-      .from("cash_registers")
-      .select("*")
-      .eq("store_id", storeId)
-      .order("business_day", { ascending: false })
-      .limit(5);
+    try {
+      const { data, error } = await supabase
+        .from("cash_registers")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("business_day", { ascending: false })
+        .limit(5);
 
-    const list = (data || []) as CashRegister[];
-    const today = list.find((r) => r.business_day === todayBusinessDay);
-    const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
+      if (error) {
+        console.error("[CashRegister] fetch error:", error);
+        setLoading(false);
+        return;
+      }
 
-    const next = previousOpen || today || null;
-    if (next) registerCache.set(storeId, next);
-    else registerCache.delete(storeId);
-    setRegister(next);
-    setLoading(false);
+      const list = (data || []) as CashRegister[];
+      const today = list.find((r) => r.business_day === todayBusinessDay);
+      const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
+
+      const next = previousOpen || today || null;
+      if (next) registerCache.set(storeId, next);
+      else registerCache.delete(storeId);
+      setRegister(next);
+    } catch (e) {
+      console.error("[CashRegister] fetch exception:", e);
+    } finally {
+      setLoading(false);
+    }
   }, [storeId, todayBusinessDay]);
+
+  // Safety: never hang on "Carregando caixa…" forever — force release after 5s
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setLoading(false), 5000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   /** Compute the day's payment breakdown based on delivered orders */
   const fetchPaymentTotals = useCallback(async (businessDay: string) => {
