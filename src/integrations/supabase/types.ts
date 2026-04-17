@@ -211,6 +211,7 @@ export type Database = {
           closing_cash: number
           closing_pix: number
           created_at: string
+          expense_ads: number
           expense_couriers: number
           expense_employees: number
           expense_gasoline: number
@@ -237,6 +238,7 @@ export type Database = {
           closing_cash?: number
           closing_pix?: number
           created_at?: string
+          expense_ads?: number
           expense_couriers?: number
           expense_employees?: number
           expense_gasoline?: number
@@ -263,6 +265,7 @@ export type Database = {
           closing_cash?: number
           closing_pix?: number
           created_at?: string
+          expense_ads?: number
           expense_couriers?: number
           expense_employees?: number
           expense_gasoline?: number
