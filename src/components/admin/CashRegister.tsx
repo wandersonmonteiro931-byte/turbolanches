@@ -740,7 +740,23 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 </div>
                 <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
                 <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
-                <Row label="= Lucro líquido do dia" value={fmt(closeSummary.netRevenue)} bold />
+                <Row label="= Lucro líquido (sem custos dos produtos)" value={fmt(closeSummary.netRevenue)} bold />
+                <Row
+                  label={`− Custo dos produtos vendidos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
+                  value={fmt(closeSummary.productsCost)}
+                  negative
+                />
+                <Row
+                  label={`= ${closeSummary.cogsIsEstimate ? "Lucro líquido (estimado)" : "Lucro líquido REAL"}`}
+                  value={fmt(closeSummary.netAfterCogs)}
+                  bold
+                  warn={closeSummary.cogsIsEstimate}
+                />
+                {closeSummary.cogsIsEstimate && closeSummary.totalSoldUnits > 0 && (
+                  <div className="text-[11px] text-amber-700 italic">
+                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos não possuem custo cadastrado — valor aproximado (~35% do preço). Cadastre a ficha técnica ou custo manual em Precificação para obter o lucro real.
+                  </div>
+                )}
                 <hr className="my-2 border-border" />
                 <Row label="Esperado em caixa" value={fmt(closeSummary.expectedTotal)} />
                 <Row label="Declarado em caixa" value={fmt(closeSummary.declaredTotal)} />
