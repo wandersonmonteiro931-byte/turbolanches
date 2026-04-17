@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle
+  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -59,6 +59,7 @@ interface Order {
   courier_id: string | null;
   delivering_at: string | null;
   delivered_at: string | null;
+  trashed_at: string | null;
 }
 
 interface OrderItem {
@@ -95,6 +96,7 @@ const tabs = [
   { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
   { key: "delivered", label: "Finalizados", icon: Check, color: "bg-green-600", statuses: ["delivered"] },
   { key: "cancelled", label: "Recusados", icon: X, color: "bg-red-500", statuses: ["cancelled"] },
+  { key: "trashed", label: "Lixeira", icon: Trash2, color: "bg-gray-600", statuses: ["cancelled"] },
 ];
 
 const nextStatus: Record<string, string> = {
@@ -196,13 +198,12 @@ const AdminDashboard = () => {
     const { start, end } = getBusinessDayRange(selectedDate);
     const ACTIVE_STATUSES = ["pending", "paid", "preparing", "ready", "delivering"];
 
-    // Query 1: orders within the selected business day
+    // Query 1: orders within the selected business day (include trashed for Lixeira tab)
     let dayQuery = supabase
       .from("orders")
       .select("*")
       .gte("created_at", start)
       .lte("created_at", end)
-      .is("trashed_at", null)
       .order("created_at", { ascending: false });
     if (storeId) dayQuery = dayQuery.eq("store_id", storeId);
 
@@ -1226,6 +1227,7 @@ const AdminDashboard = () => {
   // Once an order moves past pending (preparing/ready/delivering/delivered), it must always be visible
   // regardless of payment_confirmed flag, otherwise PDV/manual orders created with payment_method='pix'
   // would disappear from the dashboard while still showing in Kitchen and /pedidos (inconsistency).
+  // Trashed orders are only visible inside the Lixeira tab.
   const visibleOrders = useMemo(() => orders.filter(o => {
     if (
       o.payment_method === "pix" &&
@@ -1234,8 +1236,13 @@ const AdminDashboard = () => {
     ) return false;
     return true;
   }), [orders]);
+
   const filteredOrders = visibleOrders
-    .filter(o => activeTabConfig?.statuses.includes(o.status))
+    .filter(o => {
+      if (activeTab === "trashed") return o.status === "cancelled" && !!o.trashed_at;
+      if (!activeTabConfig?.statuses.includes(o.status)) return false;
+      return !o.trashed_at;
+    })
     .filter(o => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
@@ -1260,15 +1267,16 @@ const AdminDashboard = () => {
   };
 
   const stats = useMemo(() => ({
-    pending: visibleOrders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
-    preparing: visibleOrders.filter(o => o.status === "preparing").length,
-    ready: visibleOrders.filter(o => o.status === "ready").length,
-    delivering: visibleOrders.filter(o => o.status === "delivering").length,
-    delivered: visibleOrders.filter(o => o.status === "delivered").length,
-    cancelled: visibleOrders.filter(o => o.status === "cancelled").length,
+    pending: visibleOrders.filter(o => !o.trashed_at && (o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment")).length,
+    preparing: visibleOrders.filter(o => !o.trashed_at && o.status === "preparing").length,
+    ready: visibleOrders.filter(o => !o.trashed_at && o.status === "ready").length,
+    delivering: visibleOrders.filter(o => !o.trashed_at && o.status === "delivering").length,
+    delivered: visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").length,
+    cancelled: visibleOrders.filter(o => !o.trashed_at && o.status === "cancelled").length,
+    trashed: visibleOrders.filter(o => !!o.trashed_at && o.status === "cancelled").length,
   }), [visibleOrders]);
 
-  const todayRevenue = useMemo(() => visibleOrders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
+  const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
   return (
     <div className="space-y-4">
@@ -1966,6 +1974,33 @@ const AdminDashboard = () => {
                           className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
                         >
                           Recusar
+                        </button>
+                      )}
+                      {order.status === "cancelled" && !order.trashed_at && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm("Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.")) return;
+                            const { error } = await supabase.from("orders").update({ trashed_at: new Date().toISOString() }).eq("id", order.id);
+                            if (error) { toast({ title: "Erro ao mover para a lixeira", variant: "destructive" }); return; }
+                            toast({ title: "🗑️ Pedido movido para a lixeira" });
+                            fetchOrders();
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
+                        >
+                          <Trash2 size={14} /> Excluir
+                        </button>
+                      )}
+                      {order.status === "cancelled" && order.trashed_at && (
+                        <button
+                          onClick={async () => {
+                            const { error } = await supabase.from("orders").update({ trashed_at: null }).eq("id", order.id);
+                            if (error) { toast({ title: "Erro ao restaurar", variant: "destructive" }); return; }
+                            toast({ title: "♻️ Pedido restaurado para Recusados" });
+                            fetchOrders();
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
+                        >
+                          <RotateCcw size={14} /> Restaurar
                         </button>
                       )}
                     </div>
