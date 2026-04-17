@@ -157,6 +157,7 @@ const AdminManualOrder = () => {
   const [searchParams] = useSearchParams();
   const editOrderId = searchParams.get("edit");
   const { user } = useAuth();
+  const { storeId } = useStore();
   const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
