@@ -1,0 +1,549 @@
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { Wallet, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useStore } from "@/contexts/StoreContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
+import { formatDateTimeBR, nowBrasilia } from "@/lib/brasiliaTime";
+import { cn } from "@/lib/utils";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface CashRegister {
+  id: string;
+  store_id: string | null;
+  business_day: string;
+  status: "open" | "closed";
+  opened_at: string;
+  opened_by: string;
+  opening_cash: number;
+  opening_card: number;
+  opening_change_reserve: number;
+  closed_at: string | null;
+  closed_by: string | null;
+  expense_employees: number;
+  expense_couriers: number;
+  expense_purchases: number;
+  expense_gasoline: number;
+  expense_other: number;
+  closing_pix: number;
+  closing_card: number;
+  closing_cash: number;
+  reopen_count: number;
+  last_reopened_at: string | null;
+  notes: string;
+}
+
+interface PaymentBreakdown {
+  pix: number;
+  card: number;
+  cash: number;
+  other: number;
+  total: number;
+}
+
+const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
+
+interface Props {
+  /** Called whenever register state changes so dashboard can refresh gating */
+  onChange?: (isOpen: boolean) => void;
+}
+
+export default function CashRegister({ onChange }: Props) {
+  const { storeId } = useStore();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [register, setRegister] = useState<CashRegister | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showOpen, setShowOpen] = useState(false);
+  const [showClose, setShowClose] = useState(false);
+  const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
+    pix: 0, card: 0, cash: 0, other: 0, total: 0,
+  });
+
+  // Open form
+  const [openForm, setOpenForm] = useState({
+    cash: "0", card: "0", change_reserve: "0", notes: "",
+  });
+
+  // Close form
+  const [closeForm, setCloseForm] = useState({
+    expense_employees: "0",
+    expense_couriers: "0",
+    expense_purchases: "0",
+    expense_gasoline: "0",
+    expense_other: "0",
+    closing_pix: "0",
+    closing_card: "0",
+    closing_cash: "0",
+    notes: "",
+  });
+
+  const todayBusinessDay = formatBusinessDate(nowBrasilia());
+
+  /** Fetch today's register, plus the previous day's if it's still open (must close first) */
+  const fetchRegister = useCallback(async () => {
+    if (!storeId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("cash_registers")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("business_day", { ascending: false })
+      .limit(5);
+
+    const list = (data || []) as CashRegister[];
+    const today = list.find((r) => r.business_day === todayBusinessDay);
+    const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
+
+    // Priority: previous-day-open (must close first), else today's
+    setRegister(previousOpen || today || null);
+    setLoading(false);
+  }, [storeId, todayBusinessDay]);
+
+  /** Compute the day's payment breakdown based on delivered orders */
+  const fetchPaymentTotals = useCallback(async (businessDay: string) => {
+    if (!storeId) return;
+    const { start, end } = getBusinessDayRange(new Date(businessDay + "T12:00:00"));
+    const { data } = await supabase
+      .from("orders")
+      .select("payment_method, total, status")
+      .gte("created_at", start)
+      .lte("created_at", end)
+      .eq("store_id", storeId)
+      .in("status", ["delivered", "ready", "delivering", "preparing"]);
+
+    const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
+    (data || []).forEach((o: any) => {
+      const m = String(o.payment_method || "").toLowerCase();
+      const t = Number(o.total) || 0;
+      totals.total += t;
+      if (m === "pix") totals.pix += t;
+      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit")) totals.card += t;
+      else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
+      else totals.other += t;
+    });
+    setPaymentTotals(totals);
+  }, [storeId]);
+
+  useEffect(() => { fetchRegister(); }, [fetchRegister]);
+
+  useEffect(() => {
+    onChange?.(register?.status === "open" && register?.business_day === todayBusinessDay);
+  }, [register, todayBusinessDay, onChange]);
+
+  // Pre-fill close form with payment totals when opening modal
+  useEffect(() => {
+    if (showClose && register) {
+      fetchPaymentTotals(register.business_day);
+    }
+  }, [showClose, register, fetchPaymentTotals]);
+
+  const handleOpen = async () => {
+    if (!storeId || !user) return;
+    // Block if previous day still open
+    const { data: prev } = await supabase
+      .from("cash_registers")
+      .select("business_day,status")
+      .eq("store_id", storeId)
+      .neq("business_day", todayBusinessDay)
+      .eq("status", "open")
+      .limit(1);
+    if (prev && prev.length > 0) {
+      toast({
+        title: "Caixa anterior em aberto",
+        description: `Feche o caixa de ${prev[0].business_day} antes de abrir um novo.`,
+        variant: "destructive",
+      });
+      setShowOpen(false);
+      return;
+    }
+
+    const payload = {
+      store_id: storeId,
+      business_day: todayBusinessDay,
+      status: "open" as const,
+      opened_by: user.id,
+      opening_cash: Number(openForm.cash) || 0,
+      opening_card: Number(openForm.card) || 0,
+      opening_change_reserve: Number(openForm.change_reserve) || 0,
+      notes: openForm.notes,
+    };
+
+    // Upsert into today's slot (handles reopen also)
+    const { data: existing } = await supabase
+      .from("cash_registers")
+      .select("id,reopen_count")
+      .eq("store_id", storeId)
+      .eq("business_day", todayBusinessDay)
+      .maybeSingle();
+
+    let regId: string | null = null;
+    if (existing) {
+      // Reopen flow — only allowed before 6 AM next day, but today's record allowed
+      const { error } = await supabase
+        .from("cash_registers")
+        .update({
+          status: "open",
+          last_reopened_at: new Date().toISOString(),
+          reopen_count: (existing.reopen_count || 0) + 1,
+        })
+        .eq("id", existing.id);
+      if (error) {
+        toast({ title: "Erro ao reabrir caixa", description: error.message, variant: "destructive" });
+        return;
+      }
+      regId = existing.id;
+      await supabase.from("cash_register_events").insert({
+        cash_register_id: regId,
+        store_id: storeId,
+        event_type: "reopen",
+        performed_by: user.id,
+        snapshot: payload,
+      });
+      toast({ title: "🔓 Caixa reaberto" });
+    } else {
+      const { data: ins, error } = await supabase
+        .from("cash_registers")
+        .insert(payload)
+        .select("id")
+        .single();
+      if (error) {
+        toast({ title: "Erro ao abrir caixa", description: error.message, variant: "destructive" });
+        return;
+      }
+      regId = ins.id;
+      await supabase.from("cash_register_events").insert({
+        cash_register_id: regId,
+        store_id: storeId,
+        event_type: "open",
+        performed_by: user.id,
+        snapshot: payload,
+      });
+      toast({ title: "✅ Caixa aberto!" });
+    }
+
+    setShowOpen(false);
+    setOpenForm({ cash: "0", card: "0", change_reserve: "0", notes: "" });
+    await fetchRegister();
+  };
+
+  const handleClose = async () => {
+    if (!storeId || !user || !register) return;
+    const payload = {
+      status: "closed" as const,
+      closed_at: new Date().toISOString(),
+      closed_by: user.id,
+      expense_employees: Number(closeForm.expense_employees) || 0,
+      expense_couriers: Number(closeForm.expense_couriers) || 0,
+      expense_purchases: Number(closeForm.expense_purchases) || 0,
+      expense_gasoline: Number(closeForm.expense_gasoline) || 0,
+      expense_other: Number(closeForm.expense_other) || 0,
+      closing_pix: Number(closeForm.closing_pix) || 0,
+      closing_card: Number(closeForm.closing_card) || 0,
+      closing_cash: Number(closeForm.closing_cash) || 0,
+      notes: closeForm.notes,
+    };
+    const { error } = await supabase
+      .from("cash_registers")
+      .update(payload)
+      .eq("id", register.id);
+    if (error) {
+      toast({ title: "Erro ao fechar caixa", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("cash_register_events").insert({
+      cash_register_id: register.id,
+      store_id: storeId,
+      event_type: "close",
+      performed_by: user.id,
+      snapshot: payload,
+    });
+    toast({ title: "🔒 Caixa fechado!" });
+    setShowClose(false);
+    await fetchRegister();
+  };
+
+  // Reopen check: allowed if same business day OR before 6am of next day
+  const canReopen = useMemo(() => {
+    if (!register || register.status !== "closed") return false;
+    if (register.business_day === todayBusinessDay) return true;
+    return false; // business day already cuts off at 6am, so any later day means too late
+  }, [register, todayBusinessDay]);
+
+  // ============== Close summary calculations ==============
+  const closeSummary = useMemo(() => {
+    const expensesTotal =
+      (Number(closeForm.expense_employees) || 0) +
+      (Number(closeForm.expense_couriers) || 0) +
+      (Number(closeForm.expense_purchases) || 0) +
+      (Number(closeForm.expense_gasoline) || 0) +
+      (Number(closeForm.expense_other) || 0);
+
+    const declaredPix = Number(closeForm.closing_pix) || 0;
+    const declaredCard = Number(closeForm.closing_card) || 0;
+    const declaredCash = Number(closeForm.closing_cash) || 0;
+    const declaredTotal = declaredPix + declaredCard + declaredCash;
+
+    const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
+
+    // Expected cash in drawer = opening cash + opening change reserve + cash sales − cash expenses
+    const expectedCash = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash - expensesTotal;
+    const expectedPix = paymentTotals.pix;
+    const expectedCard = (register?.opening_card || 0) + paymentTotals.card;
+    const expectedTotal = expectedCash + expectedPix + expectedCard;
+
+    const diffCash = declaredCash - expectedCash;
+    const diffPix = declaredPix - expectedPix;
+    const diffCard = declaredCard - expectedCard;
+    const diffTotal = declaredTotal - expectedTotal;
+
+    const grossRevenue = paymentTotals.total;
+    const netRevenue = grossRevenue - expensesTotal;
+
+    return {
+      opening, expensesTotal, declaredTotal, expectedTotal,
+      expectedCash, expectedPix, expectedCard,
+      diffCash, diffPix, diffCard, diffTotal,
+      grossRevenue, netRevenue,
+    };
+  }, [closeForm, register, paymentTotals]);
+
+  // ============== UI ==============
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        Carregando caixa…
+      </div>
+    );
+  }
+
+  const isOpenToday = register?.status === "open" && register?.business_day === todayBusinessDay;
+  const previousDayBlocking = register && register.status === "open" && register.business_day !== todayBusinessDay;
+
+  return (
+    <>
+      <div className={cn(
+        "flex flex-wrap items-center gap-3 rounded-xl border-2 p-4",
+        isOpenToday ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5",
+      )}>
+        <div className="flex items-center gap-2 text-sm font-bold">
+          <Wallet size={20} className={isOpenToday ? "text-emerald-600" : "text-amber-600"} />
+          <span className={isOpenToday ? "text-emerald-700" : "text-amber-700"}>
+            {previousDayBlocking
+              ? `⚠️ CAIXA DE ${register?.business_day} EM ABERTO`
+              : isOpenToday
+                ? "CAIXA ABERTO"
+                : "CAIXA FECHADO"}
+          </span>
+        </div>
+
+        {register && (
+          <div className="text-xs text-muted-foreground">
+            <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
+            {register.closed_at && (
+              <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>
+            )}
+            {register.reopen_count > 0 && (
+              <div>Reabertura{register.reopen_count > 1 ? "s" : ""}: <strong>{register.reopen_count}</strong></div>
+            )}
+          </div>
+        )}
+
+        <div className="ml-auto flex flex-wrap gap-2">
+          {!register || register.business_day !== todayBusinessDay ? (
+            <Button
+              onClick={() => setShowOpen(true)}
+              disabled={!!previousDayBlocking}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              <Unlock size={16} className="mr-1" /> Abrir Caixa
+            </Button>
+          ) : isOpenToday ? (
+            <Button
+              onClick={() => setShowClose(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              <Lock size={16} className="mr-1" /> Fechar Caixa
+            </Button>
+          ) : canReopen ? (
+            <Button
+              onClick={() => setShowOpen(true)}
+              variant="outline"
+            >
+              <RefreshCw size={16} className="mr-1" /> Reabrir Caixa
+            </Button>
+          ) : (
+            <span className="text-xs text-muted-foreground">Caixa do dia já encerrado.</span>
+          )}
+        </div>
+      </div>
+
+      {/* OPEN MODAL */}
+      <Dialog open={showOpen} onOpenChange={setShowOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Abrir Caixa — {todayBusinessDay}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>Dinheiro em caixa (R$)</Label>
+              <Input type="number" step="0.01" value={openForm.cash}
+                onChange={(e) => setOpenForm({ ...openForm, cash: e.target.value })} />
+            </div>
+            <div>
+              <Label>Saldo em máquina/conta (R$)</Label>
+              <Input type="number" step="0.01" value={openForm.card}
+                onChange={(e) => setOpenForm({ ...openForm, card: e.target.value })} />
+            </div>
+            <div>
+              <Label>Troco reserva (R$)</Label>
+              <Input type="number" step="0.01" value={openForm.change_reserve}
+                onChange={(e) => setOpenForm({ ...openForm, change_reserve: e.target.value })} />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Input value={openForm.notes}
+                onChange={(e) => setOpenForm({ ...openForm, notes: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOpen(false)}>Cancelar</Button>
+            <Button onClick={handleOpen} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {register ? "Reabrir" : "Abrir"} Caixa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* CLOSE MODAL */}
+      <Dialog open={showClose} onOpenChange={setShowClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Fechar Caixa — {register?.business_day}</DialogTitle>
+          </DialogHeader>
+
+          {register && (
+            <div className="space-y-4 py-2">
+              {/* Opening info */}
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                <div className="font-bold mb-1">📂 Abertura</div>
+                <div>Data/Hora: {formatDateTimeBR(register.opened_at)}</div>
+                <div>Dinheiro: <strong>{fmt(register.opening_cash)}</strong></div>
+                <div>Máquina/Conta: <strong>{fmt(register.opening_card)}</strong></div>
+                <div>Troco reserva: <strong>{fmt(register.opening_change_reserve)}</strong></div>
+              </div>
+
+              {/* Expenses */}
+              <div className="space-y-2">
+                <div className="font-bold text-sm">💸 Gastos do dia</div>
+                {[
+                  ["expense_employees", "Funcionários"],
+                  ["expense_couriers", "Entregadores"],
+                  ["expense_purchases", "Compras"],
+                  ["expense_gasoline", "Gasolina"],
+                  ["expense_other", "Outros"],
+                ].map(([key, label]) => (
+                  <div key={key} className="grid grid-cols-2 gap-2 items-center">
+                    <Label className="text-sm">{label}</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(closeForm as any)[key]}
+                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+                <div className="text-right text-sm font-bold">
+                  Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
+                </div>
+              </div>
+
+              {/* Declared balances with expected hint */}
+              <div className="space-y-2">
+                <div className="font-bold text-sm">💰 Saldo final em caixa</div>
+                {[
+                  { key: "closing_pix", label: "PIX", expected: closeSummary.expectedPix },
+                  { key: "closing_card", label: "Máquina de cartão", expected: closeSummary.expectedCard },
+                  { key: "closing_cash", label: "Dinheiro", expected: closeSummary.expectedCash },
+                ].map(({ key, label, expected }) => (
+                  <div key={key} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                    <Label className="text-sm">{label}</Label>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      Esperado: <strong className="text-foreground">{fmt(expected)}</strong>
+                    </span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(closeForm as any)[key]}
+                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Reconciliation summary */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-1">
+                <div className="font-bold mb-2 flex items-center gap-2">
+                  <CheckCircle2 size={16} /> Resumo / Quebra de caixa
+                </div>
+                <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
+                <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
+                <Row label="= Lucro líquido do dia" value={fmt(closeSummary.netRevenue)} bold />
+                <hr className="my-2 border-border" />
+                <Row label="Esperado em caixa" value={fmt(closeSummary.expectedTotal)} />
+                <Row label="Declarado em caixa" value={fmt(closeSummary.declaredTotal)} />
+                <Row
+                  label="Diferença (quebra)"
+                  value={fmt(closeSummary.diffTotal)}
+                  bold
+                  warn={Math.abs(closeSummary.diffTotal) > 0.01}
+                />
+                {Math.abs(closeSummary.diffTotal) > 0.01 && (
+                  <div className="mt-2 flex items-start gap-2 rounded bg-amber-500/10 p-2 text-xs text-amber-700">
+                    <AlertTriangle size={14} className="mt-0.5" />
+                    <div>
+                      <div>{closeSummary.diffTotal > 0 ? "Sobra" : "Falta"} de <strong>{fmt(Math.abs(closeSummary.diffTotal))}</strong>.</div>
+                      <div>PIX: {fmt(closeSummary.diffPix)} • Cartão: {fmt(closeSummary.diffCard)} • Dinheiro: {fmt(closeSummary.diffCash)}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Input value={closeForm.notes}
+                  onChange={(e) => setCloseForm({ ...closeForm, notes: e.target.value })} />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowClose(false)}>Cancelar</Button>
+            <Button onClick={handleClose} className="bg-amber-600 hover:bg-amber-700 text-white">
+              <Lock size={16} className="mr-1" /> Confirmar Fechamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function Row({ label, value, bold, negative, warn }: { label: string; value: string; bold?: boolean; negative?: boolean; warn?: boolean }) {
+  return (
+    <div className={cn("flex justify-between", bold && "font-bold text-base")}>
+      <span>{label}</span>
+      <span className={cn(
+        negative && "text-destructive",
+        warn && "text-amber-700",
+      )}>{value}</span>
+    </div>
+  );
+}
