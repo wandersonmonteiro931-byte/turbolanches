@@ -1215,7 +1215,7 @@ ${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><st
 <div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
 <div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
 ${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
-${reg.notes ? `<hr/><div><strong>Observações:</strong> ${reg.notes}</div>` : ""}
+${cleanNotes ? `<hr/><div><strong>Observações:</strong> ${cleanNotes}</div>` : ""}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
