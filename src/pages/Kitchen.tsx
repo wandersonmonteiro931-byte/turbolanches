@@ -32,6 +32,7 @@ interface CancelledAlert {
 
 const Kitchen = () => {
   const storeLogo = useStoreLogo(logoTurboFallback);
+  const { storeId } = useStore();
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
@@ -44,12 +45,14 @@ const Kitchen = () => {
 
 
   const fetchOrders = useCallback(async () => {
-    // Fetch preparing orders for display
-    const { data, error } = await supabase
+    // Fetch preparing orders for display (filtered by Turbo Lanches store)
+    let query = supabase
       .from("orders")
       .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority, updated_at")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data, error } = await query;
     if (error) {
       console.error("[Kitchen] Error fetching orders:", error.message);
     }
