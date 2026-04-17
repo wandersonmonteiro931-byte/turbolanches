@@ -66,9 +66,16 @@ export default function CashRegister({ onChange }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<CashRegister[]>([]);
   const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
   const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
     pix: 0, card: 0, cash: 0, other: 0, total: 0,
   });
+
+  // Live clock — updates every second for the open-time counter and current date/time labels
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Open form
   const [openForm, setOpenForm] = useState({
