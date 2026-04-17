@@ -65,38 +65,55 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
-      const slug = detectSlugFromHostname();
+      try {
+        const slug = detectSlugFromHostname();
 
-      if (slug) {
-        // Subdomain detected — load that store
-        const { data } = await supabase
-          .from("stores")
-          .select("*")
-          .eq("slug", slug)
-          .eq("active", true)
-          .single();
-        if (data) {
-          setStore(data as Store);
+        // Use maybeSingle() to avoid throwing PGRST116 when there's no row.
+        if (slug) {
+          const { data } = await supabase
+            .from("stores")
+            .select("*")
+            .eq("slug", slug)
+            .eq("active", true)
+            .maybeSingle();
+          if (!cancelled && data) setStore(data as Store);
         }
-      } else {
-        // Default: load first active store (main domain)
-        const { data } = await supabase
-          .from("stores")
-          .select("*")
-          .eq("active", true)
-          .order("created_at")
-          .limit(1)
-          .single();
-        if (data) {
-          setStore(data as Store);
+
+        // Always also try to resolve a default store as fallback.
+        // This guarantees that admin/kiosk pages on hostnames without a slug
+        // (preview, lovable.app root, custom popups) still get a store.
+        if (!cancelled) {
+          const { data: fallback } = await supabase
+            .from("stores")
+            .select("*")
+            .eq("active", true)
+            .order("created_at")
+            .limit(1)
+            .maybeSingle();
+          if (!cancelled && fallback) {
+            setStore((prev) => prev ?? (fallback as Store));
+          }
         }
+      } catch (e) {
+        console.error("[StoreContext] init error:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      setLoading(false);
     };
 
-    init();
+    void init();
+
+    // Safety: never block forever on context loading
+    const safety = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(safety);
+    };
   }, []);
 
   // For admin users, fetch their assigned store_id
