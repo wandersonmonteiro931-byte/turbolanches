@@ -194,36 +194,61 @@ const AdminDashboard = () => {
 
   const fetchOrders = useCallback(async () => {
     const { start, end } = getBusinessDayRange(selectedDate);
+    const ACTIVE_STATUSES = ["pending", "paid", "preparing", "ready", "delivering"];
 
-    let query = supabase
+    // Query 1: orders within the selected business day
+    let dayQuery = supabase
       .from("orders")
       .select("*")
       .gte("created_at", start)
       .lte("created_at", end)
       .is("trashed_at", null)
       .order("created_at", { ascending: false });
+    if (storeId) dayQuery = dayQuery.eq("store_id", storeId);
 
-    if (storeId) {
-      query = query.eq("store_id", storeId);
-    }
+    // Query 2: ALL active (in-flight) orders regardless of date — only when viewing today
+    // This ensures preparing/ready/delivering orders from previous days still appear in the dashboard
+    const activeQuery = isToday
+      ? (() => {
+          let q = supabase
+            .from("orders")
+            .select("*")
+            .in("status", ACTIVE_STATUSES)
+            .is("trashed_at", null)
+            .order("created_at", { ascending: false });
+          if (storeId) q = q.eq("store_id", storeId);
+          return q;
+        })()
+      : null;
 
-    const { data } = await query;
-    if (data) {
-      setOrders(data as Order[]);
-      const userIds = [...new Set(data.map(o => o.user_id))];
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, customer_code, full_name, phone")
-          .in("user_id", userIds);
-        if (profilesData) {
-          const map: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
-          profilesData.forEach(p => { map[p.user_id] = p; });
-          setProfiles(map);
-        }
-      }
+    const [dayRes, activeRes] = await Promise.all([
+      dayQuery,
+      activeQuery ?? Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const merged = new Map<string, Order>();
+    (dayRes.data ?? []).forEach((o: any) => merged.set(o.id, o as Order));
+    (activeRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
+    const data = Array.from(merged.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    setOrders(data);
+    const userIds = [...new Set(data.map(o => o.user_id))];
+    if (userIds.length > 0) {
+      supabase
+        .from("profiles")
+        .select("user_id, customer_code, full_name, phone")
+        .in("user_id", userIds)
+        .then(({ data: profilesData }) => {
+          if (profilesData) {
+            const map: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+            profilesData.forEach(p => { map[p.user_id] = p; });
+            setProfiles(map);
+          }
+        });
     }
-  }, [selectedDate, storeId]);
+  }, [selectedDate, storeId, isToday]);
 
   const applyStoreSettings = useCallback((data: StoreSettings) => {
     setStoreSettings(data);
