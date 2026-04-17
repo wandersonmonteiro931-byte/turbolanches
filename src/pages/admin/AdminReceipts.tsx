@@ -6,8 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
