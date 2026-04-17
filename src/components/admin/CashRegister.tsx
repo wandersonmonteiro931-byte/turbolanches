@@ -87,6 +87,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const [productsCostInfo, setProductsCostInfo] = useState<{ totalCost: number; missingCount: number; totalProducts: number }>({
     totalCost: 0, missingCount: 0, totalProducts: 0,
   });
+  const [orderStats, setOrderStats] = useState<{ completed: number; cancelled: number }>({ completed: 0, cancelled: 0 });
+  const [topItems, setTopItems] = useState<{ name: string; qty: number }[]>([]);
 
   // Live clock — updates every second for the open-time counter and current date/time labels
   useEffect(() => {
