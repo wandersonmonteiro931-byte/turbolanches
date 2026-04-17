@@ -1164,9 +1164,19 @@ hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
 <hr/>
 <div><strong>ABERTURA</strong></div>
 <div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.opened_at)}</span></div>
+${openedBy ? `<div class="row"><span>Responsável:</span><strong>${openedBy}</strong></div>` : ""}
 <div class="row"><span>Dinheiro:</span><span>${f(reg.opening_cash)}</span></div>
 <div class="row"><span>Máquina/Conta:</span><span>${f(reg.opening_card)}</span></div>
 <div class="row"><span>Troco reserva:</span><span>${f(reg.opening_change_reserve)}</span></div>
+${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
+<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>
+${closedBy ? `<div class="row"><span>Responsável:</span><strong>${closedBy}</strong></div>` : ""}` : ""}
+<hr/>
+<div><strong>PEDIDOS DO DIA</strong></div>
+<div class="row"><span>Realizados:</span><strong>${stats.completed}</strong></div>
+<div class="row"><span>Cancelados:</span><strong>${stats.cancelled}</strong></div>
+${topItems.length > 0 ? `<div style="margin-top:3px;"><strong>MAIS VENDIDOS:</strong></div>
+${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><strong>${it.qty}×</strong></div>`).join("")}` : ""}
 ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>` : ""}
 <hr/>
