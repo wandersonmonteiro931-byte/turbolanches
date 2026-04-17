@@ -304,19 +304,13 @@ const AdminManualOrder = () => {
         setPaymentMethod(pm || "dinheiro");
       }
 
-      // Load customer info from profile
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone, customer_code, user_id")
-        .eq("user_id", order.user_id)
-        .single();
-
-      if (profile) {
-        setCustomerName(profile.full_name || "");
-        setCustomerPhone(profile.phone || "");
-        setSelectedCustomerId(profile.user_id);
-        setSelectedCustomerCode(profile.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
-      }
+      // IMPORTANT: do NOT auto-fill name/phone on edit — keep the order EXACTLY
+      // as it was originally created. The original order does not store
+      // customer name/phone fields directly, so we leave them blank.
+      setCustomerName("");
+      setCustomerPhone("");
+      setSelectedCustomerId(null);
+      setSelectedCustomerCode("");
 
       // Parse observations for table number
       const obsMatch = order.observations?.match(/Mesa:\s*(\S+)/);
@@ -365,13 +359,9 @@ const AdminManualOrder = () => {
     void loadOrder();
   }, [editOrderId, navigate]);
 
-  useEffect(() => {
-    const handleFocus = () => void loadLatestData();
-    const handleVisibility = () => { if (document.visibilityState === "visible") void loadLatestData(); };
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => { window.removeEventListener("focus", handleFocus); document.removeEventListener("visibilitychange", handleVisibility); };
-  }, [loadLatestData]);
+  // Note: Removed auto-refresh on focus/visibility to prevent the page from
+  // appearing to "reload by itself" after manual prints or background interactions.
+  // Use the manual "Atualizar" button in the header to refetch products/zones.
 
   const getAddonsForProduct = (productId: string) =>
     availableAddons.filter((addon) => addon.apply_to_all || addon.product_id === productId || addonProductLinks.some((l) => l.addon_id === addon.id && l.product_id === productId));
