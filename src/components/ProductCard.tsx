@@ -54,7 +54,11 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
             )}
           </div>
           {safeDescription ? <p className="mt-1 text-xs text-muted-foreground break-words">{safeDescription}</p> : null}
-          {/* Ficha técnica (ingredientes) NUNCA é exibida no cardápio do cliente */}
+          {product.ingredients && product.ingredients.length > 0 ? (
+            <p className="mt-1 text-xs text-muted-foreground break-words">
+              {product.ingredients.join(", ")}
+            </p>
+          ) : null}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm font-bold text-primary">

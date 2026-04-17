@@ -4,7 +4,7 @@ import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-show-descriptions";
+const MENU_CACHE_VERSION = "2026-04-17-show-ingredients";
 
 // Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
@@ -176,8 +176,7 @@ export function useProducts() {
         isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
         comboItemCount: p.combo_item_count || 1,
         addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
-        // Ingredientes (ficha técnica) nunca são expostos no cardápio do cliente
-        ingredients: [],
+        ingredients: ingredientsByProduct.get(p.id) || [],
       }));
       productsCache.set(key, mapped);
       setProducts(mapped);

@@ -118,6 +118,12 @@ const ProductDetail = () => {
         <div>
           <h1 className="text-2xl text-fire-gradient break-words">{product.name.toUpperCase()}</h1>
           {safeDescription ? <p className="mt-2 text-sm text-muted-foreground">{safeDescription}</p> : null}
+          {product.ingredients && product.ingredients.length > 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              <span className="font-semibold text-foreground">Ingredientes: </span>
+              {product.ingredients.join(", ")}
+            </p>
+          ) : null}
           <div className="mt-3 flex items-center gap-3">
             <span className="text-xl font-bold text-primary">{fmt(product.price)}</span>
             {product.originalPrice && (
