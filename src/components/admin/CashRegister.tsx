@@ -179,27 +179,33 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const fetchPaymentTotals = useCallback(async (businessDay: string) => {
     if (!storeId) return;
     const { start, end } = getBusinessDayRange(new Date(businessDay + "T12:00:00"));
-    const { data: ordersData } = await supabase
+    // Buscar TODOS os pedidos do dia (incluindo cancelados) para estatísticas
+    const { data: allOrdersData } = await supabase
       .from("orders")
       .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
-      .eq("store_id", storeId)
-      .in("status", ["delivered", "ready", "delivering", "preparing"]);
+      .eq("store_id", storeId);
+
+    const completedStatuses = ["delivered", "ready", "delivering", "preparing"];
+    const ordersData = (allOrdersData || []).filter((o: any) => completedStatuses.includes(o.status));
+    const cancelledCount = (allOrdersData || []).filter((o: any) => o.status === "cancelled").length;
 
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
-    (ordersData || []).forEach((o: any) => {
+    ordersData.forEach((o: any) => {
       orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
-      if (m === "pix") totals.pix += t;
-      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit")) totals.card += t;
+      // Qualquer variante PIX (pix, pix_pago, pix_entrega, pix_online…) entra como PIX
+      if (m.includes("pix")) totals.pix += t;
+      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit") || m.includes("maquin")) totals.card += t;
       else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
       else totals.other += t;
     });
     setPaymentTotals(totals);
+    setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
 
     // Compute Cost of Goods Sold (COGS) for the day
     if (orderIds.length === 0) {
