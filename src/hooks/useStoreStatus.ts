@@ -149,7 +149,13 @@ export const useStoreStatus = () => {
   useEffect(() => {
     checkStatus();
 
-    const interval = setInterval(checkStatus, 60_000);
+    // Check every 15s so scheduled open/close transitions reflect quickly across all clients
+    const interval = setInterval(checkStatus, 15_000);
+
+    // Also re-check when the tab regains focus (mobile/PWA wake)
+    const onFocus = () => checkStatus();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
 
     const channel1 = supabase
       .channel("store-status")
@@ -163,6 +169,8 @@ export const useStoreStatus = () => {
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
       supabase.removeChannel(channel1);
       supabase.removeChannel(channel2);
     };
