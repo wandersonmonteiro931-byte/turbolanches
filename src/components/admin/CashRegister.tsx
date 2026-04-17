@@ -463,15 +463,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   /** Reprint a saved register */
   const reprintRegister = async (reg: CashRegister) => {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
-    const { data } = await supabase
+    const { data: ordersData } = await supabase
       .from("orders")
-      .select("payment_method, total, status")
+      .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", reg.store_id)
       .in("status", ["delivered", "ready", "delivering", "preparing"]);
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
-    (data || []).forEach((o: any) => {
+    const orderIds: string[] = [];
+    (ordersData || []).forEach((o: any) => {
+      orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -480,7 +482,53 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
       else totals.other += t;
     });
-    const summary = computeSummary(reg, totals);
+    // Recompute COGS for this business day
+    let cogs = { totalCost: 0, missingCount: 0, totalProducts: 0 };
+    if (orderIds.length > 0) {
+      const { data: itemsData } = await supabase
+        .from("order_items").select("product_id, quantity").in("order_id", orderIds);
+      const productQty = new Map<string, number>();
+      let totalUnits = 0;
+      (itemsData || []).forEach((it: any) => {
+        if (!it.product_id) return;
+        const q = Number(it.quantity) || 0;
+        totalUnits += q;
+        productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
+      });
+      const productIds = [...productQty.keys()];
+      if (productIds.length > 0) {
+        const [prodRes, piRes] = await Promise.all([
+          supabase.from("products").select("id, manual_cost, price").in("id", productIds),
+          supabase.from("product_ingredients").select("product_id, ingredient_id, quantity").in("product_id", productIds),
+        ]);
+        const ingIds = [...new Set((piRes.data || []).map((r: any) => r.ingredient_id))];
+        const ingMap = new Map<string, number>();
+        if (ingIds.length > 0) {
+          const { data: ingRows } = await supabase.from("ingredients").select("id, cost_per_unit").in("id", ingIds);
+          (ingRows || []).forEach((i: any) => ingMap.set(i.id, Number(i.cost_per_unit) || 0));
+        }
+        const piByProduct = new Map<string, { ingredient_id: string; quantity: number }[]>();
+        (piRes.data || []).forEach((r: any) => {
+          const list = piByProduct.get(r.product_id) || [];
+          list.push({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) || 0 });
+          piByProduct.set(r.product_id, list);
+        });
+        let totalCost = 0; let missingUnits = 0;
+        (prodRes.data || []).forEach((p: any) => {
+          const qty = productQty.get(p.id) || 0;
+          if (qty <= 0) return;
+          const recipeCost = (piByProduct.get(p.id) || []).reduce(
+            (s, r) => s + (ingMap.get(r.ingredient_id) || 0) * r.quantity, 0);
+          const unitCost = Number(p.manual_cost) > 0 ? Number(p.manual_cost) : recipeCost;
+          if (unitCost > 0) totalCost += unitCost * qty;
+          else { totalCost += (Number(p.price) || 0) * 0.35 * qty; missingUnits += qty; }
+        });
+        cogs = { totalCost: roundMoney(totalCost), missingCount: missingUnits, totalProducts: totalUnits };
+      } else {
+        cogs.totalProducts = totalUnits;
+      }
+    }
+    const summary = computeSummary(reg, totals, cogs);
     printRegisterReport(reg, totals, summary);
   };
 
