@@ -510,6 +510,10 @@ export default function CashRegister({ onChange }: Props) {
           <DialogHeader>
             <DialogTitle>Abrir Caixa — {todayBusinessDay}</DialogTitle>
           </DialogHeader>
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs">
+            <div className="font-bold text-emerald-700">📅 Data e hora da abertura</div>
+            <div className="text-foreground font-mono">{formatDateTimeBR(now.toISOString())}</div>
+          </div>
           <div className="space-y-3 py-2">
             <div>
               <Label>Dinheiro em caixa (R$)</Label>
