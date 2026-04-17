@@ -497,6 +497,24 @@ const AdminManualOrder = () => {
       if (!addressComplement) { toast.error("Preencha o complemento para delivery"); return; }
     }
 
+    // Require open cash register for new orders
+    if (!editOrderId && storeId) {
+      const todayBd = formatBusinessDate(new Date());
+      const { data: reg } = await supabase
+        .from("cash_registers")
+        .select("status")
+        .eq("store_id", storeId)
+        .eq("business_day", todayBd)
+        .maybeSingle();
+      if (!reg || reg.status !== "open") {
+        toast.error("Abra o caixa antes de criar um pedido", {
+          description: "Vá ao painel e clique em 'Abrir Caixa'.",
+          action: { label: "Abrir caixa", onClick: () => navigate("/admin") },
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const isPixEntrega = paymentMethod === "pix_entrega";
