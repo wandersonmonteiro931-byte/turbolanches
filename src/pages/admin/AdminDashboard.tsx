@@ -1654,10 +1654,9 @@ const AdminDashboard = () => {
                   <span className="text-sm font-bold text-foreground">
                     R$ {Number(order.total).toFixed(2).replace(".",",")}
                   </span>
-                </button>
+                </div>
 
-                {expandedOrder === order.id && (
-                  <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
                     {/* Edit mode */}
                     {isEditing ? (
                       <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
