@@ -70,11 +70,12 @@ export function useAdminAlarm() {
     const checkPending = async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, status, payment_method", { count: "exact", head: false })
+        .select("id, status, payment_method, payment_confirmed", { count: "exact", head: false })
         .in("status", ["pending", "paid"]);
 
       const filtered = (data || []).filter(o => {
-        if (o.payment_method === "pix" && o.status === "pending") return false;
+        // PIX orders only count as pending after payment is confirmed
+        if (o.payment_method === "pix" && !o.payment_confirmed && o.status !== "paid") return false;
         return true;
       });
       setPendingCount(filtered.length);
