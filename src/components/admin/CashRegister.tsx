@@ -158,7 +158,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
-  const todayBusinessDay = formatBusinessDate(nowBrasilia());
+  // Memoize so it doesn't change on every render (avoiding fetchRegister recreation loop)
+  const todayBusinessDay = useMemo(() => formatBusinessDate(nowBrasilia()), [
+    // Recompute only when the date actually changes (not the second-by-second clock)
+    new Date(now).toDateString(),
+  ]);
 
   /** Fetch today's register, plus the previous day's if it's still open (must close first) */
   const fetchRegister = useCallback(async () => {
