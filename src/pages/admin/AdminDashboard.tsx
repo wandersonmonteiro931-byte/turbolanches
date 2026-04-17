@@ -312,7 +312,11 @@ const AdminDashboard = () => {
         if (payload.eventType === "INSERT") {
           const newOrder = payload.new as Order;
           if (!inRange(newOrder.created_at) || (storeId && (newOrder as any).store_id !== storeId)) return;
-          toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          // Only alert for orders that are visible (PIX must be paid first)
+          const isUnpaidPix = newOrder.payment_method === "pix" && !newOrder.payment_confirmed && newOrder.status !== "paid";
+          if (!isUnpaidPix) {
+            toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          }
           setOrders((prev) => {
             if (prev.some((o) => o.id === newOrder.id)) return prev;
             return [newOrder, ...prev];
@@ -1167,7 +1171,12 @@ const AdminDashboard = () => {
   };
 
   const activeTabConfig = tabs.find(t => t.key === activeTab);
-  const filteredOrders = orders
+  // Hide PIX orders that have NOT been paid yet — they should only appear after payment confirmation
+  const visibleOrders = useMemo(() => orders.filter(o => {
+    if (o.payment_method === "pix" && !o.payment_confirmed && o.status !== "paid") return false;
+    return true;
+  }), [orders]);
+  const filteredOrders = visibleOrders
     .filter(o => activeTabConfig?.statuses.includes(o.status))
     .filter(o => {
       if (!searchQuery.trim()) return true;
@@ -1193,15 +1202,15 @@ const AdminDashboard = () => {
   };
 
   const stats = useMemo(() => ({
-    pending: orders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
-    preparing: orders.filter(o => o.status === "preparing").length,
-    ready: orders.filter(o => o.status === "ready").length,
-    delivering: orders.filter(o => o.status === "delivering").length,
-    delivered: orders.filter(o => o.status === "delivered").length,
-    cancelled: orders.filter(o => o.status === "cancelled").length,
-  }), [orders]);
+    pending: visibleOrders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
+    preparing: visibleOrders.filter(o => o.status === "preparing").length,
+    ready: visibleOrders.filter(o => o.status === "ready").length,
+    delivering: visibleOrders.filter(o => o.status === "delivering").length,
+    delivered: visibleOrders.filter(o => o.status === "delivered").length,
+    cancelled: visibleOrders.filter(o => o.status === "cancelled").length,
+  }), [visibleOrders]);
 
-  const todayRevenue = useMemo(() => orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [orders]);
+  const todayRevenue = useMemo(() => visibleOrders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
   return (
     <div className="space-y-4">
@@ -1584,27 +1593,23 @@ const AdminDashboard = () => {
           <p className="text-sm">{searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredOrders.map((order) => {
             const next = order.status === "awaiting_payment" ? null : nextStatus[order.status];
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
             const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
             const isEditing = editingOrder === order.id;
+            // Auto-load items so every card shows full info without a click
+            if (!items[order.id]) void fetchItems(order.id);
 
             return (
-              <div key={order.id} className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
+              <div key={order.id} className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
                 (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
                 (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
                 "border-border"
               }`}>
-                <button
-                  onClick={() => {
-                    if (expandedOrder === order.id) setExpandedOrder(null);
-                    else { setExpandedOrder(order.id); fetchItems(order.id); }
-                  }}
-                  className="flex w-full items-center gap-3 p-4 text-left"
-                >
+                <div className="flex items-start gap-3 p-4 border-b border-border">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-base font-bold text-foreground">
@@ -1649,10 +1654,9 @@ const AdminDashboard = () => {
                   <span className="text-sm font-bold text-foreground">
                     R$ {Number(order.total).toFixed(2).replace(".",",")}
                   </span>
-                </button>
+                </div>
 
-                {expandedOrder === order.id && (
-                  <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+                <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
                     {/* Edit mode */}
                     {isEditing ? (
                       <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
@@ -1926,7 +1930,6 @@ const AdminDashboard = () => {
                       )}
                     </div>
                   </div>
-                )}
               </div>
             );
           })}
