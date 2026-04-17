@@ -71,8 +71,9 @@ export function useProducts() {
 
     let addonsQuery = supabase
       .from("product_addons")
-      .select("id, name, price, product_id, apply_to_all, sort_order")
+      .select("id, name, price, product_id, apply_to_all, sort_order, is_internal")
       .eq("active", true)
+      .eq("is_internal", false)
       .order("sort_order");
 
     let categoriesQuery = supabase

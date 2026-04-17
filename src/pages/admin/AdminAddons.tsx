@@ -6,6 +6,7 @@ import { useStore } from "@/contexts/StoreContext";
 
 interface Addon {
   id: string;
+  is_internal?: boolean;
   name: string;
   price: number;
   active: boolean;
@@ -43,7 +44,7 @@ const AdminAddons = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showAddonForm, setShowAddonForm] = useState(false);
   const [editingAddon, setEditingAddon] = useState<Addon | null>(null);
-  const [addonForm, setAddonForm] = useState({ name: "", price: "0", active: true, apply_to_all: false });
+  const [addonForm, setAddonForm] = useState({ name: "", price: "0", active: true, apply_to_all: false, is_internal: false });
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -128,13 +129,13 @@ const AdminAddons = () => {
   // CRUD addon
   const openNewAddon = () => {
     setEditingAddon(null);
-    setAddonForm({ name: "", price: "0", active: true, apply_to_all: false });
+    setAddonForm({ name: "", price: "0", active: true, apply_to_all: false, is_internal: false });
     setShowAddonForm(true);
   };
 
   const openEditAddon = (a: Addon) => {
     setEditingAddon(a);
-    setAddonForm({ name: a.name, price: String(a.price), active: a.active, apply_to_all: a.apply_to_all });
+    setAddonForm({ name: a.name, price: String(a.price), active: a.active, apply_to_all: a.apply_to_all, is_internal: Boolean(a.is_internal) });
     setShowAddonForm(true);
   };
 
@@ -144,6 +145,7 @@ const AdminAddons = () => {
       price: parseFloat(addonForm.price) || 0,
       active: addonForm.active,
       apply_to_all: addonForm.apply_to_all,
+      is_internal: addonForm.is_internal,
       product_id: null as string | null,
       sort_order: editingAddon ? editingAddon.sort_order : addons.length,
       store_id: storeId,
@@ -398,6 +400,16 @@ const AdminAddons = () => {
                 <input type="checkbox" checked={addonForm.apply_to_all}
                   onChange={(e) => setAddonForm({ ...addonForm, apply_to_all: e.target.checked })} />
                 Aplicar a todos os produtos (global)
+              </label>
+              <label className="flex items-start gap-2 text-sm text-foreground rounded-lg border border-border bg-muted/30 p-2">
+                <input type="checkbox" className="mt-0.5" checked={addonForm.is_internal}
+                  onChange={(e) => setAddonForm({ ...addonForm, is_internal: e.target.checked })} />
+                <span>
+                  <strong>Uso interno (custo)</strong>
+                  <span className="block text-[11px] text-muted-foreground">
+                    Marque para itens como sachês, embalagens ou insumos de cálculo de custo. Eles NÃO aparecerão no cardápio do cliente.
+                  </span>
+                </span>
               </label>
               {!addonForm.apply_to_all && selectedProductIds.length > 0 && !editingAddon && (
                 <p className="text-[11px] text-muted-foreground bg-muted rounded-lg px-3 py-2">
