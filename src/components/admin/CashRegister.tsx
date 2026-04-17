@@ -435,6 +435,9 @@ export default function CashRegister({ onChange }: Props) {
         )}
 
         <div className="ml-auto flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setShowHistory(true)}>
+            <History size={16} className="mr-1" /> Histórico
+          </Button>
           {!register || register.business_day !== todayBusinessDay ? (
             <Button
               onClick={() => setShowOpen(true)}
