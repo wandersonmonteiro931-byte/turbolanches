@@ -1177,8 +1177,6 @@ ${closedBy ? `<div class="row"><span>Responsável:</span><strong>${closedBy}</st
 <div class="row"><span>Cancelados:</span><strong>${stats.cancelled}</strong></div>
 ${topItems.length > 0 ? `<div style="margin-top:3px;"><strong>MAIS VENDIDOS:</strong></div>
 ${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><strong>${it.qty}×</strong></div>`).join("")}` : ""}
-${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
-<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>` : ""}
 <hr/>
 <div><strong>GASTOS</strong></div>
 <div class="row"><span>Funcionários:</span><span>${f(reg.expense_employees)}</span></div>
