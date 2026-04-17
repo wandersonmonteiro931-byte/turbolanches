@@ -233,6 +233,19 @@ const AdminDashboard = () => {
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
+    console.log("[Dashboard] fetchOrders", {
+      storeId,
+      isToday,
+      range: { start, end },
+      dayCount: dayRes.data?.length ?? 0,
+      activeCount: activeRes.data?.length ?? 0,
+      mergedCount: data.length,
+      preparingCount: data.filter(o => o.status === "preparing").length,
+      preparing: data.filter(o => o.status === "preparing").map(o => ({
+        n: o.order_number, status: o.status, pm: o.payment_method, pc: o.payment_confirmed, sid: (o as any).store_id,
+      })),
+    });
+
     setOrders(data);
     const userIds = [...new Set(data.map(o => o.user_id))];
     if (userIds.length > 0) {
