@@ -102,13 +102,13 @@ export function useAdminAlarm() {
     const shouldPlay = pendingCount > 0 && isAdmin && isOnAdminRoute;
 
     if (shouldPlay) {
-      const playAlarm = () => {
+      const playAlarm = async () => {
         const ctx = ensureAudioContext();
         if (!ctx || ctx.state === "closed") return;
-        // Force resume every time in case it got suspended
+        // Try to resume every tick
         if (ctx.state === "suspended") {
-          ctx.resume().catch(() => {});
-          return; // will play on next interval tick after resume
+          try { await ctx.resume(); } catch { /* needs user interaction */ }
+          if ((ctx.state as string) !== "running") return;
         }
 
         const t = ctx.currentTime;
@@ -135,9 +135,8 @@ export function useAdminAlarm() {
         });
       };
 
-      playAlarm();
-      // Use shorter interval (2s) for more reliable playback
-      alarmIntervalRef.current = setInterval(playAlarm, 2000);
+      void playAlarm();
+      alarmIntervalRef.current = setInterval(() => { void playAlarm(); }, 2000);
 
       // Send browser notification for background tabs
       if (!wasPlayingRef.current && "Notification" in window && Notification.permission === "granted") {
