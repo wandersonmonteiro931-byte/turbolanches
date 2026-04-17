@@ -92,8 +92,12 @@ export default function CashRegister({ onChange }: Props) {
 
   /** Fetch today's register, plus the previous day's if it's still open (must close first) */
   const fetchRegister = useCallback(async () => {
-    if (!storeId) return;
     setLoading(true);
+    if (!storeId) {
+      setRegister(null);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from("cash_registers")
       .select("*")
