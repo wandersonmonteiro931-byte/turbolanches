@@ -563,6 +563,7 @@ const AdminManualOrder = () => {
           .from("orders")
           .insert({
             user_id: user.id,
+            store_id: storeId ?? null,
             subtotal,
             delivery_fee: deliveryFee,
             discount: discountValue,
