@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Product, ProductAddon, CartItem } from "@/data/menu";
-import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 const CART_STORAGE_KEY = "turbo-lanches-cart";
 const COUPON_STORAGE_KEY = "turbo-lanches-coupon";
@@ -35,7 +34,8 @@ function loadCart(): CartItem[] {
         ...item,
         product: {
           ...item.product,
-          description: sanitizeCustomerDescription(item.product?.description),
+          description: "",
+          ingredients: [],
         },
       }));
     }
@@ -87,7 +87,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setItems((prev) => [
       ...prev,
       {
-        product: { ...product, description: sanitizeCustomerDescription(product.description) },
+        product: { ...product, description: "", ingredients: [] },
         quantity,
         selectedAddons: addons,
         observations,

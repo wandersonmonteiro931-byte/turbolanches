@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { Product } from "@/data/menu";
-import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 interface ProductCardProps {
   product: Product;
@@ -13,7 +12,6 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
   const navigate = useNavigate();
 
   const isSoldOut = product.active === false;
-  const safeDescription = sanitizeCustomerDescription(product.description);
 
   const handleClick = () => {
     navigate(`/produto/${product.id}`);
@@ -53,8 +51,6 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
               </span>
             )}
           </div>
-          {safeDescription ? <p className="mt-1 text-xs text-muted-foreground break-words">{safeDescription}</p> : null}
-          {/* Ficha técnica (ingredientes) NUNCA é exibida no cardápio do cliente */}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm font-bold text-primary">
