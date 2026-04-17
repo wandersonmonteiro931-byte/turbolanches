@@ -56,6 +56,41 @@ const AdminReceipts = () => {
   const requestedTab = searchParams.get("tipo") || "pedido";
   const activeTab = availableTypes.includes(requestedTab) ? requestedTab : "pedido";
   const [editData, setEditData] = useState<Record<string, Partial<ReceiptTemplate>>>({});
+  const [printQty, setPrintQty] = useState<Record<string, number>>({});
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrintTest = async (type: string) => {
+    const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
+    if (type === "etiquetas" || type === "reposicao") {
+      toast.info("Teste de impressão disponível apenas para Pedido / Obrigado / Fechamento de Rota.");
+      return;
+    }
+    setPrinting(true);
+    try {
+      const { data: lastOrder, error } = await supabase
+        .from("orders")
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !lastOrder) {
+        toast.error("Nenhum pedido encontrado para teste de impressão.");
+        return;
+      }
+      for (let i = 0; i < qty; i++) {
+        setTimeout(() => {
+          window.open(
+            `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}_${Date.now()}`,
+            `_print_${type}_${Date.now()}_${i}`,
+            "width=300,height=600"
+          );
+        }, i * 900);
+      }
+      toast.success(`Enviando ${qty} impressão(ões) separada(s)...`);
+    } finally {
+      setTimeout(() => setPrinting(false), qty * 900);
+    }
+  };
 
   useEffect(() => {
     const map: Record<string, Partial<ReceiptTemplate>> = {};
