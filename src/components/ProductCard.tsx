@@ -30,7 +30,7 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
       <div className="flex flex-1 flex-col justify-between min-w-0">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-foreground leading-tight line-clamp-2">{product.name}</h3>
+            <h3 className="font-semibold text-foreground leading-tight break-words">{product.name}</h3>
             {isSoldOut && (
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
                 ESGOTADO
