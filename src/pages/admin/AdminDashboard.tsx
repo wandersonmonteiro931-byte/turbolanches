@@ -414,11 +414,13 @@ const AdminDashboard = () => {
   const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
-    // Block finalization if cash register is closed
-    if (newStatus === "delivered" && !cashRegisterOpen) {
+    // Block accepting and finalization if cash register is closed
+    if ((newStatus === "preparing" || newStatus === "delivered") && !cashRegisterOpen) {
       toast({
         title: "🔒 Caixa fechado",
-        description: "Abra o caixa antes de finalizar pedidos.",
+        description: newStatus === "preparing"
+          ? "Abra o caixa antes de aceitar pedidos."
+          : "Abra o caixa antes de finalizar pedidos.",
         variant: "destructive",
       });
       return;
