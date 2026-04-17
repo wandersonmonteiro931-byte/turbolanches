@@ -829,9 +829,51 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 <div className="font-bold mb-1">📂 Abertura</div>
                 <div>Data/Hora: {formatDateTimeBR(register.opened_at)}</div>
+                {(() => {
+                  const m = (register.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+                  return m ? <div>Responsável: <strong>{m[1].trim()}</strong></div> : null;
+                })()}
                 <div>Dinheiro: <strong>{fmt(register.opening_cash)}</strong></div>
                 <div>Máquina/Conta: <strong>{fmt(register.opening_card)}</strong></div>
                 <div>Troco reserva: <strong>{fmt(register.opening_change_reserve)}</strong></div>
+              </div>
+
+              {/* Stats: orders count + top items */}
+              <div className="rounded-lg border border-border bg-card p-3 text-sm space-y-2">
+                <div className="font-bold">📊 Pedidos do dia</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded bg-emerald-500/10 px-2 py-1 text-emerald-700">
+                    Realizados: <strong>{orderStats.completed}</strong>
+                  </div>
+                  <div className="rounded bg-destructive/10 px-2 py-1 text-destructive">
+                    Cancelados: <strong>{orderStats.cancelled}</strong>
+                  </div>
+                </div>
+                {topItems.length > 0 && (
+                  <div className="pt-1">
+                    <div className="font-bold text-xs mb-1">🏆 Itens mais vendidos</div>
+                    <ol className="list-decimal pl-5 space-y-0.5 text-xs">
+                      {topItems.map((it, i) => (
+                        <li key={i}>
+                          <span className="font-semibold">{it.qty}×</span> {it.name}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+
+              {/* Responsável pelo fechamento */}
+              <div>
+                <Label>
+                  Responsável pelo fechamento <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="Nome de quem está fechando o caixa"
+                  value={closeForm.responsible_name}
+                  onChange={(e) => setCloseForm({ ...closeForm, responsible_name: e.target.value })}
+                  required
+                />
               </div>
 
               {/* Expenses */}
