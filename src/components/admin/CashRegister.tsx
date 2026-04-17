@@ -692,6 +692,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_couriers", "Entregadores"],
                   ["expense_purchases", "Compras"],
                   ["expense_gasoline", "Gasolina"],
+                  ["expense_ads", "Anúncios / Divulgação"],
                   ["expense_other", "Outros"],
                 ].map(([key, label]) => (
                   <div key={key} className="grid grid-cols-2 gap-2 items-center">
