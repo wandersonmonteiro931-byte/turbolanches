@@ -653,22 +653,29 @@ const AdminOrders = () => {
           });
           if (sectionOrders.length === 0) return null;
           const hasPending = section.blink && sectionOrders.length > 0;
+          // Pendentes & Em Preparo expandidos por padrão; demais colapsadas
+          const defaultOpen = section.key === "pendentes" || section.key === "preparo";
+          const isOpen = expandedSections[section.key] ?? defaultOpen;
 
           return (
             <section key={section.key} className="space-y-3">
-              <div
-                className={`flex items-center gap-2 rounded-xl border-2 px-4 py-2 ${section.accent} ${
+              <button
+                type="button"
+                onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
+                className={`w-full flex items-center gap-2 rounded-xl border-2 px-4 py-2 ${section.accent} ${
                   hasPending ? "animate-pulse" : ""
                 }`}
               >
+                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 <h2 className="text-sm font-black uppercase tracking-wider">{section.label}</h2>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
                   {sectionOrders.length}
                 </span>
-              </div>
+              </button>
 
-              <div className="flex flex-col gap-3">
-                {sectionOrders.map((order) => {
+              {isOpen && (
+                <div className="flex flex-col gap-3">
+                  {sectionOrders.map((order) => {
                   const status = statusConfig[order.status] || statusConfig.pending;
                   const StatusIcon = status.icon;
                   const next = nextStatus[order.status];
