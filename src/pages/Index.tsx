@@ -34,6 +34,7 @@ const stagger = {
 };
 
 const Index = () => {
+  useScrollRestoration("home");
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { isOpen: storeIsOpen, nextOpeningText } = useStoreStatus();
