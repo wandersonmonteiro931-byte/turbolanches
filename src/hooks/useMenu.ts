@@ -3,10 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 
+// Module-level caches: persist across component unmount/remount (e.g. back navigation)
+const categoriesCache = new Map<string, Category[]>();
+const productsCache = new Map<string, Product[]>();
+
+const cacheKey = (storeId: string | null | undefined) => storeId ?? "__default__";
+
 export function useCategories() {
   const { storeId } = useStore();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const key = cacheKey(storeId);
+  const [categories, setCategories] = useState<Category[]>(() => categoriesCache.get(key) ?? []);
+  const [loading, setLoading] = useState(() => !categoriesCache.has(key));
 
   const fetchCategories = useCallback(async () => {
     let query = supabase
@@ -19,17 +26,17 @@ export function useCategories() {
 
     const { data } = await query;
     if (data) {
-      setCategories(
-        data.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          icon: c.icon || "",
-          image: c.image_url || "/placeholder.svg",
-        }))
-      );
+      const mapped = data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icon: c.icon || "",
+        image: c.image_url || "/placeholder.svg",
+      }));
+      categoriesCache.set(key, mapped);
+      setCategories(mapped);
     }
     setLoading(false);
-  }, [storeId]);
+  }, [storeId, key]);
 
   useEffect(() => {
     fetchCategories();
@@ -51,8 +58,9 @@ export function useCategories() {
 
 export function useProducts() {
   const { storeId } = useStore();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const key = cacheKey(storeId);
+  const [products, setProducts] = useState<Product[]>(() => productsCache.get(key) ?? []);
+  const [loading, setLoading] = useState(() => !productsCache.has(key));
 
   const fetchProducts = useCallback(async () => {
     let productsQuery = supabase
@@ -140,28 +148,28 @@ export function useProducts() {
     );
 
     if (productsRes.data) {
-      setProducts(
-        productsRes.data.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description || "",
-          price: p.price,
-          originalPrice: p.original_price ?? undefined,
-          image: p.image_url || "/placeholder.svg",
-          category: p.category_id || "",
-          rating: 0,
-          ratingCount: 0,
-          popular: p.popular,
-          active: p.active,
-          isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
-          comboItemCount: p.combo_item_count || 1,
-          addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
-          ingredients: ingredientsByProduct.get(p.id) || [],
-        }))
-      );
+      const mapped = productsRes.data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description || "",
+        price: p.price,
+        originalPrice: p.original_price ?? undefined,
+        image: p.image_url || "/placeholder.svg",
+        category: p.category_id || "",
+        rating: 0,
+        ratingCount: 0,
+        popular: p.popular,
+        active: p.active,
+        isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
+        comboItemCount: p.combo_item_count || 1,
+        addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
+        ingredients: ingredientsByProduct.get(p.id) || [],
+      }));
+      productsCache.set(key, mapped);
+      setProducts(mapped);
     }
     setLoading(false);
-  }, [storeId]);
+  }, [storeId, key]);
 
   useEffect(() => {
     fetchProducts();
