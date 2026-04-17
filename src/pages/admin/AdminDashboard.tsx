@@ -1198,15 +1198,15 @@ const AdminDashboard = () => {
   };
 
   const stats = useMemo(() => ({
-    pending: orders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
-    preparing: orders.filter(o => o.status === "preparing").length,
-    ready: orders.filter(o => o.status === "ready").length,
-    delivering: orders.filter(o => o.status === "delivering").length,
-    delivered: orders.filter(o => o.status === "delivered").length,
-    cancelled: orders.filter(o => o.status === "cancelled").length,
-  }), [orders]);
+    pending: visibleOrders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
+    preparing: visibleOrders.filter(o => o.status === "preparing").length,
+    ready: visibleOrders.filter(o => o.status === "ready").length,
+    delivering: visibleOrders.filter(o => o.status === "delivering").length,
+    delivered: visibleOrders.filter(o => o.status === "delivered").length,
+    cancelled: visibleOrders.filter(o => o.status === "cancelled").length,
+  }), [visibleOrders]);
 
-  const todayRevenue = useMemo(() => orders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [orders]);
+  const todayRevenue = useMemo(() => visibleOrders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
   return (
     <div className="space-y-4">
