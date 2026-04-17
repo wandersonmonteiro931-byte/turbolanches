@@ -1038,7 +1038,21 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   <Button size="sm" variant="outline" onClick={() => reprintRegister(r)}>
                     <Printer size={14} className="mr-1" /> Imprimir
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditingReg({ ...r })}>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    const notes = r.notes || "";
+                    const oM = notes.match(/\[Aberto por:\s*([^\]]+)\]/);
+                    const cM = notes.match(/\[Fechado por:\s*([^\]]+)\]/);
+                    const cleanNotes = notes
+                      .replace(/\[Aberto por:[^\]]*\]/g, "")
+                      .replace(/\[Fechado por:[^\]]*\]/g, "")
+                      .trim();
+                    setEditingReg({
+                      ...r,
+                      _opened_by_name: oM ? oM[1].trim() : "",
+                      _closed_by_name: cM ? cM[1].trim() : "",
+                      _clean_notes: cleanNotes,
+                    } as any);
+                  }}>
                     <Pencil size={14} className="mr-1" /> Editar
                   </Button>
                 </div>
@@ -1051,49 +1065,129 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* EDIT MODAL */}
+      {/* EDIT MODAL — replica das telas originais (Abertura + Fechamento) */}
       <Dialog open={!!editingReg} onOpenChange={(o) => !o && setEditingReg(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Caixa — {editingReg?.business_day}</DialogTitle>
           </DialogHeader>
-          {editingReg && (
-            <div className="space-y-3 py-2 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ["opening_cash", "Abertura: Dinheiro"],
-                  ["opening_card", "Abertura: Máquina/Conta"],
-                  ["opening_change_reserve", "Abertura: Troco reserva"],
-                  ["expense_employees", "Gasto: Funcionários"],
-                  ["expense_couriers", "Gasto: Entregadores"],
-                  ["expense_purchases", "Gasto: Compras"],
-                  ["expense_gasoline", "Gasto: Gasolina"],
-                  ["expense_ads", "Gasto: Anúncios/Divulgação"],
-                  ["expense_other", "Gasto: Outros"],
-                  ["closing_pix", "Fechamento: PIX"],
-                  ["closing_card", "Fechamento: Cartão"],
-                  ["closing_cash", "Fechamento: Dinheiro"],
-                ].map(([k, l]) => (
-                  <div key={k}>
-                    <Label className="text-xs">{l}</Label>
+          {editingReg && (() => {
+            const er = editingReg as any;
+            const set = (patch: Record<string, unknown>) => setEditingReg({ ...er, ...patch });
+            const numField = (key: string) => ({
+              type: "number" as const,
+              step: "0.01",
+              value: er[key] ?? 0,
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => set({ [key]: e.target.value }),
+            });
+            const toLocalInput = (iso: string | null | undefined) => {
+              if (!iso) return "";
+              const d = new Date(iso);
+              const pad = (n: number) => String(n).padStart(2, "0");
+              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+            return (
+              <Tabs defaultValue="abertura" className="py-2">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="abertura">📂 Abertura</TabsTrigger>
+                  <TabsTrigger value="fechamento" disabled={!er.closed_at}>
+                    🔒 Fechamento {!er.closed_at && "(em aberto)"}
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* TAB ABERTURA — espelha o modal de Abrir Caixa */}
+                <TabsContent value="abertura" className="space-y-3 pt-3">
+                  <div>
+                    <Label>Data/Hora da abertura</Label>
                     <Input
-                      type="number"
-                      step="0.01"
-                      value={(editingReg as any)[k] ?? 0}
-                      onChange={(e) => setEditingReg({ ...editingReg, [k]: Number(e.target.value) } as any)}
+                      type="datetime-local"
+                      value={toLocalInput(er.opened_at)}
+                      onChange={(e) => set({ opened_at: new Date(e.target.value).toISOString() })}
                     />
                   </div>
-                ))}
-              </div>
-              <div>
-                <Label className="text-xs">Observações</Label>
-                <Input
-                  value={editingReg.notes || ""}
-                  onChange={(e) => setEditingReg({ ...editingReg, notes: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
+                  <div>
+                    <Label>Responsável pela abertura <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="Nome de quem abriu o caixa"
+                      value={er._opened_by_name || ""}
+                      onChange={(e) => set({ _opened_by_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Dinheiro em caixa (R$)</Label>
+                    <Input {...numField("opening_cash")} />
+                  </div>
+                  <div>
+                    <Label>Saldo em máquina/conta (R$)</Label>
+                    <Input {...numField("opening_card")} />
+                  </div>
+                  <div>
+                    <Label>Troco reserva (R$)</Label>
+                    <Input {...numField("opening_change_reserve")} />
+                  </div>
+                </TabsContent>
+
+                {/* TAB FECHAMENTO — espelha o modal de Fechar Caixa */}
+                <TabsContent value="fechamento" className="space-y-4 pt-3">
+                  <div>
+                    <Label>Data/Hora do fechamento</Label>
+                    <Input
+                      type="datetime-local"
+                      value={toLocalInput(er.closed_at)}
+                      onChange={(e) => set({ closed_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Responsável pelo fechamento <span className="text-destructive">*</span></Label>
+                    <Input
+                      placeholder="Nome de quem fechou o caixa"
+                      value={er._closed_by_name || ""}
+                      onChange={(e) => set({ _closed_by_name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="font-bold text-sm">💸 Gastos do dia</div>
+                    {[
+                      ["expense_employees", "Funcionários"],
+                      ["expense_couriers", "Entregadores"],
+                      ["expense_purchases", "Compras"],
+                      ["expense_gasoline", "Gasolina"],
+                      ["expense_ads", "Anúncios / Divulgação"],
+                      ["expense_other", "Outros"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
+                        <Label className="text-sm">{label}</Label>
+                        <Input className="w-40" {...numField(key as string)} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="font-bold text-sm">💰 Saldo final em caixa</div>
+                    {[
+                      ["closing_pix", "PIX"],
+                      ["closing_card", "Máquina de cartão"],
+                      ["closing_cash", "Dinheiro"],
+                    ].map(([key, label]) => (
+                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
+                        <Label className="text-sm">{label}</Label>
+                        <Input className="w-40" {...numField(key as string)} />
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <div className="pt-3">
+                  <Label>Observações</Label>
+                  <Input
+                    value={er._clean_notes ?? ""}
+                    onChange={(e) => set({ _clean_notes: e.target.value })}
+                  />
+                </div>
+              </Tabs>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingReg(null)}>Cancelar</Button>
             <Button onClick={saveRegisterEdits} className="bg-primary text-primary-foreground">Salvar alterações</Button>
