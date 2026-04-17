@@ -729,6 +729,7 @@ export type Database = {
           cost_per_unit: number
           created_at: string
           id: string
+          is_internal: boolean
           name: string
           store_id: string | null
           unit: string
@@ -740,6 +741,7 @@ export type Database = {
           cost_per_unit?: number
           created_at?: string
           id?: string
+          is_internal?: boolean
           name: string
           store_id?: string | null
           unit?: string
@@ -751,6 +753,7 @@ export type Database = {
           cost_per_unit?: number
           created_at?: string
           id?: string
+          is_internal?: boolean
           name?: string
           store_id?: string | null
           unit?: string

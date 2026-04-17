@@ -24,6 +24,7 @@ interface Ingredient {
   cost_per_unit: number;
   calculation_mode?: string | null;
   calculation_config?: unknown;
+  is_internal?: boolean;
 }
 
 interface IngredientForm {
@@ -34,6 +35,7 @@ interface IngredientForm {
   packagePrice: string;
   unitsPerPackage: string;
   packageContentUnit: IngredientMeasureUnit;
+  isInternal: boolean;
 }
 
 const createEmptyForm = (): IngredientForm => {
@@ -47,6 +49,7 @@ const createEmptyForm = (): IngredientForm => {
     packagePrice: config.package_price,
     unitsPerPackage: config.units_per_package,
     packageContentUnit: config.package_content_unit,
+    isInternal: false,
   };
 };
 
@@ -63,6 +66,7 @@ const buildFormFromIngredient = (item: Ingredient): IngredientForm => {
     packagePrice: formatMoneyInput(config.package_price),
     unitsPerPackage: config.units_per_package,
     packageContentUnit: config.package_content_unit,
+    isInternal: Boolean(item.is_internal),
   };
 };
 
@@ -180,6 +184,7 @@ const IngredientsTab = () => {
       cost_per_unit: roundedCostPerUnit,
       calculation_mode: form.calculationMode,
       calculation_config: persistedCalculationConfig,
+      is_internal: form.isInternal,
     };
 
     if (!editing) payload.store_id = storeId;
@@ -273,6 +278,21 @@ const IngredientsTab = () => {
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm"
             />
+
+            <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isInternal}
+                onChange={(event) => setForm({ ...form, isInternal: event.target.checked })}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                <span className="block font-semibold text-foreground">Insumo interno (não exibir ao cliente)</span>
+                <span className="block text-xs text-muted-foreground">
+                  Marque para embalagens, sacolas, sachês, bobinas etc. Eles continuam no cálculo de custo, mas não aparecem na lista de ingredientes do cardápio.
+                </span>
+              </span>
+            </label>
 
             <select
               value={form.calculationMode}
@@ -380,7 +400,16 @@ const IngredientsTab = () => {
 
                 return (
                   <tr key={item.id} className="border-b border-border/50 last:border-b-0">
-                    <td className="py-3 pl-4 pr-2 font-medium text-foreground">{item.name}</td>
+                    <td className="py-3 pl-4 pr-2 font-medium text-foreground">
+                      <div className="flex items-center gap-2">
+                        <span>{item.name}</span>
+                        {item.is_internal && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase text-muted-foreground">
+                            Interno
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-2 py-3 text-muted-foreground">{normalizeIngredientUnit(item.unit)}</td>
                     <td className="px-2 py-3 text-muted-foreground">{calculationMode}</td>
                     <td className="px-2 py-3 text-right text-foreground">{formatCurrency(Number(item.cost_per_unit))}</td>
