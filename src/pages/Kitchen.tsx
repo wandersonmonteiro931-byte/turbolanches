@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
+import { useStore } from "@/contexts/StoreContext";
 import logoTurboFallback from "@/assets/logo-turbo.jpeg";
 
 
@@ -31,6 +32,7 @@ interface CancelledAlert {
 
 const Kitchen = () => {
   const storeLogo = useStoreLogo(logoTurboFallback);
+  const { storeId } = useStore();
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [items, setItems] = useState<Record<string, KitchenItem[]>>({});
@@ -43,12 +45,14 @@ const Kitchen = () => {
 
 
   const fetchOrders = useCallback(async () => {
-    // Fetch preparing orders for display
-    const { data, error } = await supabase
+    // Fetch preparing orders for display (filtered by Turbo Lanches store)
+    let query = supabase
       .from("orders")
       .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority, updated_at")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data, error } = await query;
     if (error) {
       console.error("[Kitchen] Error fetching orders:", error.message);
     }
@@ -117,16 +121,18 @@ const Kitchen = () => {
     } else {
       setItems({});
     }
-    // Check for pending orders (for alarm) — exclude unpaid PIX
-    const { data: alarmOrders } = await supabase
+    // Check for pending orders (for alarm) — exclude unpaid PIX, filter by store
+    let alarmQuery = supabase
       .from("orders")
-      .select("id, status, payment_method")
+      .select("id, status, payment_method, store_id")
       .in("status", ["pending", "paid"]);
+    if (storeId) alarmQuery = alarmQuery.eq("store_id", storeId);
+    const { data: alarmOrders } = await alarmQuery;
     const visiblePending = (alarmOrders || []).filter(
       (o) => !(o.payment_method === "pix" && o.status === "pending")
     );
     setPendingCount(visiblePending.length);
-  }, []);
+  }, [storeId]);
 
   useEffect(() => {
     fetchOrders();
