@@ -887,8 +887,9 @@ const AdminOrders = () => {
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                  })}
+                </div>
+              )}
             </section>
           );
         });
