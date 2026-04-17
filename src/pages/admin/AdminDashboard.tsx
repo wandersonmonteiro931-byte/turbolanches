@@ -1277,24 +1277,6 @@ const AdminDashboard = () => {
 
 
         <button
-          onClick={acceptAllPending}
-          disabled={orders.filter(o => o.status === "pending" || o.status === "paid").length === 0}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
-        >
-          <CheckCircle size={16} />
-          Aceitar Todos ({orders.filter(o => o.status === "pending" || o.status === "paid").length})
-        </button>
-
-        <button
-          onClick={() => setShowCloseDay(true)}
-          disabled={!storeSettings?.is_open}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-40"
-        >
-          <FileText size={16} />
-          Finalizar Dia
-        </button>
-
-        <button
           onClick={openKitchenWindow}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >

@@ -661,7 +661,7 @@ const AdminOrders = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="flex flex-col gap-3">
                 {sectionOrders.map((order) => {
                   const status = statusConfig[order.status] || statusConfig.pending;
                   const StatusIcon = status.icon;
