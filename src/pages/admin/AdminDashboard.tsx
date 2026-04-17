@@ -200,6 +200,7 @@ const AdminDashboard = () => {
       .select("*")
       .gte("created_at", start)
       .lte("created_at", end)
+      .is("trashed_at", null)
       .order("created_at", { ascending: false });
 
     if (storeId) {
@@ -815,6 +816,7 @@ const AdminDashboard = () => {
         .gte("created_at", fromISO)
         .lte("created_at", toISO)
         .neq("status", "cancelled")
+        .is("trashed_at", null)
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (storeId) q = q.eq("store_id", storeId);
       const { data } = await q;
