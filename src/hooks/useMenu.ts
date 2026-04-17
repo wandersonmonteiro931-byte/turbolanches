@@ -4,7 +4,7 @@ import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-hide-internal-descriptions";
+const MENU_CACHE_VERSION = "2026-04-17-show-descriptions";
 
 // Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
