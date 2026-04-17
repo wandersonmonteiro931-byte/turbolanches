@@ -156,19 +156,23 @@ const AdminOrders = () => {
       return;
     }
 
-    const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+    // Fetch all profile batches IN PARALLEL (was sequential — major speed gain)
+    const batches: string[][] = [];
     for (let i = 0; i < userIds.length; i += 100) {
-      const batch = userIds.slice(i, i + 100);
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("user_id, customer_code, full_name, phone")
-        .in("user_id", batch);
-      if (profilesData) {
-        profilesData.forEach((p) => {
-          profileMap[p.user_id] = p;
-        });
-      }
+      batches.push(userIds.slice(i, i + 100));
     }
+    const results = await Promise.all(
+      batches.map((batch) =>
+        supabase
+          .from("profiles")
+          .select("user_id, customer_code, full_name, phone")
+          .in("user_id", batch)
+      )
+    );
+    const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
+    results.forEach(({ data: profilesData }) => {
+      profilesData?.forEach((p) => { profileMap[p.user_id] = p; });
+    });
     setProfiles(profileMap);
   }, [storeId]);
 
@@ -220,13 +224,31 @@ const AdminOrders = () => {
     };
     fetchObrigado();
 
+    // Granular realtime: patch state in place instead of full re-fetch (was very slow with 300+ orders)
     const channel = supabase
       .channel("admin-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
         if (payload.eventType === "INSERT") {
+          const newOrder = payload.new as Order;
+          if (storeId && (newOrder as any).store_id !== storeId) return;
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          setAllOrders((prev) => prev.some((o) => o.id === newOrder.id) ? prev : [newOrder, ...prev]);
+          // Lazy-load missing profile
+          if (newOrder.user_id) {
+            setProfiles((prev) => {
+              if (prev[newOrder.user_id]) return prev;
+              supabase.from("profiles").select("user_id, customer_code, full_name, phone").eq("user_id", newOrder.user_id).maybeSingle()
+                .then(({ data }) => { if (data) setProfiles((p) => ({ ...p, [data.user_id]: data })); });
+              return prev;
+            });
+          }
+        } else if (payload.eventType === "UPDATE") {
+          const updated = payload.new as Order;
+          setAllOrders((prev) => prev.map((o) => o.id === updated.id ? { ...o, ...updated } : o));
+        } else if (payload.eventType === "DELETE") {
+          const oldId = (payload.old as any)?.id;
+          if (oldId) setAllOrders((prev) => prev.filter((o) => o.id !== oldId));
         }
-        void fetchOrders();
       })
       .subscribe();
 
