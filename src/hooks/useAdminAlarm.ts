@@ -108,7 +108,7 @@ export function useAdminAlarm() {
         // Try to resume every tick
         if (ctx.state === "suspended") {
           try { await ctx.resume(); } catch { /* needs user interaction */ }
-          if (ctx.state !== "running") return;
+          if ((ctx.state as string) !== "running") return;
         }
 
         const t = ctx.currentTime;
