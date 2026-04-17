@@ -59,6 +59,7 @@ interface Order {
   courier_id: string | null;
   delivering_at: string | null;
   delivered_at: string | null;
+  trashed_at: string | null;
 }
 
 interface OrderItem {
