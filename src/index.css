@@ -123,6 +123,29 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Pulsing alert for "close cash register" reminder when store is closed */
+  @keyframes cash-blink {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(0 84% 60% / 0.7);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 12px hsl(0 84% 60% / 0);
+      transform: scale(1.04);
+    }
+  }
+  .cash-blink {
+    animation: cash-blink 1.2s ease-in-out infinite;
+  }
+
+  @keyframes cash-banner-blink {
+    0%, 100% { background-color: hsl(0 84% 60% / 0.08); border-color: hsl(0 84% 60% / 0.5); }
+    50% { background-color: hsl(0 84% 60% / 0.22); border-color: hsl(0 84% 60% / 1); }
+  }
+  .cash-banner-blink {
+    animation: cash-banner-blink 1.2s ease-in-out infinite;
+  }
 }
 
 /* Block zoom on mobile (iOS + Android) */

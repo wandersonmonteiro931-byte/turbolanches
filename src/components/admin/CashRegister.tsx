@@ -62,9 +62,11 @@ function formatDuration(ms: number): string {
 interface Props {
   /** Called whenever register state changes so dashboard can refresh gating */
   onChange?: (isOpen: boolean) => void;
+  /** Whether the storefront is currently open — used to trigger the "don't forget to close" blink */
+  storeIsOpen?: boolean;
 }
 
-export default function CashRegister({ onChange }: Props) {
+export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const { storeId } = useStore();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -437,12 +439,18 @@ export default function CashRegister({ onChange }: Props) {
 
   const isOpenToday = register?.status === "open" && register?.business_day === todayBusinessDay;
   const previousDayBlocking = register && register.status === "open" && register.business_day !== todayBusinessDay;
+  // Reminder: store closed but cash still open → blink to remind admin to close it
+  const remindClose = isOpenToday && !storeIsOpen;
 
   return (
     <>
       <div className={cn(
         "flex flex-wrap items-center gap-3 rounded-xl border-2 p-4",
-        isOpenToday ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5",
+        remindClose
+          ? "border-destructive/60 cash-banner-blink"
+          : isOpenToday
+            ? "border-emerald-500/40 bg-emerald-500/5"
+            : "border-amber-500/40 bg-amber-500/5",
       )}>
         <div className="flex items-center gap-2 text-sm font-bold">
           <Wallet size={20} className={isOpenToday ? "text-emerald-600" : "text-amber-600"} />
