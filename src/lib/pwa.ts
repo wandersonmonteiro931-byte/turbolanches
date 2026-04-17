@@ -2,8 +2,18 @@ export const SW_VERSION = "v63";
 export const APP_VERSION = "2026-04-17-show-ingredients";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
+const isInIframe = (() => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+})();
+
 export const shouldEnableServiceWorker = () => {
   if (typeof window === "undefined") return false;
+  if (isInIframe) return false;
 
   const { hostname } = window.location;
   const isLovablePreview = hostname.endsWith(".lovable.app") && hostname.includes("--");
@@ -12,8 +22,21 @@ export const shouldEnableServiceWorker = () => {
   return !(isLovablePreview || isLovableProjectPreview);
 };
 
+/**
+ * In preview/iframe contexts: aggressively unregister ALL service workers
+ * to prevent stale-cache reload loops. In production: only clean up legacy push SWs.
+ */
 export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | null) {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+
+  // Preview / iframe: nuke everything, no exceptions.
+  if (!shouldEnableServiceWorker()) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((r) => r.unregister().catch(() => undefined)));
+    } catch {}
+    return;
+  }
 
   const currentMarker = `${window.location.origin}${currentPushUrl ?? "::cleanup-all-push-sw"}`;
   if (sessionStorage.getItem("__turbo_push_sw_cleanup__") === currentMarker) return;
@@ -37,34 +60,13 @@ export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | 
   } catch {}
 }
 
+/**
+ * No-op kept for backwards compatibility. Previously cleared caches on version bump,
+ * which caused unwanted reloads. Version tracking is now passive.
+ */
 export async function enforceLatestAppVersion() {
   if (typeof window === "undefined") return;
-
-  const storageKey = "__turbo_app_version__";
-  const reloadKey = "__turbo_app_version_reload__";
-  const previousVersion = localStorage.getItem(storageKey);
-
-  if (previousVersion === APP_VERSION) return;
-
-  localStorage.setItem(storageKey, APP_VERSION);
-
   try {
-    if ("caches" in window) {
-      const cacheKeys = await window.caches.keys();
-      await Promise.all(cacheKeys.map((key) => window.caches.delete(key)));
-    }
+    localStorage.setItem("__turbo_app_version__", APP_VERSION);
   } catch {}
-
-  try {
-    if ("serviceWorker" in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(registrations.map((registration) => registration.update().catch(() => undefined)));
-    }
-  } catch {}
-
-  // ⚠️ Recarregamento automático REMOVIDO. O usuário deve recarregar manualmente (F5) quando quiser pegar a versão nova.
-  // Apenas marcamos a versão para não repetir o trabalho de limpeza.
-  if (previousVersion) {
-    sessionStorage.setItem(reloadKey, APP_VERSION);
-  }
 }
