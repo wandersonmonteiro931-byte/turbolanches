@@ -27,6 +27,7 @@ const MenuExport = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [ingredientsByProduct, setIngredientsByProduct] = useState<Record<string, string[]>>({});
   const [storeName, setStoreName] = useState("Cardápio");
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -34,14 +35,28 @@ const MenuExport = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [catRes, prodRes, settingsRes] = await Promise.all([
+      const [catRes, prodRes, settingsRes, prodIngRes, ingRes] = await Promise.all([
         supabase.from("categories").select("*").eq("active", true).order("sort_order"),
         supabase.from("products").select("*").eq("active", true).order("sort_order"),
         supabase.from("store_settings").select("store_display_name").limit(1).single(),
+        supabase.from("product_ingredients").select("product_id, ingredient_id"),
+        supabase.from("ingredients").select("id, name"),
       ]);
       setCategories(catRes.data ?? []);
       setProducts(prodRes.data ?? []);
       if (settingsRes.data?.store_display_name) setStoreName(settingsRes.data.store_display_name);
+
+      // Build product -> ingredient names map
+      const ingMap = new Map<string, string>((ingRes.data ?? []).map((i: any) => [i.id, i.name]));
+      const byProduct: Record<string, string[]> = {};
+      (prodIngRes.data ?? []).forEach((pi: any) => {
+        const name = ingMap.get(pi.ingredient_id);
+        if (!name) return;
+        if (!byProduct[pi.product_id]) byProduct[pi.product_id] = [];
+        byProduct[pi.product_id].push(name);
+      });
+      setIngredientsByProduct(byProduct);
+
       setLoading(false);
     };
     load();
