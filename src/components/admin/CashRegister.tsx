@@ -382,6 +382,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     setShowOpen(false);
     setOpenForm({ cash: "0", card: "0", change_reserve: "0", notes: "" });
+    try { localStorage.removeItem(openDraftKey); } catch {}
     await fetchRegister();
   };
 
