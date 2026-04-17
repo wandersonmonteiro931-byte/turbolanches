@@ -157,6 +157,140 @@ export type Database = {
           },
         ]
       }
+      cash_register_events: {
+        Row: {
+          cash_register_id: string
+          event_at: string
+          event_type: string
+          id: string
+          performed_by: string
+          snapshot: Json
+          store_id: string | null
+        }
+        Insert: {
+          cash_register_id: string
+          event_at?: string
+          event_type: string
+          id?: string
+          performed_by: string
+          snapshot?: Json
+          store_id?: string | null
+        }
+        Update: {
+          cash_register_id?: string
+          event_at?: string
+          event_type?: string
+          id?: string
+          performed_by?: string
+          snapshot?: Json
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_register_events_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_events_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_registers: {
+        Row: {
+          business_day: string
+          closed_at: string | null
+          closed_by: string | null
+          closing_card: number
+          closing_cash: number
+          closing_pix: number
+          created_at: string
+          expense_couriers: number
+          expense_employees: number
+          expense_gasoline: number
+          expense_other: number
+          expense_purchases: number
+          id: string
+          last_reopened_at: string | null
+          notes: string
+          opened_at: string
+          opened_by: string
+          opening_card: number
+          opening_cash: number
+          opening_change_reserve: number
+          reopen_count: number
+          status: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          business_day: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_card?: number
+          closing_cash?: number
+          closing_pix?: number
+          created_at?: string
+          expense_couriers?: number
+          expense_employees?: number
+          expense_gasoline?: number
+          expense_other?: number
+          expense_purchases?: number
+          id?: string
+          last_reopened_at?: string | null
+          notes?: string
+          opened_at?: string
+          opened_by: string
+          opening_card?: number
+          opening_cash?: number
+          opening_change_reserve?: number
+          reopen_count?: number
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          business_day?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_card?: number
+          closing_cash?: number
+          closing_pix?: number
+          created_at?: string
+          expense_couriers?: number
+          expense_employees?: number
+          expense_gasoline?: number
+          expense_other?: number
+          expense_purchases?: number
+          id?: string
+          last_reopened_at?: string | null
+          notes?: string
+          opened_at?: string
+          opened_by?: string
+          opening_card?: number
+          opening_cash?: number
+          opening_change_reserve?: number
+          reopen_count?: number
+          status?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_registers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           active: boolean
