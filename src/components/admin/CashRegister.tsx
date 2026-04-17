@@ -49,6 +49,16 @@ interface PaymentBreakdown {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+function formatDuration(ms: number): string {
+  if (!isFinite(ms) || ms < 0) ms = 0;
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 interface Props {
   /** Called whenever register state changes so dashboard can refresh gating */
   onChange?: (isOpen: boolean) => void;
