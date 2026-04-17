@@ -447,6 +447,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         expense_couriers: Number(rest.expense_couriers) || 0,
         expense_purchases: Number(rest.expense_purchases) || 0,
         expense_gasoline: Number(rest.expense_gasoline) || 0,
+        expense_ads: Number(rest.expense_ads) || 0,
         expense_other: Number(rest.expense_other) || 0,
         closing_pix: Number(rest.closing_pix) || 0,
         closing_card: Number(rest.closing_card) || 0,
