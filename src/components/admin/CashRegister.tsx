@@ -328,6 +328,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
+    if (!openForm.responsible_name?.trim()) {
+      toast({
+        title: "Responsável obrigatório",
+        description: "Informe o nome de quem está abrindo o caixa.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Block if previous day still open
     const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
