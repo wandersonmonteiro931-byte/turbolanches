@@ -6,6 +6,7 @@ import type { ProductAddon } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { toast } from "sonner";
+import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -40,6 +41,7 @@ const ProductDetail = () => {
 
   const isCombo = Boolean(product?.isCombo);
   const comboCount = product?.comboItemCount || 1;
+  const safeDescription = sanitizeCustomerDescription(product?.description);
 
   if (loading) {
     return (
@@ -115,7 +117,7 @@ const ProductDetail = () => {
       <div className="mx-auto max-w-md px-4 -mt-8 relative z-10">
         <div>
           <h1 className="text-2xl text-fire-gradient break-words">{product.name.toUpperCase()}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{product.description}</p>
+          {safeDescription ? <p className="mt-2 text-sm text-muted-foreground">{safeDescription}</p> : null}
           <div className="mt-3 flex items-center gap-3">
             <span className="text-xl font-bold text-primary">{fmt(product.price)}</span>
             {product.originalPrice && (

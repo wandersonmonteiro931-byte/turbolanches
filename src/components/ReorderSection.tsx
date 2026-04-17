@@ -6,6 +6,7 @@ import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Product, ProductAddon } from "@/data/menu";
+import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 interface LastOrderItem {
   product_name: string;
@@ -189,7 +190,7 @@ export default function ReorderSection() {
           ? {
               id: dbProduct.id,
               name: dbProduct.name,
-              description: dbProduct.description || "",
+              description: sanitizeCustomerDescription(dbProduct.description),
               price: dbProduct.price,
               originalPrice: dbProduct.original_price ?? undefined,
               image: dbProduct.image_url || "/placeholder.svg",
