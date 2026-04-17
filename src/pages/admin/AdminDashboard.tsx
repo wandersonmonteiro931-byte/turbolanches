@@ -753,6 +753,7 @@ const AdminDashboard = () => {
         .select("*")
         .gte("created_at", start)
         .lte("created_at", end)
+        .is("trashed_at", null)
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
