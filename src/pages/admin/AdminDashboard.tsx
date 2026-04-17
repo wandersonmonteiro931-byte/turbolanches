@@ -537,6 +537,14 @@ const AdminDashboard = () => {
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
   const acceptAllPending = async () => {
+    if (!cashRegisterOpen) {
+      toast({
+        title: "🔒 Caixa fechado",
+        description: "Abra o caixa antes de aceitar pedidos.",
+        variant: "destructive",
+      });
+      return;
+    }
     const toAccept = orders.filter(o => o.status === "pending" || o.status === "paid");
     if (toAccept.length === 0) {
       toast({ title: "Nenhum pedido pendente para aceitar." });
