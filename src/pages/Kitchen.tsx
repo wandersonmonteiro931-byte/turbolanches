@@ -121,16 +121,18 @@ const Kitchen = () => {
     } else {
       setItems({});
     }
-    // Check for pending orders (for alarm) — exclude unpaid PIX
-    const { data: alarmOrders } = await supabase
+    // Check for pending orders (for alarm) — exclude unpaid PIX, filter by store
+    let alarmQuery = supabase
       .from("orders")
-      .select("id, status, payment_method")
+      .select("id, status, payment_method, store_id")
       .in("status", ["pending", "paid"]);
+    if (storeId) alarmQuery = alarmQuery.eq("store_id", storeId);
+    const { data: alarmOrders } = await alarmQuery;
     const visiblePending = (alarmOrders || []).filter(
       (o) => !(o.payment_method === "pix" && o.status === "pending")
     );
     setPendingCount(visiblePending.length);
-  }, []);
+  }, [storeId]);
 
   useEffect(() => {
     fetchOrders();
