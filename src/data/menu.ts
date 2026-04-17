@@ -25,6 +25,7 @@ export interface Product {
   active?: boolean;
   isCombo?: boolean;
   comboItemCount?: number;
+  ingredients?: string[];
 }
 
 export interface CartItem {
