@@ -52,6 +52,10 @@ interface PaymentBreakdown {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+// Module-level cache so navigating between admin sections doesn't re-show
+// "Carregando caixa..." every time the Dashboard remounts.
+const registerCache = new Map<string, CashRegister>();
+
 function formatDuration(ms: number): string {
   if (!isFinite(ms) || ms < 0) ms = 0;
   const totalSec = Math.floor(ms / 1000);
@@ -74,8 +78,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [register, setRegister] = useState<CashRegister | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [register, setRegister] = useState<CashRegister | null>(() => {
+    return storeId ? registerCache.get(storeId) || null : null;
+  });
+  const [loading, setLoading] = useState(() => {
+    return !(storeId && registerCache.has(storeId));
+  });
   const [showOpen, setShowOpen] = useState(false);
   const [showClose, setShowClose] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -154,12 +162,15 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
   /** Fetch today's register, plus the previous day's if it's still open (must close first) */
   const fetchRegister = useCallback(async () => {
-    setLoading(true);
     if (!storeId) {
       setRegister(null);
       setLoading(false);
       return;
     }
+    // If we have a cached value, keep showing it (no spinner) and refresh in background
+    const cached = registerCache.get(storeId);
+    if (!cached) setLoading(true);
+
     const { data } = await supabase
       .from("cash_registers")
       .select("*")
@@ -171,8 +182,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const today = list.find((r) => r.business_day === todayBusinessDay);
     const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
 
-    // Priority: previous-day-open (must close first), else today's
-    setRegister(previousOpen || today || null);
+    const next = previousOpen || today || null;
+    if (next) registerCache.set(storeId, next);
+    else registerCache.delete(storeId);
+    setRegister(next);
     setLoading(false);
   }, [storeId, todayBusinessDay]);
 
