@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
@@ -168,6 +168,7 @@ const AdminPrint = () => {
   }, [id, tipo]);
 
   const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
+  const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
     if (!ready || !order) return "";
@@ -354,6 +355,8 @@ const AdminPrint = () => {
 
   useEffect(() => {
     if (!printableDocument || !ready) return;
+    if (printedRef.current) return;
+    printedRef.current = true;
 
     const timer = setTimeout(() => {
       try {
