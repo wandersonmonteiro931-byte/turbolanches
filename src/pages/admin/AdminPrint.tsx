@@ -368,21 +368,13 @@ const AdminPrint = () => {
         return;
       }
 
-      const triggerPrint = () => {
-        try {
-          window.focus();
-          window.print();
-        } catch (e) {
-          console.error("[AdminPrint] print error", e);
-        }
-        // Close after print dialog (user closes or auto on kiosk printing)
-        setTimeout(() => {
-          try { window.close(); } catch { /* noop */ }
-        }, 800);
-      };
-
-      // Wait a tick so the new document fully parses before printing
-      setTimeout(triggerPrint, 250);
+      // The injected document already triggers window.print() on load
+      // (see buildAdminPrintDocument in adminPrintTemplates.ts).
+      // Do NOT call window.print() here, otherwise it prints twice.
+      // Just schedule auto-close after the print dialog has had time to handle the job.
+      setTimeout(() => {
+        try { window.close(); } catch { /* noop */ }
+      }, 1500);
     }, Math.max(60, printDelayMs));
 
     return () => clearTimeout(timer);
