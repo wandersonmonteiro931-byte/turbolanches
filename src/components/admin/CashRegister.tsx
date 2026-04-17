@@ -495,9 +495,15 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
           ) : isOpenToday ? (
             <Button
               onClick={() => setShowClose(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className={cn(
+                "text-white",
+                remindClose
+                  ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
+                  : "bg-amber-600 hover:bg-amber-700",
+              )}
             >
-              <Lock size={16} className="mr-1" /> Fechar Caixa
+              <Lock size={16} className="mr-1" />
+              {remindClose ? "FECHAR CAIXA AGORA" : "Fechar Caixa"}
             </Button>
           ) : canReopen ? (
             <Button
