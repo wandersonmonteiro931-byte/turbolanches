@@ -935,8 +935,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
               {/* Reconciliation summary */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-1">
-                <div className="font-bold mb-2 flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Resumo / Quebra de caixa
+                <div className="font-bold mb-1 flex items-center gap-2">
+                  <CheckCircle2 size={16} /> Conferência de caixa
+                </div>
+                <div className="text-[11px] text-muted-foreground italic mb-2">
+                  Compara o que o sistema esperava receber (vendas) com o que foi contado no fechamento. Diferença positiva = sobra, negativa = falta.
                 </div>
                 <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
                 <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
@@ -1194,19 +1197,16 @@ ${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><st
 <div class="row"><span>Outros:</span><span>${f(totals.other)}</span></div>
 <div class="row"><span>BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
 <hr/>
-<div><strong>SALDO DECLARADO</strong></div>
-<div class="row"><span>PIX:</span><span>${f(reg.closing_pix)}</span></div>
-<div class="row"><span>Cartão:</span><span>${f(reg.closing_card)}</span></div>
-<div class="row"><span>Dinheiro:</span><span>${f(reg.closing_cash)}</span></div>
-<div class="row"><span>TOTAL DECLARADO:</span><strong>${f(summary.declaredTotal)}</strong></div>
-<hr/>
-<div><strong>RECONCILIAÇÃO</strong></div>
-<div class="row"><span>Esperado:</span><span>${f(summary.expectedTotal)}</span></div>
-<div class="row"><span>Declarado:</span><span>${f(summary.declaredTotal)}</span></div>
-<div class="row ${Math.abs(summary.diffTotal) > 0.01 ? "warn" : ""}"><span>Diferença:</span><strong>${f(summary.diffTotal)}</strong></div>
-<div class="row"><span>· PIX:</span><span>${f(summary.diffPix)}</span></div>
-<div class="row"><span>· Cartão:</span><span>${f(summary.diffCard)}</span></div>
-<div class="row"><span>· Dinheiro:</span><span>${f(summary.diffCash)}</span></div>
+<div><strong>CONFERÊNCIA DE CAIXA</strong></div>
+<div style="font-size:10px;font-style:italic;margin-bottom:3px;">Esperado = vendas do sistema · Declarado = contado no fechamento · Diferença = sobra (+) ou falta (−)</div>
+<div class="row" style="font-weight:bold;"><span>Forma</span><span>Esperado / Declarado / Dif.</span></div>
+<div class="row"><span>PIX:</span><span>${f(totals.pix)} / ${f(reg.closing_pix)} / <strong>${f(summary.diffPix)}</strong></span></div>
+<div class="row"><span>Cartão:</span><span>${f(totals.card)} / ${f(reg.closing_card)} / <strong>${f(summary.diffCard)}</strong></span></div>
+<div class="row"><span>Dinheiro:</span><span>${f(totals.cash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
+${totals.other > 0 ? `<div class="row"><span>Outros:</span><span>${f(totals.other)} / — / —</span></div>` : ""}
+<div class="row"><span>TOTAL Esperado:</span><strong>${f(summary.expectedTotal)}</strong></div>
+<div class="row"><span>TOTAL Declarado:</span><strong>${f(summary.declaredTotal)}</strong></div>
+<div class="row big ${Math.abs(summary.diffTotal) > 0.01 ? "warn" : ""}"><span>DIFERENÇA:</span><strong>${f(summary.diffTotal)}</strong></div>
 <hr/>
 <div><strong>RESULTADO DO DIA</strong></div>
 <div class="row"><span>Faturamento BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
