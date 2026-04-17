@@ -448,6 +448,11 @@ export default function CashRegister({ onChange }: Props) {
         {register && (
           <div className="text-xs text-muted-foreground">
             <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
+            {isOpenToday && (
+              <div className="text-emerald-700 font-bold">
+                ⏱ Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}
+              </div>
+            )}
             {register.closed_at && (
               <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>
             )}
