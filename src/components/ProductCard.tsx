@@ -52,11 +52,7 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
             )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground break-words">{product.description}</p>
-          {product.ingredients && product.ingredients.length > 0 && (
-            <p className="mt-1 text-[11px] italic text-muted-foreground/80 leading-snug break-words">
-              🥬 {product.ingredients.join(", ")}
-            </p>
-          )}
+          {/* Ficha técnica (ingredientes) NUNCA é exibida no cardápio do cliente */}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm font-bold text-primary">
