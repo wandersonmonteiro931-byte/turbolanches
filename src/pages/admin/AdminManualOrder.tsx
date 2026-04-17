@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package, Ch
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
@@ -156,6 +157,7 @@ const AdminManualOrder = () => {
   const [searchParams] = useSearchParams();
   const editOrderId = searchParams.get("edit");
   const { user } = useAuth();
+  const { storeId } = useStore();
   const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -561,6 +563,7 @@ const AdminManualOrder = () => {
           .from("orders")
           .insert({
             user_id: user.id,
+            store_id: storeId ?? null,
             subtotal,
             delivery_fee: deliveryFee,
             discount: discountValue,
