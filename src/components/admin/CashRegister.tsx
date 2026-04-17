@@ -284,6 +284,21 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     }
   }, [showClose, register, fetchPaymentTotals]);
 
+  // Auto-fill the declared balances with the EXPECTED totals (based on each
+  // order's payment for the current business day) — but only if the user
+  // hasn't already typed a value (keeps drafts intact).
+  useEffect(() => {
+    if (!showClose) return;
+    setCloseForm((prev) => {
+      const next = { ...prev };
+      const isZero = (v: string) => !v || Number(v) === 0;
+      if (isZero(prev.closing_pix) && paymentTotals.pix > 0) next.closing_pix = paymentTotals.pix.toFixed(2);
+      if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
+      if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
+      return next;
+    });
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash]);
+
   const handleOpen = async () => {
     if (!storeId || !user) {
       toast({
@@ -448,15 +463,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   /** Reprint a saved register */
   const reprintRegister = async (reg: CashRegister) => {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
-    const { data } = await supabase
+    const { data: ordersData } = await supabase
       .from("orders")
-      .select("payment_method, total, status")
+      .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", reg.store_id)
       .in("status", ["delivered", "ready", "delivering", "preparing"]);
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
-    (data || []).forEach((o: any) => {
+    const orderIds: string[] = [];
+    (ordersData || []).forEach((o: any) => {
+      orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -465,7 +482,53 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
       else totals.other += t;
     });
-    const summary = computeSummary(reg, totals);
+    // Recompute COGS for this business day
+    let cogs = { totalCost: 0, missingCount: 0, totalProducts: 0 };
+    if (orderIds.length > 0) {
+      const { data: itemsData } = await supabase
+        .from("order_items").select("product_id, quantity").in("order_id", orderIds);
+      const productQty = new Map<string, number>();
+      let totalUnits = 0;
+      (itemsData || []).forEach((it: any) => {
+        if (!it.product_id) return;
+        const q = Number(it.quantity) || 0;
+        totalUnits += q;
+        productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
+      });
+      const productIds = [...productQty.keys()];
+      if (productIds.length > 0) {
+        const [prodRes, piRes] = await Promise.all([
+          supabase.from("products").select("id, manual_cost, price").in("id", productIds),
+          supabase.from("product_ingredients").select("product_id, ingredient_id, quantity").in("product_id", productIds),
+        ]);
+        const ingIds = [...new Set((piRes.data || []).map((r: any) => r.ingredient_id))];
+        const ingMap = new Map<string, number>();
+        if (ingIds.length > 0) {
+          const { data: ingRows } = await supabase.from("ingredients").select("id, cost_per_unit").in("id", ingIds);
+          (ingRows || []).forEach((i: any) => ingMap.set(i.id, Number(i.cost_per_unit) || 0));
+        }
+        const piByProduct = new Map<string, { ingredient_id: string; quantity: number }[]>();
+        (piRes.data || []).forEach((r: any) => {
+          const list = piByProduct.get(r.product_id) || [];
+          list.push({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) || 0 });
+          piByProduct.set(r.product_id, list);
+        });
+        let totalCost = 0; let missingUnits = 0;
+        (prodRes.data || []).forEach((p: any) => {
+          const qty = productQty.get(p.id) || 0;
+          if (qty <= 0) return;
+          const recipeCost = (piByProduct.get(p.id) || []).reduce(
+            (s, r) => s + (ingMap.get(r.ingredient_id) || 0) * r.quantity, 0);
+          const unitCost = Number(p.manual_cost) > 0 ? Number(p.manual_cost) : recipeCost;
+          if (unitCost > 0) totalCost += unitCost * qty;
+          else { totalCost += (Number(p.price) || 0) * 0.35 * qty; missingUnits += qty; }
+        });
+        cogs = { totalCost: roundMoney(totalCost), missingCount: missingUnits, totalProducts: totalUnits };
+      } else {
+        cogs.totalProducts = totalUnits;
+      }
+    }
+    const summary = computeSummary(reg, totals, cogs);
     printRegisterReport(reg, totals, summary);
   };
 
@@ -940,7 +1003,7 @@ function Row({ label, value, bold, negative, warn }: { label: string; value: str
 }
 
 // ============== Helpers ==============
-function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
+function computeSummary(reg: CashRegister, totals: PaymentBreakdown, cogs?: { totalCost: number; missingCount: number; totalProducts: number }) {
   const expensesTotal =
     (reg.expense_employees || 0) + (reg.expense_couriers || 0) + (reg.expense_purchases || 0) +
     (reg.expense_gasoline || 0) + (reg.expense_ads || 0) + (reg.expense_other || 0);
@@ -952,11 +1015,17 @@ function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
   const expectedCard = totals.card;
   const expectedCash = totals.cash;
   const expectedTotal = expectedCash + expectedPix + expectedCard;
+  const productsCost = cogs?.totalCost || 0;
+  const cogsIsEstimate = (cogs?.missingCount || 0) > 0;
+  const grossRevenue = totals.total;
+  const netRevenue = grossRevenue - expensesTotal;
+  const netAfterCogs = netRevenue - productsCost;
   return {
     expensesTotal, declaredTotal, expectedTotal, expectedCash, expectedPix, expectedCard,
     diffCash: declaredCash - expectedCash, diffPix: declaredPix - expectedPix,
     diffCard: declaredCard - expectedCard, diffTotal: declaredTotal - expectedTotal,
-    grossRevenue: totals.total, netRevenue: totals.total - expensesTotal,
+    grossRevenue, netRevenue, productsCost, netAfterCogs, cogsIsEstimate,
+    missingCostUnits: cogs?.missingCount || 0, totalSoldUnits: cogs?.totalProducts || 0,
   };
 }
 
@@ -972,6 +1041,7 @@ h1 { font-size: 14px; text-align: center; margin: 4px 0; }
 .row { display: flex; justify-content: space-between; }
 hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
 .warn { color: #b45309; }
+.big { font-size: 13px; }
 </style></head><body>
 <h1>RELATÓRIO DE CAIXA</h1>
 <div class="row"><span>Dia:</span><strong>${reg.business_day}</strong></div>
@@ -1015,7 +1085,13 @@ ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>· Cartão:</span><span>${f(summary.diffCard)}</span></div>
 <div class="row"><span>· Dinheiro:</span><span>${f(summary.diffCash)}</span></div>
 <hr/>
-<div class="row"><span>LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+<div><strong>RESULTADO DO DIA</strong></div>
+<div class="row"><span>Faturamento BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
+<div class="row"><span>− Gastos do dia:</span><span class="warn">${f(summary.expensesTotal)}</span></div>
+<div class="row big"><span>= LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+<div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
+<div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
+${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
 ${reg.notes ? `<hr/><div><strong>Observações:</strong> ${reg.notes}</div>` : ""}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
