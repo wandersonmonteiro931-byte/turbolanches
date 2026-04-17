@@ -312,7 +312,11 @@ const AdminDashboard = () => {
         if (payload.eventType === "INSERT") {
           const newOrder = payload.new as Order;
           if (!inRange(newOrder.created_at) || (storeId && (newOrder as any).store_id !== storeId)) return;
-          toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          // Only alert for orders that are visible (PIX must be paid first)
+          const isUnpaidPix = newOrder.payment_method === "pix" && !newOrder.payment_confirmed && newOrder.status !== "paid";
+          if (!isUnpaidPix) {
+            toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          }
           setOrders((prev) => {
             if (prev.some((o) => o.id === newOrder.id)) return prev;
             return [newOrder, ...prev];
