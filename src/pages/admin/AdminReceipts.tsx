@@ -6,8 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
@@ -54,6 +56,41 @@ const AdminReceipts = () => {
   const requestedTab = searchParams.get("tipo") || "pedido";
   const activeTab = availableTypes.includes(requestedTab) ? requestedTab : "pedido";
   const [editData, setEditData] = useState<Record<string, Partial<ReceiptTemplate>>>({});
+  const [printQty, setPrintQty] = useState<Record<string, number>>({});
+  const [printing, setPrinting] = useState(false);
+
+  const handlePrintTest = async (type: string) => {
+    const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
+    if (type === "etiquetas" || type === "reposicao") {
+      toast.info("Teste de impressão disponível apenas para Pedido / Obrigado / Fechamento de Rota.");
+      return;
+    }
+    setPrinting(true);
+    try {
+      const { data: lastOrder, error } = await supabase
+        .from("orders")
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error || !lastOrder) {
+        toast.error("Nenhum pedido encontrado para teste de impressão.");
+        return;
+      }
+      for (let i = 0; i < qty; i++) {
+        setTimeout(() => {
+          window.open(
+            `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}_${Date.now()}`,
+            `_print_${type}_${Date.now()}_${i}`,
+            "width=300,height=600"
+          );
+        }, i * 900);
+      }
+      toast.success(`Enviando ${qty} impressão(ões) separada(s)...`);
+    } finally {
+      setTimeout(() => setPrinting(false), qty * 900);
+    }
+  };
 
   useEffect(() => {
     const map: Record<string, Partial<ReceiptTemplate>> = {};
@@ -208,7 +245,7 @@ const AdminReceipts = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => handleSave(tab.type)}
                   disabled={updateMutation.isPending}
@@ -217,6 +254,29 @@ const AdminReceipts = () => {
                   <Save size={16} />
                   {updateMutation.isPending ? "Salvando..." : "Salvar"}
                 </button>
+
+                <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Cópias</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={printQty[tab.type] ?? 1}
+                    onChange={(e) =>
+                      setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))
+                    }
+                    className="h-9 w-16 text-center"
+                  />
+                  <button
+                    onClick={() => handlePrintTest(tab.type)}
+                    disabled={printing}
+                    className="flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background transition-all active:scale-[0.98] disabled:opacity-50"
+                    title="Imprime cópias separadas (uma por vez)"
+                  >
+                    <Printer size={16} />
+                    Imprimir Teste
+                  </button>
+                </div>
               </div>
             </TabsContent>
           );
