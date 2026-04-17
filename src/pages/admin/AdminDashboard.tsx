@@ -1227,6 +1227,7 @@ const AdminDashboard = () => {
   // Once an order moves past pending (preparing/ready/delivering/delivered), it must always be visible
   // regardless of payment_confirmed flag, otherwise PDV/manual orders created with payment_method='pix'
   // would disappear from the dashboard while still showing in Kitchen and /pedidos (inconsistency).
+  // Trashed orders are only visible inside the Lixeira tab.
   const visibleOrders = useMemo(() => orders.filter(o => {
     if (
       o.payment_method === "pix" &&
@@ -1235,8 +1236,13 @@ const AdminDashboard = () => {
     ) return false;
     return true;
   }), [orders]);
+
   const filteredOrders = visibleOrders
-    .filter(o => activeTabConfig?.statuses.includes(o.status))
+    .filter(o => {
+      if (activeTab === "trashed") return o.status === "cancelled" && !!o.trashed_at;
+      if (!activeTabConfig?.statuses.includes(o.status)) return false;
+      return !o.trashed_at;
+    })
     .filter(o => {
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
@@ -1261,15 +1267,16 @@ const AdminDashboard = () => {
   };
 
   const stats = useMemo(() => ({
-    pending: visibleOrders.filter(o => o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment").length,
-    preparing: visibleOrders.filter(o => o.status === "preparing").length,
-    ready: visibleOrders.filter(o => o.status === "ready").length,
-    delivering: visibleOrders.filter(o => o.status === "delivering").length,
-    delivered: visibleOrders.filter(o => o.status === "delivered").length,
-    cancelled: visibleOrders.filter(o => o.status === "cancelled").length,
+    pending: visibleOrders.filter(o => !o.trashed_at && (o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment")).length,
+    preparing: visibleOrders.filter(o => !o.trashed_at && o.status === "preparing").length,
+    ready: visibleOrders.filter(o => !o.trashed_at && o.status === "ready").length,
+    delivering: visibleOrders.filter(o => !o.trashed_at && o.status === "delivering").length,
+    delivered: visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").length,
+    cancelled: visibleOrders.filter(o => !o.trashed_at && o.status === "cancelled").length,
+    trashed: visibleOrders.filter(o => !!o.trashed_at && o.status === "cancelled").length,
   }), [visibleOrders]);
 
-  const todayRevenue = useMemo(() => visibleOrders.filter(o => o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
+  const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
   return (
     <div className="space-y-4">
