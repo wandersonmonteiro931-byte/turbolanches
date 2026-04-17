@@ -954,6 +954,7 @@ export type Database = {
           active: boolean
           apply_to_all: boolean
           id: string
+          is_internal: boolean
           name: string
           price: number
           product_id: string | null
@@ -964,6 +965,7 @@ export type Database = {
           active?: boolean
           apply_to_all?: boolean
           id?: string
+          is_internal?: boolean
           name: string
           price?: number
           product_id?: string | null
@@ -974,6 +976,7 @@ export type Database = {
           active?: boolean
           apply_to_all?: boolean
           id?: string
+          is_internal?: boolean
           name?: string
           price?: number
           product_id?: string | null
