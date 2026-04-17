@@ -145,6 +145,7 @@ export function useProducts() {
             isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
             comboItemCount: p.combo_item_count || 1,
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
+            ingredients: ingredientsByProduct.get(p.id) || [],
           }))
         );
       }
