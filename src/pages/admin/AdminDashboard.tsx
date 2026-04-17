@@ -465,6 +465,15 @@ const AdminDashboard = () => {
   };
 
   const confirmRouteClosure = async (orderId: string) => {
+    if (!cashRegisterOpen) {
+      toast({
+        title: "🔒 Caixa fechado",
+        description: "Abra o caixa antes de finalizar pedidos.",
+        variant: "destructive",
+      });
+      setShowRouteClosureModal(null);
+      return;
+    }
     const updateData: any = {
       status: "delivered",
       delivered_at: new Date().toISOString(),
