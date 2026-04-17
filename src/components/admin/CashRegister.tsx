@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
 interface CashRegister {
   id: string;
@@ -30,6 +31,7 @@ interface CashRegister {
   expense_couriers: number;
   expense_purchases: number;
   expense_gasoline: number;
+  expense_ads: number;
   expense_other: number;
   closing_pix: number;
   closing_card: number;
@@ -82,6 +84,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
     pix: 0, card: 0, cash: 0, other: 0, total: 0,
   });
+  const [productsCostInfo, setProductsCostInfo] = useState<{ totalCost: number; missingCount: number; totalProducts: number }>({
+    totalCost: 0, missingCount: 0, totalProducts: 0,
+  });
 
   // Live clock — updates every second for the open-time counter and current date/time labels
   useEffect(() => {
@@ -100,6 +105,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_couriers: "0",
     expense_purchases: "0",
     expense_gasoline: "0",
+    expense_ads: "0",
     expense_other: "0",
     closing_pix: "0",
     closing_card: "0",
@@ -137,16 +143,18 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const fetchPaymentTotals = useCallback(async (businessDay: string) => {
     if (!storeId) return;
     const { start, end } = getBusinessDayRange(new Date(businessDay + "T12:00:00"));
-    const { data } = await supabase
+    const { data: ordersData } = await supabase
       .from("orders")
-      .select("payment_method, total, status")
+      .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId)
       .in("status", ["delivered", "ready", "delivering", "preparing"]);
 
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
-    (data || []).forEach((o: any) => {
+    const orderIds: string[] = [];
+    (ordersData || []).forEach((o: any) => {
+      orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -156,6 +164,78 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       else totals.other += t;
     });
     setPaymentTotals(totals);
+
+    // Compute Cost of Goods Sold (COGS) for the day
+    if (orderIds.length === 0) {
+      setProductsCostInfo({ totalCost: 0, missingCount: 0, totalProducts: 0 });
+      return;
+    }
+    const { data: itemsData } = await supabase
+      .from("order_items")
+      .select("product_id, quantity")
+      .in("order_id", orderIds);
+
+    const productQty = new Map<string, number>();
+    let totalUnits = 0;
+    (itemsData || []).forEach((it: any) => {
+      if (!it.product_id) return;
+      const q = Number(it.quantity) || 0;
+      totalUnits += q;
+      productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
+    });
+
+    const productIds = [...productQty.keys()];
+    if (productIds.length === 0) {
+      setProductsCostInfo({ totalCost: 0, missingCount: 0, totalProducts: totalUnits });
+      return;
+    }
+
+    const [prodRes, piRes] = await Promise.all([
+      supabase.from("products").select("id, manual_cost, price").in("id", productIds),
+      supabase.from("product_ingredients").select("product_id, ingredient_id, quantity").in("product_id", productIds),
+    ]);
+
+    const ingIds = [...new Set((piRes.data || []).map((r: any) => r.ingredient_id))];
+    const ingMap = new Map<string, number>();
+    if (ingIds.length > 0) {
+      const { data: ingRows } = await supabase
+        .from("ingredients").select("id, cost_per_unit").in("id", ingIds);
+      (ingRows || []).forEach((i: any) => ingMap.set(i.id, Number(i.cost_per_unit) || 0));
+    }
+
+    const piByProduct = new Map<string, { ingredient_id: string; quantity: number }[]>();
+    (piRes.data || []).forEach((r: any) => {
+      const list = piByProduct.get(r.product_id) || [];
+      list.push({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) || 0 });
+      piByProduct.set(r.product_id, list);
+    });
+
+    let totalCost = 0;
+    let missingUnits = 0;
+    const fallbackRatio = 0.35; // estimativa: ~35% do preço quando não há custo cadastrado
+    (prodRes.data || []).forEach((p: any) => {
+      const qty = productQty.get(p.id) || 0;
+      if (qty <= 0) return;
+      const manualCost = Number(p.manual_cost) || 0;
+      const recipe = piByProduct.get(p.id) || [];
+      const recipeCost = recipe.reduce(
+        (s, r) => s + (ingMap.get(r.ingredient_id) || 0) * r.quantity, 0
+      );
+      const unitCost = manualCost > 0 ? manualCost : recipeCost;
+      if (unitCost > 0) {
+        totalCost += unitCost * qty;
+      } else {
+        // Não cadastrado → estima como % do preço para não zerar
+        totalCost += (Number(p.price) || 0) * fallbackRatio * qty;
+        missingUnits += qty;
+      }
+    });
+
+    setProductsCostInfo({
+      totalCost: roundMoney(totalCost),
+      missingCount: missingUnits,
+      totalProducts: totalUnits,
+    });
   }, [storeId]);
 
   useEffect(() => { fetchRegister(); }, [fetchRegister]);
@@ -282,6 +362,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_couriers: Number(closeForm.expense_couriers) || 0,
       expense_purchases: Number(closeForm.expense_purchases) || 0,
       expense_gasoline: Number(closeForm.expense_gasoline) || 0,
+      expense_ads: Number(closeForm.expense_ads) || 0,
       expense_other: Number(closeForm.expense_other) || 0,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
@@ -366,6 +447,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         expense_couriers: Number(rest.expense_couriers) || 0,
         expense_purchases: Number(rest.expense_purchases) || 0,
         expense_gasoline: Number(rest.expense_gasoline) || 0,
+        expense_ads: Number(rest.expense_ads) || 0,
         expense_other: Number(rest.expense_other) || 0,
         closing_pix: Number(rest.closing_pix) || 0,
         closing_card: Number(rest.closing_card) || 0,
@@ -397,6 +479,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       (Number(closeForm.expense_couriers) || 0) +
       (Number(closeForm.expense_purchases) || 0) +
       (Number(closeForm.expense_gasoline) || 0) +
+      (Number(closeForm.expense_ads) || 0) +
       (Number(closeForm.expense_other) || 0);
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
@@ -407,7 +490,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
 
     // Expected values are based STRICTLY on the sum of each order's payment for the current business day.
-    // Opening balances and expenses are tracked separately in the summary, not embedded into the expected totals.
     const expectedPix = paymentTotals.pix;
     const expectedCard = paymentTotals.card;
     const expectedCash = paymentTotals.cash;
@@ -420,14 +502,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     const grossRevenue = paymentTotals.total;
     const netRevenue = grossRevenue - expensesTotal;
+    // Lucro líquido com custo dos produtos vendidos (COGS) descontado
+    const netAfterCogs = netRevenue - productsCostInfo.totalCost;
+    // Se algum produto vendido não tem custo cadastrado → estimado
+    const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
     return {
       opening, expensesTotal, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       grossRevenue, netRevenue,
+      productsCost: productsCostInfo.totalCost,
+      netAfterCogs, cogsIsEstimate,
+      missingCostUnits: productsCostInfo.missingCount,
+      totalSoldUnits: productsCostInfo.totalProducts,
     };
-  }, [closeForm, register, paymentTotals]);
+  }, [closeForm, register, paymentTotals, productsCostInfo]);
 
   // ============== UI ==============
   if (loading) {
@@ -602,6 +692,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_couriers", "Entregadores"],
                   ["expense_purchases", "Compras"],
                   ["expense_gasoline", "Gasolina"],
+                  ["expense_ads", "Anúncios / Divulgação"],
                   ["expense_other", "Outros"],
                 ].map(([key, label]) => (
                   <div key={key} className="grid grid-cols-2 gap-2 items-center">
@@ -649,7 +740,23 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 </div>
                 <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
                 <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
-                <Row label="= Lucro líquido do dia" value={fmt(closeSummary.netRevenue)} bold />
+                <Row label="= Lucro líquido (sem custos dos produtos)" value={fmt(closeSummary.netRevenue)} bold />
+                <Row
+                  label={`− Custo dos produtos vendidos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
+                  value={fmt(closeSummary.productsCost)}
+                  negative
+                />
+                <Row
+                  label={`= ${closeSummary.cogsIsEstimate ? "Lucro líquido (estimado)" : "Lucro líquido REAL"}`}
+                  value={fmt(closeSummary.netAfterCogs)}
+                  bold
+                  warn={closeSummary.cogsIsEstimate}
+                />
+                {closeSummary.cogsIsEstimate && closeSummary.totalSoldUnits > 0 && (
+                  <div className="text-[11px] text-amber-700 italic">
+                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos não possuem custo cadastrado — valor aproximado (~35% do preço). Cadastre a ficha técnica ou custo manual em Precificação para obter o lucro real.
+                  </div>
+                )}
                 <hr className="my-2 border-border" />
                 <Row label="Esperado em caixa" value={fmt(closeSummary.expectedTotal)} />
                 <Row label="Declarado em caixa" value={fmt(closeSummary.declaredTotal)} />
@@ -743,6 +850,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_couriers", "Gasto: Entregadores"],
                   ["expense_purchases", "Gasto: Compras"],
                   ["expense_gasoline", "Gasto: Gasolina"],
+                  ["expense_ads", "Gasto: Anúncios/Divulgação"],
                   ["expense_other", "Gasto: Outros"],
                   ["closing_pix", "Fechamento: PIX"],
                   ["closing_card", "Fechamento: Cartão"],
@@ -799,14 +907,14 @@ function Row({ label, value, bold, negative, warn }: { label: string; value: str
 function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
   const expensesTotal =
     (reg.expense_employees || 0) + (reg.expense_couriers || 0) + (reg.expense_purchases || 0) +
-    (reg.expense_gasoline || 0) + (reg.expense_other || 0);
+    (reg.expense_gasoline || 0) + (reg.expense_ads || 0) + (reg.expense_other || 0);
   const declaredPix = reg.closing_pix || 0;
   const declaredCard = reg.closing_card || 0;
   const declaredCash = reg.closing_cash || 0;
   const declaredTotal = declaredPix + declaredCard + declaredCash;
-  const expectedCash = (reg.opening_cash || 0) + (reg.opening_change_reserve || 0) + totals.cash - expensesTotal;
   const expectedPix = totals.pix;
-  const expectedCard = (reg.opening_card || 0) + totals.card;
+  const expectedCard = totals.card;
+  const expectedCash = totals.cash;
   const expectedTotal = expectedCash + expectedPix + expectedCard;
   return {
     expensesTotal, declaredTotal, expectedTotal, expectedCash, expectedPix, expectedCard,
@@ -846,6 +954,7 @@ ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>Entregadores:</span><span>${f(reg.expense_couriers)}</span></div>
 <div class="row"><span>Compras:</span><span>${f(reg.expense_purchases)}</span></div>
 <div class="row"><span>Gasolina:</span><span>${f(reg.expense_gasoline)}</span></div>
+<div class="row"><span>Anúncios/Divulg.:</span><span>${f(reg.expense_ads)}</span></div>
 <div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>
 <div class="row"><span>TOTAL GASTOS:</span><strong>${f(summary.expensesTotal)}</strong></div>
 <hr/>
