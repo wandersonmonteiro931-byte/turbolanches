@@ -1130,7 +1130,13 @@ function computeSummary(reg: CashRegister, totals: PaymentBreakdown, cogs?: { to
   };
 }
 
-function printRegisterReport(reg: CashRegister, totals: PaymentBreakdown, summary: ReturnType<typeof computeSummary>) {
+function printRegisterReport(
+  reg: CashRegister,
+  totals: PaymentBreakdown,
+  summary: ReturnType<typeof computeSummary>,
+  stats: { completed: number; cancelled: number } = { completed: 0, cancelled: 0 },
+  topItems: { name: string; qty: number }[] = [],
+) {
   const f = (n: number) => `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Relatorio Caixa ${reg.business_day}</title>
