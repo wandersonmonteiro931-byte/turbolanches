@@ -1206,7 +1206,7 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-4">
       {/* Cash Register */}
-      <CashRegister onChange={setCashRegisterOpen} />
+      <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} />
 
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
