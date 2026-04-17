@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 import CustomerSearch from "@/components/admin/CustomerSearch";
 import ManualOrderAddonSelector from "@/components/admin/ManualOrderAddonSelector";
+import { formatBusinessDate } from "@/lib/businessDay";
 
 interface Product {
   id: string;
@@ -495,6 +496,24 @@ const AdminManualOrder = () => {
       if (!addressStreet) { toast.error("Preencha a rua para delivery"); return; }
       if (!addressNeighborhood) { toast.error("Preencha o bairro para delivery"); return; }
       if (!addressComplement) { toast.error("Preencha o complemento para delivery"); return; }
+    }
+
+    // Require open cash register for new orders
+    if (!editOrderId && storeId) {
+      const todayBd = formatBusinessDate(new Date());
+      const { data: reg } = await supabase
+        .from("cash_registers")
+        .select("status")
+        .eq("store_id", storeId)
+        .eq("business_day", todayBd)
+        .maybeSingle();
+      if (!reg || reg.status !== "open") {
+        toast.error("Abra o caixa antes de criar um pedido", {
+          description: "Vá ao painel e clique em 'Abrir Caixa'.",
+          action: { label: "Abrir caixa", onClick: () => navigate("/admin") },
+        });
+        return;
+      }
     }
 
     setLoading(true);
