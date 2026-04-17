@@ -301,10 +301,43 @@ const AdminDashboard = () => {
     const ordersChannel = supabase
       .channel("admin-dashboard-orders")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
-        if (payload.eventType === "INSERT" && isToday) {
+        if (!isToday) return;
+        const { start, end } = getBusinessDayRange(selectedDate);
+        const inRange = (createdAt?: string) => {
+          if (!createdAt) return false;
+          return createdAt >= start && createdAt <= end;
+        };
+
+        if (payload.eventType === "INSERT") {
+          const newOrder = payload.new as Order;
+          if (!inRange(newOrder.created_at) || (storeId && (newOrder as any).store_id !== storeId)) return;
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
+          setOrders((prev) => {
+            if (prev.some((o) => o.id === newOrder.id)) return prev;
+            return [newOrder, ...prev];
+          });
+          // Fetch profile for the new user if missing (no full reload)
+          if (newOrder.user_id) {
+            setProfiles((prevProfiles) => {
+              if (prevProfiles[newOrder.user_id]) return prevProfiles;
+              supabase
+                .from("profiles")
+                .select("user_id, customer_code, full_name, phone")
+                .eq("user_id", newOrder.user_id)
+                .maybeSingle()
+                .then(({ data }) => {
+                  if (data) setProfiles((p) => ({ ...p, [data.user_id]: data }));
+                });
+              return prevProfiles;
+            });
+          }
+        } else if (payload.eventType === "UPDATE") {
+          const updated = payload.new as Order;
+          setOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
+        } else if (payload.eventType === "DELETE") {
+          const oldId = (payload.old as any)?.id;
+          if (oldId) setOrders((prev) => prev.filter((o) => o.id !== oldId));
         }
-        if (isToday) fetchOrders();
       })
       .subscribe();
 
