@@ -245,7 +245,7 @@ const AdminReceipts = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   onClick={() => handleSave(tab.type)}
                   disabled={updateMutation.isPending}
@@ -254,6 +254,29 @@ const AdminReceipts = () => {
                   <Save size={16} />
                   {updateMutation.isPending ? "Salvando..." : "Salvar"}
                 </button>
+
+                <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Cópias</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={printQty[tab.type] ?? 1}
+                    onChange={(e) =>
+                      setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))
+                    }
+                    className="h-9 w-16 text-center"
+                  />
+                  <button
+                    onClick={() => handlePrintTest(tab.type)}
+                    disabled={printing}
+                    className="flex items-center gap-2 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-background transition-all active:scale-[0.98] disabled:opacity-50"
+                    title="Imprime cópias separadas (uma por vez)"
+                  >
+                    <Printer size={16} />
+                    Imprimir Teste
+                  </button>
+                </div>
               </div>
             </TabsContent>
           );
