@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Minus, Plus, Package } from "lucide-react";
 import { useProducts } from "@/hooks/useMenu";
@@ -19,10 +19,24 @@ const ProductDetail = () => {
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
 
-  // Sempre abrir o produto rolado para o topo
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  // Sempre abrir o produto rolado para o topo (antes da pintura)
+  useLayoutEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [id]);
+
+  // Garantia extra após o produto carregar (quando o spinner é substituído pelo conteúdo)
+  useEffect(() => {
+    if (!loading) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [loading, id]);
 
   const isCombo = Boolean(product?.isCombo);
   const comboCount = product?.comboItemCount || 1;
