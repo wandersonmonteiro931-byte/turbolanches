@@ -59,7 +59,9 @@ const AdminReceipts = () => {
   const [printQty, setPrintQty] = useState<Record<string, number>>({});
   const [printing, setPrinting] = useState(false);
 
-  const handlePrintTest = async (type: string) => {
+  const handlePrintTest = async (e: React.MouseEvent, type: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
     if (type === "etiquetas" || type === "reposicao") {
       toast.info("Teste de impressão disponível apenas para Pedido / Obrigado / Fechamento de Rota.");
@@ -77,18 +79,24 @@ const AdminReceipts = () => {
         toast.error("Nenhum pedido encontrado para teste de impressão.");
         return;
       }
+      // Abre todas as janelas IMEDIATAMENTE (síncrono) para evitar bloqueio de pop-up.
+      // Cada janela é independente -> impressora recebe N jobs separados.
+      const stamp = Date.now();
+      let opened = 0;
       for (let i = 0; i < qty; i++) {
-        setTimeout(() => {
-          window.open(
-            `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}_${Date.now()}`,
-            `_print_${type}_${Date.now()}_${i}`,
-            "width=300,height=600"
-          );
-        }, i * 900);
+        const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}&t=${stamp}_${i}`;
+        const win = window.open(url, `_print_${type}_${stamp}_${i}`, "width=320,height=640,noopener");
+        if (win) opened++;
       }
-      toast.success(`Enviando ${qty} impressão(ões) separada(s)...`);
+      if (opened === 0) {
+        toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
+      } else if (opened < qty) {
+        toast.warning(`${opened} de ${qty} cópias enviadas. Permita pop-ups para enviar todas.`);
+      } else {
+        toast.success(`${qty} impressão(ões) enviada(s) à impressora.`);
+      }
     } finally {
-      setTimeout(() => setPrinting(false), qty * 900);
+      setPrinting(false);
     }
   };
 
