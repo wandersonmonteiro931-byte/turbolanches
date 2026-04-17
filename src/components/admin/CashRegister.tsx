@@ -760,6 +760,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
           </div>
           <div className="space-y-3 py-2">
             <div>
+              <Label>
+                Responsável pela abertura <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="Nome de quem está abrindo o caixa"
+                value={openForm.responsible_name}
+                onChange={(e) => setOpenForm({ ...openForm, responsible_name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
               <Label>Dinheiro em caixa (R$)</Label>
               <Input type="number" step="0.01" value={openForm.cash}
                 onChange={(e) => setOpenForm({ ...openForm, cash: e.target.value })} />
