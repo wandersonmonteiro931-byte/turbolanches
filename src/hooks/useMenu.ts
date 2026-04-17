@@ -67,12 +67,28 @@ export function useProducts() {
         categoriesQuery = categoriesQuery.eq("store_id", storeId);
       }
 
-      const [productsRes, addonsRes, linksRes, categoriesRes] = await Promise.all([
+      const [productsRes, addonsRes, linksRes, categoriesRes, prodIngRes, ingRes] = await Promise.all([
         productsQuery,
         addonsQuery,
         supabase.from("addon_product_links").select("addon_id, product_id"),
         categoriesQuery,
+        storeId
+          ? supabase.from("product_ingredients").select("product_id, ingredient_id").eq("store_id", storeId)
+          : supabase.from("product_ingredients").select("product_id, ingredient_id"),
+        storeId
+          ? supabase.from("ingredients").select("id, name").eq("store_id", storeId)
+          : supabase.from("ingredients").select("id, name"),
       ]);
+
+      const ingNameMap = new Map<string, string>((ingRes.data ?? []).map((i: any) => [i.id, i.name]));
+      const ingredientsByProduct = new Map<string, string[]>();
+      (prodIngRes.data ?? []).forEach((pi: any) => {
+        const name = ingNameMap.get(pi.ingredient_id);
+        if (!name) return;
+        const list = ingredientsByProduct.get(pi.product_id) || [];
+        list.push(name);
+        ingredientsByProduct.set(pi.product_id, list);
+      });
 
       const linksMap = new Map<string, string[]>();
       if (linksRes.data) {
@@ -129,6 +145,7 @@ export function useProducts() {
             isCombo: Boolean(p.is_combo) || comboCategoryIds.has(p.category_id),
             comboItemCount: p.combo_item_count || 1,
             addons: [...globalAddons, ...(addonsMap.get(p.id) || [])],
+            ingredients: ingredientsByProduct.get(p.id) || [],
           }))
         );
       }

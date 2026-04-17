@@ -52,6 +52,11 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
             )}
           </div>
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{product.description}</p>
+          {product.ingredients && product.ingredients.length > 0 && (
+            <p className="mt-1 line-clamp-3 text-[11px] italic text-muted-foreground/80 leading-snug">
+              🥬 {product.ingredients.join(", ")}
+            </p>
+          )}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm font-bold text-primary">
