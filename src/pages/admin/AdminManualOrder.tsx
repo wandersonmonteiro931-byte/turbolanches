@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, ShoppingBag, Edit2, Package, Ch
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStore } from "@/contexts/StoreContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
