@@ -3,11 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 
+const MENU_CACHE_VERSION = "2026-04-17-no-duplicate-ingredients";
+
 // Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
 const productsCache = new Map<string, Product[]>();
 
-const cacheKey = (storeId: string | null | undefined) => storeId ?? "__default__";
+const cacheKey = (storeId: string | null | undefined) => `${MENU_CACHE_VERSION}:${storeId ?? "__default__"}`;
 
 export function useCategories() {
   const { storeId } = useStore();
@@ -110,9 +112,9 @@ export function useProducts() {
     (prodIngRes.data ?? []).forEach((pi: any) => {
       const name = ingNameMap.get(pi.ingredient_id);
       if (!name) return;
-      const list = ingredientsByProduct.get(pi.product_id) || [];
-      list.push(name);
-      ingredientsByProduct.set(pi.product_id, list);
+      const existing = ingredientsByProduct.get(pi.product_id) || [];
+      if (existing.includes(name)) return;
+      ingredientsByProduct.set(pi.product_id, [...existing, name]);
     });
 
     const linksMap = new Map<string, string[]>();
@@ -127,21 +129,25 @@ export function useProducts() {
     const addonsMap = new Map<string, ProductAddon[]>();
     const globalAddons: ProductAddon[] = [];
 
+    const appendAddon = (productId: string, addon: ProductAddon) => {
+      const current = addonsMap.get(productId) || [];
+      if (current.some((item) => item.id === addon.id)) return;
+      addonsMap.set(productId, [...current, addon]);
+    };
+
     if (addonsRes.data) {
       for (const a of addonsRes.data) {
         const addon: ProductAddon = { id: a.id, name: a.name, price: a.price };
         if (a.apply_to_all) {
-          globalAddons.push(addon);
+          if (!globalAddons.some((item) => item.id === addon.id)) {
+            globalAddons.push(addon);
+          }
         } else if (a.product_id) {
-          const list = addonsMap.get(a.product_id) || [];
-          list.push(addon);
-          addonsMap.set(a.product_id, list);
+          appendAddon(a.product_id, addon);
         } else {
           const linkedProducts = linksMap.get(a.id) || [];
           for (const pid of linkedProducts) {
-            const list = addonsMap.get(pid) || [];
-            list.push(addon);
-            addonsMap.set(pid, list);
+            appendAddon(pid, addon);
           }
         }
       }

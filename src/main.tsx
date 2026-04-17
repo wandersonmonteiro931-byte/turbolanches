@@ -14,11 +14,12 @@ if (typeof window !== "undefined") {
   });
 }
 import { createRoot } from "react-dom/client";
-import { cleanupLegacyPushServiceWorkers, PUSH_SW_URL, shouldEnableServiceWorker } from "@/lib/pwa";
+import { cleanupLegacyPushServiceWorkers, enforceLatestAppVersion, PUSH_SW_URL, shouldEnableServiceWorker } from "@/lib/pwa";
 import App from "./App.tsx";
 
 const enableServiceWorker = shouldEnableServiceWorker();
 
+void enforceLatestAppVersion();
 void cleanupLegacyPushServiceWorkers(enableServiceWorker ? PUSH_SW_URL : null);
 
 if (enableServiceWorker && "serviceWorker" in navigator) {
