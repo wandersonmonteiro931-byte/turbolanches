@@ -367,7 +367,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
-      notes: openForm.notes,
+      notes: `[Aberto por: ${openForm.responsible_name.trim()}] ${openForm.notes || ""}`.trim(),
     };
 
     // Upsert into today's slot (handles reopen also)
