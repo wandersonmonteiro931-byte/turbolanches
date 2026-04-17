@@ -30,6 +30,7 @@ interface CashRegister {
   expense_couriers: number;
   expense_purchases: number;
   expense_gasoline: number;
+  expense_ads: number;
   expense_other: number;
   closing_pix: number;
   closing_card: number;
