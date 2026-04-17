@@ -643,7 +643,7 @@ const OrderTracking = () => {
         )}
 
         {/* Cancel Order — only available before kitchen accepts */}
-        {!isCancelled && (order.status === "pending" || order.status === "paid" || order.status === "awaiting_payment") && (
+        {!isCancelled && (order.status === "pending" || order.status === "paid" || order.status === "awaiting_payment" || order.status === "preparing") && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
