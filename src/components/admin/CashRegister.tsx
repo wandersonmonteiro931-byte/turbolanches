@@ -1138,6 +1138,14 @@ function printRegisterReport(
   topItems: { name: string; qty: number }[] = [],
 ) {
   const f = (n: number) => `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
+  const openedByMatch = (reg.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+  const closedByMatch = (reg.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
+  const openedBy = openedByMatch ? openedByMatch[1].trim() : "";
+  const closedBy = closedByMatch ? closedByMatch[1].trim() : "";
+  const cleanNotes = (reg.notes || "")
+    .replace(/\[Aberto por:[^\]]*\]/g, "")
+    .replace(/\[Fechado por:[^\]]*\]/g, "")
+    .trim();
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Relatorio Caixa ${reg.business_day}</title>
 <style>
