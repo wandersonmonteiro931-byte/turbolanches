@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import type { Product, ProductAddon, CartItem } from "@/data/menu";
+import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 const CART_STORAGE_KEY = "turbo-lanches-cart";
 const COUPON_STORAGE_KEY = "turbo-lanches-coupon";
@@ -28,7 +29,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 function loadCart(): CartItem[] {
   try {
     const raw = localStorage.getItem(CART_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as CartItem[];
+      return parsed.map((item) => ({
+        ...item,
+        product: {
+          ...item.product,
+          description: sanitizeCustomerDescription(item.product?.description),
+        },
+      }));
+    }
   } catch {}
   return [];
 }
@@ -74,7 +84,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const addItem = useCallback((product: Product, quantity: number, addons: ProductAddon[], observations: string) => {
-    setItems((prev) => [...prev, { product, quantity, selectedAddons: addons, observations }]);
+    setItems((prev) => [
+      ...prev,
+      {
+        product: { ...product, description: sanitizeCustomerDescription(product.description) },
+        quantity,
+        selectedAddons: addons,
+        observations,
+      },
+    ]);
   }, []);
 
   const removeItem = useCallback((index: number) => {

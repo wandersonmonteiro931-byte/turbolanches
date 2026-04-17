@@ -1,5 +1,5 @@
-export const SW_VERSION = "v60";
-export const APP_VERSION = "2026-04-17-menu-fix-v2";
+export const SW_VERSION = "v61";
+export const APP_VERSION = "2026-04-17-hide-internal-descriptions";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 export const shouldEnableServiceWorker = () => {

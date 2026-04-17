@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
+import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-no-duplicate-ingredients";
+const MENU_CACHE_VERSION = "2026-04-17-hide-internal-descriptions";
 
 // Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
@@ -163,7 +164,7 @@ export function useProducts() {
       const mapped = productsRes.data.map((p: any) => ({
         id: p.id,
         name: p.name,
-        description: p.description || "",
+        description: sanitizeCustomerDescription(p.description),
         price: p.price,
         originalPrice: p.original_price ?? undefined,
         image: p.image_url || "/placeholder.svg",
