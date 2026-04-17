@@ -907,14 +907,14 @@ function Row({ label, value, bold, negative, warn }: { label: string; value: str
 function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
   const expensesTotal =
     (reg.expense_employees || 0) + (reg.expense_couriers || 0) + (reg.expense_purchases || 0) +
-    (reg.expense_gasoline || 0) + (reg.expense_other || 0);
+    (reg.expense_gasoline || 0) + (reg.expense_ads || 0) + (reg.expense_other || 0);
   const declaredPix = reg.closing_pix || 0;
   const declaredCard = reg.closing_card || 0;
   const declaredCash = reg.closing_cash || 0;
   const declaredTotal = declaredPix + declaredCard + declaredCash;
-  const expectedCash = (reg.opening_cash || 0) + (reg.opening_change_reserve || 0) + totals.cash - expensesTotal;
   const expectedPix = totals.pix;
-  const expectedCard = (reg.opening_card || 0) + totals.card;
+  const expectedCard = totals.card;
+  const expectedCash = totals.cash;
   const expectedTotal = expectedCash + expectedPix + expectedCard;
   return {
     expensesTotal, declaredTotal, expectedTotal, expectedCash, expectedPix, expectedCard,
