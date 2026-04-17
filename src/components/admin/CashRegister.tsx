@@ -721,6 +721,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     );
   }
 
+  if (!storeId) {
+    return (
+      <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        ⚠️ Loja não identificada. Recarregue a página (Ctrl+Shift+R) ou verifique o vínculo do administrador à loja.
+      </div>
+    );
+  }
+
   const isOpenToday = register?.status === "open" && register?.business_day === todayBusinessDay;
   const previousDayBlocking = register && register.status === "open" && register.business_day !== todayBusinessDay;
   // Reminder: store closed but cash still open → blink to remind admin to close it
