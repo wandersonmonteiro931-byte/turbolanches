@@ -18,6 +18,7 @@ import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
 import ExpenseManager from "@/components/admin/ExpenseManager";
+import CashRegister from "@/components/admin/CashRegister";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -406,8 +407,19 @@ const AdminDashboard = () => {
 
 
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
+  const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    // Block finalization if cash register is closed
+    if (newStatus === "delivered" && !cashRegisterOpen) {
+      toast({
+        title: "🔒 Caixa fechado",
+        description: "Abra o caixa antes de finalizar pedidos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // If moving to delivering and couriers exist, show courier selector first
     if (newStatus === "delivering" && couriers.length > 0 && !courierId) {
       setCourierSelectOrderId(orderId);
@@ -453,6 +465,15 @@ const AdminDashboard = () => {
   };
 
   const confirmRouteClosure = async (orderId: string) => {
+    if (!cashRegisterOpen) {
+      toast({
+        title: "🔒 Caixa fechado",
+        description: "Abra o caixa antes de finalizar pedidos.",
+        variant: "destructive",
+      });
+      setShowRouteClosureModal(null);
+      return;
+    }
     const updateData: any = {
       status: "delivered",
       delivered_at: new Date().toISOString(),
@@ -1184,6 +1205,9 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-4">
+      {/* Cash Register */}
+      <CashRegister onChange={setCashRegisterOpen} />
+
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         {/* Status indicator - what customers see */}
