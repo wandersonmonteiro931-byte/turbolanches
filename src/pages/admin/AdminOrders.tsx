@@ -851,6 +851,31 @@ const AdminOrders = () => {
                             {(order.status === "pending" || order.status === "paid") ? "Recusar" : "Cancelar"}
                           </button>
                         )}
+                        {order.status === "cancelled" && !order.trashed_at && (
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm("Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.")) return;
+                              await supabase.from("orders").update({ trashed_at: new Date().toISOString() }).eq("id", order.id);
+                              toast({ title: "🗑️ Pedido movido para a lixeira" });
+                              fetchOrders();
+                            }}
+                            className="flex-1 rounded-lg border border-gray-500 py-2 text-xs font-bold text-gray-700"
+                          >
+                            🗑️ Excluir
+                          </button>
+                        )}
+                        {order.status === "cancelled" && order.trashed_at && (
+                          <button
+                            onClick={async () => {
+                              await supabase.from("orders").update({ trashed_at: null }).eq("id", order.id);
+                              toast({ title: "♻️ Pedido restaurado para Recusados" });
+                              fetchOrders();
+                            }}
+                            className="flex-1 rounded-lg border border-blue-500 py-2 text-xs font-bold text-blue-700"
+                          >
+                            ♻️ Restaurar
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
