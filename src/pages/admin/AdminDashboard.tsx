@@ -1209,9 +1209,16 @@ const AdminDashboard = () => {
   };
 
   const activeTabConfig = tabs.find(t => t.key === activeTab);
-  // Hide PIX orders that have NOT been paid yet — they should only appear after payment confirmation
+  // Hide PIX orders that have NOT been paid yet — only while still pending awaiting payment.
+  // Once an order moves past pending (preparing/ready/delivering/delivered), it must always be visible
+  // regardless of payment_confirmed flag, otherwise PDV/manual orders created with payment_method='pix'
+  // would disappear from the dashboard while still showing in Kitchen and /pedidos (inconsistency).
   const visibleOrders = useMemo(() => orders.filter(o => {
-    if (o.payment_method === "pix" && !o.payment_confirmed && o.status !== "paid") return false;
+    if (
+      o.payment_method === "pix" &&
+      !o.payment_confirmed &&
+      (o.status === "pending" || o.status === "awaiting_payment")
+    ) return false;
     return true;
   }), [orders]);
   const filteredOrders = visibleOrders
