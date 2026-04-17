@@ -94,13 +94,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     return () => clearInterval(t);
   }, []);
 
-  // Open form
-  const [openForm, setOpenForm] = useState({
-    cash: "0", card: "0", change_reserve: "0", notes: "",
-  });
+  // Storage keys (per store) — persist drafts across reloads/closes
+  const openDraftKey = `cashRegister:openDraft:${storeId || "default"}`;
+  const closeDraftKey = `cashRegister:closeDraft:${storeId || "default"}`;
 
-  // Close form
-  const [closeForm, setCloseForm] = useState({
+  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "" };
+  const defaultCloseForm = {
     expense_employees: "0",
     expense_couriers: "0",
     expense_purchases: "0",
@@ -111,7 +110,41 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     closing_card: "0",
     closing_cash: "0",
     notes: "",
-  });
+  };
+
+  const loadDraft = <T,>(key: string, fallback: T): T => {
+    if (typeof window === "undefined") return fallback;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      return { ...fallback, ...JSON.parse(raw) };
+    } catch {
+      return fallback;
+    }
+  };
+
+  // Open form
+  const [openForm, setOpenForm] = useState(() => loadDraft(openDraftKey, defaultOpenForm));
+
+  // Close form
+  const [closeForm, setCloseForm] = useState(() => loadDraft(closeDraftKey, defaultCloseForm));
+
+  // Persist drafts on every change
+  useEffect(() => {
+    try { localStorage.setItem(openDraftKey, JSON.stringify(openForm)); } catch {}
+  }, [openForm, openDraftKey]);
+
+  useEffect(() => {
+    try { localStorage.setItem(closeDraftKey, JSON.stringify(closeForm)); } catch {}
+  }, [closeForm, closeDraftKey]);
+
+  // Reload drafts when storeId becomes available (avoid losing data on first mount)
+  useEffect(() => {
+    if (!storeId) return;
+    setOpenForm((prev) => loadDraft(openDraftKey, prev));
+    setCloseForm((prev) => loadDraft(closeDraftKey, prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId]);
 
   const todayBusinessDay = formatBusinessDate(nowBrasilia());
 
