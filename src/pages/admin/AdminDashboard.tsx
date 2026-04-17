@@ -198,13 +198,12 @@ const AdminDashboard = () => {
     const { start, end } = getBusinessDayRange(selectedDate);
     const ACTIVE_STATUSES = ["pending", "paid", "preparing", "ready", "delivering"];
 
-    // Query 1: orders within the selected business day
+    // Query 1: orders within the selected business day (include trashed for Lixeira tab)
     let dayQuery = supabase
       .from("orders")
       .select("*")
       .gte("created_at", start)
       .lte("created_at", end)
-      .is("trashed_at", null)
       .order("created_at", { ascending: false });
     if (storeId) dayQuery = dayQuery.eq("store_id", storeId);
 
