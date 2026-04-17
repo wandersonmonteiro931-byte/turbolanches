@@ -1350,7 +1350,7 @@ const AdminDashboard = () => {
 
         <div className="ml-auto flex items-center gap-4 text-sm">
           <div className="text-muted-foreground">
-            <span className="font-bold text-foreground">{orders.length}</span> pedidos
+            <span className="font-bold text-foreground">{visibleOrders.filter(o => !o.trashed_at).length}</span> pedidos
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
             Faturamento: <span className="font-bold text-green-600">{valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".",",")}` : "R$ •••••"}</span>
