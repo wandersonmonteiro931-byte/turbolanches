@@ -153,15 +153,25 @@ export default function CashRegister({ onChange }: Props) {
   }, [showClose, register, fetchPaymentTotals]);
 
   const handleOpen = async () => {
-    if (!storeId || !user) return;
+    if (!storeId || !user) {
+      toast({
+        title: "Não foi possível abrir o caixa",
+        description: !storeId ? "Loja não identificada." : "Usuário não autenticado.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Block if previous day still open
-    const { data: prev } = await supabase
+    const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
       .select("business_day,status")
       .eq("store_id", storeId)
       .neq("business_day", todayBusinessDay)
       .eq("status", "open")
       .limit(1);
+    if (prevErr) {
+      console.error("[CashRegister] previous-day check error", prevErr);
+    }
     if (prev && prev.length > 0) {
       toast({
         title: "Caixa anterior em aberto",
@@ -172,11 +182,13 @@ export default function CashRegister({ onChange }: Props) {
       return;
     }
 
+    const nowIso = new Date().toISOString();
     const payload = {
       store_id: storeId,
       business_day: todayBusinessDay,
       status: "open" as const,
       opened_by: user.id,
+      opened_at: nowIso,
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
