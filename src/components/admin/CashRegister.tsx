@@ -210,21 +210,32 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // Compute Cost of Goods Sold (COGS) for the day
     if (orderIds.length === 0) {
       setProductsCostInfo({ totalCost: 0, missingCount: 0, totalProducts: 0 });
+      setTopItems([]);
       return;
     }
     const { data: itemsData } = await supabase
       .from("order_items")
-      .select("product_id, quantity")
+      .select("product_id, product_name, quantity")
       .in("order_id", orderIds);
 
     const productQty = new Map<string, number>();
+    const nameQty = new Map<string, number>();
     let totalUnits = 0;
     (itemsData || []).forEach((it: any) => {
-      if (!it.product_id) return;
       const q = Number(it.quantity) || 0;
       totalUnits += q;
+      const name = String(it.product_name || "Item").trim();
+      nameQty.set(name, (nameQty.get(name) || 0) + q);
+      if (!it.product_id) return;
       productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
     });
+
+    // Top 5 itens mais vendidos
+    const top = [...nameQty.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, qty }));
+    setTopItems(top);
 
     const productIds = [...productQty.keys()];
     if (productIds.length === 0) {
