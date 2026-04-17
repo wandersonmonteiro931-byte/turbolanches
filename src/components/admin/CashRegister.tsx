@@ -551,6 +551,22 @@ export default function CashRegister({ onChange }: Props) {
           <DialogHeader>
             <DialogTitle>Fechar Caixa — {register?.business_day}</DialogTitle>
           </DialogHeader>
+          {register && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs space-y-1">
+              <div>
+                <span className="font-bold text-amber-700">📅 Aberto em: </span>
+                <span className="font-mono">{formatDateTimeBR(register.opened_at)}</span>
+              </div>
+              <div>
+                <span className="font-bold text-amber-700">🔒 Fechando agora: </span>
+                <span className="font-mono">{formatDateTimeBR(now.toISOString())}</span>
+              </div>
+              <div>
+                <span className="font-bold text-amber-700">⏱ Tempo total: </span>
+                <span className="font-mono">{formatDuration(now.getTime() - new Date(register.opened_at).getTime())}</span>
+              </div>
+            </div>
+          )}
 
           {register && (
             <div className="space-y-4 py-2">
