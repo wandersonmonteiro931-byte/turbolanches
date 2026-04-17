@@ -613,6 +613,99 @@ export default function CashRegister({ onChange }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* HISTORY MODAL */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico de Caixas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            {history.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-6">Nenhum caixa registrado.</div>
+            )}
+            {history.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                <div className="min-w-[140px]">
+                  <div className="font-bold">{r.business_day}</div>
+                  <div className={cn("text-xs", r.status === "open" ? "text-emerald-600" : "text-muted-foreground")}>
+                    {r.status === "open" ? "ABERTO" : "FECHADO"}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground flex-1 min-w-[180px]">
+                  <div>Aberto: {formatDateTimeBR(r.opened_at)}</div>
+                  {r.closed_at && <div>Fechado: {formatDateTimeBR(r.closed_at)}</div>}
+                </div>
+                <div className="ml-auto flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => reprintRegister(r)}>
+                    <Printer size={14} className="mr-1" /> Imprimir
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditingReg({ ...r })}>
+                    <Pencil size={14} className="mr-1" /> Editar
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHistory(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EDIT MODAL */}
+      <Dialog open={!!editingReg} onOpenChange={(o) => !o && setEditingReg(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Caixa — {editingReg?.business_day}</DialogTitle>
+          </DialogHeader>
+          {editingReg && (
+            <div className="space-y-3 py-2 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  ["opening_cash", "Abertura: Dinheiro"],
+                  ["opening_card", "Abertura: Máquina/Conta"],
+                  ["opening_change_reserve", "Abertura: Troco reserva"],
+                  ["expense_employees", "Gasto: Funcionários"],
+                  ["expense_couriers", "Gasto: Entregadores"],
+                  ["expense_purchases", "Gasto: Compras"],
+                  ["expense_gasoline", "Gasto: Gasolina"],
+                  ["expense_other", "Gasto: Outros"],
+                  ["closing_pix", "Fechamento: PIX"],
+                  ["closing_card", "Fechamento: Cartão"],
+                  ["closing_cash", "Fechamento: Dinheiro"],
+                ].map(([k, l]) => (
+                  <div key={k}>
+                    <Label className="text-xs">{l}</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={(editingReg as any)[k] ?? 0}
+                      onChange={(e) => setEditingReg({ ...editingReg, [k]: Number(e.target.value) } as any)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <Label className="text-xs">Observações</Label>
+                <Input
+                  value={editingReg.notes || ""}
+                  onChange={(e) => setEditingReg({ ...editingReg, notes: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingReg(null)}>Cancelar</Button>
+            <Button onClick={saveRegisterEdits} className="bg-primary text-primary-foreground">Salvar alterações</Button>
+            {editingReg && (
+              <Button variant="outline" onClick={() => reprintRegister(editingReg)}>
+                <Printer size={14} className="mr-1" /> Imprimir
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -627,4 +720,90 @@ function Row({ label, value, bold, negative, warn }: { label: string; value: str
       )}>{value}</span>
     </div>
   );
+}
+
+// ============== Helpers ==============
+function computeSummary(reg: CashRegister, totals: PaymentBreakdown) {
+  const expensesTotal =
+    (reg.expense_employees || 0) + (reg.expense_couriers || 0) + (reg.expense_purchases || 0) +
+    (reg.expense_gasoline || 0) + (reg.expense_other || 0);
+  const declaredPix = reg.closing_pix || 0;
+  const declaredCard = reg.closing_card || 0;
+  const declaredCash = reg.closing_cash || 0;
+  const declaredTotal = declaredPix + declaredCard + declaredCash;
+  const expectedCash = (reg.opening_cash || 0) + (reg.opening_change_reserve || 0) + totals.cash - expensesTotal;
+  const expectedPix = totals.pix;
+  const expectedCard = (reg.opening_card || 0) + totals.card;
+  const expectedTotal = expectedCash + expectedPix + expectedCard;
+  return {
+    expensesTotal, declaredTotal, expectedTotal, expectedCash, expectedPix, expectedCard,
+    diffCash: declaredCash - expectedCash, diffPix: declaredPix - expectedPix,
+    diffCard: declaredCard - expectedCard, diffTotal: declaredTotal - expectedTotal,
+    grossRevenue: totals.total, netRevenue: totals.total - expensesTotal,
+  };
+}
+
+function printRegisterReport(reg: CashRegister, totals: PaymentBreakdown, summary: ReturnType<typeof computeSummary>) {
+  const f = (n: number) => `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"/>
+<title>Relatorio Caixa ${reg.business_day}</title>
+<style>
+@page { size: 80mm auto; margin: 0; }
+* { box-sizing: border-box; }
+body { font-family: Arial, sans-serif; font-weight: 900; margin: 0; padding: 6px 8px; color: #000; font-size: 12px; }
+h1 { font-size: 14px; text-align: center; margin: 4px 0; }
+.row { display: flex; justify-content: space-between; }
+hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
+.warn { color: #b45309; }
+</style></head><body>
+<h1>RELATÓRIO DE CAIXA</h1>
+<div class="row"><span>Dia:</span><strong>${reg.business_day}</strong></div>
+<div class="row"><span>Status:</span><strong>${reg.status === "open" ? "ABERTO" : "FECHADO"}</strong></div>
+<hr/>
+<div><strong>ABERTURA</strong></div>
+<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.opened_at)}</span></div>
+<div class="row"><span>Dinheiro:</span><span>${f(reg.opening_cash)}</span></div>
+<div class="row"><span>Máquina/Conta:</span><span>${f(reg.opening_card)}</span></div>
+<div class="row"><span>Troco reserva:</span><span>${f(reg.opening_change_reserve)}</span></div>
+${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
+<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>` : ""}
+<hr/>
+<div><strong>GASTOS</strong></div>
+<div class="row"><span>Funcionários:</span><span>${f(reg.expense_employees)}</span></div>
+<div class="row"><span>Entregadores:</span><span>${f(reg.expense_couriers)}</span></div>
+<div class="row"><span>Compras:</span><span>${f(reg.expense_purchases)}</span></div>
+<div class="row"><span>Gasolina:</span><span>${f(reg.expense_gasoline)}</span></div>
+<div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>
+<div class="row"><span>TOTAL GASTOS:</span><strong>${f(summary.expensesTotal)}</strong></div>
+<hr/>
+<div><strong>VENDAS POR PAGAMENTO</strong></div>
+<div class="row"><span>PIX:</span><span>${f(totals.pix)}</span></div>
+<div class="row"><span>Cartão:</span><span>${f(totals.card)}</span></div>
+<div class="row"><span>Dinheiro:</span><span>${f(totals.cash)}</span></div>
+<div class="row"><span>Outros:</span><span>${f(totals.other)}</span></div>
+<div class="row"><span>BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
+<hr/>
+<div><strong>SALDO DECLARADO</strong></div>
+<div class="row"><span>PIX:</span><span>${f(reg.closing_pix)}</span></div>
+<div class="row"><span>Cartão:</span><span>${f(reg.closing_card)}</span></div>
+<div class="row"><span>Dinheiro:</span><span>${f(reg.closing_cash)}</span></div>
+<div class="row"><span>TOTAL DECLARADO:</span><strong>${f(summary.declaredTotal)}</strong></div>
+<hr/>
+<div><strong>RECONCILIAÇÃO</strong></div>
+<div class="row"><span>Esperado:</span><span>${f(summary.expectedTotal)}</span></div>
+<div class="row"><span>Declarado:</span><span>${f(summary.declaredTotal)}</span></div>
+<div class="row ${Math.abs(summary.diffTotal) > 0.01 ? "warn" : ""}"><span>Diferença:</span><strong>${f(summary.diffTotal)}</strong></div>
+<div class="row"><span>· PIX:</span><span>${f(summary.diffPix)}</span></div>
+<div class="row"><span>· Cartão:</span><span>${f(summary.diffCard)}</span></div>
+<div class="row"><span>· Dinheiro:</span><span>${f(summary.diffCash)}</span></div>
+<hr/>
+<div class="row"><span>LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+${reg.notes ? `<hr/><div><strong>Observações:</strong> ${reg.notes}</div>` : ""}
+<script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
+</body></html>`;
+  const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
+  if (!w) return;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
