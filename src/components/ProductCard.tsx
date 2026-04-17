@@ -51,7 +51,6 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
               </span>
             )}
           </div>
-          {safeDescription ? <p className="mt-1 text-xs text-muted-foreground break-words">{safeDescription}</p> : null}
         </div>
         <div className="mt-2 flex items-center gap-2">
           <span className="text-sm font-bold text-primary">
