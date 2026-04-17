@@ -406,10 +406,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
 
-    // Expected cash in drawer = opening cash + opening change reserve + cash sales − cash expenses
-    const expectedCash = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash - expensesTotal;
+    // Expected values are based STRICTLY on the sum of each order's payment for the current business day.
+    // Opening balances and expenses are tracked separately in the summary, not embedded into the expected totals.
     const expectedPix = paymentTotals.pix;
-    const expectedCard = (register?.opening_card || 0) + paymentTotals.card;
+    const expectedCard = paymentTotals.card;
+    const expectedCash = paymentTotals.cash;
     const expectedTotal = expectedCash + expectedPix + expectedCard;
 
     const diffCash = declaredCash - expectedCash;
