@@ -49,6 +49,16 @@ interface PaymentBreakdown {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+function formatDuration(ms: number): string {
+  if (!isFinite(ms) || ms < 0) ms = 0;
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 interface Props {
   /** Called whenever register state changes so dashboard can refresh gating */
   onChange?: (isOpen: boolean) => void;
@@ -66,9 +76,16 @@ export default function CashRegister({ onChange }: Props) {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<CashRegister[]>([]);
   const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
   const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
     pix: 0, card: 0, cash: 0, other: 0, total: 0,
   });
+
+  // Live clock — updates every second for the open-time counter and current date/time labels
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Open form
   const [openForm, setOpenForm] = useState({
@@ -153,15 +170,25 @@ export default function CashRegister({ onChange }: Props) {
   }, [showClose, register, fetchPaymentTotals]);
 
   const handleOpen = async () => {
-    if (!storeId || !user) return;
+    if (!storeId || !user) {
+      toast({
+        title: "Não foi possível abrir o caixa",
+        description: !storeId ? "Loja não identificada." : "Usuário não autenticado.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Block if previous day still open
-    const { data: prev } = await supabase
+    const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
       .select("business_day,status")
       .eq("store_id", storeId)
       .neq("business_day", todayBusinessDay)
       .eq("status", "open")
       .limit(1);
+    if (prevErr) {
+      console.error("[CashRegister] previous-day check error", prevErr);
+    }
     if (prev && prev.length > 0) {
       toast({
         title: "Caixa anterior em aberto",
@@ -172,11 +199,13 @@ export default function CashRegister({ onChange }: Props) {
       return;
     }
 
+    const nowIso = new Date().toISOString();
     const payload = {
       store_id: storeId,
       business_day: todayBusinessDay,
       status: "open" as const,
       opened_by: user.id,
+      opened_at: nowIso,
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
@@ -429,6 +458,11 @@ export default function CashRegister({ onChange }: Props) {
         {register && (
           <div className="text-xs text-muted-foreground">
             <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
+            {isOpenToday && (
+              <div className="text-emerald-700 font-bold">
+                ⏱ Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}
+              </div>
+            )}
             {register.closed_at && (
               <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>
             )}
@@ -476,6 +510,10 @@ export default function CashRegister({ onChange }: Props) {
           <DialogHeader>
             <DialogTitle>Abrir Caixa — {todayBusinessDay}</DialogTitle>
           </DialogHeader>
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-3 py-2 text-xs">
+            <div className="font-bold text-emerald-700">📅 Data e hora da abertura</div>
+            <div className="text-foreground font-mono">{formatDateTimeBR(now.toISOString())}</div>
+          </div>
           <div className="space-y-3 py-2">
             <div>
               <Label>Dinheiro em caixa (R$)</Label>
@@ -513,6 +551,22 @@ export default function CashRegister({ onChange }: Props) {
           <DialogHeader>
             <DialogTitle>Fechar Caixa — {register?.business_day}</DialogTitle>
           </DialogHeader>
+          {register && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs space-y-1">
+              <div>
+                <span className="font-bold text-amber-700">📅 Aberto em: </span>
+                <span className="font-mono">{formatDateTimeBR(register.opened_at)}</span>
+              </div>
+              <div>
+                <span className="font-bold text-amber-700">🔒 Fechando agora: </span>
+                <span className="font-mono">{formatDateTimeBR(now.toISOString())}</span>
+              </div>
+              <div>
+                <span className="font-bold text-amber-700">⏱ Tempo total: </span>
+                <span className="font-mono">{formatDuration(now.getTime() - new Date(register.opened_at).getTime())}</span>
+              </div>
+            </div>
+          )}
 
           {register && (
             <div className="space-y-4 py-2">
