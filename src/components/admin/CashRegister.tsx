@@ -1037,7 +1037,13 @@ ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>· Cartão:</span><span>${f(summary.diffCard)}</span></div>
 <div class="row"><span>· Dinheiro:</span><span>${f(summary.diffCash)}</span></div>
 <hr/>
-<div class="row"><span>LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+<div><strong>RESULTADO DO DIA</strong></div>
+<div class="row"><span>Faturamento BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
+<div class="row"><span>− Gastos do dia:</span><span class="warn">${f(summary.expensesTotal)}</span></div>
+<div class="row big"><span>= LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+<div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
+<div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
+${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
 ${reg.notes ? `<hr/><div><strong>Observações:</strong> ${reg.notes}</div>` : ""}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
