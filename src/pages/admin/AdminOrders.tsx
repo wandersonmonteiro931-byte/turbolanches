@@ -627,204 +627,234 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {filteredOrders.map((order) => {
-        const status = statusConfig[order.status] || statusConfig.pending;
-        const StatusIcon = status.icon;
-        const next = nextStatus[order.status];
-        const profile = profiles[order.user_id];
-        const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
+      {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
+      {(() => {
+        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; blink?: boolean }> = [
+          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-amber-400 bg-amber-50 text-amber-800", blink: true },
+          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-purple-400 bg-purple-50 text-purple-800" },
+          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-emerald-400 bg-emerald-50 text-emerald-800" },
+          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-cyan-400 bg-cyan-50 text-cyan-800" },
+          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-green-500 bg-green-50 text-green-800" },
+          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-red-400 bg-red-50 text-red-800" },
+        ];
 
-        return (
-          <div
-            key={order.id}
-            className={`rounded-xl border bg-card shadow-sm overflow-hidden ${
-              order.status === "pending" || order.status === "paid"
-                ? "border-amber-400 animate-pulse ring-1 ring-amber-300"
-                : (order.status === "ready" && order.courier_id)
-                  ? "border-red-500 border-2 animate-pulse"
-                  : "border-border"
-            }`}
-          >
-            <button
-              onClick={() => toggleExpand(order.id)}
-              className="flex w-full items-center gap-3 p-4 text-left"
-            >
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${status.color}`}>
-                <StatusIcon size={18} />
+        // Auto-load items for any visible order so cards show full info without clicks
+        filteredOrders.forEach((o) => {
+          if (!items[o.id]) void fetchItems(o.id);
+        });
+
+        return sectionDefs.map((section) => {
+          const sectionOrders = filteredOrders.filter((o) => section.statuses.includes(o.status));
+          if (sectionOrders.length === 0) return null;
+          const hasPending = section.blink && sectionOrders.length > 0;
+
+          return (
+            <section key={section.key} className="space-y-3">
+              <div
+                className={`flex items-center gap-2 rounded-xl border-2 px-4 py-2 ${section.accent} ${
+                  hasPending ? "animate-pulse" : ""
+                }`}
+              >
+                <h2 className="text-sm font-black uppercase tracking-wider">{section.label}</h2>
+                <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                  {sectionOrders.length}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
-                  {customerCode && (
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                      {customerCode}
-                    </span>
-                  )}
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>
-                    {status.label}
-                  </span>
-                   {order.priority && (
-                     <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
-                   )}
-                   {order.status === "ready" && order.courier_id && (
-                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
-                       ⚠️ DEVOLVIDO
-                     </span>
-                   )}
-                   {!order.payment_confirmed && order.status !== "cancelled" && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                  {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
-                  {profile?.full_name ? ` · ${profile.full_name}` : ""}
-                </p>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-sm font-bold text-foreground">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
-              </div>
-            </button>
 
-            {expandedOrder === order.id && (
-              <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
-                {/* Timeline */}
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
-                  <span>📥 Recebido: {formatTime(order.created_at)}</span>
-                  {order.preparing_at && <span>👨‍🍳 Preparo: {formatTime(order.preparing_at)}</span>}
-                  {order.ready_at && <span>✅ Pronto: {formatTime(order.ready_at)}</span>}
-                  {order.delivering_at && <span>🚀 Saiu: {formatTime(order.delivering_at)}</span>}
-                  {order.delivered_at && <span>📦 Entregue: {formatTime(order.delivered_at)}</span>}
-                </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {sectionOrders.map((order) => {
+                  const status = statusConfig[order.status] || statusConfig.pending;
+                  const StatusIcon = status.icon;
+                  const next = nextStatus[order.status];
+                  const profile = profiles[order.user_id];
+                  const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
+                  const orderItems = items[order.id] || [];
 
-                {/* Customer Info */}
-                {profile && (
-                  <div className="text-xs text-muted-foreground">
-                    👤 {profile.full_name || "Sem nome"} · {profile.phone || "Sem telefone"} · {customerCode}
-                  </div>
-                )}
-
-                {/* Address */}
-                {order.address_street && (
-                  <p className="text-xs text-muted-foreground">
-                    📍 {order.address_street}, {order.address_number || "S/N"}
-                    {order.address_complement ? ` - ${order.address_complement}` : ""} - {order.address_neighborhood}
-                  </p>
-                )}
-
-                {/* Observations */}
-                {order.observations && (
-                  <p className="text-xs text-muted-foreground">💬 {order.observations}</p>
-                )}
-
-                {/* Cancellation Reason */}
-                {order.cancellation_reason && (
-                  <p className="text-xs text-red-600 font-medium">❌ Motivo cancelamento: {order.cancellation_reason}</p>
-                )}
-
-                {/* Items */}
-                <div className="space-y-1.5">
-                  {(items[order.id] || []).map((item) => (
-                    <div key={item.id}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-foreground font-medium">
-                          {item.quantity}x {item.product_name}
-                        </span>
-                        <span className="text-muted-foreground">
-                          R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
-                        </span>
-                      </div>
-                      {item.addons_json && (item.addons_json as any[]).length > 0 && (item.addons_json as any[]).map((a: any, i: number) => (
-                        <div key={i} className="text-[11px] text-muted-foreground pl-4">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
-                      ))}
-                      {item.observations && <div className="text-[11px] text-muted-foreground pl-4">Obs: {item.observations}</div>}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Totals */}
-                <div className="rounded-lg bg-muted/50 p-2.5 space-y-0.5 text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
-                  {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
-                  <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
-                  <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Pagamento</span><span className="text-foreground">{getPaymentDisplay(order.payment_method, order.payment_confirmed)} {order.payment_confirmed ? "✅" : "❌"}</span></div>
-                  {order.change_for && order.change_for > 0 && (
-                    <div className="flex justify-between"><span className="text-muted-foreground">Troco para</span><span className="text-foreground">R$ {Number(order.change_for).toFixed(2).replace(".", ",")}</span></div>
-                  )}
-                </div>
-
-                {/* Print buttons */}
-                <div className="flex gap-2">
-                  <button onClick={() => printReceipt(order.id, "pedido")}
-                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Pedido
-                  </button>
-                  <button onClick={() => printReceipt(order.id, "obrigado")}
-                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                    <Printer size={14} /> Obrigado
-                  </button>
-                  {order.courier_id && (
-                    <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
-                      className="flex items-center gap-1 rounded-lg border border-cyan-500 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-50">
-                      <Printer size={14} /> Fechamento de Rota
-                    </button>
-                  )}
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {order.status === "preparing" && (
-                    <button
-                      onClick={async () => {
-                        await supabase.from("orders").update({ priority: !order.priority }).eq("id", order.id);
-                        toast({ title: order.priority ? "Prioridade removida" : "⚡ Pedido marcado como PRIORIDADE" });
-                        fetchOrders();
-                      }}
-                      className={`rounded-lg border px-3 py-2 text-xs font-bold ${
-                        order.priority ? "border-purple-500 bg-purple-50 text-purple-700" : "border-border text-muted-foreground"
+                  return (
+                    <div
+                      key={order.id}
+                      className={`flex flex-col rounded-xl border-2 bg-card shadow-sm overflow-hidden ${
+                        order.status === "pending" || order.status === "paid"
+                          ? "border-amber-400 ring-2 ring-amber-300 animate-pulse"
+                          : order.status === "ready" && order.courier_id
+                            ? "border-red-500 animate-pulse"
+                            : "border-border"
                       }`}
                     >
-                      ⚡ {order.priority ? "Remover Prioridade" : "Prioridade"}
-                    </button>
-                  )}
-                  {order.payment_method !== "fiado" && order.status !== "cancelled" && (
-                    <button
-                      onClick={async () => {
-                        await supabase.from("orders").update({ payment_method: "fiado", payment_confirmed: false }).eq("id", order.id);
-                        toast({ title: "📝 Pedido marcado como Fiado" });
-                        fetchOrders();
-                      }}
-                      className="rounded-lg border border-amber-500 px-3 py-2 text-xs font-bold text-amber-600"
-                    >
-                      📝 Fiado
-                    </button>
-                  )}
-                </div>
+                      {/* Header */}
+                      <div className="flex items-start gap-3 p-3 border-b border-border">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${status.color}`}>
+                          <StatusIcon size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-base font-black text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
+                            {customerCode && (
+                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">{customerCode}</span>
+                            )}
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${status.color}`}>{status.label}</span>
+                            {order.priority && (
+                              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                            )}
+                            {order.status === "ready" && order.courier_id && (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">⚠️ DEVOLVIDO</span>
+                            )}
+                            {!order.payment_confirmed && order.status !== "cancelled" && (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-muted-foreground break-words">
+                            {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                          </p>
+                          {profile?.full_name && (
+                            <p className="text-[11px] text-muted-foreground break-words">👤 {profile.full_name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-sm font-black text-foreground whitespace-nowrap">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+                        </div>
+                      </div>
 
-                {/* Status actions */}
-                <div className="flex gap-2">
-                  {next && (
-                    <button
-                      onClick={() => updateStatus(order.id, next)}
-                      className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
-                    >
-                      {next === "preparing" ? "✅ Aceitar" : `Avançar → ${statusConfig[next]?.label}`}
-                    </button>
-                  )}
-                  {order.status !== "cancelled" && order.status !== "delivered" && (
-                    <button
-                      onClick={() => updateStatus(order.id, "cancelled")}
-                      className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
-                    >
-                      Cancelar
-                    </button>
-                  )}
-                </div>
+                      {/* Body — always visible, never truncated */}
+                      <div className="flex-1 p-3 space-y-2.5">
+                        {/* Timeline */}
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+                          <span>📥 {formatTime(order.created_at)}</span>
+                          {order.preparing_at && <span>👨‍🍳 {formatTime(order.preparing_at)}</span>}
+                          {order.ready_at && <span>✅ {formatTime(order.ready_at)}</span>}
+                          {order.delivering_at && <span>🚀 {formatTime(order.delivering_at)}</span>}
+                          {order.delivered_at && <span>📦 {formatTime(order.delivered_at)}</span>}
+                        </div>
+
+                        {/* Address */}
+                        {order.address_street && (
+                          <p className="text-xs text-muted-foreground break-words">
+                            📍 {order.address_street}, {order.address_number || "S/N"}
+                            {order.address_complement ? ` - ${order.address_complement}` : ""} - {order.address_neighborhood}
+                          </p>
+                        )}
+
+                        {/* Observations */}
+                        {order.observations && (
+                          <p className="text-xs text-foreground bg-amber-50 rounded p-2 break-words">💬 {order.observations}</p>
+                        )}
+
+                        {/* Cancellation reason */}
+                        {order.cancellation_reason && (
+                          <p className="text-xs text-red-600 font-bold break-words">❌ Motivo: {order.cancellation_reason}</p>
+                        )}
+
+                        {/* Items */}
+                        <div className="space-y-1">
+                          {orderItems.length === 0 ? (
+                            <div className="text-[11px] text-muted-foreground italic">Carregando itens...</div>
+                          ) : orderItems.map((item) => (
+                            <div key={item.id} className="text-xs">
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="text-foreground font-semibold break-words flex-1">
+                                  {item.quantity}x {item.product_name}
+                                </span>
+                                <span className="text-muted-foreground whitespace-nowrap">
+                                  R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                                </span>
+                              </div>
+                              {item.addons_json && (item.addons_json as any[]).length > 0 && (item.addons_json as any[]).map((a: any, i: number) => (
+                                <div key={i} className="text-[10px] text-muted-foreground pl-3 break-words">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
+                              ))}
+                              {item.observations && <div className="text-[10px] text-muted-foreground pl-3 break-words">Obs: {item.observations}</div>}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Totals */}
+                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-[11px]">
+                          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
+                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
+                          <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
+                          <div className="flex justify-between font-bold text-xs"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
+                          {order.change_for && order.change_for > 0 && (
+                            <div className="flex justify-between"><span className="text-muted-foreground">Troco para</span><span className="text-foreground">R$ {Number(order.change_for).toFixed(2).replace(".", ",")}</span></div>
+                          )}
+                        </div>
+
+                        {/* Print buttons */}
+                        <div className="flex flex-wrap gap-1.5">
+                          <button onClick={() => printReceipt(order.id, "pedido")}
+                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted">
+                            <Printer size={12} /> Pedido
+                          </button>
+                          <button onClick={() => printReceipt(order.id, "obrigado")}
+                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted">
+                            <Printer size={12} /> Obrigado
+                          </button>
+                          {order.courier_id && (
+                            <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
+                              className="flex items-center gap-1 rounded-lg border border-cyan-500 px-2 py-1 text-[10px] font-medium text-cyan-700 hover:bg-cyan-50">
+                              <Printer size={12} /> Rota
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {order.status === "preparing" && (
+                            <button
+                              onClick={async () => {
+                                await supabase.from("orders").update({ priority: !order.priority }).eq("id", order.id);
+                                toast({ title: order.priority ? "Prioridade removida" : "⚡ Pedido marcado como PRIORIDADE" });
+                                fetchOrders();
+                              }}
+                              className={`rounded-lg border px-2 py-1.5 text-[10px] font-bold ${
+                                order.priority ? "border-purple-500 bg-purple-50 text-purple-700" : "border-border text-muted-foreground"
+                              }`}
+                            >
+                              ⚡ {order.priority ? "Remover" : "Prioridade"}
+                            </button>
+                          )}
+                          {order.payment_method !== "fiado" && order.status !== "cancelled" && (
+                            <button
+                              onClick={async () => {
+                                await supabase.from("orders").update({ payment_method: "fiado", payment_confirmed: false }).eq("id", order.id);
+                                toast({ title: "📝 Pedido marcado como Fiado" });
+                                fetchOrders();
+                              }}
+                              className="rounded-lg border border-amber-500 px-2 py-1.5 text-[10px] font-bold text-amber-600"
+                            >
+                              📝 Fiado
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer — primary actions */}
+                      <div className="border-t border-border p-2.5 flex gap-2 mt-auto">
+                        {next && (
+                          <button
+                            onClick={() => updateStatus(order.id, next)}
+                            className="flex-1 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground"
+                          >
+                            {(order.status === "pending" || order.status === "paid")
+                              ? "✅ Aceitar"
+                              : `→ ${statusConfig[next]?.label}`}
+                          </button>
+                        )}
+                        {order.status !== "cancelled" && order.status !== "delivered" && (
+                          <button
+                            onClick={() => updateStatus(order.id, "cancelled")}
+                            className="rounded-lg border border-destructive px-3 py-2 text-xs font-bold text-destructive"
+                          >
+                            {(order.status === "pending" || order.status === "paid") ? "Recusar" : "Cancelar"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-        );
-      })}
+            </section>
+          );
+        });
+      })()}
       {/* Route Closure Confirmation Modal */}
       {showRouteClosureModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
