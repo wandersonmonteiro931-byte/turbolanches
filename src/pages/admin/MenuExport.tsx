@@ -243,6 +243,19 @@ const MenuExport = () => {
                           {product.description}
                         </p>
                       )}
+                      {(ingredientsByProduct[product.id]?.length ?? 0) > 0 && (
+                        <p
+                          style={{
+                            fontSize: 10,
+                            color: "#555",
+                            margin: "3px 0 0",
+                            lineHeight: 1.35,
+                            fontStyle: "italic",
+                          }}
+                        >
+                          🥬 {ingredientsByProduct[product.id].join(", ")}
+                        </p>
+                      )}
                     </div>
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
                       {product.original_price && product.original_price > product.price && (
