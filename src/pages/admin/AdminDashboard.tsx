@@ -1976,6 +1976,33 @@ const AdminDashboard = () => {
                           Recusar
                         </button>
                       )}
+                      {order.status === "cancelled" && !order.trashed_at && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm("Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.")) return;
+                            const { error } = await supabase.from("orders").update({ trashed_at: new Date().toISOString() }).eq("id", order.id);
+                            if (error) { toast({ title: "Erro ao mover para a lixeira", variant: "destructive" }); return; }
+                            toast({ title: "🗑️ Pedido movido para a lixeira" });
+                            fetchOrders();
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
+                        >
+                          <Trash2 size={14} /> Excluir
+                        </button>
+                      )}
+                      {order.status === "cancelled" && order.trashed_at && (
+                        <button
+                          onClick={async () => {
+                            const { error } = await supabase.from("orders").update({ trashed_at: null }).eq("id", order.id);
+                            if (error) { toast({ title: "Erro ao restaurar", variant: "destructive" }); return; }
+                            toast({ title: "♻️ Pedido restaurado para Recusados" });
+                            fetchOrders();
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
+                        >
+                          <RotateCcw size={14} /> Restaurar
+                        </button>
+                      )}
                     </div>
                   </div>
               </div>
