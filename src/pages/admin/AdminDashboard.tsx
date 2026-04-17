@@ -1570,7 +1570,7 @@ const AdminDashboard = () => {
                 isActive
                   ? `${tab.color} text-white`
                   : "bg-card border border-border text-foreground hover:bg-muted"
-              } ${isPendingWithOrders && !isActive ? "animate-pulse border-amber-500 border-2" : ""}`}
+              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-2" : ""}`}
             >
               <tab.icon size={16} />
               {tab.label}
