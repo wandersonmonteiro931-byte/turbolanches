@@ -431,6 +431,18 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
   const handleClose = async () => {
     if (!storeId || !user || !register) return;
+    if (!closeForm.responsible_name?.trim()) {
+      toast({
+        title: "Responsável obrigatório",
+        description: "Informe o nome de quem está fechando o caixa.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const closerTag = `[Fechado por: ${closeForm.responsible_name.trim()}]`;
+    const baseNotes = (register.notes || "").includes("[Fechado por:")
+      ? (register.notes || "").replace(/\[Fechado por:[^\]]*\]/, closerTag)
+      : `${register.notes || ""} ${closerTag}`.trim();
     const payload = {
       status: "closed" as const,
       closed_at: new Date().toISOString(),
@@ -444,7 +456,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
-      notes: closeForm.notes,
+      notes: `${baseNotes} ${closeForm.notes || ""}`.trim(),
     };
     const { error } = await supabase
       .from("cash_registers")
