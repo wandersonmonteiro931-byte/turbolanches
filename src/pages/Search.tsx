@@ -6,6 +6,7 @@ import { useStoreStatus } from "@/hooks/useStoreStatus";
 import ProductCard from "@/components/ProductCard";
 import BottomNav from "@/components/BottomNav";
 import CartFloatingButton from "@/components/CartFloatingButton";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 
 const quickFilters = [
   { key: "popular", label: "Populares", icon: Flame },
@@ -15,6 +16,7 @@ const quickFilters = [
 type QuickFilter = (typeof quickFilters)[number]["key"] | null;
 
 const Search = () => {
+  useScrollRestoration("search");
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<QuickFilter>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);

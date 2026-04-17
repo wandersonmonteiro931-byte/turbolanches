@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
+import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import footerLogo from "@/assets/footer-logo-footer.png";
 
 const fadeUp = {
@@ -33,6 +34,7 @@ const stagger = {
 };
 
 const Index = () => {
+  useScrollRestoration("home");
   const menuRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { isOpen: storeIsOpen, nextOpeningText } = useStoreStatus();

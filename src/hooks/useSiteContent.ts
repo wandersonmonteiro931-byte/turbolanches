@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 
@@ -11,25 +11,33 @@ export function useSiteContent() {
   const [content, setContent] = useState<SiteContent>({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetch = async () => {
-      let query = supabase.from("site_content").select("key, value");
-      if (storeId) {
-        query = query.or(`store_id.eq.${storeId},store_id.is.null`);
-      }
+  const fetchContent = useCallback(async () => {
+    let query = supabase.from("site_content").select("key, value");
+    if (storeId) {
+      query = query.or(`store_id.eq.${storeId},store_id.is.null`);
+    }
 
-      const { data } = await query;
-      if (data) {
-        const map: SiteContent = {};
-        for (const item of data) {
-          map[item.key] = item.value;
-        }
-        setContent(map);
+    const { data } = await query;
+    if (data) {
+      const map: SiteContent = {};
+      for (const item of data) {
+        map[item.key] = item.value;
       }
-      setLoading(false);
-    };
-    fetch();
+      setContent(map);
+    }
+    setLoading(false);
   }, [storeId]);
+
+  useEffect(() => {
+    fetchContent();
+    const channel = supabase
+      .channel("site-content-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_content" }, () => fetchContent())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchContent]);
 
   return { content, loading };
 }
