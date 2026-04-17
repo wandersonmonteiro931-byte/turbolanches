@@ -100,7 +100,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const openDraftKey = `cashRegister:openDraft:${storeId || "default"}`;
   const closeDraftKey = `cashRegister:closeDraft:${storeId || "default"}`;
 
-  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "" };
+  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "", responsible_name: "" };
   const defaultCloseForm = {
     expense_employees: "0",
     expense_couriers: "0",
@@ -112,6 +112,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     closing_card: "0",
     closing_cash: "0",
     notes: "",
+    responsible_name: "",
   };
 
   const loadDraft = <T,>(key: string, fallback: T): T => {
