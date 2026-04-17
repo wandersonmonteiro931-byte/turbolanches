@@ -850,6 +850,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_couriers", "Gasto: Entregadores"],
                   ["expense_purchases", "Gasto: Compras"],
                   ["expense_gasoline", "Gasto: Gasolina"],
+                  ["expense_ads", "Gasto: Anúncios/Divulgação"],
                   ["expense_other", "Gasto: Outros"],
                   ["closing_pix", "Fechamento: PIX"],
                   ["closing_card", "Fechamento: Cartão"],
