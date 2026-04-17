@@ -87,6 +87,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const [productsCostInfo, setProductsCostInfo] = useState<{ totalCost: number; missingCount: number; totalProducts: number }>({
     totalCost: 0, missingCount: 0, totalProducts: 0,
   });
+  const [orderStats, setOrderStats] = useState<{ completed: number; cancelled: number }>({ completed: 0, cancelled: 0 });
+  const [topItems, setTopItems] = useState<{ name: string; qty: number }[]>([]);
 
   // Live clock — updates every second for the open-time counter and current date/time labels
   useEffect(() => {
@@ -98,7 +100,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const openDraftKey = `cashRegister:openDraft:${storeId || "default"}`;
   const closeDraftKey = `cashRegister:closeDraft:${storeId || "default"}`;
 
-  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "" };
+  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "", responsible_name: "" };
   const defaultCloseForm = {
     expense_employees: "0",
     expense_couriers: "0",
@@ -110,6 +112,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     closing_card: "0",
     closing_cash: "0",
     notes: "",
+    responsible_name: "",
   };
 
   const loadDraft = <T,>(key: string, fallback: T): T => {
@@ -176,46 +179,63 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const fetchPaymentTotals = useCallback(async (businessDay: string) => {
     if (!storeId) return;
     const { start, end } = getBusinessDayRange(new Date(businessDay + "T12:00:00"));
-    const { data: ordersData } = await supabase
+    // Buscar TODOS os pedidos do dia (incluindo cancelados) para estatísticas
+    const { data: allOrdersData } = await supabase
       .from("orders")
       .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
-      .eq("store_id", storeId)
-      .in("status", ["delivered", "ready", "delivering", "preparing"]);
+      .eq("store_id", storeId);
+
+    const completedStatuses = ["delivered", "ready", "delivering", "preparing"];
+    const ordersData = (allOrdersData || []).filter((o: any) => completedStatuses.includes(o.status));
+    const cancelledCount = (allOrdersData || []).filter((o: any) => o.status === "cancelled").length;
 
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
-    (ordersData || []).forEach((o: any) => {
+    ordersData.forEach((o: any) => {
       orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
-      if (m === "pix") totals.pix += t;
-      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit")) totals.card += t;
+      // Qualquer variante PIX (pix, pix_pago, pix_entrega, pix_online…) entra como PIX
+      if (m.includes("pix")) totals.pix += t;
+      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit") || m.includes("maquin")) totals.card += t;
       else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
       else totals.other += t;
     });
     setPaymentTotals(totals);
+    setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
 
     // Compute Cost of Goods Sold (COGS) for the day
     if (orderIds.length === 0) {
       setProductsCostInfo({ totalCost: 0, missingCount: 0, totalProducts: 0 });
+      setTopItems([]);
       return;
     }
     const { data: itemsData } = await supabase
       .from("order_items")
-      .select("product_id, quantity")
+      .select("product_id, product_name, quantity")
       .in("order_id", orderIds);
 
     const productQty = new Map<string, number>();
+    const nameQty = new Map<string, number>();
     let totalUnits = 0;
     (itemsData || []).forEach((it: any) => {
-      if (!it.product_id) return;
       const q = Number(it.quantity) || 0;
       totalUnits += q;
+      const name = String(it.product_name || "Item").trim();
+      nameQty.set(name, (nameQty.get(name) || 0) + q);
+      if (!it.product_id) return;
       productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
     });
+
+    // Top 5 itens mais vendidos
+    const top = [...nameQty.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, qty]) => ({ name, qty }));
+    setTopItems(top);
 
     const productIds = [...productQty.keys()];
     if (productIds.length === 0) {
@@ -308,6 +328,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
+    if (!openForm.responsible_name?.trim()) {
+      toast({
+        title: "Responsável obrigatório",
+        description: "Informe o nome de quem está abrindo o caixa.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Block if previous day still open
     const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
@@ -339,7 +367,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
-      notes: openForm.notes,
+      notes: `[Aberto por: ${openForm.responsible_name.trim()}] ${openForm.notes || ""}`.trim(),
     };
 
     // Upsert into today's slot (handles reopen also)
@@ -396,13 +424,25 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     }
 
     setShowOpen(false);
-    setOpenForm({ cash: "0", card: "0", change_reserve: "0", notes: "" });
+    setOpenForm(defaultOpenForm);
     try { localStorage.removeItem(openDraftKey); } catch {}
     await fetchRegister();
   };
 
   const handleClose = async () => {
     if (!storeId || !user || !register) return;
+    if (!closeForm.responsible_name?.trim()) {
+      toast({
+        title: "Responsável obrigatório",
+        description: "Informe o nome de quem está fechando o caixa.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const closerTag = `[Fechado por: ${closeForm.responsible_name.trim()}]`;
+    const baseNotes = (register.notes || "").includes("[Fechado por:")
+      ? (register.notes || "").replace(/\[Fechado por:[^\]]*\]/, closerTag)
+      : `${register.notes || ""} ${closerTag}`.trim();
     const payload = {
       status: "closed" as const,
       closed_at: new Date().toISOString(),
@@ -416,7 +456,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
-      notes: closeForm.notes,
+      notes: `${baseNotes} ${closeForm.notes || ""}`.trim(),
     };
     const { error } = await supabase
       .from("cash_registers")
@@ -443,7 +483,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       ...register,
       ...payload,
     } as CashRegister;
-    printRegisterReport(reportData, paymentTotals, closeSummary);
+    printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
   };
 
   /** Fetch history of all registers */
@@ -463,38 +503,46 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   /** Reprint a saved register */
   const reprintRegister = async (reg: CashRegister) => {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
-    const { data: ordersData } = await supabase
+    const { data: allOrdersData } = await supabase
       .from("orders")
       .select("id, payment_method, total, status")
       .gte("created_at", start)
       .lte("created_at", end)
-      .eq("store_id", reg.store_id)
-      .in("status", ["delivered", "ready", "delivering", "preparing"]);
+      .eq("store_id", reg.store_id);
+    const completedStatuses = ["delivered", "ready", "delivering", "preparing"];
+    const ordersData = (allOrdersData || []).filter((o: any) => completedStatuses.includes(o.status));
+    const cancelledCount = (allOrdersData || []).filter((o: any) => o.status === "cancelled").length;
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
-    (ordersData || []).forEach((o: any) => {
+    ordersData.forEach((o: any) => {
       orderIds.push(o.id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
-      if (m === "pix") totals.pix += t;
-      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit")) totals.card += t;
+      if (m.includes("pix")) totals.pix += t;
+      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit") || m.includes("maquin")) totals.card += t;
       else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
       else totals.other += t;
     });
+    const stats = { completed: ordersData.length, cancelled: cancelledCount };
+    let top: { name: string; qty: number }[] = [];
     // Recompute COGS for this business day
     let cogs = { totalCost: 0, missingCount: 0, totalProducts: 0 };
     if (orderIds.length > 0) {
       const { data: itemsData } = await supabase
-        .from("order_items").select("product_id, quantity").in("order_id", orderIds);
+        .from("order_items").select("product_id, product_name, quantity").in("order_id", orderIds);
       const productQty = new Map<string, number>();
+      const nameQty = new Map<string, number>();
       let totalUnits = 0;
       (itemsData || []).forEach((it: any) => {
-        if (!it.product_id) return;
         const q = Number(it.quantity) || 0;
         totalUnits += q;
+        const name = String(it.product_name || "Item").trim();
+        nameQty.set(name, (nameQty.get(name) || 0) + q);
+        if (!it.product_id) return;
         productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
       });
+      top = [...nameQty.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, qty]) => ({ name, qty }));
       const productIds = [...productQty.keys()];
       if (productIds.length > 0) {
         const [prodRes, piRes] = await Promise.all([
@@ -529,7 +577,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       }
     }
     const summary = computeSummary(reg, totals, cogs);
-    printRegisterReport(reg, totals, summary);
+    printRegisterReport(reg, totals, summary, stats, top);
   };
 
   /** Save edits to a saved register */
@@ -720,6 +768,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
           </div>
           <div className="space-y-3 py-2">
             <div>
+              <Label>
+                Responsável pela abertura <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="Nome de quem está abrindo o caixa"
+                value={openForm.responsible_name}
+                onChange={(e) => setOpenForm({ ...openForm, responsible_name: e.target.value })}
+                required
+              />
+            </div>
+            <div>
               <Label>Dinheiro em caixa (R$)</Label>
               <Input type="number" step="0.01" value={openForm.cash}
                 onChange={(e) => setOpenForm({ ...openForm, cash: e.target.value })} />
@@ -778,9 +837,51 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 <div className="font-bold mb-1">📂 Abertura</div>
                 <div>Data/Hora: {formatDateTimeBR(register.opened_at)}</div>
+                {(() => {
+                  const m = (register.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+                  return m ? <div>Responsável: <strong>{m[1].trim()}</strong></div> : null;
+                })()}
                 <div>Dinheiro: <strong>{fmt(register.opening_cash)}</strong></div>
                 <div>Máquina/Conta: <strong>{fmt(register.opening_card)}</strong></div>
                 <div>Troco reserva: <strong>{fmt(register.opening_change_reserve)}</strong></div>
+              </div>
+
+              {/* Stats: orders count + top items */}
+              <div className="rounded-lg border border-border bg-card p-3 text-sm space-y-2">
+                <div className="font-bold">📊 Pedidos do dia</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded bg-emerald-500/10 px-2 py-1 text-emerald-700">
+                    Realizados: <strong>{orderStats.completed}</strong>
+                  </div>
+                  <div className="rounded bg-destructive/10 px-2 py-1 text-destructive">
+                    Cancelados: <strong>{orderStats.cancelled}</strong>
+                  </div>
+                </div>
+                {topItems.length > 0 && (
+                  <div className="pt-1">
+                    <div className="font-bold text-xs mb-1">🏆 Itens mais vendidos</div>
+                    <ol className="list-decimal pl-5 space-y-0.5 text-xs">
+                      {topItems.map((it, i) => (
+                        <li key={i}>
+                          <span className="font-semibold">{it.qty}×</span> {it.name}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+
+              {/* Responsável pelo fechamento */}
+              <div>
+                <Label>
+                  Responsável pelo fechamento <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  placeholder="Nome de quem está fechando o caixa"
+                  value={closeForm.responsible_name}
+                  onChange={(e) => setCloseForm({ ...closeForm, responsible_name: e.target.value })}
+                  required
+                />
               </div>
 
               {/* Expenses */}
@@ -1029,8 +1130,22 @@ function computeSummary(reg: CashRegister, totals: PaymentBreakdown, cogs?: { to
   };
 }
 
-function printRegisterReport(reg: CashRegister, totals: PaymentBreakdown, summary: ReturnType<typeof computeSummary>) {
+function printRegisterReport(
+  reg: CashRegister,
+  totals: PaymentBreakdown,
+  summary: ReturnType<typeof computeSummary>,
+  stats: { completed: number; cancelled: number } = { completed: 0, cancelled: 0 },
+  topItems: { name: string; qty: number }[] = [],
+) {
   const f = (n: number) => `R$ ${(Number(n) || 0).toFixed(2).replace(".", ",")}`;
+  const openedByMatch = (reg.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+  const closedByMatch = (reg.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
+  const openedBy = openedByMatch ? openedByMatch[1].trim() : "";
+  const closedBy = closedByMatch ? closedByMatch[1].trim() : "";
+  const cleanNotes = (reg.notes || "")
+    .replace(/\[Aberto por:[^\]]*\]/g, "")
+    .replace(/\[Fechado por:[^\]]*\]/g, "")
+    .trim();
   const html = `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Relatorio Caixa ${reg.business_day}</title>
 <style>
@@ -1049,11 +1164,19 @@ hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
 <hr/>
 <div><strong>ABERTURA</strong></div>
 <div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.opened_at)}</span></div>
+${openedBy ? `<div class="row"><span>Responsável:</span><strong>${openedBy}</strong></div>` : ""}
 <div class="row"><span>Dinheiro:</span><span>${f(reg.opening_cash)}</span></div>
 <div class="row"><span>Máquina/Conta:</span><span>${f(reg.opening_card)}</span></div>
 <div class="row"><span>Troco reserva:</span><span>${f(reg.opening_change_reserve)}</span></div>
 ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
-<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>` : ""}
+<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>
+${closedBy ? `<div class="row"><span>Responsável:</span><strong>${closedBy}</strong></div>` : ""}` : ""}
+<hr/>
+<div><strong>PEDIDOS DO DIA</strong></div>
+<div class="row"><span>Realizados:</span><strong>${stats.completed}</strong></div>
+<div class="row"><span>Cancelados:</span><strong>${stats.cancelled}</strong></div>
+${topItems.length > 0 ? `<div style="margin-top:3px;"><strong>MAIS VENDIDOS:</strong></div>
+${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><strong>${it.qty}×</strong></div>`).join("")}` : ""}
 <hr/>
 <div><strong>GASTOS</strong></div>
 <div class="row"><span>Funcionários:</span><span>${f(reg.expense_employees)}</span></div>
@@ -1092,7 +1215,7 @@ ${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
 <div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
 <div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
 ${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
-${reg.notes ? `<hr/><div><strong>Observações:</strong> ${reg.notes}</div>` : ""}
+${cleanNotes ? `<hr/><div><strong>Observações:</strong> ${cleanNotes}</div>` : ""}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
