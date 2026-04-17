@@ -19,6 +19,11 @@ const ProductDetail = () => {
   const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [observations, setObservations] = useState("");
 
+  // Sempre abrir o produto rolado para o topo
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [id]);
+
   const isCombo = Boolean(product?.isCombo);
   const comboCount = product?.comboItemCount || 1;
 
