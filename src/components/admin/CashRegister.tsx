@@ -119,7 +119,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const openDraftKey = `cashRegister:openDraft:${storeId || "default"}`;
   const closeDraftKey = `cashRegister:closeDraft:${storeId || "default"}`;
 
-  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "", responsible_name: "" };
+  const defaultOpenForm = { cash: "0", card: "0", pix: "0", change_reserve: "0", notes: "", responsible_name: "" };
   const defaultCloseForm = {
     expense_employees: "0",
     expense_couriers: "0",
@@ -127,6 +127,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline: "0",
     expense_ads: "0",
     expense_other: "0",
+    expense_employees_method: "cash" as PayMethod,
+    expense_couriers_method: "cash" as PayMethod,
+    expense_purchases_method: "cash" as PayMethod,
+    expense_gasoline_method: "cash" as PayMethod,
+    expense_ads_method: "cash" as PayMethod,
+    expense_other_method: "cash" as PayMethod,
     closing_pix: "0",
     closing_card: "0",
     closing_cash: "0",
