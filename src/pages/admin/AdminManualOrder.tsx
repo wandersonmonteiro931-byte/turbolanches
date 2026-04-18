@@ -525,6 +525,37 @@ const AdminManualOrder = () => {
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
       const actualPaid = isPixPago || isPaid;
 
+      // ===== Cálculo de pagamento detalhado por método =====
+      // Mapeia o método principal para a "chave" do banco (cash/pix/card).
+      const methodKey = (m: string): "cash" | "pix" | "card" => {
+        if (m === "dinheiro") return "cash";
+        if (m === "pix") return "pix";
+        if (m === "cartao" || m === "card" || m === "debito" || m === "credito") return "card";
+        return "cash"; // fallback (fiado/outros não impactam caixa)
+      };
+      const payKey = methodKey(actualPaymentMethod);
+      const changeKey = methodKey(changeMethod);
+      const changeForNum = actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : 0;
+      // Valor entregue pelo cliente em cada método
+      const amountPaid = { cash: 0, pix: 0, card: 0 };
+      const changeGiven = { cash: 0, pix: 0, card: 0 };
+      // Para fiado/outros: nada entra no caixa
+      const isFiado = actualPaymentMethod === "fiado";
+      if (!isFiado && actualPaid !== false || actualPaid) {
+        // Sempre registra valor pago (para pagamentos confirmados)
+      }
+      if (!isFiado) {
+        if (changeForNum > total && actualPaymentMethod === "dinheiro") {
+          // Cliente entregou mais que o total: amount_paid_cash = changeFor, troco = diferença
+          amountPaid.cash = changeForNum;
+          const trocoTotal = changeForNum - total;
+          changeGiven[changeKey] += trocoTotal;
+        } else {
+          // Pagamento exato
+          amountPaid[payKey] = total;
+        }
+      }
+
       const obsText = [
         "[PDV]",
         customerName ? `Cliente: ${customerName}` : null,
