@@ -814,6 +814,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     addExpense(closeForm.expense_gasoline,  closeForm.expense_gasoline_method);
     addExpense(closeForm.expense_ads,       closeForm.expense_ads_method);
     addExpense(closeForm.expense_other,     closeForm.expense_other_method);
+    // Troco devolvido em método diferente — sai do PIX/Cartão
+    const changeGivenAmount = Number(closeForm.change_given_amount) || 0;
+    const changeGivenMethod = closeForm.change_given_method;
+    addExpense(String(changeGivenAmount), changeGivenMethod);
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
