@@ -99,7 +99,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const [showClose, setShowClose] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<CashRegister[]>([]);
-  const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
+  // (legacy editingReg removido — edição agora reusa os modais reais via editingRegId)
   // 🔧 Edit-from-history mode: when set, the real Open/Close modals operate on this saved register
   // (UPDATE in place) instead of creating/closing the active one.
   const [editingRegId, setEditingRegId] = useState<string | null>(null);
