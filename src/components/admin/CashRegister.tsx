@@ -220,7 +220,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // IMPORTANTE: ignora pedidos na lixeira (trashed_at) em qualquer cálculo
     const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status, courier_id, trashed_at")
+      .select("id, payment_method, total, status, courier_id, delivery_fee, delivery_type, trashed_at")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId)
@@ -234,9 +234,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
     const courierIds = new Set<string>();
+    const courierDeliveryFees = new Map<string, number>(); // soma das taxas dos pedidos entregues por entregador
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
-      if (o.courier_id) courierIds.add(o.courier_id);
+      if (o.courier_id) {
+        courierIds.add(o.courier_id);
+        // Apenas pedidos delivery realmente entregues contam para a taxa
+        if (o.status === "delivered" && String(o.delivery_type || "delivery") === "delivery") {
+          const fee = Number(o.delivery_fee) || 0;
+          courierDeliveryFees.set(o.courier_id, (courierDeliveryFees.get(o.courier_id) || 0) + fee);
+        }
+      }
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -265,7 +273,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       const breakdown: { name: string; fee: number }[] = [];
       (couriersRes.data || []).forEach((c: any) => {
         const dailyFee = dailyMap.get(c.id);
-        const fee = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        // Diária do dia (com fallback para fixed_fee do cadastro)
+        const dailyBase = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        // Soma das taxas dos pedidos entregues por este entregador no dia
+        const deliveryFees = courierDeliveryFees.get(c.id) || 0;
+        const fee = roundMoney(dailyBase + deliveryFees);
         totalCouriers += fee;
         breakdown.push({ name: c.name, fee });
       });
