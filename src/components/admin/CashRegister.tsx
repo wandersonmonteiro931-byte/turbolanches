@@ -143,6 +143,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     closing_pix: "0",
     closing_card: "0",
     closing_cash: "0",
+    closing_account: "0", // PIX + cartão (campo unificado da UI)
     notes: "",
     responsible_name: "",
   };
