@@ -220,7 +220,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // IMPORTANTE: ignora pedidos na lixeira (trashed_at) em qualquer cálculo
     const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status, courier_id, trashed_at")
+      .select("id, payment_method, total, status, courier_id, delivery_fee, delivery_type, trashed_at")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId)
