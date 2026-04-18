@@ -602,6 +602,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       difference_cash: closeSummary.diffCash,
       difference_pix: closeSummary.diffPix,
       difference_card: closeSummary.diffCard,
+      // Etapa 1 — Caixa Bruto (antes dos gastos)
+      gross_cash: closeSummary.grossCash,
+      gross_pix: closeSummary.grossPix,
+      gross_card: closeSummary.grossCard,
+      declared_gross_cash: closeSummary.declaredGrossCash,
+      declared_gross_pix: closeSummary.declaredGrossPix,
+      declared_gross_card: closeSummary.declaredGrossCard,
+      // Etapa 3 — Caixa Final (após gastos) — espelha o esperado pós-gastos
+      final_cash: closeSummary.expectedCash,
+      final_pix: closeSummary.expectedPix,
+      final_card: closeSummary.expectedCard,
       total_sales: closeSummary.grossRevenue,
       total_expenses: closeSummary.expensesTotal,
       gross_profit: closeSummary.netRevenue,
