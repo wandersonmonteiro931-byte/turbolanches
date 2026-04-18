@@ -337,10 +337,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       productQty.set(it.product_id, (productQty.get(it.product_id) || 0) + q);
     });
 
-    // Top 5 itens mais vendidos
+    // Item mais vendido (apenas o top 1)
     const top = [...nameQty.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 1)
       .map(([name, qty]) => ({ name, qty }));
     setTopItems(top);
 
