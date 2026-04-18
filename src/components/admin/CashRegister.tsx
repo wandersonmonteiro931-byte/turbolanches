@@ -1772,6 +1772,11 @@ ${totals.other > 0 ? `<div class="row"><span>Outros:</span><span>${f(totals.othe
 <div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
 <div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
 ${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
+<hr/>
+<div><strong>SALDO FINAL (após todos descontos)</strong></div>
+<div class="row big"><span>💰 Em dinheiro (gaveta):</span><strong>${f(summary.expectedCash)}</strong></div>
+<div class="row big"><span>🏦 Na conta da empresa:</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
+<div class="row"><span>TOTAL DISPONÍVEL:</span><strong>${f(summary.expectedCash + summary.expectedPix + summary.expectedCard)}</strong></div>
 ${cleanNotes ? `<hr/><div><strong>Observações:</strong> ${cleanNotes}</div>` : ""}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
