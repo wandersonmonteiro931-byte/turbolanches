@@ -234,9 +234,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
     const courierIds = new Set<string>();
+    const courierDeliveryFees = new Map<string, number>(); // soma das taxas dos pedidos entregues por entregador
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
-      if (o.courier_id) courierIds.add(o.courier_id);
+      if (o.courier_id) {
+        courierIds.add(o.courier_id);
+        // Apenas pedidos delivery realmente entregues contam para a taxa
+        if (o.status === "delivered" && String(o.delivery_type || "delivery") === "delivery") {
+          const fee = Number(o.delivery_fee) || 0;
+          courierDeliveryFees.set(o.courier_id, (courierDeliveryFees.get(o.courier_id) || 0) + fee);
+        }
+      }
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
