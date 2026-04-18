@@ -1391,6 +1391,52 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   </div>
                 </div>
 
+                {/* 🔄 Troco devolvido em método diferente (cliente paga em dinheiro, troco via PIX/cartão) */}
+                {(() => {
+                  const changeAmt = Number(closeForm.change_given_amount) || 0;
+                  const isHigh = changeAmt > 50;
+                  return (
+                    <div className="space-y-1 rounded-lg border border-dashed border-amber-400/40 bg-amber-50/30 dark:bg-amber-500/5 p-2">
+                      <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
+                        <Label className="text-sm flex items-center gap-1">
+                          🔄 Troco devolvido
+                          <span className="text-[10px] text-muted-foreground">(outro método)</span>
+                        </Label>
+                        <Select
+                          value={closeForm.change_given_method}
+                          onValueChange={(v) =>
+                            setCloseForm({ ...closeForm, change_given_method: v as "pix" | "card" })
+                          }
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pix">📲 PIX</SelectItem>
+                            <SelectItem value="card">💳 Cartão</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={closeForm.change_given_amount}
+                          onChange={(e) =>
+                            setCloseForm({ ...closeForm, change_given_amount: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className="text-[10px] text-muted-foreground italic pl-1">
+                        Cliente pagou em dinheiro e recebeu troco via {closeForm.change_given_method === "pix" ? "PIX" : "cartão"} — reduz saldo da conta, não do dinheiro.
+                      </div>
+                      {isHigh && (
+                        <div className="text-[11px] font-bold text-amber-700 dark:text-amber-300 pl-1">
+                          ⚠️ Verifique troco fora do padrão ({fmt(changeAmt)})
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
                   <div className="rounded bg-muted/50 px-2 py-1">💰 Dinheiro: <strong>{fmt(closeSummary.expensesByMethod.cash)}</strong></div>
                   <div className="rounded bg-muted/50 px-2 py-1">📲 PIX: <strong>{fmt(closeSummary.expensesByMethod.pix)}</strong></div>
