@@ -819,6 +819,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const netAfterCogs = netRevenue - productsCostInfo.totalCost;
     const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
+    const externalAds = Number(closeForm.expense_ads_external) || 0;
+
     return {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
@@ -828,6 +830,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       netAfterCogs, cogsIsEstimate,
       missingCostUnits: productsCostInfo.missingCount,
       totalSoldUnits: productsCostInfo.totalProducts,
+      externalAds,
     };
   }, [closeForm, register, paymentTotals, productsCostInfo]);
 
