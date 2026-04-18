@@ -301,6 +301,14 @@ const AdminManualOrder = () => {
       setChangeFor(order.change_for ? String(order.change_for) : "");
       setIsPaid(order.payment_confirmed || false);
 
+      // Restore change method (troco devolvido via dinheiro/pix/cartão)
+      const cgPix = Number(order.change_given_pix || 0);
+      const cgCard = Number(order.change_given_card || 0);
+      const cgCash = Number(order.change_given_cash || 0);
+      if (cgPix > 0) setChangeMethod("pix");
+      else if (cgCard > 0) setChangeMethod("card");
+      else if (cgCash > 0) setChangeMethod("dinheiro");
+
       // Map payment method
       const pm = order.payment_method;
       if (pm === "pix") {
