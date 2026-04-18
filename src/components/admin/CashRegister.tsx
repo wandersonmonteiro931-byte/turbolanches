@@ -1829,11 +1829,12 @@ ${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><st
 <div class="row"><span>BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
 <hr/>
 <div><strong>CONFERÊNCIA DE CAIXA</strong></div>
-<div style="font-size:10px;font-style:italic;margin-bottom:3px;">Esperado = vendas do sistema · Declarado = contado no fechamento · Diferença = sobra (+) ou falta (−)</div>
+<div style="font-size:10px;font-style:italic;margin-bottom:3px;">Esperado = abertura + vendas − gastos (por método) · Declarado = contado no fechamento · Diferença = sobra (+) ou falta (−)</div>
 <div class="row" style="font-weight:bold;"><span>Forma</span><span>Esperado / Declarado / Dif.</span></div>
-<div class="row"><span>PIX:</span><span>${f(totals.pix)} / ${f(reg.closing_pix)} / <strong>${f(summary.diffPix)}</strong></span></div>
-<div class="row"><span>Cartão:</span><span>${f(totals.card)} / ${f(reg.closing_card)} / <strong>${f(summary.diffCard)}</strong></span></div>
-<div class="row"><span>Dinheiro:</span><span>${f(totals.cash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
+<div class="row"><span>💰 Caixa físico (dinheiro):</span><span>${f(summary.expectedCash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
+<div class="row"><span>📲 PIX:</span><span>${f(summary.expectedPix)} / ${f(reg.closing_pix)} / <strong>${f(summary.diffPix)}</strong></span></div>
+<div class="row"><span>💳 Cartão:</span><span>${f(summary.expectedCard)} / ${f(reg.closing_card)} / <strong>${f(summary.diffCard)}</strong></span></div>
+<div class="row"><span>🏦 Conta (PIX + Cartão):</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
 ${totals.other > 0 ? `<div class="row"><span>Outros:</span><span>${f(totals.other)} / — / —</span></div>` : ""}
 <div class="row"><span>TOTAL Esperado:</span><strong>${f(summary.expectedTotal)}</strong></div>
 <div class="row"><span>TOTAL Declarado:</span><strong>${f(summary.declaredTotal)}</strong></div>
