@@ -879,6 +879,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       missingCostUnits: productsCostInfo.missingCount,
       totalSoldUnits: productsCostInfo.totalProducts,
       externalAds,
+      changeGivenAmount, changeGivenMethod,
     };
   }, [closeForm, register, paymentTotals, productsCostInfo]);
 
