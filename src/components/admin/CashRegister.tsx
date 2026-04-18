@@ -465,6 +465,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opened_at: nowIso,
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
+      opening_pix: Number(openForm.pix) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
       notes: `[Aberto por: ${openForm.responsible_name.trim()}] ${openForm.notes || ""}`.trim(),
     };
