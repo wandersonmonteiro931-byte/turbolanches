@@ -1165,49 +1165,63 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 ))}
               </div>
 
-              {/* Reconciliation summary */}
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-1">
+              {/* Reconciliation summary — separado por forma de pagamento */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
                 <div className="font-bold mb-1 flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Conferência de caixa
+                  <CheckCircle2 size={16} /> Conferência por forma de pagamento
                 </div>
                 <div className="text-[11px] text-muted-foreground italic mb-2">
-                  Compara o que o sistema esperava receber (vendas) com o que foi contado no fechamento. Diferença positiva = sobra, negativa = falta.
+                  Esperado = Abertura + Vendas (do método) − Gastos (do método). Diferença &gt; R$ 5 destacada.
                 </div>
-                <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
+                {[
+                  { key: "cash", label: "💰 Dinheiro", expected: closeSummary.expectedCash, declared: Number(closeForm.closing_cash) || 0, diff: closeSummary.diffCash },
+                  { key: "pix",  label: "📲 PIX",      expected: closeSummary.expectedPix,  declared: Number(closeForm.closing_pix)  || 0, diff: closeSummary.diffPix  },
+                  { key: "card", label: "💳 Cartão",   expected: closeSummary.expectedCard, declared: Number(closeForm.closing_card) || 0, diff: closeSummary.diffCard },
+                ].map((row) => {
+                  const big = Math.abs(row.diff) > 5;
+                  return (
+                    <div key={row.key} className={cn(
+                      "rounded border p-2 text-xs",
+                      big ? "border-destructive/60 bg-destructive/5" : "border-border bg-card",
+                    )}>
+                      <div className="font-bold text-sm mb-1">{row.label}</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>Esperado<br/><strong className="text-foreground">{fmt(row.expected)}</strong></div>
+                        <div>Declarado<br/><strong className="text-foreground">{fmt(row.declared)}</strong></div>
+                        <div>Diferença<br/>
+                          <strong className={cn(big ? "text-destructive" : row.diff !== 0 ? "text-amber-700" : "text-foreground")}>
+                            {fmt(row.diff)}
+                          </strong>
+                        </div>
+                      </div>
+                      {big && (
+                        <div className="mt-1 flex items-center gap-1 text-destructive font-bold text-[11px]">
+                          <AlertTriangle size={12} /> Divergência detectada (&gt; R$ 5)
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <hr className="my-2 border-border" />
+                <div className="font-bold">📊 Resultado financeiro</div>
+                <Row label="Faturamento (vendas)" value={fmt(closeSummary.grossRevenue)} />
                 <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
-                <Row label="= Lucro líquido (sem custos dos produtos)" value={fmt(closeSummary.netRevenue)} bold />
+                <Row label="= Lucro bruto" value={fmt(closeSummary.netRevenue)} bold />
                 <Row
-                  label={`− Custo dos produtos vendidos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
+                  label={`− Custo dos produtos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
                   value={fmt(closeSummary.productsCost)}
                   negative
                 />
                 <Row
-                  label={`= ${closeSummary.cogsIsEstimate ? "Lucro líquido (estimado)" : "Lucro líquido REAL"}`}
+                  label={`= Lucro líquido${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
                   value={fmt(closeSummary.netAfterCogs)}
                   bold
                   warn={closeSummary.cogsIsEstimate}
                 />
                 {closeSummary.cogsIsEstimate && closeSummary.totalSoldUnits > 0 && (
                   <div className="text-[11px] text-amber-700 italic">
-                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos não possuem custo cadastrado — valor aproximado (~35% do preço). Cadastre a ficha técnica ou custo manual em Precificação para obter o lucro real.
-                  </div>
-                )}
-                <hr className="my-2 border-border" />
-                <Row label="Esperado em caixa" value={fmt(closeSummary.expectedTotal)} />
-                <Row label="Declarado em caixa" value={fmt(closeSummary.declaredTotal)} />
-                <Row
-                  label="Diferença (quebra)"
-                  value={fmt(closeSummary.diffTotal)}
-                  bold
-                  warn={Math.abs(closeSummary.diffTotal) > 0.01}
-                />
-                {Math.abs(closeSummary.diffTotal) > 0.01 && (
-                  <div className="mt-2 flex items-start gap-2 rounded bg-amber-500/10 p-2 text-xs text-amber-700">
-                    <AlertTriangle size={14} className="mt-0.5" />
-                    <div>
-                      <div>{closeSummary.diffTotal > 0 ? "Sobra" : "Falta"} de <strong>{fmt(Math.abs(closeSummary.diffTotal))}</strong>.</div>
-                      <div>PIX: {fmt(closeSummary.diffPix)} • Cartão: {fmt(closeSummary.diffCard)} • Dinheiro: {fmt(closeSummary.diffCash)}</div>
-                    </div>
+                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos sem custo cadastrado — valor aproximado (~35% do preço).
                   </div>
                 )}
               </div>
