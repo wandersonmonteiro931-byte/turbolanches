@@ -98,6 +98,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   });
   const [orderStats, setOrderStats] = useState<{ completed: number; cancelled: number }>({ completed: 0, cancelled: 0 });
   const [topItems, setTopItems] = useState<{ name: string; qty: number }[]>([]);
+  const [autoCouriers, setAutoCouriers] = useState<{ total: number; breakdown: { name: string; fee: number }[] }>({ total: 0, breakdown: [] });
 
   // Live clock — updates every second for the open-time counter and current date/time labels
   useEffect(() => {
@@ -218,7 +219,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // Buscar TODOS os pedidos do dia (incluindo cancelados) para estatísticas
     const { data: allOrdersData } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status")
+      .select("id, payment_method, total, status, courier_id")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId);
@@ -229,8 +230,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
+    const courierIds = new Set<string>();
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
+      if (o.courier_id) courierIds.add(o.courier_id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -242,6 +245,32 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     });
     setPaymentTotals(totals);
     setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
+
+    // ===== Cálculo AUTOMÁTICO da despesa de entregadores =====
+    // Para cada entregador único que fez entrega no dia, soma a taxa fixa do
+    // dia da semana (courier_daily_fees) ou cai para couriers.fixed_fee.
+    if (courierIds.size > 0) {
+      const dayOfWeek = new Date(businessDay + "T12:00:00").getDay(); // 0 = domingo
+      const ids = [...courierIds];
+      const [couriersRes, dailyFeesRes] = await Promise.all([
+        supabase.from("couriers").select("id, name, fixed_fee").in("id", ids),
+        supabase.from("courier_daily_fees").select("courier_id, fixed_fee").in("courier_id", ids).eq("day_of_week", dayOfWeek),
+      ]);
+      const dailyMap = new Map<string, number>();
+      (dailyFeesRes.data || []).forEach((r: any) => dailyMap.set(r.courier_id, Number(r.fixed_fee) || 0));
+      let totalCouriers = 0;
+      const breakdown: { name: string; fee: number }[] = [];
+      (couriersRes.data || []).forEach((c: any) => {
+        const dailyFee = dailyMap.get(c.id);
+        const fee = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        totalCouriers += fee;
+        breakdown.push({ name: c.name, fee });
+      });
+      setAutoCouriers({ total: roundMoney(totalCouriers), breakdown });
+    } else {
+      setAutoCouriers({ total: 0, breakdown: [] });
+    }
+
 
     // Compute Cost of Goods Sold (COGS) for the day
     if (orderIds.length === 0) {
@@ -341,8 +370,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   }, [showClose, register, fetchPaymentTotals]);
 
   // Auto-fill the declared balances with the EXPECTED totals (based on each
-  // order's payment for the current business day) — but only if the user
-  // hasn't already typed a value (keeps drafts intact).
+  // order's payment for the current business day) AND auto-fill the couriers
+  // expense based on courier_daily_fees — but only if the user hasn't already
+  // typed a value (keeps drafts intact).
   useEffect(() => {
     if (!showClose) return;
     setCloseForm((prev) => {
@@ -351,9 +381,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       if (isZero(prev.closing_pix) && paymentTotals.pix > 0) next.closing_pix = paymentTotals.pix.toFixed(2);
       if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
       if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
+      if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total]);
+
 
   const handleOpen = async () => {
     if (!storeId || !user) {
@@ -952,17 +984,52 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_gasoline", "Gasolina"],
                   ["expense_ads", "Anúncios / Divulgação"],
                   ["expense_other", "Outros"],
-                ].map(([key, label]) => (
-                  <div key={key} className="grid grid-cols-2 gap-2 items-center">
-                    <Label className="text-sm">{label}</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={(closeForm as any)[key]}
-                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
+                ].map(([key, label]) => {
+                  const isCouriers = key === "expense_couriers";
+                  const declared = Number((closeForm as any)[key]) || 0;
+                  const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
+                  return (
+                    <div key={key} className="space-y-1">
+                      <div className="grid grid-cols-2 gap-2 items-center">
+                        <Label className="text-sm flex items-center gap-1">
+                          {label}
+                          {isCouriers && autoCouriers.total > 0 && (
+                            <span
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-bold",
+                                matchesAuto ? "bg-emerald-500/15 text-emerald-700" : "bg-amber-500/15 text-amber-700"
+                              )}
+                              title={matchesAuto ? "Valor automático" : "Valor alterado manualmente"}
+                            >
+                              {matchesAuto ? "AUTO" : "MANUAL"}
+                            </span>
+                          )}
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={(closeForm as any)[key]}
+                          onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
+                        />
+                      </div>
+                      {isCouriers && autoCouriers.breakdown.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground pl-1">
+                          🛵 Auto: {autoCouriers.breakdown.map(b => `${b.name} ${fmt(b.fee)}`).join(" • ")}
+                          {" = "}<strong className="text-foreground">{fmt(autoCouriers.total)}</strong>
+                          {!matchesAuto && (
+                            <button
+                              type="button"
+                              className="ml-2 underline text-primary"
+                              onClick={() => setCloseForm({ ...closeForm, expense_couriers: autoCouriers.total.toFixed(2) })}
+                            >
+                              usar automático
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div className="text-right text-sm font-bold">
                   Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
                 </div>
