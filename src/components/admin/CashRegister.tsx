@@ -37,6 +37,7 @@ interface CashRegister {
   expense_purchases: number;
   expense_gasoline: number;
   expense_ads: number;
+  expense_ads_external: number;
   expense_other: number;
   expense_employees_method: PayMethod;
   expense_couriers_method: PayMethod;
