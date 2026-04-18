@@ -273,7 +273,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       const breakdown: { name: string; fee: number }[] = [];
       (couriersRes.data || []).forEach((c: any) => {
         const dailyFee = dailyMap.get(c.id);
-        const fee = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        // Diária do dia (com fallback para fixed_fee do cadastro)
+        const dailyBase = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        // Soma das taxas dos pedidos entregues por este entregador no dia
+        const deliveryFees = courierDeliveryFees.get(c.id) || 0;
+        const fee = roundMoney(dailyBase + deliveryFees);
         totalCouriers += fee;
         breakdown.push({ name: c.name, fee });
       });
