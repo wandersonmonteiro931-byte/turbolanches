@@ -574,15 +574,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   /** Reprint a saved register */
   const reprintRegister = async (reg: CashRegister) => {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
-    const { data: allOrdersData } = await supabase
+    const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status")
+      .select("id, payment_method, total, status, trashed_at")
       .gte("created_at", start)
       .lte("created_at", end)
-      .eq("store_id", reg.store_id);
+      .eq("store_id", reg.store_id)
+      .is("trashed_at", null);
+    const allOrdersData = (allOrdersRaw || []).filter((o: any) => !o.trashed_at);
     const completedStatuses = ["delivered", "ready", "delivering", "preparing"];
-    const ordersData = (allOrdersData || []).filter((o: any) => completedStatuses.includes(o.status));
-    const cancelledCount = (allOrdersData || []).filter((o: any) => o.status === "cancelled").length;
+    const ordersData = allOrdersData.filter((o: any) => completedStatuses.includes(o.status));
+    const cancelledCount = allOrdersData.filter((o: any) => o.status === "cancelled").length;
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
     ordersData.forEach((o: any) => {
