@@ -48,6 +48,13 @@ interface CashRegister {
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
+  // Snapshot persistido no fechamento (única fonte da verdade para impressão/histórico)
+  expected_cash?: number;
+  expected_pix?: number;
+  expected_card?: number;
+  gross_cash?: number;
+  gross_pix?: number;
+  gross_card?: number;
   reopen_count: number;
   last_reopened_at: string | null;
   notes: string;
