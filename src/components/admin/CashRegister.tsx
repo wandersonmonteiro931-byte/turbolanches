@@ -136,9 +136,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline_method: "cash" as PayMethod,
     expense_ads_method: "cash" as PayMethod,
     expense_other_method: "cash" as PayMethod,
-    // Troco devolvido em método diferente (ex.: cliente pagou em dinheiro, troco em PIX)
-    change_given_amount: "0",
-    change_given_method: "pix" as Exclude<PayMethod, "cash">,
     // Caixa BRUTO (antes dos gastos) — valor real contado pelo operador
     declared_gross_cash: "0",
     declared_gross_pix: "0",
@@ -608,8 +605,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_gasoline_method: closeForm.expense_gasoline_method,
       expense_ads_method: closeForm.expense_ads_method,
       expense_other_method: closeForm.expense_other_method,
-      change_given_amount: Number(closeForm.change_given_amount) || 0,
-      change_given_method: closeForm.change_given_method,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
@@ -836,10 +831,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     addExpense(closeForm.expense_gasoline,  closeForm.expense_gasoline_method);
     addExpense(closeForm.expense_ads,       closeForm.expense_ads_method);
     addExpense(closeForm.expense_other,     closeForm.expense_other_method);
-    // Troco devolvido em método diferente — sai do PIX/Cartão
-    const changeGivenAmount = Number(closeForm.change_given_amount) || 0;
-    const changeGivenMethod = closeForm.change_given_method;
-    addExpense(String(changeGivenAmount), changeGivenMethod);
+    // Troco agora é registrado por pedido (change_given_*), não no fechamento.
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
