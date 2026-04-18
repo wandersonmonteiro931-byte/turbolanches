@@ -219,7 +219,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // Buscar TODOS os pedidos do dia (incluindo cancelados) para estatísticas
     const { data: allOrdersData } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status")
+      .select("id, payment_method, total, status, courier_id")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId);
@@ -230,8 +230,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
+    const courierIds = new Set<string>();
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
+      if (o.courier_id) courierIds.add(o.courier_id);
       const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
@@ -243,6 +245,32 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     });
     setPaymentTotals(totals);
     setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
+
+    // ===== Cálculo AUTOMÁTICO da despesa de entregadores =====
+    // Para cada entregador único que fez entrega no dia, soma a taxa fixa do
+    // dia da semana (courier_daily_fees) ou cai para couriers.fixed_fee.
+    if (courierIds.size > 0) {
+      const dayOfWeek = new Date(businessDay + "T12:00:00").getDay(); // 0 = domingo
+      const ids = [...courierIds];
+      const [couriersRes, dailyFeesRes] = await Promise.all([
+        supabase.from("couriers").select("id, name, fixed_fee").in("id", ids),
+        supabase.from("courier_daily_fees").select("courier_id, fixed_fee").in("courier_id", ids).eq("day_of_week", dayOfWeek),
+      ]);
+      const dailyMap = new Map<string, number>();
+      (dailyFeesRes.data || []).forEach((r: any) => dailyMap.set(r.courier_id, Number(r.fixed_fee) || 0));
+      let totalCouriers = 0;
+      const breakdown: { name: string; fee: number }[] = [];
+      (couriersRes.data || []).forEach((c: any) => {
+        const dailyFee = dailyMap.get(c.id);
+        const fee = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        totalCouriers += fee;
+        breakdown.push({ name: c.name, fee });
+      });
+      setAutoCouriers({ total: roundMoney(totalCouriers), breakdown });
+    } else {
+      setAutoCouriers({ total: 0, breakdown: [] });
+    }
+
 
     // Compute Cost of Goods Sold (COGS) for the day
     if (orderIds.length === 0) {
