@@ -589,6 +589,8 @@ const AdminManualOrder = () => {
             change_given_cash: changeGiven.cash,
             change_given_pix: changeGiven.pix,
             change_given_card: changeGiven.card,
+          })
+          .eq("id", editOrderId);
 
         if (orderError) throw orderError;
 
@@ -641,6 +643,8 @@ const AdminManualOrder = () => {
             change_given_cash: changeGiven.cash,
             change_given_pix: changeGiven.pix,
             change_given_card: changeGiven.card,
+          })
+          .select("id, order_number")
           .single();
 
         if (orderError) throw orderError;
