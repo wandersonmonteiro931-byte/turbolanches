@@ -461,8 +461,42 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         variant: "destructive",
       });
       return;
+    // 🔧 EDIT MODE: just UPDATE the saved register's opening fields
+    if (editingRegId) {
+      const cleanNotes = String(openForm.notes || "")
+        .replace(/\[Aberto por:[^\]]*\]/g, "")
+        .trim();
+      const closedTagMatch = (editingRegBackup?.notes || "").match(/\[Fechado por:[^\]]+\]/);
+      const closedTag = closedTagMatch ? ` ${closedTagMatch[0]}` : "";
+      const updatePayload: Record<string, unknown> = {
+        opening_cash: Number(openForm.cash) || 0,
+        opening_card: Number(openForm.card) || 0,
+        opening_pix: Number(openForm.pix) || 0,
+        opening_change_reserve: Number(openForm.change_reserve) || 0,
+        notes: `[Aberto por: ${openForm.responsible_name.trim()}]${closedTag} ${cleanNotes}`.trim(),
+      };
+      const { error } = await supabase
+        .from("cash_registers")
+        .update(updatePayload)
+        .eq("id", editingRegId);
+      if (error) {
+        toast({ title: "Erro ao salvar abertura", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "✅ Abertura atualizada" });
+      setShowOpen(false);
+      // Restore real active register
+      setRegister(editingRegBackup);
+      setEditingRegId(null);
+      setEditingRegBackup(null);
+      setOpenForm(defaultOpenForm);
+      try { localStorage.removeItem(openDraftKey); } catch {}
+      await fetchHistory();
+      await fetchRegister();
+      return;
     }
-    // Block if previous day still open
+
+
     const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
       .select("business_day,status")
