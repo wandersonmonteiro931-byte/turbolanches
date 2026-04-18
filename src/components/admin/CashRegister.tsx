@@ -48,6 +48,13 @@ interface CashRegister {
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
+  // Snapshot persistido no fechamento (única fonte da verdade para impressão/histórico)
+  expected_cash?: number;
+  expected_pix?: number;
+  expected_card?: number;
+  gross_cash?: number;
+  gross_pix?: number;
+  gross_card?: number;
   reopen_count: number;
   last_reopened_at: string | null;
   notes: string;
@@ -1671,10 +1678,30 @@ function computeSummary(reg: CashRegister, totals: PaymentBreakdown, cogs?: { to
   const declaredCard = reg.closing_card || 0;
   const declaredCash = reg.closing_cash || 0;
   const declaredTotal = declaredPix + declaredCard + declaredCash;
-  const expectedPix = totals.pix;
-  const expectedCard = totals.card;
-  const expectedCash = totals.cash;
+
+  // ✅ FONTE DA VERDADE: se o caixa já foi fechado, usar os valores persistidos
+  // (expected_* salvos no momento do fechamento, que JÁ consideram abertura − gastos por método).
+  // Para caixas abertos (preview), recai no cálculo dinâmico abertura + vendas − gastos por método.
+  const expensesByMethod = { cash: 0, pix: 0, card: 0 };
+  expensesByMethod[reg.expense_employees_method] += reg.expense_employees || 0;
+  expensesByMethod[reg.expense_couriers_method]  += reg.expense_couriers  || 0;
+  expensesByMethod[reg.expense_purchases_method] += reg.expense_purchases || 0;
+  expensesByMethod[reg.expense_gasoline_method]  += reg.expense_gasoline  || 0;
+  expensesByMethod[reg.expense_ads_method]       += reg.expense_ads       || 0;
+  expensesByMethod[reg.expense_other_method]     += reg.expense_other     || 0;
+
+  const isClosedSnapshot = reg.status === "closed" && (reg.expected_cash != null || reg.expected_pix != null || reg.expected_card != null);
+  const expectedCash = isClosedSnapshot
+    ? Number(reg.expected_cash || 0)
+    : (reg.opening_cash || 0) + (reg.opening_change_reserve || 0) + totals.cash - expensesByMethod.cash;
+  const expectedPix = isClosedSnapshot
+    ? Number(reg.expected_pix || 0)
+    : (reg.opening_pix || 0) + totals.pix - expensesByMethod.pix;
+  const expectedCard = isClosedSnapshot
+    ? Number(reg.expected_card || 0)
+    : (reg.opening_card || 0) + totals.card - expensesByMethod.card;
   const expectedTotal = expectedCash + expectedPix + expectedCard;
+
   const productsCost = cogs?.totalCost || 0;
   const cogsIsEstimate = (cogs?.missingCount || 0) > 0;
   const grossRevenue = totals.total;
