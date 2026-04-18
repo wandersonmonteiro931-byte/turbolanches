@@ -1118,7 +1118,7 @@ const AdminManualOrder = () => {
               )}
 
               {paymentMethod === "dinheiro" && !isPaid && (
-                <motion.div {...fadeIn}>
+                <motion.div {...fadeIn} className="space-y-2">
                   <input
                     type="number"
                     placeholder="Troco para quanto? (R$)"
@@ -1126,6 +1126,36 @@ const AdminManualOrder = () => {
                     onChange={(e) => setChangeFor(e.target.value)}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
+                  {Number(changeFor) > total && (
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-muted-foreground">
+                        Devolver troco via:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "dinheiro", label: "💵 Dinheiro" },
+                          { id: "pix", label: "📱 PIX" },
+                          { id: "cartao", label: "💳 Cartão" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setChangeMethod(opt.id)}
+                            className={`rounded-lg border-2 px-2 py-2 text-xs font-bold transition-all ${
+                              changeMethod === opt.id
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Troco de R$ {fmt(Number(changeFor) - total)} {changeMethod !== "dinheiro" ? `sairá da conta (${changeMethod === "pix" ? "PIX" : "cartão"}).` : "sai da gaveta."}
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </SectionBlock>
