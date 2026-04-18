@@ -592,6 +592,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_gasoline_method: closeForm.expense_gasoline_method,
       expense_ads_method: closeForm.expense_ads_method,
       expense_other_method: closeForm.expense_other_method,
+      change_given_amount: Number(closeForm.change_given_amount) || 0,
+      change_given_method: closeForm.change_given_method,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
