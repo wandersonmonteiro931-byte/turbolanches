@@ -211,23 +211,43 @@ export type Database = {
           closing_cash: number
           closing_pix: number
           created_at: string
+          declared_card: number
+          declared_cash: number
+          declared_pix: number
+          difference_card: number
+          difference_cash: number
+          difference_pix: number
+          expected_card: number
+          expected_cash: number
+          expected_pix: number
           expense_ads: number
+          expense_ads_method: string
           expense_couriers: number
+          expense_couriers_method: string
           expense_employees: number
+          expense_employees_method: string
           expense_gasoline: number
+          expense_gasoline_method: string
           expense_other: number
+          expense_other_method: string
           expense_purchases: number
+          expense_purchases_method: string
+          gross_profit: number
           id: string
           last_reopened_at: string | null
+          net_profit: number
           notes: string
           opened_at: string
           opened_by: string
           opening_card: number
           opening_cash: number
           opening_change_reserve: number
+          opening_pix: number
           reopen_count: number
           status: string
           store_id: string | null
+          total_expenses: number
+          total_sales: number
           updated_at: string
         }
         Insert: {
@@ -238,23 +258,43 @@ export type Database = {
           closing_cash?: number
           closing_pix?: number
           created_at?: string
+          declared_card?: number
+          declared_cash?: number
+          declared_pix?: number
+          difference_card?: number
+          difference_cash?: number
+          difference_pix?: number
+          expected_card?: number
+          expected_cash?: number
+          expected_pix?: number
           expense_ads?: number
+          expense_ads_method?: string
           expense_couriers?: number
+          expense_couriers_method?: string
           expense_employees?: number
+          expense_employees_method?: string
           expense_gasoline?: number
+          expense_gasoline_method?: string
           expense_other?: number
+          expense_other_method?: string
           expense_purchases?: number
+          expense_purchases_method?: string
+          gross_profit?: number
           id?: string
           last_reopened_at?: string | null
+          net_profit?: number
           notes?: string
           opened_at?: string
           opened_by: string
           opening_card?: number
           opening_cash?: number
           opening_change_reserve?: number
+          opening_pix?: number
           reopen_count?: number
           status?: string
           store_id?: string | null
+          total_expenses?: number
+          total_sales?: number
           updated_at?: string
         }
         Update: {
@@ -265,23 +305,43 @@ export type Database = {
           closing_cash?: number
           closing_pix?: number
           created_at?: string
+          declared_card?: number
+          declared_cash?: number
+          declared_pix?: number
+          difference_card?: number
+          difference_cash?: number
+          difference_pix?: number
+          expected_card?: number
+          expected_cash?: number
+          expected_pix?: number
           expense_ads?: number
+          expense_ads_method?: string
           expense_couriers?: number
+          expense_couriers_method?: string
           expense_employees?: number
+          expense_employees_method?: string
           expense_gasoline?: number
+          expense_gasoline_method?: string
           expense_other?: number
+          expense_other_method?: string
           expense_purchases?: number
+          expense_purchases_method?: string
+          gross_profit?: number
           id?: string
           last_reopened_at?: string | null
+          net_profit?: number
           notes?: string
           opened_at?: string
           opened_by?: string
           opening_card?: number
           opening_cash?: number
           opening_change_reserve?: number
+          opening_pix?: number
           reopen_count?: number
           status?: string
           store_id?: string | null
+          total_expenses?: number
+          total_sales?: number
           updated_at?: string
         }
         Relationships: [

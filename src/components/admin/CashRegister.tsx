@@ -14,7 +14,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { roundMoney } from "@/components/admin/pricing/pricingMoney";
+
+type PayMethod = "cash" | "pix" | "card";
 
 interface CashRegister {
   id: string;
@@ -25,6 +28,7 @@ interface CashRegister {
   opened_by: string;
   opening_cash: number;
   opening_card: number;
+  opening_pix: number;
   opening_change_reserve: number;
   closed_at: string | null;
   closed_by: string | null;
@@ -34,6 +38,12 @@ interface CashRegister {
   expense_gasoline: number;
   expense_ads: number;
   expense_other: number;
+  expense_employees_method: PayMethod;
+  expense_couriers_method: PayMethod;
+  expense_purchases_method: PayMethod;
+  expense_gasoline_method: PayMethod;
+  expense_ads_method: PayMethod;
+  expense_other_method: PayMethod;
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
@@ -110,7 +120,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const openDraftKey = `cashRegister:openDraft:${storeId || "default"}`;
   const closeDraftKey = `cashRegister:closeDraft:${storeId || "default"}`;
 
-  const defaultOpenForm = { cash: "0", card: "0", change_reserve: "0", notes: "", responsible_name: "" };
+  const defaultOpenForm = { cash: "0", card: "0", pix: "0", change_reserve: "0", notes: "", responsible_name: "" };
   const defaultCloseForm = {
     expense_employees: "0",
     expense_couriers: "0",
@@ -118,6 +128,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline: "0",
     expense_ads: "0",
     expense_other: "0",
+    expense_employees_method: "cash" as PayMethod,
+    expense_couriers_method: "cash" as PayMethod,
+    expense_purchases_method: "cash" as PayMethod,
+    expense_gasoline_method: "cash" as PayMethod,
+    expense_ads_method: "cash" as PayMethod,
+    expense_other_method: "cash" as PayMethod,
     closing_pix: "0",
     closing_card: "0",
     closing_cash: "0",
@@ -449,6 +465,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opened_at: nowIso,
       opening_cash: Number(openForm.cash) || 0,
       opening_card: Number(openForm.card) || 0,
+      opening_pix: Number(openForm.pix) || 0,
       opening_change_reserve: Number(openForm.change_reserve) || 0,
       notes: `[Aberto por: ${openForm.responsible_name.trim()}] ${openForm.notes || ""}`.trim(),
     };
@@ -522,6 +539,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
+    // ⚠️ Aviso (não bloqueia) se diferença total > R$ 5
+    const diffMax = Math.max(
+      Math.abs(closeSummary.diffCash),
+      Math.abs(closeSummary.diffPix),
+      Math.abs(closeSummary.diffCard),
+    );
+    if (diffMax > 5) {
+      const ok = window.confirm(
+        `⚠️ Divergência detectada:\n\n` +
+        `• Dinheiro: ${fmt(closeSummary.diffCash)}\n` +
+        `• PIX: ${fmt(closeSummary.diffPix)}\n` +
+        `• Cartão: ${fmt(closeSummary.diffCard)}\n\n` +
+        `Confirma o fechamento mesmo assim?`
+      );
+      if (!ok) return;
+    }
     const closerTag = `[Fechado por: ${closeForm.responsible_name.trim()}]`;
     const baseNotes = (register.notes || "").includes("[Fechado por:")
       ? (register.notes || "").replace(/\[Fechado por:[^\]]*\]/, closerTag)
@@ -536,9 +569,29 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_gasoline: Number(closeForm.expense_gasoline) || 0,
       expense_ads: Number(closeForm.expense_ads) || 0,
       expense_other: Number(closeForm.expense_other) || 0,
+      expense_employees_method: closeForm.expense_employees_method,
+      expense_couriers_method: closeForm.expense_couriers_method,
+      expense_purchases_method: closeForm.expense_purchases_method,
+      expense_gasoline_method: closeForm.expense_gasoline_method,
+      expense_ads_method: closeForm.expense_ads_method,
+      expense_other_method: closeForm.expense_other_method,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
+      // Snapshot consolidado das métricas do fechamento
+      expected_cash: closeSummary.expectedCash,
+      expected_pix: closeSummary.expectedPix,
+      expected_card: closeSummary.expectedCard,
+      declared_cash: Number(closeForm.closing_cash) || 0,
+      declared_pix: Number(closeForm.closing_pix) || 0,
+      declared_card: Number(closeForm.closing_card) || 0,
+      difference_cash: closeSummary.diffCash,
+      difference_pix: closeSummary.diffPix,
+      difference_card: closeSummary.diffCard,
+      total_sales: closeSummary.grossRevenue,
+      total_expenses: closeSummary.expensesTotal,
+      gross_profit: closeSummary.netRevenue,
+      net_profit: closeSummary.netAfterCogs,
       notes: `${baseNotes} ${closeForm.notes || ""}`.trim(),
     };
     const { error } = await supabase
@@ -720,41 +773,50 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
   // ============== Close summary calculations ==============
   const closeSummary = useMemo(() => {
-    const expensesTotal =
-      (Number(closeForm.expense_employees) || 0) +
-      (Number(closeForm.expense_couriers) || 0) +
-      (Number(closeForm.expense_purchases) || 0) +
-      (Number(closeForm.expense_gasoline) || 0) +
-      (Number(closeForm.expense_ads) || 0) +
-      (Number(closeForm.expense_other) || 0);
+    // Gastos por método de pagamento
+    const expensesByMethod = { cash: 0, pix: 0, card: 0 };
+    const addExpense = (amountStr: string, method: PayMethod) => {
+      const v = Number(amountStr) || 0;
+      expensesByMethod[method] += v;
+    };
+    addExpense(closeForm.expense_employees, closeForm.expense_employees_method);
+    addExpense(closeForm.expense_couriers,  closeForm.expense_couriers_method);
+    addExpense(closeForm.expense_purchases, closeForm.expense_purchases_method);
+    addExpense(closeForm.expense_gasoline,  closeForm.expense_gasoline_method);
+    addExpense(closeForm.expense_ads,       closeForm.expense_ads_method);
+    addExpense(closeForm.expense_other,     closeForm.expense_other_method);
+    const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
     const declaredCard = Number(closeForm.closing_card) || 0;
     const declaredCash = Number(closeForm.closing_cash) || 0;
     const declaredTotal = declaredPix + declaredCard + declaredCash;
 
-    const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
+    const openingCash = register?.opening_cash || 0;
+    const openingPix = register?.opening_pix || 0;
+    const openingCard = register?.opening_card || 0;
+    const openingChange = register?.opening_change_reserve || 0;
+    const opening = openingCash + openingPix + openingCard + openingChange;
 
-    // Expected values are based STRICTLY on the sum of each order's payment for the current business day.
-    const expectedPix = paymentTotals.pix;
-    const expectedCard = paymentTotals.card;
-    const expectedCash = paymentTotals.cash;
-    const expectedTotal = expectedCash + expectedPix + expectedCard;
+    // ✅ NOVA REGRA: Esperado = Abertura + Vendas (do método) − Gastos (do método)
+    // Caixa físico (dinheiro) inclui o troco reserva — vai parar fisicamente na gaveta.
+    const expectedCash = roundMoney(openingCash + openingChange + paymentTotals.cash - expensesByMethod.cash);
+    const expectedPix  = roundMoney(openingPix  + paymentTotals.pix  - expensesByMethod.pix);
+    const expectedCard = roundMoney(openingCard + paymentTotals.card - expensesByMethod.card);
+    const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
-    const diffCash = declaredCash - expectedCash;
-    const diffPix = declaredPix - expectedPix;
-    const diffCard = declaredCard - expectedCard;
-    const diffTotal = declaredTotal - expectedTotal;
+    const diffCash = roundMoney(declaredCash - expectedCash);
+    const diffPix  = roundMoney(declaredPix  - expectedPix);
+    const diffCard = roundMoney(declaredCard - expectedCard);
+    const diffTotal = roundMoney(declaredTotal - expectedTotal);
 
     const grossRevenue = paymentTotals.total;
     const netRevenue = grossRevenue - expensesTotal;
-    // Lucro líquido com custo dos produtos vendidos (COGS) descontado
     const netAfterCogs = netRevenue - productsCostInfo.totalCost;
-    // Se algum produto vendido não tem custo cadastrado → estimado
     const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
     return {
-      opening, expensesTotal, declaredTotal, expectedTotal,
+      opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       grossRevenue, netRevenue,
@@ -891,9 +953,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 onChange={(e) => setOpenForm({ ...openForm, cash: e.target.value })} />
             </div>
             <div>
-              <Label>Saldo em máquina/conta (R$)</Label>
+              <Label>Saldo em máquina/cartão (R$)</Label>
               <Input type="number" step="0.01" value={openForm.card}
                 onChange={(e) => setOpenForm({ ...openForm, card: e.target.value })} />
+            </div>
+            <div>
+              <Label>Saldo em PIX/conta (R$)</Label>
+              <Input type="number" step="0.01" value={openForm.pix}
+                onChange={(e) => setOpenForm({ ...openForm, pix: e.target.value })} />
             </div>
             <div>
               <Label>Troco reserva (R$)</Label>
@@ -949,7 +1016,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   return m ? <div>Responsável: <strong>{m[1].trim()}</strong></div> : null;
                 })()}
                 <div>Dinheiro: <strong>{fmt(register.opening_cash)}</strong></div>
-                <div>Máquina/Conta: <strong>{fmt(register.opening_card)}</strong></div>
+                <div>Máquina/Cartão: <strong>{fmt(register.opening_card)}</strong></div>
+                <div>PIX/Conta: <strong>{fmt(register.opening_pix || 0)}</strong></div>
                 <div>Troco reserva: <strong>{fmt(register.opening_change_reserve)}</strong></div>
               </div>
 
@@ -994,6 +1062,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               {/* Expenses */}
               <div className="space-y-2">
                 <div className="font-bold text-sm">💸 Gastos do dia</div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Selecione a forma de pagamento de cada gasto — afeta o cálculo do esperado em caixa.
+                </div>
                 {[
                   ["expense_employees", "Funcionários"],
                   ["expense_couriers", "Entregadores"],
@@ -1003,11 +1074,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_other", "Outros"],
                 ].map(([key, label]) => {
                   const isCouriers = key === "expense_couriers";
+                  const methodKey = `${key}_method` as keyof typeof closeForm;
                   const declared = Number((closeForm as any)[key]) || 0;
                   const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
                   return (
                     <div key={key} className="space-y-1">
-                      <div className="grid grid-cols-2 gap-2 items-center">
+                      <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
                         <Label className="text-sm flex items-center gap-1">
                           {label}
                           {isCouriers && autoCouriers.total > 0 && (
@@ -1022,6 +1094,19 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                             </span>
                           )}
                         </Label>
+                        <Select
+                          value={(closeForm as any)[methodKey]}
+                          onValueChange={(v) => setCloseForm({ ...closeForm, [methodKey]: v as PayMethod })}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">💰 Dinheiro</SelectItem>
+                            <SelectItem value="pix">📲 PIX</SelectItem>
+                            <SelectItem value="card">💳 Cartão</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Input
                           type="number"
                           step="0.01"
@@ -1047,6 +1132,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                     </div>
                   );
                 })}
+                <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                  <div className="rounded bg-muted/50 px-2 py-1">💰 Dinheiro: <strong>{fmt(closeSummary.expensesByMethod.cash)}</strong></div>
+                  <div className="rounded bg-muted/50 px-2 py-1">📲 PIX: <strong>{fmt(closeSummary.expensesByMethod.pix)}</strong></div>
+                  <div className="rounded bg-muted/50 px-2 py-1">💳 Cartão: <strong>{fmt(closeSummary.expensesByMethod.card)}</strong></div>
+                </div>
                 <div className="text-right text-sm font-bold">
                   Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
                 </div>
@@ -1075,49 +1165,63 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 ))}
               </div>
 
-              {/* Reconciliation summary */}
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-1">
+              {/* Reconciliation summary — separado por forma de pagamento */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
                 <div className="font-bold mb-1 flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Conferência de caixa
+                  <CheckCircle2 size={16} /> Conferência por forma de pagamento
                 </div>
                 <div className="text-[11px] text-muted-foreground italic mb-2">
-                  Compara o que o sistema esperava receber (vendas) com o que foi contado no fechamento. Diferença positiva = sobra, negativa = falta.
+                  Esperado = Abertura + Vendas (do método) − Gastos (do método). Diferença &gt; R$ 5 destacada.
                 </div>
-                <Row label="Faturamento bruto (pedidos)" value={fmt(closeSummary.grossRevenue)} />
+                {[
+                  { key: "cash", label: "💰 Dinheiro", expected: closeSummary.expectedCash, declared: Number(closeForm.closing_cash) || 0, diff: closeSummary.diffCash },
+                  { key: "pix",  label: "📲 PIX",      expected: closeSummary.expectedPix,  declared: Number(closeForm.closing_pix)  || 0, diff: closeSummary.diffPix  },
+                  { key: "card", label: "💳 Cartão",   expected: closeSummary.expectedCard, declared: Number(closeForm.closing_card) || 0, diff: closeSummary.diffCard },
+                ].map((row) => {
+                  const big = Math.abs(row.diff) > 5;
+                  return (
+                    <div key={row.key} className={cn(
+                      "rounded border p-2 text-xs",
+                      big ? "border-destructive/60 bg-destructive/5" : "border-border bg-card",
+                    )}>
+                      <div className="font-bold text-sm mb-1">{row.label}</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>Esperado<br/><strong className="text-foreground">{fmt(row.expected)}</strong></div>
+                        <div>Declarado<br/><strong className="text-foreground">{fmt(row.declared)}</strong></div>
+                        <div>Diferença<br/>
+                          <strong className={cn(big ? "text-destructive" : row.diff !== 0 ? "text-amber-700" : "text-foreground")}>
+                            {fmt(row.diff)}
+                          </strong>
+                        </div>
+                      </div>
+                      {big && (
+                        <div className="mt-1 flex items-center gap-1 text-destructive font-bold text-[11px]">
+                          <AlertTriangle size={12} /> Divergência detectada (&gt; R$ 5)
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <hr className="my-2 border-border" />
+                <div className="font-bold">📊 Resultado financeiro</div>
+                <Row label="Faturamento (vendas)" value={fmt(closeSummary.grossRevenue)} />
                 <Row label="− Total de gastos" value={fmt(closeSummary.expensesTotal)} negative />
-                <Row label="= Lucro líquido (sem custos dos produtos)" value={fmt(closeSummary.netRevenue)} bold />
+                <Row label="= Lucro bruto" value={fmt(closeSummary.netRevenue)} bold />
                 <Row
-                  label={`− Custo dos produtos vendidos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
+                  label={`− Custo dos produtos${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
                   value={fmt(closeSummary.productsCost)}
                   negative
                 />
                 <Row
-                  label={`= ${closeSummary.cogsIsEstimate ? "Lucro líquido (estimado)" : "Lucro líquido REAL"}`}
+                  label={`= Lucro líquido${closeSummary.cogsIsEstimate ? " (estimado)" : ""}`}
                   value={fmt(closeSummary.netAfterCogs)}
                   bold
                   warn={closeSummary.cogsIsEstimate}
                 />
                 {closeSummary.cogsIsEstimate && closeSummary.totalSoldUnits > 0 && (
                   <div className="text-[11px] text-amber-700 italic">
-                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos não possuem custo cadastrado — valor aproximado (~35% do preço). Cadastre a ficha técnica ou custo manual em Precificação para obter o lucro real.
-                  </div>
-                )}
-                <hr className="my-2 border-border" />
-                <Row label="Esperado em caixa" value={fmt(closeSummary.expectedTotal)} />
-                <Row label="Declarado em caixa" value={fmt(closeSummary.declaredTotal)} />
-                <Row
-                  label="Diferença (quebra)"
-                  value={fmt(closeSummary.diffTotal)}
-                  bold
-                  warn={Math.abs(closeSummary.diffTotal) > 0.01}
-                />
-                {Math.abs(closeSummary.diffTotal) > 0.01 && (
-                  <div className="mt-2 flex items-start gap-2 rounded bg-amber-500/10 p-2 text-xs text-amber-700">
-                    <AlertTriangle size={14} className="mt-0.5" />
-                    <div>
-                      <div>{closeSummary.diffTotal > 0 ? "Sobra" : "Falta"} de <strong>{fmt(Math.abs(closeSummary.diffTotal))}</strong>.</div>
-                      <div>PIX: {fmt(closeSummary.diffPix)} • Cartão: {fmt(closeSummary.diffCard)} • Dinheiro: {fmt(closeSummary.diffCash)}</div>
-                    </div>
+                    ⚠️ {closeSummary.missingCostUnits} de {closeSummary.totalSoldUnits} itens vendidos sem custo cadastrado — valor aproximado (~35% do preço).
                   </div>
                 )}
               </div>
