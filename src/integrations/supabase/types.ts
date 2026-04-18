@@ -205,6 +205,8 @@ export type Database = {
       cash_registers: {
         Row: {
           business_day: string
+          change_given_amount: number
+          change_given_method: string
           closed_at: string | null
           closed_by: string | null
           closing_card: number
@@ -262,6 +264,8 @@ export type Database = {
         }
         Insert: {
           business_day: string
+          change_given_amount?: number
+          change_given_method?: string
           closed_at?: string | null
           closed_by?: string | null
           closing_card?: number
@@ -319,6 +323,8 @@ export type Database = {
         }
         Update: {
           business_day?: string
+          change_given_amount?: number
+          change_given_method?: string
           closed_at?: string | null
           closed_by?: string | null
           closing_card?: number
