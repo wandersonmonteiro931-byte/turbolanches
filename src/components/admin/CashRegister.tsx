@@ -539,6 +539,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
+    // ⚠️ Aviso (não bloqueia) se diferença total > R$ 5
+    const diffMax = Math.max(
+      Math.abs(closeSummary.diffCash),
+      Math.abs(closeSummary.diffPix),
+      Math.abs(closeSummary.diffCard),
+    );
+    if (diffMax > 5) {
+      const ok = window.confirm(
+        `⚠️ Divergência detectada:\n\n` +
+        `• Dinheiro: ${fmt(closeSummary.diffCash)}\n` +
+        `• PIX: ${fmt(closeSummary.diffPix)}\n` +
+        `• Cartão: ${fmt(closeSummary.diffCard)}\n\n` +
+        `Confirma o fechamento mesmo assim?`
+      );
+      if (!ok) return;
+    }
     const closerTag = `[Fechado por: ${closeForm.responsible_name.trim()}]`;
     const baseNotes = (register.notes || "").includes("[Fechado por:")
       ? (register.notes || "").replace(/\[Fechado por:[^\]]*\]/, closerTag)
@@ -553,9 +569,29 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_gasoline: Number(closeForm.expense_gasoline) || 0,
       expense_ads: Number(closeForm.expense_ads) || 0,
       expense_other: Number(closeForm.expense_other) || 0,
+      expense_employees_method: closeForm.expense_employees_method,
+      expense_couriers_method: closeForm.expense_couriers_method,
+      expense_purchases_method: closeForm.expense_purchases_method,
+      expense_gasoline_method: closeForm.expense_gasoline_method,
+      expense_ads_method: closeForm.expense_ads_method,
+      expense_other_method: closeForm.expense_other_method,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
+      // Snapshot consolidado das métricas do fechamento
+      expected_cash: closeSummary.expectedCash,
+      expected_pix: closeSummary.expectedPix,
+      expected_card: closeSummary.expectedCard,
+      declared_cash: Number(closeForm.closing_cash) || 0,
+      declared_pix: Number(closeForm.closing_pix) || 0,
+      declared_card: Number(closeForm.closing_card) || 0,
+      difference_cash: closeSummary.diffCash,
+      difference_pix: closeSummary.diffPix,
+      difference_card: closeSummary.diffCard,
+      total_sales: closeSummary.grossRevenue,
+      total_expenses: closeSummary.expensesTotal,
+      gross_profit: closeSummary.netRevenue,
+      net_profit: closeSummary.netAfterCogs,
       notes: `${baseNotes} ${closeForm.notes || ""}`.trim(),
     };
     const { error } = await supabase
