@@ -555,15 +555,27 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
-    // ⚠️ Aviso (não bloqueia) se diferença total > R$ 5
+    // 🚨 Validação: não permitir caixa negativo
+    const declaredCash = Number(closeForm.closing_cash) || 0;
+    const declaredPix = Number(closeForm.closing_pix) || 0;
+    const declaredCard = Number(closeForm.closing_card) || 0;
+    if (declaredCash < 0 || declaredPix < 0 || declaredCard < 0) {
+      toast({
+        title: "Valores inválidos",
+        description: "Os saldos finais não podem ser negativos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // ⚠️ Aviso (não bloqueia) se diferença > R$ 20
     const diffMax = Math.max(
       Math.abs(closeSummary.diffCash),
       Math.abs(closeSummary.diffPix),
       Math.abs(closeSummary.diffCard),
     );
-    if (diffMax > 5) {
+    if (diffMax > 20) {
       const ok = window.confirm(
-        `⚠️ Divergência detectada:\n\n` +
+        `⚠️ Divergência detectada (acima de R$ 20):\n\n` +
         `• Dinheiro: ${fmt(closeSummary.diffCash)}\n` +
         `• PIX: ${fmt(closeSummary.diffPix)}\n` +
         `• Cartão: ${fmt(closeSummary.diffCard)}\n\n` +
