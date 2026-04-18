@@ -1240,6 +1240,67 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 )}
               </div>
 
+              {/* PROJEÇÃO — Lançado vs A Pagar (Opção 1) */}
+              {closeSummary.expensesTotal > 0 && (
+                <div className="space-y-2 rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3">
+                  <div className="font-bold text-sm">📊 Projeção — Antes vs Depois dos Gastos</div>
+                  <div className="text-[11px] text-muted-foreground italic">
+                    Os gastos abaixo foram <strong>lançados</strong>, mas só afetam a gaveta quando forem <strong>pagos de fato</strong>.
+                  </div>
+
+                  {/* Caixa Físico (Dinheiro) */}
+                  <div className="rounded-md border border-border bg-card p-2 space-y-1">
+                    <div className="text-xs font-bold text-foreground">💰 Caixa físico (dinheiro)</div>
+                    <div className="grid grid-cols-3 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-muted-foreground">Antes de pagar</div>
+                        <div className="font-bold text-emerald-600">{fmt(closeSummary.grossCash)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Após pagar gastos</div>
+                        <div className="font-bold text-foreground">{fmt(closeSummary.expectedCash)}</div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Falta pagar</div>
+                        <div className="font-bold text-amber-600">{fmt(closeSummary.expensesByMethod.cash)}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Conta digital (PIX + Cartão) */}
+                  {(closeSummary.expensesByMethod.pix + closeSummary.expensesByMethod.card) > 0 && (
+                    <div className="rounded-md border border-border bg-card p-2 space-y-1">
+                      <div className="text-xs font-bold text-foreground">🏦 Conta digital (PIX + Cartão)</div>
+                      <div className="grid grid-cols-3 gap-2 text-[11px]">
+                        <div>
+                          <div className="text-muted-foreground">Antes de pagar</div>
+                          <div className="font-bold text-emerald-600">
+                            {fmt(roundMoney(closeSummary.grossPix + closeSummary.grossCard))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Após pagar gastos</div>
+                          <div className="font-bold text-foreground">
+                            {fmt(roundMoney(closeSummary.expectedPix + closeSummary.expectedCard))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Falta pagar</div>
+                          <div className="font-bold text-amber-600">
+                            {fmt(roundMoney(closeSummary.expensesByMethod.pix + closeSummary.expensesByMethod.card))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-[10px] text-muted-foreground italic pt-1 border-t border-border">
+                    💡 Se você ainda <strong>não pagou</strong> os gastos, o valor real na gaveta deve ser próximo de <strong>{fmt(closeSummary.grossCash)}</strong>.
+                    Se já pagou tudo, deve ser próximo de <strong>{fmt(closeSummary.expectedCash)}</strong>.
+                  </div>
+                </div>
+              )}
+
               {/* ETAPA 1 — Valores reais do fim do dia (unificados) */}
               <div className="space-y-2 rounded-lg border-2 border-emerald-500/40 bg-emerald-500/5 p-3">
                 <div className="font-bold text-sm">💰 Valores reais ao final do dia</div>
