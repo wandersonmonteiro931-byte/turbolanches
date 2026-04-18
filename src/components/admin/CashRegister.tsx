@@ -1107,6 +1107,87 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 />
               </div>
 
+              {/* ETAPA 1 — CAIXA BRUTO (antes dos gastos) */}
+              <div className="space-y-2 rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3">
+                <div className="font-bold text-sm flex items-center gap-2">
+                  💰 Caixa antes dos pagamentos (bruto)
+                </div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Confira os valores reais ANTES de pagar funcionários, entregadores e demais gastos.
+                  Bruto = Abertura + Vendas (sem descontar gastos).
+                </div>
+                {[
+                  {
+                    key: "declared_gross_cash",
+                    label: "💰 Dinheiro",
+                    expected: closeSummary.grossCash,
+                    declared: closeSummary.declaredGrossCash,
+                    diff: closeSummary.diffGrossCash,
+                  },
+                  {
+                    key: "declared_gross_pix",
+                    label: "📲 PIX",
+                    expected: closeSummary.grossPix,
+                    declared: closeSummary.declaredGrossPix,
+                    diff: closeSummary.diffGrossPix,
+                  },
+                  {
+                    key: "declared_gross_card",
+                    label: "💳 Cartão",
+                    expected: closeSummary.grossCard,
+                    declared: closeSummary.declaredGrossCard,
+                    diff: closeSummary.diffGrossCard,
+                  },
+                ].map((row) => {
+                  const abs = Math.abs(row.diff);
+                  const isSurplus = row.diff > 0.001;
+                  const isShort = row.diff < -0.001;
+                  const big = abs > 5;
+                  const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
+                  const diffClass = big
+                    ? "text-destructive"
+                    : isSurplus
+                      ? "text-emerald-700"
+                      : isShort
+                        ? "text-amber-700"
+                        : "text-foreground";
+                  return (
+                    <div key={row.key} className="rounded border border-border bg-card p-2 text-xs space-y-1">
+                      <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                        <Label className="text-sm">{row.label}</Label>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          Esperado: <strong className="text-foreground">{fmt(row.expected)}</strong>
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={(closeForm as any)[row.key]}
+                          onChange={(e) => setCloseForm({ ...closeForm, [row.key]: e.target.value })}
+                          placeholder="real contado"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span>
+                          {diffLabel}:{" "}
+                          <strong className={diffClass}>
+                            {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
+                          </strong>
+                        </span>
+                        {(isSurplus || isShort) && (
+                          <button
+                            type="button"
+                            className="underline text-primary"
+                            onClick={() => setCloseForm({ ...closeForm, [row.key]: row.expected.toFixed(2) })}
+                          >
+                            usar esperado
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
               {/* Expenses */}
               <div className="space-y-2">
                 <div className="font-bold text-sm">💸 Gastos do dia</div>
