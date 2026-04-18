@@ -139,6 +139,7 @@ interface DraftState {
   addressComplement: string;
   observations: string;
   changeFor: string;
+  changeMethod: string; // "dinheiro" | "pix" | "card" — método de devolução do troco
   customDeliveryFee: string;
   deliveryFeeOverridden: boolean;
   discount: string;
@@ -179,6 +180,7 @@ const AdminManualOrder = () => {
   const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
   const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
   const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
+  const [changeMethod, setChangeMethod] = useState<string>(editOrderId ? "dinheiro" : (draft.changeMethod ?? "dinheiro"));
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -210,13 +212,13 @@ const AdminManualOrder = () => {
       cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
       selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
       addressNumber, addressNeighborhood, addressComplement, observations,
-      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
+      changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
   }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
-    changeFor, customDeliveryFee, deliveryFeeOverridden, discount]);
+    changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount]);
 
   useEffect(() => {
     const cartIds = cart.map((item) => item.product.id);
