@@ -1016,7 +1016,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   return m ? <div>Responsável: <strong>{m[1].trim()}</strong></div> : null;
                 })()}
                 <div>Dinheiro: <strong>{fmt(register.opening_cash)}</strong></div>
-                <div>Máquina/Conta: <strong>{fmt(register.opening_card)}</strong></div>
+                <div>Máquina/Cartão: <strong>{fmt(register.opening_card)}</strong></div>
+                <div>PIX/Conta: <strong>{fmt(register.opening_pix || 0)}</strong></div>
                 <div>Troco reserva: <strong>{fmt(register.opening_change_reserve)}</strong></div>
               </div>
 
