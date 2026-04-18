@@ -1745,66 +1745,43 @@ hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
 .big { font-size: 13px; }
 </style></head><body>
 <h1>RELATÓRIO DE CAIXA</h1>
-<div class="row"><span>Dia:</span><strong>${reg.business_day}</strong></div>
-<div class="row"><span>Status:</span><strong>${reg.status === "open" ? "ABERTO" : "FECHADO"}</strong></div>
+<div class="row"><span>${reg.business_day}</span><strong>${reg.status === "open" ? "ABERTO" : "FECHADO"}</strong></div>
+${openedBy || closedBy ? `<div class="row" style="font-size:11px;"><span>${openedBy ? `Abert.: ${openedBy}` : ""}</span><span>${closedBy ? `Fech.: ${closedBy}` : ""}</span></div>` : ""}
 <hr/>
-<div><strong>ABERTURA</strong></div>
-<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.opened_at)}</span></div>
-${openedBy ? `<div class="row"><span>Responsável:</span><strong>${openedBy}</strong></div>` : ""}
-<div class="row"><span>Dinheiro:</span><span>${f(reg.opening_cash)}</span></div>
-<div class="row"><span>Máquina/Conta:</span><span>${f(reg.opening_card)}</span></div>
-<div class="row"><span>Troco reserva:</span><span>${f(reg.opening_change_reserve)}</span></div>
-${reg.closed_at ? `<hr/><div><strong>FECHAMENTO</strong></div>
-<div class="row"><span>Data/Hora:</span><span>${formatDateTimeBR(reg.closed_at)}</span></div>
-${closedBy ? `<div class="row"><span>Responsável:</span><strong>${closedBy}</strong></div>` : ""}` : ""}
+<div class="row"><span>Pedidos:</span><strong>${stats.completed}${stats.cancelled > 0 ? ` (${stats.cancelled} canc.)` : ""}</strong></div>
+${topItems.length > 0 ? `<div class="row"><span>Mais vendido:</span><strong>${topItems[0].name} ${topItems[0].qty}×</strong></div>` : ""}
 <hr/>
-<div><strong>PEDIDOS DO DIA</strong></div>
-<div class="row"><span>Realizados:</span><strong>${stats.completed}</strong></div>
-<div class="row"><span>Cancelados:</span><strong>${stats.cancelled}</strong></div>
-${topItems.length > 0 ? `<div style="margin-top:3px;"><strong>MAIS VENDIDOS:</strong></div>
-${topItems.map((it, i) => `<div class="row"><span>${i + 1}. ${it.name}</span><strong>${it.qty}×</strong></div>`).join("")}` : ""}
-<hr/>
-<div><strong>GASTOS</strong></div>
-<div class="row"><span>Funcionários:</span><span>${f(reg.expense_employees)}</span></div>
-<div class="row"><span>Entregadores:</span><span>${f(reg.expense_couriers)}</span></div>
-<div class="row"><span>Compras:</span><span>${f(reg.expense_purchases)}</span></div>
-<div class="row"><span>Gasolina:</span><span>${f(reg.expense_gasoline)}</span></div>
-<div class="row"><span>Anúncios/Divulg.:</span><span>${f(reg.expense_ads)}</span></div>
-<div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>
-<div class="row"><span>TOTAL GASTOS:</span><strong>${f(summary.expensesTotal)}</strong></div>
-<hr/>
-<div><strong>VENDAS POR PAGAMENTO</strong></div>
+<div><strong>VENDAS</strong></div>
+<div class="row"><span>Dinheiro:</span><span>${f(totals.cash)}</span></div>
 <div class="row"><span>PIX:</span><span>${f(totals.pix)}</span></div>
 <div class="row"><span>Cartão:</span><span>${f(totals.card)}</span></div>
-<div class="row"><span>Dinheiro:</span><span>${f(totals.cash)}</span></div>
-<div class="row"><span>Outros:</span><span>${f(totals.other)}</span></div>
 <div class="row"><span>BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
 <hr/>
-<div><strong>CONFERÊNCIA DE CAIXA</strong></div>
-<div style="font-size:10px;font-style:italic;margin-bottom:3px;">Esperado = abertura + vendas − gastos (por método) · Declarado = contado no fechamento · Diferença = sobra (+) ou falta (−)</div>
-<div class="row" style="font-weight:bold;"><span>Forma</span><span>Esperado / Declarado / Dif.</span></div>
-<div class="row"><span>💰 Caixa físico (dinheiro):</span><span>${f(summary.expectedCash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
+<div><strong>GASTOS</strong></div>
+${reg.expense_employees > 0 ? `<div class="row"><span>Funcionários:</span><span>${f(reg.expense_employees)}</span></div>` : ""}
+${reg.expense_couriers > 0 ? `<div class="row"><span>Entregadores:</span><span>${f(reg.expense_couriers)}</span></div>` : ""}
+${reg.expense_purchases > 0 ? `<div class="row"><span>Compras:</span><span>${f(reg.expense_purchases)}</span></div>` : ""}
+${reg.expense_gasoline > 0 ? `<div class="row"><span>Gasolina:</span><span>${f(reg.expense_gasoline)}</span></div>` : ""}
+${reg.expense_ads > 0 ? `<div class="row"><span>Anúncios:</span><span>${f(reg.expense_ads)}</span></div>` : ""}
+${reg.expense_other > 0 ? `<div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>` : ""}
+<div class="row"><span>TOTAL:</span><strong>${f(summary.expensesTotal)}</strong></div>
+<hr/>
+<div><strong>CONFERÊNCIA (Esp. / Cont. / Dif.)</strong></div>
+<div class="row"><span>💰 Dinheiro:</span><span>${f(summary.expectedCash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
 <div class="row"><span>📲 PIX:</span><span>${f(summary.expectedPix)} / ${f(reg.closing_pix)} / <strong>${f(summary.diffPix)}</strong></span></div>
 <div class="row"><span>💳 Cartão:</span><span>${f(summary.expectedCard)} / ${f(reg.closing_card)} / <strong>${f(summary.diffCard)}</strong></span></div>
-<div class="row"><span>🏦 Conta (PIX + Cartão):</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
-${totals.other > 0 ? `<div class="row"><span>Outros:</span><span>${f(totals.other)} / — / —</span></div>` : ""}
-<div class="row"><span>TOTAL Esperado:</span><strong>${f(summary.expectedTotal)}</strong></div>
-<div class="row"><span>TOTAL Declarado:</span><strong>${f(summary.declaredTotal)}</strong></div>
 <div class="row big ${Math.abs(summary.diffTotal) > 0.01 ? "warn" : ""}"><span>DIFERENÇA:</span><strong>${f(summary.diffTotal)}</strong></div>
 <hr/>
-<div><strong>RESULTADO DO DIA</strong></div>
-<div class="row"><span>Faturamento BRUTO:</span><strong>${f(summary.grossRevenue)}</strong></div>
-<div class="row"><span>− Gastos do dia:</span><span class="warn">${f(summary.expensesTotal)}</span></div>
-<div class="row big"><span>= LUCRO LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
-<div class="row"><span>− Custo dos produtos${summary.cogsIsEstimate ? " (estim.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
-<div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>= LUCRO ${summary.cogsIsEstimate ? "ESTIMADO" : "REAL"}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
-${summary.cogsIsEstimate && summary.totalSoldUnits > 0 ? `<div class="warn" style="font-size:10px;">${summary.missingCostUnits}/${summary.totalSoldUnits} itens sem custo cadastrado (estim. 35% do preço).</div>` : ""}
+<div><strong>RESULTADO</strong></div>
+<div class="row"><span>Bruto:</span><span>${f(summary.grossRevenue)}</span></div>
+<div class="row"><span>− Gastos:</span><span class="warn">${f(summary.expensesTotal)}</span></div>
+<div class="row big"><span>LÍQUIDO:</span><strong>${f(summary.netRevenue)}</strong></div>
+<div class="row"><span>− Custo prod.${summary.cogsIsEstimate ? " (est.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
+<div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>LUCRO${summary.cogsIsEstimate ? " EST." : ""}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
 <hr/>
-<div><strong>SALDO FINAL (após todos descontos)</strong></div>
-<div class="row big"><span>💰 Em dinheiro (gaveta):</span><strong>${f(summary.expectedCash)}</strong></div>
-<div class="row big"><span>🏦 Na conta da empresa:</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
-<div class="row"><span>TOTAL DISPONÍVEL:</span><strong>${f(summary.expectedCash + summary.expectedPix + summary.expectedCard)}</strong></div>
-${cleanNotes ? `<hr/><div><strong>Observações:</strong> ${cleanNotes}</div>` : ""}
+<div><strong>SALDO FINAL</strong></div>
+<div class="row big"><span>💰 Gaveta:</span><strong>${f(summary.expectedCash)}</strong></div>
+<div class="row big"><span>🏦 Conta:</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
