@@ -370,8 +370,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   }, [showClose, register, fetchPaymentTotals]);
 
   // Auto-fill the declared balances with the EXPECTED totals (based on each
-  // order's payment for the current business day) — but only if the user
-  // hasn't already typed a value (keeps drafts intact).
+  // order's payment for the current business day) AND auto-fill the couriers
+  // expense based on courier_daily_fees — but only if the user hasn't already
+  // typed a value (keeps drafts intact).
   useEffect(() => {
     if (!showClose) return;
     setCloseForm((prev) => {
@@ -380,9 +381,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       if (isZero(prev.closing_pix) && paymentTotals.pix > 0) next.closing_pix = paymentTotals.pix.toFixed(2);
       if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
       if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
+      if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total]);
+
 
   const handleOpen = async () => {
     if (!storeId || !user) {
