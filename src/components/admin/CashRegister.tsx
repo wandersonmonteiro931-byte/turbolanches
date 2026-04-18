@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
+type PayMethod = "cash" | "pix" | "card";
+
 interface CashRegister {
   id: string;
   store_id: string | null;
@@ -25,6 +27,7 @@ interface CashRegister {
   opened_by: string;
   opening_cash: number;
   opening_card: number;
+  opening_pix: number;
   opening_change_reserve: number;
   closed_at: string | null;
   closed_by: string | null;
@@ -34,6 +37,12 @@ interface CashRegister {
   expense_gasoline: number;
   expense_ads: number;
   expense_other: number;
+  expense_employees_method: PayMethod;
+  expense_couriers_method: PayMethod;
+  expense_purchases_method: PayMethod;
+  expense_gasoline_method: PayMethod;
+  expense_ads_method: PayMethod;
+  expense_other_method: PayMethod;
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
