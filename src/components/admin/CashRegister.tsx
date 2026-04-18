@@ -953,9 +953,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 onChange={(e) => setOpenForm({ ...openForm, cash: e.target.value })} />
             </div>
             <div>
-              <Label>Saldo em máquina/conta (R$)</Label>
+              <Label>Saldo em máquina/cartão (R$)</Label>
               <Input type="number" step="0.01" value={openForm.card}
                 onChange={(e) => setOpenForm({ ...openForm, card: e.target.value })} />
+            </div>
+            <div>
+              <Label>Saldo em PIX/conta (R$)</Label>
+              <Input type="number" step="0.01" value={openForm.pix}
+                onChange={(e) => setOpenForm({ ...openForm, pix: e.target.value })} />
             </div>
             <div>
               <Label>Troco reserva (R$)</Label>
