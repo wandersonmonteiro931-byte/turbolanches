@@ -136,6 +136,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline_method: "cash" as PayMethod,
     expense_ads_method: "cash" as PayMethod,
     expense_other_method: "cash" as PayMethod,
+    // Caixa BRUTO (antes dos gastos) — valor real contado pelo operador
+    declared_gross_cash: "0",
+    declared_gross_pix: "0",
+    declared_gross_card: "0",
     closing_pix: "0",
     closing_card: "0",
     closing_cash: "0",
@@ -415,9 +419,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
       if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
       if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
+      // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
+      const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
+      const grossPixExp  = (register?.opening_pix  || 0) + paymentTotals.pix;
+      const grossCardExp = (register?.opening_card || 0) + paymentTotals.card;
+      if (isZero(prev.declared_gross_cash) && grossCashExp > 0) next.declared_gross_cash = grossCashExp.toFixed(2);
+      if (isZero(prev.declared_gross_pix)  && grossPixExp  > 0) next.declared_gross_pix  = grossPixExp.toFixed(2);
+      if (isZero(prev.declared_gross_card) && grossCardExp > 0) next.declared_gross_card = grossCardExp.toFixed(2);
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, register]);
 
 
   const handleOpen = async () => {
@@ -591,6 +602,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       difference_cash: closeSummary.diffCash,
       difference_pix: closeSummary.diffPix,
       difference_card: closeSummary.diffCard,
+      // Etapa 1 — Caixa Bruto (antes dos gastos)
+      gross_cash: closeSummary.grossCash,
+      gross_pix: closeSummary.grossPix,
+      gross_card: closeSummary.grossCard,
+      declared_gross_cash: closeSummary.declaredGrossCash,
+      declared_gross_pix: closeSummary.declaredGrossPix,
+      declared_gross_card: closeSummary.declaredGrossCard,
+      // Etapa 3 — Caixa Final (após gastos) — espelha o esperado pós-gastos
+      final_cash: closeSummary.expectedCash,
+      final_pix: closeSummary.expectedPix,
+      final_card: closeSummary.expectedCard,
       total_sales: closeSummary.grossRevenue,
       total_expenses: closeSummary.expensesTotal,
       gross_profit: closeSummary.netRevenue,
@@ -802,11 +824,26 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const openingChange = register?.opening_change_reserve || 0;
     const opening = openingCash + openingPix + openingCard + openingChange;
 
+    // ============= ETAPA 1: CAIXA BRUTO (antes dos gastos) =============
+    // gross_* = abertura + vendas (sem descontar gastos)
+    const grossCash = roundMoney(openingCash + openingChange + paymentTotals.cash);
+    const grossPix  = roundMoney(openingPix  + paymentTotals.pix);
+    const grossCard = roundMoney(openingCard + paymentTotals.card);
+
+    const declaredGrossCash = Number(closeForm.declared_gross_cash) || 0;
+    const declaredGrossPix  = Number(closeForm.declared_gross_pix)  || 0;
+    const declaredGrossCard = Number(closeForm.declared_gross_card) || 0;
+
+    const diffGrossCash = roundMoney(declaredGrossCash - grossCash);
+    const diffGrossPix  = roundMoney(declaredGrossPix  - grossPix);
+    const diffGrossCard = roundMoney(declaredGrossCard - grossCard);
+
+    // ============= ETAPA 3: CAIXA FINAL (após gastos) =============
     // ✅ NOVA REGRA: Esperado = Abertura + Vendas (do método) − Gastos (do método)
     // Caixa físico (dinheiro) inclui o troco reserva — vai parar fisicamente na gaveta.
-    const expectedCash = roundMoney(openingCash + openingChange + paymentTotals.cash - expensesByMethod.cash);
-    const expectedPix  = roundMoney(openingPix  + paymentTotals.pix  - expensesByMethod.pix);
-    const expectedCard = roundMoney(openingCard + paymentTotals.card - expensesByMethod.card);
+    const expectedCash = roundMoney(grossCash - expensesByMethod.cash);
+    const expectedPix  = roundMoney(grossPix  - expensesByMethod.pix);
+    const expectedCard = roundMoney(grossCard - expensesByMethod.card);
     const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
     const diffCash = roundMoney(declaredCash - expectedCash);
@@ -825,6 +862,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
+      // Etapa 1 — bruto
+      grossCash, grossPix, grossCard,
+      declaredGrossCash, declaredGrossPix, declaredGrossCard,
+      diffGrossCash, diffGrossPix, diffGrossCard,
       grossRevenue, netRevenue,
       productsCost: productsCostInfo.totalCost,
       netAfterCogs, cogsIsEstimate,
@@ -1064,6 +1105,87 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   onChange={(e) => setCloseForm({ ...closeForm, responsible_name: e.target.value })}
                   required
                 />
+              </div>
+
+              {/* ETAPA 1 — CAIXA BRUTO (antes dos gastos) */}
+              <div className="space-y-2 rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3">
+                <div className="font-bold text-sm flex items-center gap-2">
+                  💰 Caixa antes dos pagamentos (bruto)
+                </div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Confira os valores reais ANTES de pagar funcionários, entregadores e demais gastos.
+                  Bruto = Abertura + Vendas (sem descontar gastos).
+                </div>
+                {[
+                  {
+                    key: "declared_gross_cash",
+                    label: "💰 Dinheiro",
+                    expected: closeSummary.grossCash,
+                    declared: closeSummary.declaredGrossCash,
+                    diff: closeSummary.diffGrossCash,
+                  },
+                  {
+                    key: "declared_gross_pix",
+                    label: "📲 PIX",
+                    expected: closeSummary.grossPix,
+                    declared: closeSummary.declaredGrossPix,
+                    diff: closeSummary.diffGrossPix,
+                  },
+                  {
+                    key: "declared_gross_card",
+                    label: "💳 Cartão",
+                    expected: closeSummary.grossCard,
+                    declared: closeSummary.declaredGrossCard,
+                    diff: closeSummary.diffGrossCard,
+                  },
+                ].map((row) => {
+                  const abs = Math.abs(row.diff);
+                  const isSurplus = row.diff > 0.001;
+                  const isShort = row.diff < -0.001;
+                  const big = abs > 5;
+                  const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
+                  const diffClass = big
+                    ? "text-destructive"
+                    : isSurplus
+                      ? "text-emerald-700"
+                      : isShort
+                        ? "text-amber-700"
+                        : "text-foreground";
+                  return (
+                    <div key={row.key} className="rounded border border-border bg-card p-2 text-xs space-y-1">
+                      <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                        <Label className="text-sm">{row.label}</Label>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          Esperado: <strong className="text-foreground">{fmt(row.expected)}</strong>
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={(closeForm as any)[row.key]}
+                          onChange={(e) => setCloseForm({ ...closeForm, [row.key]: e.target.value })}
+                          placeholder="real contado"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span>
+                          {diffLabel}:{" "}
+                          <strong className={diffClass}>
+                            {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
+                          </strong>
+                        </span>
+                        {(isSurplus || isShort) && (
+                          <button
+                            type="button"
+                            className="underline text-primary"
+                            onClick={() => setCloseForm({ ...closeForm, [row.key]: row.expected.toFixed(2) })}
+                          >
+                            usar esperado
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Expenses */}

@@ -213,6 +213,9 @@ export type Database = {
           created_at: string
           declared_card: number
           declared_cash: number
+          declared_gross_card: number
+          declared_gross_cash: number
+          declared_gross_pix: number
           declared_pix: number
           difference_card: number
           difference_cash: number
@@ -233,6 +236,12 @@ export type Database = {
           expense_other_method: string
           expense_purchases: number
           expense_purchases_method: string
+          final_card: number
+          final_cash: number
+          final_pix: number
+          gross_card: number
+          gross_cash: number
+          gross_pix: number
           gross_profit: number
           id: string
           last_reopened_at: string | null
@@ -261,6 +270,9 @@ export type Database = {
           created_at?: string
           declared_card?: number
           declared_cash?: number
+          declared_gross_card?: number
+          declared_gross_cash?: number
+          declared_gross_pix?: number
           declared_pix?: number
           difference_card?: number
           difference_cash?: number
@@ -281,6 +293,12 @@ export type Database = {
           expense_other_method?: string
           expense_purchases?: number
           expense_purchases_method?: string
+          final_card?: number
+          final_cash?: number
+          final_pix?: number
+          gross_card?: number
+          gross_cash?: number
+          gross_pix?: number
           gross_profit?: number
           id?: string
           last_reopened_at?: string | null
@@ -309,6 +327,9 @@ export type Database = {
           created_at?: string
           declared_card?: number
           declared_cash?: number
+          declared_gross_card?: number
+          declared_gross_cash?: number
+          declared_gross_pix?: number
           declared_pix?: number
           difference_card?: number
           difference_cash?: number
@@ -329,6 +350,12 @@ export type Database = {
           expense_other_method?: string
           expense_purchases?: number
           expense_purchases_method?: string
+          final_card?: number
+          final_cash?: number
+          final_pix?: number
+          gross_card?: number
+          gross_cash?: number
+          gross_pix?: number
           gross_profit?: number
           id?: string
           last_reopened_at?: string | null
