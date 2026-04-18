@@ -461,6 +461,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         variant: "destructive",
       });
       return;
+    }
     // 🔧 EDIT MODE: just UPDATE the saved register's opening fields
     if (editingRegId) {
       const cleanNotes = String(openForm.notes || "")
