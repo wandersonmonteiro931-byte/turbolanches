@@ -735,41 +735,50 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
   // ============== Close summary calculations ==============
   const closeSummary = useMemo(() => {
-    const expensesTotal =
-      (Number(closeForm.expense_employees) || 0) +
-      (Number(closeForm.expense_couriers) || 0) +
-      (Number(closeForm.expense_purchases) || 0) +
-      (Number(closeForm.expense_gasoline) || 0) +
-      (Number(closeForm.expense_ads) || 0) +
-      (Number(closeForm.expense_other) || 0);
+    // Gastos por método de pagamento
+    const expensesByMethod = { cash: 0, pix: 0, card: 0 };
+    const addExpense = (amountStr: string, method: PayMethod) => {
+      const v = Number(amountStr) || 0;
+      expensesByMethod[method] += v;
+    };
+    addExpense(closeForm.expense_employees, closeForm.expense_employees_method);
+    addExpense(closeForm.expense_couriers,  closeForm.expense_couriers_method);
+    addExpense(closeForm.expense_purchases, closeForm.expense_purchases_method);
+    addExpense(closeForm.expense_gasoline,  closeForm.expense_gasoline_method);
+    addExpense(closeForm.expense_ads,       closeForm.expense_ads_method);
+    addExpense(closeForm.expense_other,     closeForm.expense_other_method);
+    const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
     const declaredCard = Number(closeForm.closing_card) || 0;
     const declaredCash = Number(closeForm.closing_cash) || 0;
     const declaredTotal = declaredPix + declaredCard + declaredCash;
 
-    const opening = (register?.opening_cash || 0) + (register?.opening_card || 0) + (register?.opening_change_reserve || 0);
+    const openingCash = register?.opening_cash || 0;
+    const openingPix = register?.opening_pix || 0;
+    const openingCard = register?.opening_card || 0;
+    const openingChange = register?.opening_change_reserve || 0;
+    const opening = openingCash + openingPix + openingCard + openingChange;
 
-    // Expected values are based STRICTLY on the sum of each order's payment for the current business day.
-    const expectedPix = paymentTotals.pix;
-    const expectedCard = paymentTotals.card;
-    const expectedCash = paymentTotals.cash;
-    const expectedTotal = expectedCash + expectedPix + expectedCard;
+    // ✅ NOVA REGRA: Esperado = Abertura + Vendas (do método) − Gastos (do método)
+    // Caixa físico (dinheiro) inclui o troco reserva — vai parar fisicamente na gaveta.
+    const expectedCash = roundMoney(openingCash + openingChange + paymentTotals.cash - expensesByMethod.cash);
+    const expectedPix  = roundMoney(openingPix  + paymentTotals.pix  - expensesByMethod.pix);
+    const expectedCard = roundMoney(openingCard + paymentTotals.card - expensesByMethod.card);
+    const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
-    const diffCash = declaredCash - expectedCash;
-    const diffPix = declaredPix - expectedPix;
-    const diffCard = declaredCard - expectedCard;
-    const diffTotal = declaredTotal - expectedTotal;
+    const diffCash = roundMoney(declaredCash - expectedCash);
+    const diffPix  = roundMoney(declaredPix  - expectedPix);
+    const diffCard = roundMoney(declaredCard - expectedCard);
+    const diffTotal = roundMoney(declaredTotal - expectedTotal);
 
     const grossRevenue = paymentTotals.total;
     const netRevenue = grossRevenue - expensesTotal;
-    // Lucro líquido com custo dos produtos vendidos (COGS) descontado
     const netAfterCogs = netRevenue - productsCostInfo.totalCost;
-    // Se algum produto vendido não tem custo cadastrado → estimado
     const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
     return {
-      opening, expensesTotal, declaredTotal, expectedTotal,
+      opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       grossRevenue, netRevenue,
