@@ -1273,30 +1273,96 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 )}
               </div>
 
-              {/* Declared balances with expected hint */}
-              <div className="space-y-2">
-                <div className="font-bold text-sm">💰 Saldo final em caixa</div>
-                {[
-                  { key: "closing_pix", label: "PIX", expected: closeSummary.expectedPix },
-                  { key: "closing_card", label: "Máquina de cartão", expected: closeSummary.expectedCard },
-                  { key: "closing_cash", label: "Dinheiro", expected: closeSummary.expectedCash },
-                ].map(({ key, label, expected }) => (
-                  <div key={key} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                    <Label className="text-sm">{label}</Label>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      Esperado: <strong className="text-foreground">{fmt(expected)}</strong>
-                    </span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={(closeForm as any)[key]}
-                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
+              {/* ETAPA 1 — Valores reais do fim do dia (unificados) */}
+              <div className="space-y-2 rounded-lg border-2 border-emerald-500/40 bg-emerald-500/5 p-3">
+                <div className="font-bold text-sm">💰 Valores reais ao final do dia</div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Informe quanto realmente tem na gaveta e na conta (PIX + cartão).
+                </div>
+
+                {/* Dinheiro na gaveta */}
+                <div className="grid grid-cols-[1fr_auto_140px] gap-2 items-center">
+                  <Label className="text-sm">💰 Dinheiro na gaveta</Label>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCash)}</strong>
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={closeForm.closing_cash}
+                    onChange={(e) => setCloseForm({ ...closeForm, closing_cash: e.target.value })}
+                  />
+                </div>
+
+                {/* Conta unificada (PIX + cartão) */}
+                {(() => {
+                  const expectedAccount = roundMoney(closeSummary.expectedPix + closeSummary.expectedCard);
+                  const declaredAccount = roundMoney(
+                    (Number(closeForm.closing_pix) || 0) + (Number(closeForm.closing_card) || 0),
+                  );
+                  return (
+                    <div className="space-y-1">
+                      <div className="grid grid-cols-[1fr_auto_140px] gap-2 items-center">
+                        <Label className="text-sm">🏦 Saldo em conta (PIX + cartão)</Label>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          Esperado: <strong className="text-foreground">{fmt(expectedAccount)}</strong>
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={declaredAccount.toFixed(2)}
+                          onChange={(e) => {
+                            const total = Number(e.target.value) || 0;
+                            // Distribui o total: tudo no PIX (cartão = 0). O detalhe permite ajuste fino.
+                            setCloseForm({
+                              ...closeForm,
+                              closing_pix: total.toFixed(2),
+                              closing_card: "0.00",
+                            });
+                          }}
+                        />
+                      </div>
+                      <details className="pt-1">
+                        <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none pl-1">
+                          🔍 Detalhar PIX e Cartão
+                        </summary>
+                        <div className="mt-2 space-y-2 pl-3">
+                          <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                            <Label className="text-xs">📲 PIX</Label>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedPix)}</strong>
+                            </span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={closeForm.closing_pix}
+                              onChange={(e) => setCloseForm({ ...closeForm, closing_pix: e.target.value })}
+                            />
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                            <Label className="text-xs">💳 Cartão</Label>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCard)}</strong>
+                            </span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={closeForm.closing_card}
+                              onChange={(e) => setCloseForm({ ...closeForm, closing_card: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Reconciliation summary — separado por forma de pagamento */}
+              {/* ETAPA 3 — RESULTADO (consolidado: dinheiro vs conta) */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
                 <div className="font-bold mb-1 flex items-center gap-2">
                   <CheckCircle2 size={16} /> Conferência por forma de pagamento
