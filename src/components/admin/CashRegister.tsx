@@ -555,15 +555,27 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
-    // ⚠️ Aviso (não bloqueia) se diferença total > R$ 5
+    // 🚨 Validação: não permitir caixa negativo
+    const declaredCash = Number(closeForm.closing_cash) || 0;
+    const declaredPix = Number(closeForm.closing_pix) || 0;
+    const declaredCard = Number(closeForm.closing_card) || 0;
+    if (declaredCash < 0 || declaredPix < 0 || declaredCard < 0) {
+      toast({
+        title: "Valores inválidos",
+        description: "Os saldos finais não podem ser negativos.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // ⚠️ Aviso (não bloqueia) se diferença > R$ 20
     const diffMax = Math.max(
       Math.abs(closeSummary.diffCash),
       Math.abs(closeSummary.diffPix),
       Math.abs(closeSummary.diffCard),
     );
-    if (diffMax > 5) {
+    if (diffMax > 20) {
       const ok = window.confirm(
-        `⚠️ Divergência detectada:\n\n` +
+        `⚠️ Divergência detectada (acima de R$ 20):\n\n` +
         `• Dinheiro: ${fmt(closeSummary.diffCash)}\n` +
         `• PIX: ${fmt(closeSummary.diffPix)}\n` +
         `• Cartão: ${fmt(closeSummary.diffCard)}\n\n` +
@@ -1117,185 +1129,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 />
               </div>
 
-              {/* ETAPA 1 — CAIXA BRUTO (antes dos gastos) */}
-              <div className="space-y-2 rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3">
-                <div className="font-bold text-sm flex items-center gap-2">
-                  💰 Caixa antes dos pagamentos (bruto)
-                </div>
-                <div className="text-[11px] text-muted-foreground italic">
-                  Confira os valores reais ANTES de pagar funcionários, entregadores e demais gastos.
-                  Bruto = Abertura + Vendas (sem descontar gastos).
-                </div>
-
-                {/* Conta unificada: dinheiro + (PIX + cartão) */}
-                {(() => {
-                  const grossAccountExp = roundMoney(closeSummary.grossPix + closeSummary.grossCard);
-                  const declaredAccount = roundMoney(
-                    (Number(closeForm.declared_gross_pix) || 0) + (Number(closeForm.declared_gross_card) || 0),
-                  );
-                  const diffAccount = roundMoney(declaredAccount - grossAccountExp);
-
-                  const rows = [
-                    {
-                      key: "cash" as const,
-                      label: "💰 Dinheiro (gaveta)",
-                      expected: closeSummary.grossCash,
-                      declared: closeSummary.declaredGrossCash,
-                      diff: closeSummary.diffGrossCash,
-                      isAccount: false,
-                    },
-                    {
-                      key: "account" as const,
-                      label: "🏦 Conta (PIX + Cartão)",
-                      expected: grossAccountExp,
-                      declared: declaredAccount,
-                      diff: diffAccount,
-                      isAccount: true,
-                    },
-                  ];
-
-                  return rows.map((row) => {
-                    const abs = Math.abs(row.diff);
-                    const isSurplus = row.diff > 0.001;
-                    const isShort = row.diff < -0.001;
-                    const big = abs > 5;
-                    const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
-                    const diffClass = big
-                      ? "text-destructive"
-                      : isSurplus
-                        ? "text-emerald-700"
-                        : isShort
-                          ? "text-amber-700"
-                          : "text-foreground";
-
-                    // Para "Dinheiro" usa input direto. Para "Conta" usa input único que distribui no PIX (cartão = 0 desse lado, mantemos cartão como já declarado).
-                    const handleAccountChange = (raw: string) => {
-                      const total = Number(raw) || 0;
-                      // Estratégia simples: registra o total inteiro no PIX e zera o cartão,
-                      // mantendo coerência (PIX+Cartão = total). O detalhamento permite ajuste fino.
-                      setCloseForm({
-                        ...closeForm,
-                        declared_gross_pix: total.toFixed(2),
-                        declared_gross_card: "0.00",
-                      });
-                    };
-
-                    return (
-                      <div key={row.key} className="rounded border border-border bg-card p-2 text-xs space-y-1">
-                        <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                          <Label className="text-sm">{row.label}</Label>
-                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                            Esperado: <strong className="text-foreground">{fmt(row.expected)}</strong>
-                          </span>
-                          {row.isAccount ? (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={row.declared.toFixed(2)}
-                              onChange={(e) => handleAccountChange(e.target.value)}
-                              placeholder="real informado"
-                            />
-                          ) : (
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={closeForm.declared_gross_cash}
-                              onChange={(e) => setCloseForm({ ...closeForm, declared_gross_cash: e.target.value })}
-                              placeholder="real contado"
-                            />
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span>
-                            {diffLabel}:{" "}
-                            <strong className={diffClass}>
-                              {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
-                            </strong>
-                          </span>
-                          {(isSurplus || isShort) && (
-                            <button
-                              type="button"
-                              className="underline text-primary"
-                              onClick={() => {
-                                if (row.isAccount) {
-                                  // Replica o esperado no PIX/Cartão respectivos
-                                  setCloseForm({
-                                    ...closeForm,
-                                    declared_gross_pix: closeSummary.grossPix.toFixed(2),
-                                    declared_gross_card: closeSummary.grossCard.toFixed(2),
-                                  });
-                                } else {
-                                  setCloseForm({ ...closeForm, declared_gross_cash: row.expected.toFixed(2) });
-                                }
-                              }}
-                            >
-                              usar esperado
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Detalhamento PIX/Cartão (colapsável) */}
-                        {row.isAccount && (
-                          <details className="pt-1">
-                            <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none">
-                              🔍 Detalhar PIX e Cartão
-                            </summary>
-                            <div className="mt-2 space-y-2">
-                              <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                                <Label className="text-xs">📲 PIX</Label>
-                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                  Esperado: <strong className="text-foreground">{fmt(closeSummary.grossPix)}</strong>
-                                </span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={closeForm.declared_gross_pix}
-                                  onChange={(e) =>
-                                    setCloseForm({ ...closeForm, declared_gross_pix: e.target.value })
-                                  }
-                                />
-                              </div>
-                              <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                                <Label className="text-xs">💳 Cartão</Label>
-                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                  Esperado: <strong className="text-foreground">{fmt(closeSummary.grossCard)}</strong>
-                                </span>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  value={closeForm.declared_gross_card}
-                                  onChange={(e) =>
-                                    setCloseForm({ ...closeForm, declared_gross_card: e.target.value })
-                                  }
-                                />
-                              </div>
-                              <div className="text-[10px] text-muted-foreground italic">
-                                Diferenças individuais — PIX:{" "}
-                                <strong
-                                  className={
-                                    Math.abs(closeSummary.diffGrossPix) < 0.01 ? "" : "text-amber-700"
-                                  }
-                                >
-                                  {fmt(closeSummary.diffGrossPix)}
-                                </strong>{" "}
-                                · Cartão:{" "}
-                                <strong
-                                  className={
-                                    Math.abs(closeSummary.diffGrossCard) < 0.01 ? "" : "text-amber-700"
-                                  }
-                                >
-                                  {fmt(closeSummary.diffGrossCard)}
-                                </strong>
-                              </div>
-                            </div>
-                          </details>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-
               {/* Expenses */}
               <div className="space-y-2">
                 <div className="font-bold text-sm">💸 Gastos do dia</div>
@@ -1452,95 +1285,103 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 )}
               </div>
 
-              {/* Declared balances with expected hint */}
-              <div className="space-y-2">
-                <div className="font-bold text-sm">💰 Saldo final em caixa</div>
-                {[
-                  { key: "closing_pix", label: "PIX", expected: closeSummary.expectedPix },
-                  { key: "closing_card", label: "Máquina de cartão", expected: closeSummary.expectedCard },
-                  { key: "closing_cash", label: "Dinheiro", expected: closeSummary.expectedCash },
-                ].map(({ key, label, expected }) => (
-                  <div key={key} className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-                    <Label className="text-sm">{label}</Label>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      Esperado: <strong className="text-foreground">{fmt(expected)}</strong>
-                    </span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={(closeForm as any)[key]}
-                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
-              </div>
+              {/* ETAPA 1 — Valores reais do fim do dia (unificados) */}
+              <div className="space-y-2 rounded-lg border-2 border-emerald-500/40 bg-emerald-500/5 p-3">
+                <div className="font-bold text-sm">💰 Valores reais ao final do dia</div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Informe quanto realmente tem na gaveta e na conta (PIX + cartão).
+                </div>
 
-              {/* Reconciliation summary — separado por forma de pagamento */}
-              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
-                <div className="font-bold mb-1 flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Conferência por forma de pagamento
+                {/* Dinheiro na gaveta */}
+                <div className="grid grid-cols-[1fr_auto_140px] gap-2 items-center">
+                  <Label className="text-sm">💰 Dinheiro na gaveta</Label>
+                  <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                    Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCash)}</strong>
+                  </span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={closeForm.closing_cash}
+                    onChange={(e) => setCloseForm({ ...closeForm, closing_cash: e.target.value })}
+                  />
                 </div>
-                <div className="text-[11px] text-muted-foreground italic mb-2">
-                  Esperado = Abertura + Vendas (do método) − Gastos (do método). Diferença &gt; R$ 5 destacada.
-                </div>
-                {[
-                  { key: "cash", field: "closing_cash", label: "💰 Dinheiro", hint: "Confira a gaveta — pode ter sangria não lançada ou troco extra.", expected: closeSummary.expectedCash, declared: Number(closeForm.closing_cash) || 0, diff: closeSummary.diffCash },
-                  { key: "pix",  field: "closing_pix",  label: "📲 PIX",      hint: "Confirme no app do banco se todos os PIX recebidos foram contabilizados.", expected: closeSummary.expectedPix,  declared: Number(closeForm.closing_pix)  || 0, diff: closeSummary.diffPix  },
-                  { key: "card", field: "closing_card", label: "💳 Cartão",   hint: "Verifique a maquininha — pode haver venda estornada ou taxa não registrada.", expected: closeSummary.expectedCard, declared: Number(closeForm.closing_card) || 0, diff: closeSummary.diffCard },
-                ].map((row) => {
-                  const abs = Math.abs(row.diff);
-                  const big = abs > 5;
-                  const isSurplus = row.diff > 0.001;
-                  const isShort = row.diff < -0.001;
-                  const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
-                  const diffClass = big
-                    ? "text-destructive"
-                    : isSurplus
-                      ? "text-emerald-700"
-                      : isShort
-                        ? "text-amber-700"
-                        : "text-foreground";
+
+                {/* Conta unificada (PIX + cartão) */}
+                {(() => {
+                  const expectedAccount = roundMoney(closeSummary.expectedPix + closeSummary.expectedCard);
+                  const declaredAccount = roundMoney(
+                    (Number(closeForm.closing_pix) || 0) + (Number(closeForm.closing_card) || 0),
+                  );
                   return (
-                    <div key={row.key} className={cn(
-                      "rounded border p-2 text-xs",
-                      big ? "border-destructive/60 bg-destructive/5" : "border-border bg-card",
-                    )}>
-                      <div className="font-bold text-sm mb-1 flex items-center justify-between gap-2">
-                        <span>{row.label}</span>
-                        {(isSurplus || isShort) && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-6 px-2 text-[10px]"
-                            onClick={() => setCloseForm({ ...closeForm, [row.field]: row.expected.toFixed(2) })}
-                            title="Substitui o declarado pelo valor esperado, zerando a diferença"
-                          >
-                            Ajustar para esperado
-                          </Button>
-                        )}
+                    <div className="space-y-1">
+                      <div className="grid grid-cols-[1fr_auto_140px] gap-2 items-center">
+                        <Label className="text-sm">🏦 Saldo em conta (PIX + cartão)</Label>
+                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                          Esperado: <strong className="text-foreground">{fmt(expectedAccount)}</strong>
+                        </span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={declaredAccount.toFixed(2)}
+                          onChange={(e) => {
+                            const total = Number(e.target.value) || 0;
+                            // Distribui o total: tudo no PIX (cartão = 0). O detalhe permite ajuste fino.
+                            setCloseForm({
+                              ...closeForm,
+                              closing_pix: total.toFixed(2),
+                              closing_card: "0.00",
+                            });
+                          }}
+                        />
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>Esperado<br/><strong className="text-foreground">{fmt(row.expected)}</strong></div>
-                        <div>Declarado<br/><strong className="text-foreground">{fmt(row.declared)}</strong></div>
-                        <div>
-                          {diffLabel}<br/>
-                          <strong className={diffClass}>
-                            {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
-                          </strong>
+                      <details className="pt-1">
+                        <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none pl-1">
+                          🔍 Detalhar PIX e Cartão
+                        </summary>
+                        <div className="mt-2 space-y-2 pl-3">
+                          <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                            <Label className="text-xs">📲 PIX</Label>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedPix)}</strong>
+                            </span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={closeForm.closing_pix}
+                              onChange={(e) => setCloseForm({ ...closeForm, closing_pix: e.target.value })}
+                            />
+                          </div>
+                          <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                            <Label className="text-xs">💳 Cartão</Label>
+                            <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                              Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCard)}</strong>
+                            </span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={closeForm.closing_card}
+                              onChange={(e) => setCloseForm({ ...closeForm, closing_card: e.target.value })}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      {big && (
-                        <div className="mt-1 flex items-start gap-1 text-destructive font-bold text-[11px]">
-                          <AlertTriangle size={12} className="mt-[1px] shrink-0" />
-                          <span>
-                            ⚠️ Diferença alta {isShort ? "(falta)" : "(sobra)"} — {row.hint}
-                          </span>
-                        </div>
-                      )}
+                      </details>
                     </div>
                   );
-                })}
+                })()}
+              </div>
+
+              {/* ETAPA 3 — RESULTADO (consolidado: dinheiro vs conta) */}
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
+                <div className="font-bold mb-1 flex items-center gap-2">
+                  <CheckCircle2 size={16} /> Resultado do fechamento
+                </div>
+                <div className="text-[11px] text-muted-foreground italic mb-2">
+                  Comparação direta entre o esperado pelo sistema e o real informado.
+                </div>
 
                 {/* 💰🏦 Saldo final consolidado: Caixa físico vs Conta digital */}
                 {(() => {
