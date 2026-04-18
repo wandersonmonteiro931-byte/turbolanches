@@ -245,7 +245,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // IMPORTANTE: ignora pedidos na lixeira (trashed_at) em qualquer cálculo
     const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status, courier_id, delivery_fee, delivery_type, trashed_at")
+      .select("id, payment_method, total, status, courier_id, delivery_fee, delivery_type, trashed_at, amount_paid_cash, amount_paid_pix, amount_paid_card, change_given_cash, change_given_pix, change_given_card")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", storeId)
@@ -259,25 +259,29 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const totals: PaymentBreakdown = { pix: 0, card: 0, cash: 0, other: 0, total: 0 };
     const orderIds: string[] = [];
     const courierIds = new Set<string>();
-    const courierDeliveryFees = new Map<string, number>(); // soma das taxas dos pedidos entregues por entregador
+    const courierDeliveryFees = new Map<string, number>();
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
       if (o.courier_id) {
         courierIds.add(o.courier_id);
-        // Apenas pedidos delivery realmente entregues contam para a taxa
         if (o.status === "delivered" && String(o.delivery_type || "delivery") === "delivery") {
           const fee = Number(o.delivery_fee) || 0;
           courierDeliveryFees.set(o.courier_id, (courierDeliveryFees.get(o.courier_id) || 0) + fee);
         }
       }
-      const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
-      // Qualquer variante PIX (pix, pix_pago, pix_entrega, pix_online…) entra como PIX
-      if (m.includes("pix")) totals.pix += t;
-      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit") || m.includes("maquin")) totals.card += t;
-      else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
-      else totals.other += t;
+      // ✅ NOVA REGRA: usa amount_paid_* − change_given_* (valor LÍQUIDO recebido por método)
+      // Backfill já garantiu que pedidos antigos tenham amount_paid_<método> = total.
+      const paidCash   = Number(o.amount_paid_cash)   || 0;
+      const paidPix    = Number(o.amount_paid_pix)    || 0;
+      const paidCard   = Number(o.amount_paid_card)   || 0;
+      const givenCash  = Number(o.change_given_cash)  || 0;
+      const givenPix   = Number(o.change_given_pix)   || 0;
+      const givenCard  = Number(o.change_given_card)  || 0;
+      totals.cash += (paidCash - givenCash);
+      totals.pix  += (paidPix  - givenPix);
+      totals.card += (paidCard - givenCard);
     });
     setPaymentTotals(totals);
     setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
