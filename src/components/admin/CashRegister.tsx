@@ -1139,6 +1139,28 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                     </div>
                   );
                 })}
+
+                {/* 💼 Anúncios pagos pelo dono (externos) — não impactam caixa nem lucro */}
+                <div className="space-y-1 rounded-lg border border-dashed border-purple-400/40 bg-purple-50/30 dark:bg-purple-500/5 p-2">
+                  <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
+                    <Label className="text-sm flex items-center gap-1">
+                      Anúncios <span className="text-purple-600 font-bold">(externo)</span>
+                    </Label>
+                    <div className="text-[11px] text-purple-700 dark:text-purple-300 font-bold text-center">
+                      💼 Pago pelo dono
+                    </div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={closeForm.expense_ads_external}
+                      onChange={(e) => setCloseForm({ ...closeForm, expense_ads_external: e.target.value })}
+                    />
+                  </div>
+                  <div className="text-[10px] text-muted-foreground italic pl-1">
+                    Não entra no caixa nem no cálculo de lucro — apenas histórico.
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
                   <div className="rounded bg-muted/50 px-2 py-1">💰 Dinheiro: <strong>{fmt(closeSummary.expensesByMethod.cash)}</strong></div>
                   <div className="rounded bg-muted/50 px-2 py-1">📲 PIX: <strong>{fmt(closeSummary.expensesByMethod.pix)}</strong></div>
@@ -1147,6 +1169,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 <div className="text-right text-sm font-bold">
                   Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
                 </div>
+                {closeSummary.externalAds > 0 && (
+                  <div className="rounded-lg border border-purple-400/40 bg-purple-50/40 dark:bg-purple-500/10 px-3 py-2 text-[11px] text-purple-800 dark:text-purple-200">
+                    ℹ️ <strong>{fmt(closeSummary.externalAds)}</strong> em anúncios foram pagos pelo proprietário e <strong>não impactam</strong> o caixa ou lucro.
+                  </div>
+                )}
               </div>
 
               {/* Declared balances with expected hint */}
