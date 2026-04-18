@@ -139,6 +139,7 @@ interface DraftState {
   addressComplement: string;
   observations: string;
   changeFor: string;
+  changeMethod: string; // "dinheiro" | "pix" | "card" — método de devolução do troco
   customDeliveryFee: string;
   deliveryFeeOverridden: boolean;
   discount: string;
@@ -179,6 +180,7 @@ const AdminManualOrder = () => {
   const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
   const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
   const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
+  const [changeMethod, setChangeMethod] = useState<string>(editOrderId ? "dinheiro" : (draft.changeMethod ?? "dinheiro"));
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -210,13 +212,13 @@ const AdminManualOrder = () => {
       cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
       selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
       addressNumber, addressNeighborhood, addressComplement, observations,
-      changeFor, customDeliveryFee, deliveryFeeOverridden, discount,
+      changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
   }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
-    changeFor, customDeliveryFee, deliveryFeeOverridden, discount]);
+    changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount]);
 
   useEffect(() => {
     const cartIds = cart.map((item) => item.product.id);
@@ -523,6 +525,37 @@ const AdminManualOrder = () => {
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
       const actualPaid = isPixPago || isPaid;
 
+      // ===== Cálculo de pagamento detalhado por método =====
+      // Mapeia o método principal para a "chave" do banco (cash/pix/card).
+      const methodKey = (m: string): "cash" | "pix" | "card" => {
+        if (m === "dinheiro") return "cash";
+        if (m === "pix") return "pix";
+        if (m === "cartao" || m === "card" || m === "debito" || m === "credito") return "card";
+        return "cash"; // fallback (fiado/outros não impactam caixa)
+      };
+      const payKey = methodKey(actualPaymentMethod);
+      const changeKey = methodKey(changeMethod);
+      const changeForNum = actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : 0;
+      // Valor entregue pelo cliente em cada método
+      const amountPaid = { cash: 0, pix: 0, card: 0 };
+      const changeGiven = { cash: 0, pix: 0, card: 0 };
+      // Para fiado/outros: nada entra no caixa
+      const isFiado = actualPaymentMethod === "fiado";
+      if (!isFiado && actualPaid !== false || actualPaid) {
+        // Sempre registra valor pago (para pagamentos confirmados)
+      }
+      if (!isFiado) {
+        if (changeForNum > total && actualPaymentMethod === "dinheiro") {
+          // Cliente entregou mais que o total: amount_paid_cash = changeFor, troco = diferença
+          amountPaid.cash = changeForNum;
+          const trocoTotal = changeForNum - total;
+          changeGiven[changeKey] += trocoTotal;
+        } else {
+          // Pagamento exato
+          amountPaid[payKey] = total;
+        }
+      }
+
       const obsText = [
         "[PDV]",
         customerName ? `Cliente: ${customerName}` : null,
@@ -550,6 +583,12 @@ const AdminManualOrder = () => {
             address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
             observations: obsText,
             change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+            amount_paid_cash: amountPaid.cash,
+            amount_paid_pix: amountPaid.pix,
+            amount_paid_card: amountPaid.card,
+            change_given_cash: changeGiven.cash,
+            change_given_pix: changeGiven.pix,
+            change_given_card: changeGiven.card,
           })
           .eq("id", editOrderId);
 
@@ -598,6 +637,12 @@ const AdminManualOrder = () => {
             address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
             observations: obsText,
             change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+            amount_paid_cash: amountPaid.cash,
+            amount_paid_pix: amountPaid.pix,
+            amount_paid_card: amountPaid.card,
+            change_given_cash: changeGiven.cash,
+            change_given_pix: changeGiven.pix,
+            change_given_card: changeGiven.card,
           })
           .select("id, order_number")
           .single();
@@ -1073,7 +1118,7 @@ const AdminManualOrder = () => {
               )}
 
               {paymentMethod === "dinheiro" && !isPaid && (
-                <motion.div {...fadeIn}>
+                <motion.div {...fadeIn} className="space-y-2">
                   <input
                     type="number"
                     placeholder="Troco para quanto? (R$)"
@@ -1081,6 +1126,36 @@ const AdminManualOrder = () => {
                     onChange={(e) => setChangeFor(e.target.value)}
                     className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
+                  {Number(changeFor) > total && (
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-muted-foreground">
+                        Devolver troco via:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: "dinheiro", label: "💵 Dinheiro" },
+                          { id: "pix", label: "📱 PIX" },
+                          { id: "cartao", label: "💳 Cartão" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setChangeMethod(opt.id)}
+                            className={`rounded-lg border-2 px-2 py-2 text-xs font-bold transition-all ${
+                              changeMethod === opt.id
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:bg-muted"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Troco de R$ {fmt(Number(changeFor) - total)} {changeMethod !== "dinheiro" ? `sairá da conta (${changeMethod === "pix" ? "PIX" : "cartão"}).` : "sai da gaveta."}
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </SectionBlock>

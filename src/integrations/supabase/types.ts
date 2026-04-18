@@ -205,8 +205,6 @@ export type Database = {
       cash_registers: {
         Row: {
           business_day: string
-          change_given_amount: number
-          change_given_method: string
           closed_at: string | null
           closed_by: string | null
           closing_card: number
@@ -264,8 +262,6 @@ export type Database = {
         }
         Insert: {
           business_day: string
-          change_given_amount?: number
-          change_given_method?: string
           closed_at?: string | null
           closed_by?: string | null
           closing_card?: number
@@ -323,8 +319,6 @@ export type Database = {
         }
         Update: {
           business_day?: string
-          change_given_amount?: number
-          change_given_method?: string
           closed_at?: string | null
           closed_by?: string | null
           closing_card?: number
@@ -922,8 +916,14 @@ export type Database = {
           address_neighborhood: string | null
           address_number: string | null
           address_street: string | null
+          amount_paid_card: number
+          amount_paid_cash: number
+          amount_paid_pix: number
           cancellation_reason: string | null
           change_for: number | null
+          change_given_card: number
+          change_given_cash: number
+          change_given_pix: number
           coupon_code: string | null
           courier_id: string | null
           created_at: string
@@ -960,8 +960,14 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_street?: string | null
+          amount_paid_card?: number
+          amount_paid_cash?: number
+          amount_paid_pix?: number
           cancellation_reason?: string | null
           change_for?: number | null
+          change_given_card?: number
+          change_given_cash?: number
+          change_given_pix?: number
           coupon_code?: string | null
           courier_id?: string | null
           created_at?: string
@@ -998,8 +1004,14 @@ export type Database = {
           address_neighborhood?: string | null
           address_number?: string | null
           address_street?: string | null
+          amount_paid_card?: number
+          amount_paid_cash?: number
+          amount_paid_pix?: number
           cancellation_reason?: string | null
           change_for?: number | null
+          change_given_card?: number
+          change_given_cash?: number
+          change_given_pix?: number
           coupon_code?: string | null
           courier_id?: string | null
           created_at?: string
