@@ -806,11 +806,26 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const openingChange = register?.opening_change_reserve || 0;
     const opening = openingCash + openingPix + openingCard + openingChange;
 
+    // ============= ETAPA 1: CAIXA BRUTO (antes dos gastos) =============
+    // gross_* = abertura + vendas (sem descontar gastos)
+    const grossCash = roundMoney(openingCash + openingChange + paymentTotals.cash);
+    const grossPix  = roundMoney(openingPix  + paymentTotals.pix);
+    const grossCard = roundMoney(openingCard + paymentTotals.card);
+
+    const declaredGrossCash = Number(closeForm.declared_gross_cash) || 0;
+    const declaredGrossPix  = Number(closeForm.declared_gross_pix)  || 0;
+    const declaredGrossCard = Number(closeForm.declared_gross_card) || 0;
+
+    const diffGrossCash = roundMoney(declaredGrossCash - grossCash);
+    const diffGrossPix  = roundMoney(declaredGrossPix  - grossPix);
+    const diffGrossCard = roundMoney(declaredGrossCard - grossCard);
+
+    // ============= ETAPA 3: CAIXA FINAL (após gastos) =============
     // ✅ NOVA REGRA: Esperado = Abertura + Vendas (do método) − Gastos (do método)
     // Caixa físico (dinheiro) inclui o troco reserva — vai parar fisicamente na gaveta.
-    const expectedCash = roundMoney(openingCash + openingChange + paymentTotals.cash - expensesByMethod.cash);
-    const expectedPix  = roundMoney(openingPix  + paymentTotals.pix  - expensesByMethod.pix);
-    const expectedCard = roundMoney(openingCard + paymentTotals.card - expensesByMethod.card);
+    const expectedCash = roundMoney(grossCash - expensesByMethod.cash);
+    const expectedPix  = roundMoney(grossPix  - expensesByMethod.pix);
+    const expectedCard = roundMoney(grossCard - expensesByMethod.card);
     const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
     const diffCash = roundMoney(declaredCash - expectedCash);
@@ -829,6 +844,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
+      // Etapa 1 — bruto
+      grossCash, grossPix, grossCard,
+      declaredGrossCash, declaredGrossPix, declaredGrossCard,
+      diffGrossCash, diffGrossPix, diffGrossCard,
       grossRevenue, netRevenue,
       productsCost: productsCostInfo.totalCost,
       netAfterCogs, cogsIsEstimate,
