@@ -984,17 +984,52 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_gasoline", "Gasolina"],
                   ["expense_ads", "Anúncios / Divulgação"],
                   ["expense_other", "Outros"],
-                ].map(([key, label]) => (
-                  <div key={key} className="grid grid-cols-2 gap-2 items-center">
-                    <Label className="text-sm">{label}</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={(closeForm as any)[key]}
-                      onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
+                ].map(([key, label]) => {
+                  const isCouriers = key === "expense_couriers";
+                  const declared = Number((closeForm as any)[key]) || 0;
+                  const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
+                  return (
+                    <div key={key} className="space-y-1">
+                      <div className="grid grid-cols-2 gap-2 items-center">
+                        <Label className="text-sm flex items-center gap-1">
+                          {label}
+                          {isCouriers && autoCouriers.total > 0 && (
+                            <span
+                              className={cn(
+                                "text-[10px] px-1.5 py-0.5 rounded font-bold",
+                                matchesAuto ? "bg-emerald-500/15 text-emerald-700" : "bg-amber-500/15 text-amber-700"
+                              )}
+                              title={matchesAuto ? "Valor automático" : "Valor alterado manualmente"}
+                            >
+                              {matchesAuto ? "AUTO" : "MANUAL"}
+                            </span>
+                          )}
+                        </Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={(closeForm as any)[key]}
+                          onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
+                        />
+                      </div>
+                      {isCouriers && autoCouriers.breakdown.length > 0 && (
+                        <div className="text-[11px] text-muted-foreground pl-1">
+                          🛵 Auto: {autoCouriers.breakdown.map(b => `${b.name} ${fmt(b.fee)}`).join(" • ")}
+                          {" = "}<strong className="text-foreground">{fmt(autoCouriers.total)}</strong>
+                          {!matchesAuto && (
+                            <button
+                              type="button"
+                              className="ml-2 underline text-primary"
+                              onClick={() => setCloseForm({ ...closeForm, expense_couriers: autoCouriers.total.toFixed(2) })}
+                            >
+                              usar automático
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
                 <div className="text-right text-sm font-bold">
                   Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
                 </div>
