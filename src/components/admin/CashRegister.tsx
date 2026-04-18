@@ -687,7 +687,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
     const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status, trashed_at")
+      .select("id, payment_method, total, status, trashed_at, amount_paid_cash, amount_paid_pix, amount_paid_card, change_given_cash, change_given_pix, change_given_card")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", reg.store_id)
@@ -700,13 +700,17 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const orderIds: string[] = [];
     ordersData.forEach((o: any) => {
       orderIds.push(o.id);
-      const m = String(o.payment_method || "").toLowerCase();
       const t = Number(o.total) || 0;
       totals.total += t;
-      if (m.includes("pix")) totals.pix += t;
-      else if (m.includes("card") || m.includes("cart") || m.includes("debit") || m.includes("credit") || m.includes("maquin")) totals.card += t;
-      else if (m.includes("dinheiro") || m === "cash" || m === "money") totals.cash += t;
-      else totals.other += t;
+      const paidCash  = Number(o.amount_paid_cash)  || 0;
+      const paidPix   = Number(o.amount_paid_pix)   || 0;
+      const paidCard  = Number(o.amount_paid_card)  || 0;
+      const givenCash = Number(o.change_given_cash) || 0;
+      const givenPix  = Number(o.change_given_pix)  || 0;
+      const givenCard = Number(o.change_given_card) || 0;
+      totals.cash += (paidCash - givenCash);
+      totals.pix  += (paidPix  - givenPix);
+      totals.card += (paidCard - givenCard);
     });
     const stats = { completed: ordersData.length, cancelled: cancelledCount };
     let top: { name: string; qty: number }[] = [];
