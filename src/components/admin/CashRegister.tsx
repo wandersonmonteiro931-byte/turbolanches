@@ -691,21 +691,30 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     await supabase.from("cash_register_events").insert({
       cash_register_id: register.id,
       store_id: storeId,
-      event_type: "close",
+      event_type: editingRegId ? "edit_close" : "close",
       performed_by: user.id,
       snapshot: payload,
     });
-    toast({ title: "🔒 Caixa fechado!" });
+    toast({ title: editingRegId ? "✅ Fechamento atualizado" : "🔒 Caixa fechado!" });
     setShowClose(false);
     try { localStorage.removeItem(closeDraftKey); } catch {}
     setCloseForm(defaultCloseForm);
+    const wasEditing = !!editingRegId;
+    if (wasEditing) {
+      setRegister(editingRegBackup);
+      setEditingRegId(null);
+      setEditingRegBackup(null);
+      await fetchHistory();
+    }
     await fetchRegister();
-    // Imprime relatório automaticamente após fechar
-    const reportData: CashRegister = {
-      ...register,
-      ...payload,
-    } as CashRegister;
-    printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
+    // Imprime relatório automaticamente após fechar (apenas em fechamento real)
+    if (!wasEditing) {
+      const reportData: CashRegister = {
+        ...register,
+        ...payload,
+      } as CashRegister;
+      printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
+    }
   };
 
   /** Fetch history of all registers */
