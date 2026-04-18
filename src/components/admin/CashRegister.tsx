@@ -635,7 +635,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       : `${register.notes || ""} ${closerTag}`.trim();
     const payload = {
       status: "closed" as const,
-      closed_at: new Date().toISOString(),
+      closed_at: editingRegId && register.closed_at ? register.closed_at : new Date().toISOString(),
       closed_by: user.id,
       expense_employees: Number(closeForm.expense_employees) || 0,
       expense_couriers: Number(closeForm.expense_couriers) || 0,
