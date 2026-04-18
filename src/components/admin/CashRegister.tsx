@@ -1365,69 +1365,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               {/* ETAPA 3 — RESULTADO (consolidado: dinheiro vs conta) */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
                 <div className="font-bold mb-1 flex items-center gap-2">
-                  <CheckCircle2 size={16} /> Conferência por forma de pagamento
+                  <CheckCircle2 size={16} /> Resultado do fechamento
                 </div>
                 <div className="text-[11px] text-muted-foreground italic mb-2">
-                  Esperado = Abertura + Vendas (do método) − Gastos (do método). Diferença &gt; R$ 5 destacada.
+                  Comparação direta entre o esperado pelo sistema e o real informado.
                 </div>
-                {[
-                  { key: "cash", field: "closing_cash", label: "💰 Dinheiro", hint: "Confira a gaveta — pode ter sangria não lançada ou troco extra.", expected: closeSummary.expectedCash, declared: Number(closeForm.closing_cash) || 0, diff: closeSummary.diffCash },
-                  { key: "pix",  field: "closing_pix",  label: "📲 PIX",      hint: "Confirme no app do banco se todos os PIX recebidos foram contabilizados.", expected: closeSummary.expectedPix,  declared: Number(closeForm.closing_pix)  || 0, diff: closeSummary.diffPix  },
-                  { key: "card", field: "closing_card", label: "💳 Cartão",   hint: "Verifique a maquininha — pode haver venda estornada ou taxa não registrada.", expected: closeSummary.expectedCard, declared: Number(closeForm.closing_card) || 0, diff: closeSummary.diffCard },
-                ].map((row) => {
-                  const abs = Math.abs(row.diff);
-                  const big = abs > 5;
-                  const isSurplus = row.diff > 0.001;
-                  const isShort = row.diff < -0.001;
-                  const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
-                  const diffClass = big
-                    ? "text-destructive"
-                    : isSurplus
-                      ? "text-emerald-700"
-                      : isShort
-                        ? "text-amber-700"
-                        : "text-foreground";
-                  return (
-                    <div key={row.key} className={cn(
-                      "rounded border p-2 text-xs",
-                      big ? "border-destructive/60 bg-destructive/5" : "border-border bg-card",
-                    )}>
-                      <div className="font-bold text-sm mb-1 flex items-center justify-between gap-2">
-                        <span>{row.label}</span>
-                        {(isSurplus || isShort) && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-6 px-2 text-[10px]"
-                            onClick={() => setCloseForm({ ...closeForm, [row.field]: row.expected.toFixed(2) })}
-                            title="Substitui o declarado pelo valor esperado, zerando a diferença"
-                          >
-                            Ajustar para esperado
-                          </Button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>Esperado<br/><strong className="text-foreground">{fmt(row.expected)}</strong></div>
-                        <div>Declarado<br/><strong className="text-foreground">{fmt(row.declared)}</strong></div>
-                        <div>
-                          {diffLabel}<br/>
-                          <strong className={diffClass}>
-                            {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
-                          </strong>
-                        </div>
-                      </div>
-                      {big && (
-                        <div className="mt-1 flex items-start gap-1 text-destructive font-bold text-[11px]">
-                          <AlertTriangle size={12} className="mt-[1px] shrink-0" />
-                          <span>
-                            ⚠️ Diferença alta {isShort ? "(falta)" : "(sobra)"} — {row.hint}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
 
                 {/* 💰🏦 Saldo final consolidado: Caixa físico vs Conta digital */}
                 {(() => {
