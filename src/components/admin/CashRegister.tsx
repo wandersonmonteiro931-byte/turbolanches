@@ -1049,7 +1049,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       </div>
 
       {/* OPEN MODAL */}
-      <Dialog open={showOpen} onOpenChange={setShowOpen}>
+      <Dialog open={showOpen} onOpenChange={(o) => {
+        setShowOpen(o);
+        if (!o && editingRegId) {
+          // Cancelou edição da abertura → restaurar caixa ativo real
+          setRegister(editingRegBackup);
+          setEditingRegId(null);
+          setEditingRegBackup(null);
+          setOpenForm(defaultOpenForm);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Abrir Caixa — {todayBusinessDay}</DialogTitle>
