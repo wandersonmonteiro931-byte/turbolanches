@@ -1115,7 +1115,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       </Dialog>
 
       {/* CLOSE MODAL */}
-      <Dialog open={showClose} onOpenChange={setShowClose}>
+      <Dialog open={showClose} onOpenChange={(o) => {
+        setShowClose(o);
+        if (!o && editingRegId) {
+          // Cancelou edição do fechamento → restaurar caixa ativo real
+          setRegister(editingRegBackup);
+          setEditingRegId(null);
+          setEditingRegBackup(null);
+          setCloseForm(defaultCloseForm);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Fechar Caixa — {register?.business_day}</DialogTitle>
