@@ -583,8 +583,12 @@ const AdminManualOrder = () => {
             address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
             observations: obsText,
             change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-          })
-          .eq("id", editOrderId);
+            amount_paid_cash: amountPaid.cash,
+            amount_paid_pix: amountPaid.pix,
+            amount_paid_card: amountPaid.card,
+            change_given_cash: changeGiven.cash,
+            change_given_pix: changeGiven.pix,
+            change_given_card: changeGiven.card,
 
         if (orderError) throw orderError;
 
@@ -631,8 +635,12 @@ const AdminManualOrder = () => {
             address_neighborhood: deliveryType === "delivery" ? addressNeighborhood : null,
             observations: obsText,
             change_for: actualPaymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
-          })
-          .select("id, order_number")
+            amount_paid_cash: amountPaid.cash,
+            amount_paid_pix: amountPaid.pix,
+            amount_paid_card: amountPaid.card,
+            change_given_cash: changeGiven.cash,
+            change_given_pix: changeGiven.pix,
+            change_given_card: changeGiven.card,
           .single();
 
         if (orderError) throw orderError;
