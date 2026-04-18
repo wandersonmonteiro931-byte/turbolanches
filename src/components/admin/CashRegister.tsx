@@ -423,6 +423,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       if (isZero(prev.closing_pix) && paymentTotals.pix > 0) next.closing_pix = paymentTotals.pix.toFixed(2);
       if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
       if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
+      // Mantém o campo unificado "conta" sincronizado quando o usuário ainda não digitou nele
+      if (isZero(prev.closing_account)) {
+        const acc = (Number(next.closing_pix) || 0) + (Number(next.closing_card) || 0);
+        if (acc > 0) next.closing_account = acc.toFixed(2);
+      }
       if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
       // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
       const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
