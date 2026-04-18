@@ -136,6 +136,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline_method: "cash" as PayMethod,
     expense_ads_method: "cash" as PayMethod,
     expense_other_method: "cash" as PayMethod,
+    // Troco devolvido em método diferente (ex.: cliente pagou em dinheiro, troco em PIX)
+    change_given_amount: "0",
+    change_given_method: "pix" as Exclude<PayMethod, "cash">,
     // Caixa BRUTO (antes dos gastos) — valor real contado pelo operador
     declared_gross_cash: "0",
     declared_gross_pix: "0",
