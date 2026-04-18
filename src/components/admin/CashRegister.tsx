@@ -419,9 +419,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       if (isZero(prev.closing_card) && paymentTotals.card > 0) next.closing_card = paymentTotals.card.toFixed(2);
       if (isZero(prev.closing_cash) && paymentTotals.cash > 0) next.closing_cash = paymentTotals.cash.toFixed(2);
       if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
+      // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
+      const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
+      const grossPixExp  = (register?.opening_pix  || 0) + paymentTotals.pix;
+      const grossCardExp = (register?.opening_card || 0) + paymentTotals.card;
+      if (isZero(prev.declared_gross_cash) && grossCashExp > 0) next.declared_gross_cash = grossCashExp.toFixed(2);
+      if (isZero(prev.declared_gross_pix)  && grossPixExp  > 0) next.declared_gross_pix  = grossPixExp.toFixed(2);
+      if (isZero(prev.declared_gross_card) && grossCardExp > 0) next.declared_gross_card = grossCardExp.toFixed(2);
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, register]);
 
 
   const handleOpen = async () => {
