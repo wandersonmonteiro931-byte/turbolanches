@@ -1116,76 +1116,174 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   Confira os valores reais ANTES de pagar funcionários, entregadores e demais gastos.
                   Bruto = Abertura + Vendas (sem descontar gastos).
                 </div>
-                {[
-                  {
-                    key: "declared_gross_cash",
-                    label: "💰 Dinheiro",
-                    expected: closeSummary.grossCash,
-                    declared: closeSummary.declaredGrossCash,
-                    diff: closeSummary.diffGrossCash,
-                  },
-                  {
-                    key: "declared_gross_pix",
-                    label: "📲 PIX",
-                    expected: closeSummary.grossPix,
-                    declared: closeSummary.declaredGrossPix,
-                    diff: closeSummary.diffGrossPix,
-                  },
-                  {
-                    key: "declared_gross_card",
-                    label: "💳 Cartão",
-                    expected: closeSummary.grossCard,
-                    declared: closeSummary.declaredGrossCard,
-                    diff: closeSummary.diffGrossCard,
-                  },
-                ].map((row) => {
-                  const abs = Math.abs(row.diff);
-                  const isSurplus = row.diff > 0.001;
-                  const isShort = row.diff < -0.001;
-                  const big = abs > 5;
-                  const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
-                  const diffClass = big
-                    ? "text-destructive"
-                    : isSurplus
-                      ? "text-emerald-700"
-                      : isShort
-                        ? "text-amber-700"
-                        : "text-foreground";
-                  return (
-                    <div key={row.key} className="rounded border border-border bg-card p-2 text-xs space-y-1">
-                      <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                        <Label className="text-sm">{row.label}</Label>
-                        <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                          Esperado: <strong className="text-foreground">{fmt(row.expected)}</strong>
-                        </span>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={(closeForm as any)[row.key]}
-                          onChange={(e) => setCloseForm({ ...closeForm, [row.key]: e.target.value })}
-                          placeholder="real contado"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span>
-                          {diffLabel}:{" "}
-                          <strong className={diffClass}>
-                            {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
-                          </strong>
-                        </span>
-                        {(isSurplus || isShort) && (
-                          <button
-                            type="button"
-                            className="underline text-primary"
-                            onClick={() => setCloseForm({ ...closeForm, [row.key]: row.expected.toFixed(2) })}
-                          >
-                            usar esperado
-                          </button>
+
+                {/* Conta unificada: dinheiro + (PIX + cartão) */}
+                {(() => {
+                  const grossAccountExp = roundMoney(closeSummary.grossPix + closeSummary.grossCard);
+                  const declaredAccount = roundMoney(
+                    (Number(closeForm.declared_gross_pix) || 0) + (Number(closeForm.declared_gross_card) || 0),
+                  );
+                  const diffAccount = roundMoney(declaredAccount - grossAccountExp);
+
+                  const rows = [
+                    {
+                      key: "cash" as const,
+                      label: "💰 Dinheiro (gaveta)",
+                      expected: closeSummary.grossCash,
+                      declared: closeSummary.declaredGrossCash,
+                      diff: closeSummary.diffGrossCash,
+                      isAccount: false,
+                    },
+                    {
+                      key: "account" as const,
+                      label: "🏦 Conta (PIX + Cartão)",
+                      expected: grossAccountExp,
+                      declared: declaredAccount,
+                      diff: diffAccount,
+                      isAccount: true,
+                    },
+                  ];
+
+                  return rows.map((row) => {
+                    const abs = Math.abs(row.diff);
+                    const isSurplus = row.diff > 0.001;
+                    const isShort = row.diff < -0.001;
+                    const big = abs > 5;
+                    const diffLabel = isSurplus ? "Sobra" : isShort ? "Falta" : "OK";
+                    const diffClass = big
+                      ? "text-destructive"
+                      : isSurplus
+                        ? "text-emerald-700"
+                        : isShort
+                          ? "text-amber-700"
+                          : "text-foreground";
+
+                    // Para "Dinheiro" usa input direto. Para "Conta" usa input único que distribui no PIX (cartão = 0 desse lado, mantemos cartão como já declarado).
+                    const handleAccountChange = (raw: string) => {
+                      const total = Number(raw) || 0;
+                      // Estratégia simples: registra o total inteiro no PIX e zera o cartão,
+                      // mantendo coerência (PIX+Cartão = total). O detalhamento permite ajuste fino.
+                      setCloseForm({
+                        ...closeForm,
+                        declared_gross_pix: total.toFixed(2),
+                        declared_gross_card: "0.00",
+                      });
+                    };
+
+                    return (
+                      <div key={row.key} className="rounded border border-border bg-card p-2 text-xs space-y-1">
+                        <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                          <Label className="text-sm">{row.label}</Label>
+                          <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                            Esperado: <strong className="text-foreground">{fmt(row.expected)}</strong>
+                          </span>
+                          {row.isAccount ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={row.declared.toFixed(2)}
+                              onChange={(e) => handleAccountChange(e.target.value)}
+                              placeholder="real informado"
+                            />
+                          ) : (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={closeForm.declared_gross_cash}
+                              onChange={(e) => setCloseForm({ ...closeForm, declared_gross_cash: e.target.value })}
+                              placeholder="real contado"
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span>
+                            {diffLabel}:{" "}
+                            <strong className={diffClass}>
+                              {isShort ? `− ${fmt(abs)}` : isSurplus ? `+ ${fmt(abs)}` : fmt(0)}
+                            </strong>
+                          </span>
+                          {(isSurplus || isShort) && (
+                            <button
+                              type="button"
+                              className="underline text-primary"
+                              onClick={() => {
+                                if (row.isAccount) {
+                                  // Replica o esperado no PIX/Cartão respectivos
+                                  setCloseForm({
+                                    ...closeForm,
+                                    declared_gross_pix: closeSummary.grossPix.toFixed(2),
+                                    declared_gross_card: closeSummary.grossCard.toFixed(2),
+                                  });
+                                } else {
+                                  setCloseForm({ ...closeForm, declared_gross_cash: row.expected.toFixed(2) });
+                                }
+                              }}
+                            >
+                              usar esperado
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Detalhamento PIX/Cartão (colapsável) */}
+                        {row.isAccount && (
+                          <details className="pt-1">
+                            <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none">
+                              🔍 Detalhar PIX e Cartão
+                            </summary>
+                            <div className="mt-2 space-y-2">
+                              <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                                <Label className="text-xs">📲 PIX</Label>
+                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                  Esperado: <strong className="text-foreground">{fmt(closeSummary.grossPix)}</strong>
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={closeForm.declared_gross_pix}
+                                  onChange={(e) =>
+                                    setCloseForm({ ...closeForm, declared_gross_pix: e.target.value })
+                                  }
+                                />
+                              </div>
+                              <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
+                                <Label className="text-xs">💳 Cartão</Label>
+                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                                  Esperado: <strong className="text-foreground">{fmt(closeSummary.grossCard)}</strong>
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  value={closeForm.declared_gross_card}
+                                  onChange={(e) =>
+                                    setCloseForm({ ...closeForm, declared_gross_card: e.target.value })
+                                  }
+                                />
+                              </div>
+                              <div className="text-[10px] text-muted-foreground italic">
+                                Diferenças individuais — PIX:{" "}
+                                <strong
+                                  className={
+                                    Math.abs(closeSummary.diffGrossPix) < 0.01 ? "" : "text-amber-700"
+                                  }
+                                >
+                                  {fmt(closeSummary.diffGrossPix)}
+                                </strong>{" "}
+                                · Cartão:{" "}
+                                <strong
+                                  className={
+                                    Math.abs(closeSummary.diffGrossCard) < 0.01 ? "" : "text-amber-700"
+                                  }
+                                >
+                                  {fmt(closeSummary.diffGrossCard)}
+                                </strong>
+                              </div>
+                            </div>
+                          </details>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
 
               {/* Expenses */}
