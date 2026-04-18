@@ -99,7 +99,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   const [showClose, setShowClose] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<CashRegister[]>([]);
-  const [editingReg, setEditingReg] = useState<CashRegister | null>(null);
+  // (legacy editingReg removido — edição agora reusa os modais reais via editingRegId)
+  // 🔧 Edit-from-history mode: when set, the real Open/Close modals operate on this saved register
+  // (UPDATE in place) instead of creating/closing the active one.
+  const [editingRegId, setEditingRegId] = useState<string | null>(null);
+  const [editingRegBackup, setEditingRegBackup] = useState<CashRegister | null>(null);
   const [now, setNow] = useState<Date>(() => new Date());
   const [paymentTotals, setPaymentTotals] = useState<PaymentBreakdown>({
     pix: 0, card: 0, cash: 0, other: 0, total: 0,
@@ -458,7 +462,42 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
-    // Block if previous day still open
+    // 🔧 EDIT MODE: just UPDATE the saved register's opening fields
+    if (editingRegId) {
+      const cleanNotes = String(openForm.notes || "")
+        .replace(/\[Aberto por:[^\]]*\]/g, "")
+        .trim();
+      const closedTagMatch = (editingRegBackup?.notes || "").match(/\[Fechado por:[^\]]+\]/);
+      const closedTag = closedTagMatch ? ` ${closedTagMatch[0]}` : "";
+      const updatePayload: Record<string, unknown> = {
+        opening_cash: Number(openForm.cash) || 0,
+        opening_card: Number(openForm.card) || 0,
+        opening_pix: Number(openForm.pix) || 0,
+        opening_change_reserve: Number(openForm.change_reserve) || 0,
+        notes: `[Aberto por: ${openForm.responsible_name.trim()}]${closedTag} ${cleanNotes}`.trim(),
+      };
+      const { error } = await supabase
+        .from("cash_registers")
+        .update(updatePayload)
+        .eq("id", editingRegId);
+      if (error) {
+        toast({ title: "Erro ao salvar abertura", description: error.message, variant: "destructive" });
+        return;
+      }
+      toast({ title: "✅ Abertura atualizada" });
+      setShowOpen(false);
+      // Restore real active register
+      setRegister(editingRegBackup);
+      setEditingRegId(null);
+      setEditingRegBackup(null);
+      setOpenForm(defaultOpenForm);
+      try { localStorage.removeItem(openDraftKey); } catch {}
+      await fetchHistory();
+      await fetchRegister();
+      return;
+    }
+
+
     const { data: prev, error: prevErr } = await supabase
       .from("cash_registers")
       .select("business_day,status")
@@ -596,7 +635,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       : `${register.notes || ""} ${closerTag}`.trim();
     const payload = {
       status: "closed" as const,
-      closed_at: new Date().toISOString(),
+      closed_at: editingRegId && register.closed_at ? register.closed_at : new Date().toISOString(),
       closed_by: user.id,
       expense_employees: Number(closeForm.expense_employees) || 0,
       expense_couriers: Number(closeForm.expense_couriers) || 0,
@@ -652,21 +691,30 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     await supabase.from("cash_register_events").insert({
       cash_register_id: register.id,
       store_id: storeId,
-      event_type: "close",
+      event_type: editingRegId ? "edit_close" : "close",
       performed_by: user.id,
       snapshot: payload,
     });
-    toast({ title: "🔒 Caixa fechado!" });
+    toast({ title: editingRegId ? "✅ Fechamento atualizado" : "🔒 Caixa fechado!" });
     setShowClose(false);
     try { localStorage.removeItem(closeDraftKey); } catch {}
     setCloseForm(defaultCloseForm);
+    const wasEditing = !!editingRegId;
+    if (wasEditing) {
+      setRegister(editingRegBackup);
+      setEditingRegId(null);
+      setEditingRegBackup(null);
+      await fetchHistory();
+    }
     await fetchRegister();
-    // Imprime relatório automaticamente após fechar
-    const reportData: CashRegister = {
-      ...register,
-      ...payload,
-    } as CashRegister;
-    printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
+    // Imprime relatório automaticamente após fechar (apenas em fechamento real)
+    if (!wasEditing) {
+      const reportData: CashRegister = {
+        ...register,
+        ...payload,
+      } as CashRegister;
+      printRegisterReport(reportData, paymentTotals, closeSummary, orderStats, topItems);
+    }
   };
 
   /** Fetch history of all registers */
@@ -769,52 +817,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     printRegisterReport(reg, totals, summary, stats, top);
   };
 
-  /** Save edits to a saved register */
-  const saveRegisterEdits = async () => {
-    if (!editingReg) return;
-    const { id, ...rest } = editingReg as any;
-    // Reconstruir notes: [Aberto por: X] [Fechado por: Y] + obs limpas
-    const openTag = rest._opened_by_name?.trim()
-      ? `[Aberto por: ${rest._opened_by_name.trim()}]`
-      : "";
-    const closeTag = rest._closed_by_name?.trim()
-      ? `[Fechado por: ${rest._closed_by_name.trim()}]`
-      : "";
-    const cleanObs = String(rest._clean_notes ?? rest.notes ?? "")
-      .replace(/\[Aberto por:[^\]]*\]/g, "")
-      .replace(/\[Fechado por:[^\]]*\]/g, "")
-      .trim();
-    const finalNotes = [openTag, closeTag, cleanObs].filter(Boolean).join(" ").trim();
-
-    const payload: Record<string, unknown> = {
-      opening_cash: Number(rest.opening_cash) || 0,
-      opening_card: Number(rest.opening_card) || 0,
-      opening_change_reserve: Number(rest.opening_change_reserve) || 0,
-      expense_employees: Number(rest.expense_employees) || 0,
-      expense_couriers: Number(rest.expense_couriers) || 0,
-      expense_purchases: Number(rest.expense_purchases) || 0,
-      expense_gasoline: Number(rest.expense_gasoline) || 0,
-      expense_ads: Number(rest.expense_ads) || 0,
-      expense_ads_external: Number(rest.expense_ads_external) || 0,
-      expense_other: Number(rest.expense_other) || 0,
-      closing_pix: Number(rest.closing_pix) || 0,
-      closing_card: Number(rest.closing_card) || 0,
-      closing_cash: Number(rest.closing_cash) || 0,
-      notes: finalNotes,
-    };
-    if (rest.opened_at) payload.opened_at = rest.opened_at;
-    if (rest.closed_at) payload.closed_at = rest.closed_at;
-
-    const { error } = await supabase.from("cash_registers").update(payload).eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "✅ Relatório atualizado" });
-    setEditingReg(null);
-    await fetchHistory();
-    await fetchRegister();
-  };
+  // (saveRegisterEdits removido — edição agora é feita via handleOpen/handleClose em modo editingRegId)
 
   // Reopen check: allowed if same business day OR before 6am of next day
   const canReopen = useMemo(() => {
@@ -1001,7 +1004,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       </div>
 
       {/* OPEN MODAL */}
-      <Dialog open={showOpen} onOpenChange={setShowOpen}>
+      <Dialog open={showOpen} onOpenChange={(o) => {
+        setShowOpen(o);
+        if (!o && editingRegId) {
+          // Cancelou edição da abertura → restaurar caixa ativo real
+          setRegister(editingRegBackup);
+          setEditingRegId(null);
+          setEditingRegBackup(null);
+          setOpenForm(defaultOpenForm);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Abrir Caixa — {todayBusinessDay}</DialogTitle>
@@ -1058,7 +1070,16 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       </Dialog>
 
       {/* CLOSE MODAL */}
-      <Dialog open={showClose} onOpenChange={setShowClose}>
+      <Dialog open={showClose} onOpenChange={(o) => {
+        setShowClose(o);
+        if (!o && editingRegId) {
+          // Cancelou edição do fechamento → restaurar caixa ativo real
+          setRegister(editingRegBackup);
+          setEditingRegId(null);
+          setEditingRegBackup(null);
+          setCloseForm(defaultCloseForm);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Fechar Caixa — {register?.business_day}</DialogTitle>
@@ -1556,27 +1577,65 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   <div>Aberto: {formatDateTimeBR(r.opened_at)}</div>
                   {r.closed_at && <div>Fechado: {formatDateTimeBR(r.closed_at)}</div>}
                 </div>
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-2 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => reprintRegister(r)}>
                     <Printer size={14} className="mr-1" /> Imprimir
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
-                    const notes = r.notes || "";
-                    const oM = notes.match(/\[Aberto por:\s*([^\]]+)\]/);
-                    const cM = notes.match(/\[Fechado por:\s*([^\]]+)\]/);
-                    const cleanNotes = notes
-                      .replace(/\[Aberto por:[^\]]*\]/g, "")
-                      .replace(/\[Fechado por:[^\]]*\]/g, "")
-                      .trim();
-                    setEditingReg({
-                      ...r,
-                      _opened_by_name: oM ? oM[1].trim() : "",
-                      _closed_by_name: cM ? cM[1].trim() : "",
-                      _clean_notes: cleanNotes,
-                    } as any);
+                    // 🔧 Abrir o MODAL REAL de Abertura, pré-preenchido, em modo edição
+                    const oM = (r.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+                    setEditingRegBackup(register);
+                    setEditingRegId(r.id);
+                    setRegister(r);
+                    setOpenForm({
+                      cash: String(r.opening_cash ?? 0),
+                      card: String(r.opening_card ?? 0),
+                      pix: String(r.opening_pix ?? 0),
+                      change_reserve: String(r.opening_change_reserve ?? 0),
+                      notes: "",
+                      responsible_name: oM ? oM[1].trim() : "",
+                    });
+                    setShowHistory(false);
+                    setShowOpen(true);
                   }}>
-                    <Pencil size={14} className="mr-1" /> Editar
+                    <Pencil size={14} className="mr-1" /> Editar Abertura
                   </Button>
+                  {r.closed_at && (
+                    <Button size="sm" variant="outline" onClick={() => {
+                      // 🔧 Abrir o MODAL REAL de Fechamento, pré-preenchido, em modo edição
+                      const cM = (r.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
+                      setEditingRegBackup(register);
+                      setEditingRegId(r.id);
+                      setRegister(r);
+                      setCloseForm({
+                        ...defaultCloseForm,
+                        expense_employees: String(r.expense_employees ?? 0),
+                        expense_couriers: String(r.expense_couriers ?? 0),
+                        expense_purchases: String(r.expense_purchases ?? 0),
+                        expense_gasoline: String(r.expense_gasoline ?? 0),
+                        expense_ads: String(r.expense_ads ?? 0),
+                        expense_ads_external: String(r.expense_ads_external ?? 0),
+                        expense_other: String(r.expense_other ?? 0),
+                        expense_employees_method: (r.expense_employees_method as PayMethod) || "cash",
+                        expense_couriers_method: (r.expense_couriers_method as PayMethod) || "cash",
+                        expense_purchases_method: (r.expense_purchases_method as PayMethod) || "cash",
+                        expense_gasoline_method: (r.expense_gasoline_method as PayMethod) || "cash",
+                        expense_ads_method: (r.expense_ads_method as PayMethod) || "cash",
+                        expense_other_method: (r.expense_other_method as PayMethod) || "cash",
+                        closing_pix: String(r.closing_pix ?? 0),
+                        closing_card: String(r.closing_card ?? 0),
+                        closing_cash: String(r.closing_cash ?? 0),
+                        declared_gross_cash: String((r as any).declared_gross_cash ?? (r as any).gross_cash ?? 0),
+                        declared_gross_pix: String((r as any).declared_gross_pix ?? (r as any).gross_pix ?? 0),
+                        declared_gross_card: String((r as any).declared_gross_card ?? (r as any).gross_card ?? 0),
+                        responsible_name: cM ? cM[1].trim() : "",
+                      });
+                      setShowHistory(false);
+                      setShowClose(true);
+                    }}>
+                      <Pencil size={14} className="mr-1" /> Editar Fechamento
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -1587,140 +1646,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* EDIT MODAL — replica das telas originais (Abertura + Fechamento) */}
-      <Dialog open={!!editingReg} onOpenChange={(o) => !o && setEditingReg(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Caixa — {editingReg?.business_day}</DialogTitle>
-          </DialogHeader>
-          {editingReg && (() => {
-            const er = editingReg as any;
-            const set = (patch: Record<string, unknown>) => setEditingReg({ ...er, ...patch });
-            const numField = (key: string) => ({
-              type: "number" as const,
-              step: "0.01",
-              value: er[key] ?? 0,
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => set({ [key]: e.target.value }),
-            });
-            const toLocalInput = (iso: string | null | undefined) => {
-              if (!iso) return "";
-              const d = new Date(iso);
-              const pad = (n: number) => String(n).padStart(2, "0");
-              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-            };
-            return (
-              <Tabs defaultValue="abertura" className="py-2">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="abertura">📂 Abertura</TabsTrigger>
-                  <TabsTrigger value="fechamento" disabled={!er.closed_at}>
-                    🔒 Fechamento {!er.closed_at && "(em aberto)"}
-                  </TabsTrigger>
-                </TabsList>
-
-                {/* TAB ABERTURA — espelha o modal de Abrir Caixa */}
-                <TabsContent value="abertura" className="space-y-3 pt-3">
-                  <div>
-                    <Label>Data/Hora da abertura</Label>
-                    <Input
-                      type="datetime-local"
-                      value={toLocalInput(er.opened_at)}
-                      onChange={(e) => set({ opened_at: new Date(e.target.value).toISOString() })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Responsável pela abertura <span className="text-destructive">*</span></Label>
-                    <Input
-                      placeholder="Nome de quem abriu o caixa"
-                      value={er._opened_by_name || ""}
-                      onChange={(e) => set({ _opened_by_name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Dinheiro em caixa (R$)</Label>
-                    <Input {...numField("opening_cash")} />
-                  </div>
-                  <div>
-                    <Label>Saldo em máquina/conta (R$)</Label>
-                    <Input {...numField("opening_card")} />
-                  </div>
-                  <div>
-                    <Label>Troco reserva (R$)</Label>
-                    <Input {...numField("opening_change_reserve")} />
-                  </div>
-                </TabsContent>
-
-                {/* TAB FECHAMENTO — espelha o modal de Fechar Caixa */}
-                <TabsContent value="fechamento" className="space-y-4 pt-3">
-                  <div>
-                    <Label>Data/Hora do fechamento</Label>
-                    <Input
-                      type="datetime-local"
-                      value={toLocalInput(er.closed_at)}
-                      onChange={(e) => set({ closed_at: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Responsável pelo fechamento <span className="text-destructive">*</span></Label>
-                    <Input
-                      placeholder="Nome de quem fechou o caixa"
-                      value={er._closed_by_name || ""}
-                      onChange={(e) => set({ _closed_by_name: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="font-bold text-sm">💸 Gastos do dia</div>
-                    {[
-                      ["expense_employees", "Funcionários"],
-                      ["expense_couriers", "Entregadores"],
-                      ["expense_purchases", "Compras"],
-                      ["expense_gasoline", "Gasolina"],
-                      ["expense_ads", "Anúncios / Divulgação"],
-                      ["expense_other", "Outros"],
-                    ].map(([key, label]) => (
-                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
-                        <Label className="text-sm">{label}</Label>
-                        <Input className="w-40" {...numField(key as string)} />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="font-bold text-sm">💰 Saldo final em caixa</div>
-                    {[
-                      ["closing_pix", "PIX"],
-                      ["closing_card", "Máquina de cartão"],
-                      ["closing_cash", "Dinheiro"],
-                    ].map(([key, label]) => (
-                      <div key={key} className="grid grid-cols-[1fr_auto] items-center gap-2">
-                        <Label className="text-sm">{label}</Label>
-                        <Input className="w-40" {...numField(key as string)} />
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <div className="pt-3">
-                  <Label>Observações</Label>
-                  <Input
-                    value={er._clean_notes ?? ""}
-                    onChange={(e) => set({ _clean_notes: e.target.value })}
-                  />
-                </div>
-              </Tabs>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingReg(null)}>Cancelar</Button>
-            <Button onClick={saveRegisterEdits} className="bg-primary text-primary-foreground">Salvar alterações</Button>
-            {editingReg && (
-              <Button variant="outline" onClick={() => reprintRegister(editingReg)}>
-                <Printer size={14} className="mr-1" /> Imprimir
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
