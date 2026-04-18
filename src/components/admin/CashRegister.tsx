@@ -1604,27 +1604,65 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   <div>Aberto: {formatDateTimeBR(r.opened_at)}</div>
                   {r.closed_at && <div>Fechado: {formatDateTimeBR(r.closed_at)}</div>}
                 </div>
-                <div className="ml-auto flex gap-2">
+                <div className="ml-auto flex gap-2 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => reprintRegister(r)}>
                     <Printer size={14} className="mr-1" /> Imprimir
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => {
-                    const notes = r.notes || "";
-                    const oM = notes.match(/\[Aberto por:\s*([^\]]+)\]/);
-                    const cM = notes.match(/\[Fechado por:\s*([^\]]+)\]/);
-                    const cleanNotes = notes
-                      .replace(/\[Aberto por:[^\]]*\]/g, "")
-                      .replace(/\[Fechado por:[^\]]*\]/g, "")
-                      .trim();
-                    setEditingReg({
-                      ...r,
-                      _opened_by_name: oM ? oM[1].trim() : "",
-                      _closed_by_name: cM ? cM[1].trim() : "",
-                      _clean_notes: cleanNotes,
-                    } as any);
+                    // 🔧 Abrir o MODAL REAL de Abertura, pré-preenchido, em modo edição
+                    const oM = (r.notes || "").match(/\[Aberto por:\s*([^\]]+)\]/);
+                    setEditingRegBackup(register);
+                    setEditingRegId(r.id);
+                    setRegister(r);
+                    setOpenForm({
+                      cash: String(r.opening_cash ?? 0),
+                      card: String(r.opening_card ?? 0),
+                      pix: String(r.opening_pix ?? 0),
+                      change_reserve: String(r.opening_change_reserve ?? 0),
+                      notes: "",
+                      responsible_name: oM ? oM[1].trim() : "",
+                    });
+                    setShowHistory(false);
+                    setShowOpen(true);
                   }}>
-                    <Pencil size={14} className="mr-1" /> Editar
+                    <Pencil size={14} className="mr-1" /> Editar Abertura
                   </Button>
+                  {r.closed_at && (
+                    <Button size="sm" variant="outline" onClick={() => {
+                      // 🔧 Abrir o MODAL REAL de Fechamento, pré-preenchido, em modo edição
+                      const cM = (r.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
+                      setEditingRegBackup(register);
+                      setEditingRegId(r.id);
+                      setRegister(r);
+                      setCloseForm({
+                        ...defaultCloseForm,
+                        expense_employees: String(r.expense_employees ?? 0),
+                        expense_couriers: String(r.expense_couriers ?? 0),
+                        expense_purchases: String(r.expense_purchases ?? 0),
+                        expense_gasoline: String(r.expense_gasoline ?? 0),
+                        expense_ads: String(r.expense_ads ?? 0),
+                        expense_ads_external: String(r.expense_ads_external ?? 0),
+                        expense_other: String(r.expense_other ?? 0),
+                        expense_employees_method: (r.expense_employees_method as PayMethod) || "cash",
+                        expense_couriers_method: (r.expense_couriers_method as PayMethod) || "cash",
+                        expense_purchases_method: (r.expense_purchases_method as PayMethod) || "cash",
+                        expense_gasoline_method: (r.expense_gasoline_method as PayMethod) || "cash",
+                        expense_ads_method: (r.expense_ads_method as PayMethod) || "cash",
+                        expense_other_method: (r.expense_other_method as PayMethod) || "cash",
+                        closing_pix: String(r.closing_pix ?? 0),
+                        closing_card: String(r.closing_card ?? 0),
+                        closing_cash: String(r.closing_cash ?? 0),
+                        declared_gross_cash: String(r.declared_gross_cash ?? r.gross_cash ?? 0),
+                        declared_gross_pix: String(r.declared_gross_pix ?? r.gross_pix ?? 0),
+                        declared_gross_card: String(r.declared_gross_card ?? r.gross_card ?? 0),
+                        responsible_name: cM ? cM[1].trim() : "",
+                      });
+                      setShowHistory(false);
+                      setShowClose(true);
+                    }}>
+                      <Pencil size={14} className="mr-1" /> Editar Fechamento
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
