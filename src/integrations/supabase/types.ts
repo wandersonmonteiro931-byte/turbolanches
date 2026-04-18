@@ -221,6 +221,7 @@ export type Database = {
           expected_cash: number
           expected_pix: number
           expense_ads: number
+          expense_ads_external: number
           expense_ads_method: string
           expense_couriers: number
           expense_couriers_method: string
@@ -268,6 +269,7 @@ export type Database = {
           expected_cash?: number
           expected_pix?: number
           expense_ads?: number
+          expense_ads_external?: number
           expense_ads_method?: string
           expense_couriers?: number
           expense_couriers_method?: string
@@ -315,6 +317,7 @@ export type Database = {
           expected_cash?: number
           expected_pix?: number
           expense_ads?: number
+          expense_ads_external?: number
           expense_ads_method?: string
           expense_couriers?: number
           expense_couriers_method?: string
