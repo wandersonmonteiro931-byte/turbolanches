@@ -1062,6 +1062,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               {/* Expenses */}
               <div className="space-y-2">
                 <div className="font-bold text-sm">💸 Gastos do dia</div>
+                <div className="text-[11px] text-muted-foreground italic">
+                  Selecione a forma de pagamento de cada gasto — afeta o cálculo do esperado em caixa.
+                </div>
                 {[
                   ["expense_employees", "Funcionários"],
                   ["expense_couriers", "Entregadores"],
@@ -1071,11 +1074,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_other", "Outros"],
                 ].map(([key, label]) => {
                   const isCouriers = key === "expense_couriers";
+                  const methodKey = `${key}_method` as keyof typeof closeForm;
                   const declared = Number((closeForm as any)[key]) || 0;
                   const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
                   return (
                     <div key={key} className="space-y-1">
-                      <div className="grid grid-cols-2 gap-2 items-center">
+                      <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
                         <Label className="text-sm flex items-center gap-1">
                           {label}
                           {isCouriers && autoCouriers.total > 0 && (
@@ -1090,6 +1094,19 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                             </span>
                           )}
                         </Label>
+                        <Select
+                          value={(closeForm as any)[methodKey]}
+                          onValueChange={(v) => setCloseForm({ ...closeForm, [methodKey]: v as PayMethod })}
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">💰 Dinheiro</SelectItem>
+                            <SelectItem value="pix">📲 PIX</SelectItem>
+                            <SelectItem value="card">💳 Cartão</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <Input
                           type="number"
                           step="0.01"
@@ -1115,6 +1132,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                     </div>
                   );
                 })}
+                <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                  <div className="rounded bg-muted/50 px-2 py-1">💰 Dinheiro: <strong>{fmt(closeSummary.expensesByMethod.cash)}</strong></div>
+                  <div className="rounded bg-muted/50 px-2 py-1">📲 PIX: <strong>{fmt(closeSummary.expensesByMethod.pix)}</strong></div>
+                  <div className="rounded bg-muted/50 px-2 py-1">💳 Cartão: <strong>{fmt(closeSummary.expensesByMethod.card)}</strong></div>
+                </div>
                 <div className="text-right text-sm font-bold">
                   Total gastos: <span className="text-destructive">{fmt(closeSummary.expensesTotal)}</span>
                 </div>
