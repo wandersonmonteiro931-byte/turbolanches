@@ -131,22 +131,45 @@ const Index = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative w-full"
       >
-      <div className="relative w-full overflow-hidden aspect-[1600/525] bg-gradient-to-br from-primary via-primary/80 to-primary/60">
+      <div className="relative w-full overflow-hidden aspect-[1600/525] bg-primary">
           {banners.length > 0 ? (
             <>
-              {/* Blurred background fill — extends image edges infinitely */}
+              {/* Stretched edge fill — extends image left/right edges to cover full width without zooming center */}
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={`bg-${activeBanner}`}
+                  key={`edges-${activeBanner}`}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.5 }}
-                  className="absolute inset-0 bg-cover bg-center scale-150 blur-2xl opacity-60"
-                  style={{ backgroundImage: `url(${banners[activeBanner]?.image_url || "/placeholder.svg"})` }}
-                />
+                  className="absolute inset-0"
+                >
+                  {/* Left edge stretched */}
+                  <div
+                    className="absolute inset-y-0 left-0 w-1/2"
+                    style={{
+                      backgroundImage: `url(${banners[activeBanner]?.image_url || "/placeholder.svg"})`,
+                      backgroundSize: "auto 100%",
+                      backgroundPosition: "left center",
+                      backgroundRepeat: "no-repeat",
+                      transform: "scaleX(20)",
+                      transformOrigin: "left center",
+                    }}
+                  />
+                  {/* Right edge stretched */}
+                  <div
+                    className="absolute inset-y-0 right-0 w-1/2"
+                    style={{
+                      backgroundImage: `url(${banners[activeBanner]?.image_url || "/placeholder.svg"})`,
+                      backgroundSize: "auto 100%",
+                      backgroundPosition: "right center",
+                      backgroundRepeat: "no-repeat",
+                      transform: "scaleX(20)",
+                      transformOrigin: "right center",
+                    }}
+                  />
+                </motion.div>
               </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-transparent to-primary/40" />
               <AnimatePresence mode="wait">
                 <motion.img
                   key={activeBanner}
@@ -159,7 +182,6 @@ const Index = () => {
                   className="relative h-full w-full object-contain"
                 />
               </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
