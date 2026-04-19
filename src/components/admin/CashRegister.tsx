@@ -1677,11 +1677,37 @@ ${reg.expense_ads > 0 ? `<div class="row"><span>Anúncios:</span><span>${f(reg.e
 ${reg.expense_other > 0 ? `<div class="row"><span>Outros:</span><span>${f(reg.expense_other)}</span></div>` : ""}
 <div class="row"><span>TOTAL:</span><strong>${f(summary.expensesTotal)}</strong></div>
 <hr/>
-<div><strong>CONFERÊNCIA (Esp. / Cont. / Dif.)</strong></div>
-<div class="row"><span>💰 Dinheiro:</span><span>${f(summary.expectedCash)} / ${f(reg.closing_cash)} / <strong>${f(summary.diffCash)}</strong></span></div>
-<div class="row"><span>📲 PIX:</span><span>${f(summary.expectedPix)} / ${f(reg.closing_pix)} / <strong>${f(summary.diffPix)}</strong></span></div>
-<div class="row"><span>💳 Cartão:</span><span>${f(summary.expectedCard)} / ${f(reg.closing_card)} / <strong>${f(summary.diffCard)}</strong></span></div>
-<div class="row big ${Math.abs(summary.diffTotal) > 0.01 ? "warn" : ""}"><span>DIFERENÇA:</span><strong>${f(summary.diffTotal)}</strong></div>
+${(() => {
+  // Só considerar como "informado" os campos que o operador realmente digitou.
+  // Quando o valor declarado é 0 e o esperado também é 0, tratamos como "—".
+  // Quando o valor declarado é 0 mas o esperado é > 0, consideramos não informado.
+  const cashInformed = Number(reg.closing_cash) > 0 || Number(summary.expectedCash) === 0;
+  const pixInformed  = Number(reg.closing_pix)  > 0 || Number(summary.expectedPix)  === 0;
+  const cardInformed = Number(reg.closing_card) > 0 || Number(summary.expectedCard) === 0;
+  const dash = "—";
+  const declaredAccount = Number(reg.closing_pix) + Number(reg.closing_card);
+  const accountInformed = pixInformed || cardInformed;
+  const diffCashShown = cashInformed ? `<strong>${f(summary.diffCash)}</strong>` : `<strong>${dash}</strong>`;
+  const diffPixShown  = pixInformed  ? `<strong>${f(summary.diffPix)}</strong>`  : `<strong>${dash}</strong>`;
+  const diffCardShown = cardInformed ? `<strong>${f(summary.diffCard)}</strong>` : `<strong>${dash}</strong>`;
+  const declCash = cashInformed ? f(reg.closing_cash) : dash;
+  const declPix  = pixInformed  ? f(reg.closing_pix)  : dash;
+  const declCard = cardInformed ? f(reg.closing_card) : dash;
+  // Diferença total apenas para campos informados
+  let diffTotalReal = 0;
+  if (cashInformed) diffTotalReal += summary.diffCash;
+  if (pixInformed)  diffTotalReal += summary.diffPix;
+  if (cardInformed) diffTotalReal += summary.diffCard;
+  const anyInformed = cashInformed || pixInformed || cardInformed;
+  // Saldo final usa o VALOR REAL INFORMADO quando houver; caso contrário, "—"
+  const finalCash = cashInformed ? f(reg.closing_cash) : dash;
+  const finalAccount = accountInformed ? f(declaredAccount) : dash;
+  return `
+<div><strong>CONFERÊNCIA (Esp. / Inf. / Dif.)</strong></div>
+<div class="row"><span>💰 Dinheiro:</span><span>${f(summary.expectedCash)} / ${declCash} / ${diffCashShown}</span></div>
+<div class="row"><span>📲 PIX:</span><span>${f(summary.expectedPix)} / ${declPix} / ${diffPixShown}</span></div>
+<div class="row"><span>💳 Cartão:</span><span>${f(summary.expectedCard)} / ${declCard} / ${diffCardShown}</span></div>
+<div class="row big ${anyInformed && Math.abs(diffTotalReal) > 0.01 ? "warn" : ""}"><span>DIFERENÇA:</span><strong>${anyInformed ? f(diffTotalReal) : dash}</strong></div>
 <hr/>
 <div><strong>RESULTADO</strong></div>
 <div class="row"><span>Bruto:</span><span>${f(summary.grossRevenue)}</span></div>
@@ -1690,9 +1716,10 @@ ${reg.expense_other > 0 ? `<div class="row"><span>Outros:</span><span>${f(reg.ex
 <div class="row"><span>− Custo prod.${summary.cogsIsEstimate ? " (est.)" : ""}:</span><span class="warn">${f(summary.productsCost)}</span></div>
 <div class="row big ${summary.cogsIsEstimate ? "warn" : ""}"><span>LUCRO${summary.cogsIsEstimate ? " EST." : ""}:</span><strong>${f(summary.netAfterCogs)}</strong></div>
 <hr/>
-<div><strong>SALDO FINAL</strong></div>
-<div class="row big"><span>💰 Gaveta:</span><strong>${f(summary.expectedCash)}</strong></div>
-<div class="row big"><span>🏦 Conta:</span><strong>${f(summary.expectedPix + summary.expectedCard)}</strong></div>
+<div><strong>SALDO FINAL (valores informados)</strong></div>
+<div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
+<div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div>`;
+})()}
 <script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
 </body></html>`;
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
