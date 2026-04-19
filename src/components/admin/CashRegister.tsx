@@ -903,11 +903,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const diffGrossCard = roundMoney(declaredGrossCard - grossCard);
 
     // ============= ETAPA 3: SALDO ESPERADO (após gastos, com abertura) =============
-    // Esperado = Abertura (do método) + Vendas (do método) − Gastos (do método)
-    // Caixa físico (dinheiro) inclui o troco reserva — vai parar fisicamente na gaveta.
-    const expectedCash = roundMoney(openingCash + openingChange + grossCash - expensesByMethod.cash);
-    const expectedPix  = roundMoney(openingPix  + grossPix  - expensesByMethod.pix);
-    const expectedCard = roundMoney(openingCard + grossCard - expensesByMethod.card);
+    // Esperado = Abertura (do método) + Vendas (do método) − Gastos PAGOS (do método)
+    const expectedCash = roundMoney(openingCash + openingChange + grossCash - paidByMethod.cash);
+    const expectedPix  = roundMoney(openingPix  + grossPix  - paidByMethod.pix);
+    const expectedCard = roundMoney(openingCard + grossCard - paidByMethod.card);
     const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
     const diffCash = roundMoney(declaredCash - expectedCash);
