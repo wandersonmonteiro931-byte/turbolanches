@@ -628,20 +628,24 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     }
     // ⚠️ Aviso (não bloqueia) se diferença > R$ 20 — APENAS para campos
     // que o operador realmente digitou. Campos vazios não geram alerta.
-    const cashTyped = (closeForm.closing_cash ?? "").toString().trim() !== "";
-    const pixTyped  = (closeForm.closing_pix  ?? "").toString().trim() !== "";
-    const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
-    const diffs: string[] = [];
-    if (cashTyped && Math.abs(closeSummary.diffCash) > 20) diffs.push(`• Dinheiro: ${fmt(closeSummary.diffCash)}`);
-    if (pixTyped  && Math.abs(closeSummary.diffPix)  > 20) diffs.push(`• PIX: ${fmt(closeSummary.diffPix)}`);
-    if (cardTyped && Math.abs(closeSummary.diffCard) > 20) diffs.push(`• Cartão: ${fmt(closeSummary.diffCard)}`);
-    if (diffs.length > 0) {
-      const ok = window.confirm(
-        `⚠️ Divergência detectada (acima de R$ 20):\n\n` +
-        diffs.join("\n") +
-        `\n\nConfirma o fechamento mesmo assim?`
-      );
-      if (!ok) return;
+    // Em modo EDIÇÃO de um fechamento já salvo, suprimimos o alerta porque
+    // o operador está apenas reajustando valores já conferidos antes.
+    if (!editingRegId) {
+      const cashTyped = (closeForm.closing_cash ?? "").toString().trim() !== "";
+      const pixTyped  = (closeForm.closing_pix  ?? "").toString().trim() !== "";
+      const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
+      const diffs: string[] = [];
+      if (cashTyped && Math.abs(closeSummary.diffCash) > 20) diffs.push(`• Dinheiro: ${fmt(closeSummary.diffCash)}`);
+      if (pixTyped  && Math.abs(closeSummary.diffPix)  > 20) diffs.push(`• PIX: ${fmt(closeSummary.diffPix)}`);
+      if (cardTyped && Math.abs(closeSummary.diffCard) > 20) diffs.push(`• Cartão: ${fmt(closeSummary.diffCard)}`);
+      if (diffs.length > 0) {
+        const ok = window.confirm(
+          `⚠️ Divergência detectada (acima de R$ 20):\n\n` +
+          diffs.join("\n") +
+          `\n\nConfirma o fechamento mesmo assim?`
+        );
+        if (!ok) return;
+      }
     }
     const closerTag = `[Fechado por: ${closeForm.responsible_name.trim()}]`;
     const baseNotes = (register.notes || "").includes("[Fechado por:")
