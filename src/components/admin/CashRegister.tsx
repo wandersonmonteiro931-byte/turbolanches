@@ -151,10 +151,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     declared_gross_cash: "0",
     declared_gross_pix: "0",
     declared_gross_card: "0",
-    closing_pix: "0",
-    closing_card: "0",
-    closing_cash: "0",
-    closing_account: "0", // PIX + cartão (campo unificado da UI)
+    // Valores REAIS informados pelo operador — começam vazios para
+    // forçar digitação manual e nunca herdar valores de sessões antigas.
+    closing_pix: "",
+    closing_card: "",
+    closing_cash: "",
+    closing_account: "", // PIX + cartão (campo unificado da UI)
     notes: "",
     responsible_name: "",
   };
@@ -431,11 +433,13 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     setCloseForm((prev) => {
       const next = { ...prev };
       const isZero = (v: string) => !v || Number(v) === 0;
-      // NÃO auto-preencher os campos "Valores reais ao final do dia"
-      // (closing_cash / closing_pix / closing_card / closing_account).
-      // Esses valores DEVEM ser digitados manualmente pelo operador,
-      // caso contrário o "Informado" vira igual ao "Esperado" e mascara
-      // qualquer divergência real de caixa.
+      // SEMPRE zera os campos "Valores reais ao final do dia" ao abrir o
+      // modal de fechamento — eles devem ser digitados manualmente a cada
+      // fechamento, sem herdar rascunho antigo do localStorage.
+      next.closing_cash = "";
+      next.closing_pix = "";
+      next.closing_card = "";
+      next.closing_account = "";
       if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
       // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
       const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
