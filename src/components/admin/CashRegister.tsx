@@ -45,12 +45,6 @@ interface CashRegister {
   expense_gasoline_method: PayMethod;
   expense_ads_method: PayMethod;
   expense_other_method: PayMethod;
-  expense_employees_paid?: boolean;
-  expense_couriers_paid?: boolean;
-  expense_purchases_paid?: boolean;
-  expense_gasoline_paid?: boolean;
-  expense_ads_paid?: boolean;
-  expense_other_paid?: boolean;
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
@@ -153,12 +147,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     expense_gasoline_method: "cash" as PayMethod,
     expense_ads_method: "cash" as PayMethod,
     expense_other_method: "cash" as PayMethod,
-    expense_employees_paid: true,
-    expense_couriers_paid: true,
-    expense_purchases_paid: true,
-    expense_gasoline_paid: true,
-    expense_ads_paid: true,
-    expense_other_paid: true,
     // Caixa BRUTO (antes dos gastos) — valor real contado pelo operador
     declared_gross_cash: "0",
     declared_gross_pix: "0",
@@ -669,12 +657,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       expense_gasoline_method: closeForm.expense_gasoline_method,
       expense_ads_method: closeForm.expense_ads_method,
       expense_other_method: closeForm.expense_other_method,
-      expense_employees_paid: closeForm.expense_employees_paid,
-      expense_couriers_paid: closeForm.expense_couriers_paid,
-      expense_purchases_paid: closeForm.expense_purchases_paid,
-      expense_gasoline_paid: closeForm.expense_gasoline_paid,
-      expense_ads_paid: closeForm.expense_ads_paid,
-      expense_other_paid: closeForm.expense_other_paid,
       closing_pix: Number(closeForm.closing_pix) || 0,
       closing_card: Number(closeForm.closing_card) || 0,
       closing_cash: Number(closeForm.closing_cash) || 0,
@@ -868,20 +850,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // Troco agora é registrado por pedido (change_given_*), não no fechamento.
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
-    // ============= GASTOS APENAS PAGOS — afetam o "esperado" =============
-    // Se o gasto NÃO foi pago, o dinheiro/PIX/cartão ainda está na conta — não desconta do esperado.
-    const paidByMethod = { cash: 0, pix: 0, card: 0 };
-    const addPaid = (amountStr: string, method: PayMethod, paid: boolean) => {
-      if (!paid) return;
-      paidByMethod[method] += Number(amountStr) || 0;
-    };
-    addPaid(closeForm.expense_employees, closeForm.expense_employees_method, closeForm.expense_employees_paid);
-    addPaid(closeForm.expense_couriers,  closeForm.expense_couriers_method,  closeForm.expense_couriers_paid);
-    addPaid(closeForm.expense_purchases, closeForm.expense_purchases_method, closeForm.expense_purchases_paid);
-    addPaid(closeForm.expense_gasoline,  closeForm.expense_gasoline_method,  closeForm.expense_gasoline_paid);
-    addPaid(closeForm.expense_ads,       closeForm.expense_ads_method,       closeForm.expense_ads_paid);
-    addPaid(closeForm.expense_other,     closeForm.expense_other_method,     closeForm.expense_other_paid);
-    const unpaidTotal = expensesTotal - (paidByMethod.cash + paidByMethod.pix + paidByMethod.card);
 
     const declaredPix = Number(closeForm.closing_pix) || 0;
     const declaredCard = Number(closeForm.closing_card) || 0;
@@ -909,10 +877,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const diffGrossCard = roundMoney(declaredGrossCard - grossCard);
 
     // ============= ETAPA 3: SALDO ESPERADO (após gastos, com abertura) =============
-    // Esperado = Abertura (do método) + Vendas (do método) − Gastos PAGOS (do método)
-    const expectedCash = roundMoney(openingCash + openingChange + grossCash - paidByMethod.cash);
-    const expectedPix  = roundMoney(openingPix  + grossPix  - paidByMethod.pix);
-    const expectedCard = roundMoney(openingCard + grossCard - paidByMethod.card);
+    // Esperado = Abertura (do método) + Vendas (do método) − Gastos (do método)
+    const expectedCash = roundMoney(openingCash + openingChange + grossCash - expensesByMethod.cash);
+    const expectedPix  = roundMoney(openingPix  + grossPix  - expensesByMethod.pix);
+    const expectedCard = roundMoney(openingCard + grossCard - expensesByMethod.card);
     const expectedTotal = roundMoney(expectedCash + expectedPix + expectedCard);
 
     const diffCash = roundMoney(declaredCash - expectedCash);
@@ -928,7 +896,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const externalAds = Number(closeForm.expense_ads_external) || 0;
 
     return {
-      opening, expensesTotal, expensesByMethod, paidByMethod, unpaidTotal, declaredTotal, expectedTotal,
+      opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       // Etapa 1 — bruto
@@ -1210,10 +1178,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 ].map(([key, label]) => {
                   const isCouriers = key === "expense_couriers";
                   const methodKey = `${key}_method` as keyof typeof closeForm;
-                  const paidKey = `${key}_paid` as keyof typeof closeForm;
                   const declared = Number((closeForm as any)[key]) || 0;
                   const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
-                  const isPaid = (closeForm as any)[paidKey] !== false;
                   return (
                     <div key={key} className="space-y-1">
                       <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
@@ -1251,28 +1217,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
                         />
                       </div>
-                      {declared > 0 && (
-                        <div className="flex items-center gap-2 pl-1">
-                          <button
-                            type="button"
-                            onClick={() => setCloseForm({ ...closeForm, [paidKey]: !isPaid })}
-                            className={cn(
-                              "text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors",
-                              isPaid
-                                ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25"
-                                : "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
-                            )}
-                            title="Clique para alternar entre pago e pendente"
-                          >
-                            {isPaid ? "✔ Já pago" : "⏳ Ainda não pago"}
-                          </button>
-                          {!isPaid && (
-                            <span className="text-[10px] text-muted-foreground italic">
-                              Valor permanece na conta — não desconta do esperado
-                            </span>
-                          )}
-                        </div>
-                      )}
                       {isCouriers && autoCouriers.breakdown.length > 0 && (
                         <div className="text-[11px] text-muted-foreground pl-1">
                           🛵 Auto: {autoCouriers.breakdown.map(b => `${b.name} ${fmt(b.fee)}`).join(" • ")}
@@ -1330,66 +1274,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 )}
               </div>
 
-              {/* PROJEÇÃO — Lançado vs A Pagar (Opção 1) */}
-              {closeSummary.expensesTotal > 0 && (
-                <div className="space-y-2 rounded-lg border-2 border-blue-500/40 bg-blue-500/5 p-3">
-                  <div className="font-bold text-sm">📊 Projeção — Antes vs Depois dos Gastos</div>
-                  <div className="text-[11px] text-muted-foreground italic">
-                    Os gastos abaixo foram <strong>lançados</strong>, mas só afetam a gaveta quando forem <strong>pagos de fato</strong>.
-                  </div>
-
-                  {/* Caixa Físico (Dinheiro) */}
-                  <div className="rounded-md border border-border bg-card p-2 space-y-1">
-                    <div className="text-xs font-bold text-foreground">💰 Caixa físico (dinheiro)</div>
-                    <div className="grid grid-cols-3 gap-2 text-[11px]">
-                      <div>
-                        <div className="text-muted-foreground">Antes de pagar</div>
-                        <div className="font-bold text-emerald-600">{fmt(closeSummary.grossCash)}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Após pagar gastos</div>
-                        <div className="font-bold text-foreground">{fmt(closeSummary.expectedCash)}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Falta pagar</div>
-                        <div className="font-bold text-amber-600">{fmt(closeSummary.expensesByMethod.cash)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Conta digital (PIX + Cartão) */}
-                  {(closeSummary.expensesByMethod.pix + closeSummary.expensesByMethod.card) > 0 && (
-                    <div className="rounded-md border border-border bg-card p-2 space-y-1">
-                      <div className="text-xs font-bold text-foreground">🏦 Conta digital (PIX + Cartão)</div>
-                      <div className="grid grid-cols-3 gap-2 text-[11px]">
-                        <div>
-                          <div className="text-muted-foreground">Antes de pagar</div>
-                          <div className="font-bold text-emerald-600">
-                            {fmt(roundMoney(closeSummary.grossPix + closeSummary.grossCard))}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Após pagar gastos</div>
-                          <div className="font-bold text-foreground">
-                            {fmt(roundMoney(closeSummary.expectedPix + closeSummary.expectedCard))}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Falta pagar</div>
-                          <div className="font-bold text-amber-600">
-                            {fmt(roundMoney(closeSummary.expensesByMethod.pix + closeSummary.expensesByMethod.card))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-[10px] text-muted-foreground italic pt-1 border-t border-border">
-                    💡 Se você ainda <strong>não pagou</strong> os gastos, o valor real na gaveta deve ser próximo de <strong>{fmt(closeSummary.grossCash)}</strong>.
-                    Se já pagou tudo, deve ser próximo de <strong>{fmt(closeSummary.expectedCash)}</strong>.
-                  </div>
-                </div>
-              )}
 
               {/* ETAPA 1 — Valores reais do fim do dia (unificados) */}
               <div className="space-y-2 rounded-lg border-2 border-emerald-500/40 bg-emerald-500/5 p-3">
@@ -1639,12 +1523,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                         expense_gasoline_method: (r.expense_gasoline_method as PayMethod) || "cash",
                         expense_ads_method: (r.expense_ads_method as PayMethod) || "cash",
                         expense_other_method: (r.expense_other_method as PayMethod) || "cash",
-                        expense_employees_paid: (r as any).expense_employees_paid !== false,
-                        expense_couriers_paid: (r as any).expense_couriers_paid !== false,
-                        expense_purchases_paid: (r as any).expense_purchases_paid !== false,
-                        expense_gasoline_paid: (r as any).expense_gasoline_paid !== false,
-                        expense_ads_paid: (r as any).expense_ads_paid !== false,
-                        expense_other_paid: (r as any).expense_other_paid !== false,
                         closing_pix: String(r.closing_pix ?? 0),
                         closing_card: String(r.closing_card ?? 0),
                         closing_cash: String(r.closing_cash ?? 0),
