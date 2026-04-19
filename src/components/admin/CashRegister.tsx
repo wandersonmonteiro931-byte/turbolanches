@@ -1344,6 +1344,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
 
                 {/* 💰🏦 Saldo final consolidado: Caixa físico vs Conta digital */}
                 {(() => {
+                  // "Informado" = APENAS o que o operador digitou manualmente.
+                  // Se um campo está vazio, tratamos como "não informado" e
+                  // não calculamos diferença (evita alertas falsos).
+                  const cashTyped = (closeForm.closing_cash ?? "").toString().trim() !== "";
+                  const pixTyped = (closeForm.closing_pix ?? "").toString().trim() !== "";
+                  const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
+                  const accountTyped = pixTyped || cardTyped;
+
                   const declaredCash = Number(closeForm.closing_cash) || 0;
                   const declaredPix = Number(closeForm.closing_pix) || 0;
                   const declaredCard = Number(closeForm.closing_card) || 0;
@@ -1352,15 +1360,15 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   const diffCashTotal = roundMoney(declaredCash - closeSummary.expectedCash);
                   const diffAccount = roundMoney(declaredAccount - expectedAccount);
 
-                  const renderStatus = (diff: number) => {
+                  const renderStatus = (diff: number, typed: boolean) => {
+                    if (!typed) return <span className="text-muted-foreground italic">Aguardando valor informado…</span>;
                     const abs = Math.abs(diff);
                     if (abs < 0.01) return <span className="text-emerald-700 font-bold">✔ Tudo conferido</span>;
-                    if (abs < 10) return <span className="text-amber-700 font-bold">⚠️ Pequena diferença</span>;
-                    if (abs > 20) return <span className="text-destructive font-bold">🚨 Divergência relevante — conferir valores</span>;
                     return <span className="text-amber-800 font-bold">⚠️ Diferença a conferir</span>;
                   };
 
-                  const diffNode = (diff: number) => {
+                  const diffNode = (diff: number, typed: boolean) => {
+                    if (!typed) return <span className="text-muted-foreground">—</span>;
                     const abs = Math.abs(diff);
                     if (abs < 0.01) return <span className="text-foreground">{fmt(0)}</span>;
                     const isSurplus = diff > 0;
@@ -1371,6 +1379,13 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                       </span>
                     );
                   };
+
+                  const informedNode = (value: number, typed: boolean) =>
+                    typed ? (
+                      <strong className="text-foreground text-sm">{fmt(value)}</strong>
+                    ) : (
+                      <span className="text-muted-foreground italic text-xs">não informado</span>
+                    );
 
                   return (
                     <>
@@ -1384,10 +1399,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           <div className="font-bold text-sm">💰 Caixa físico (dinheiro)</div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>Esperado<br/><strong className="text-foreground text-sm">{fmt(closeSummary.expectedCash)}</strong></div>
-                            <div>Contado<br/><strong className="text-foreground text-sm">{fmt(declaredCash)}</strong></div>
-                            <div>Diferença<br/><strong className="text-sm">{diffNode(diffCashTotal)}</strong></div>
+                            <div>Contado<br/>{informedNode(declaredCash, cashTyped)}</div>
+                            <div>Diferença<br/><strong className="text-sm">{diffNode(diffCashTotal, cashTyped)}</strong></div>
                           </div>
-                          <div className="pt-1 text-[11px]">{renderStatus(diffCashTotal)}</div>
+                          <div className="pt-1 text-[11px]">{renderStatus(diffCashTotal, cashTyped)}</div>
                         </div>
 
                         {/* CONTA DIGITAL */}
@@ -1395,8 +1410,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           <div className="font-bold text-sm">🏦 Saldo em conta (PIX + Cartão)</div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>Esperado<br/><strong className="text-foreground text-sm">{fmt(expectedAccount)}</strong></div>
-                            <div>Informado<br/><strong className="text-foreground text-sm">{fmt(declaredAccount)}</strong></div>
-                            <div>Diferença<br/><strong className="text-sm">{diffNode(diffAccount)}</strong></div>
+                            <div>Informado<br/>{informedNode(declaredAccount, accountTyped)}</div>
+                            <div>Diferença<br/><strong className="text-sm">{diffNode(diffAccount, accountTyped)}</strong></div>
                           </div>
                           <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
                             <div className="rounded bg-background/60 px-2 py-1">
@@ -1406,7 +1421,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                               💳 Cartão esperado: <strong>{fmt(closeSummary.expectedCard)}</strong>
                             </div>
                           </div>
-                          <div className="pt-1 text-[11px]">{renderStatus(diffAccount)}</div>
+                          <div className="pt-1 text-[11px]">{renderStatus(diffAccount, accountTyped)}</div>
                         </div>
                       </div>
                     </>
