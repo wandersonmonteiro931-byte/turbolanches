@@ -1204,8 +1204,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 ].map(([key, label]) => {
                   const isCouriers = key === "expense_couriers";
                   const methodKey = `${key}_method` as keyof typeof closeForm;
+                  const paidKey = `${key}_paid` as keyof typeof closeForm;
                   const declared = Number((closeForm as any)[key]) || 0;
                   const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
+                  const isPaid = (closeForm as any)[paidKey] !== false;
                   return (
                     <div key={key} className="space-y-1">
                       <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
@@ -1243,6 +1245,28 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           onChange={(e) => setCloseForm({ ...closeForm, [key]: e.target.value })}
                         />
                       </div>
+                      {declared > 0 && (
+                        <div className="flex items-center gap-2 pl-1">
+                          <button
+                            type="button"
+                            onClick={() => setCloseForm({ ...closeForm, [paidKey]: !isPaid })}
+                            className={cn(
+                              "text-[11px] px-2 py-0.5 rounded-full font-bold transition-colors",
+                              isPaid
+                                ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25"
+                                : "bg-amber-500/15 text-amber-700 hover:bg-amber-500/25"
+                            )}
+                            title="Clique para alternar entre pago e pendente"
+                          >
+                            {isPaid ? "✔ Já pago" : "⏳ Ainda não pago"}
+                          </button>
+                          {!isPaid && (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              Valor permanece na conta — não desconta do esperado
+                            </span>
+                          )}
+                        </div>
+                      )}
                       {isCouriers && autoCouriers.breakdown.length > 0 && (
                         <div className="text-[11px] text-muted-foreground pl-1">
                           🛵 Auto: {autoCouriers.breakdown.map(b => `${b.name} ${fmt(b.fee)}`).join(" • ")}
