@@ -922,7 +922,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const externalAds = Number(closeForm.expense_ads_external) || 0;
 
     return {
-      opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
+      opening, expensesTotal, expensesByMethod, paidByMethod, unpaidTotal, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
       // Etapa 1 — bruto
