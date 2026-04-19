@@ -902,7 +902,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const netAfterCogs = netRevenue - productsCostInfo.totalCost;
     const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
-    const externalAds = Number(closeForm.expense_ads_external) || 0;
+    const externalAds = parseMoneyInput(closeForm.expense_ads_external);
 
     return {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
