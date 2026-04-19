@@ -1281,11 +1281,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                     Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCash)}</strong>
                   </span>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={closeForm.closing_cash}
-                    onChange={(e) => setCloseForm({ ...closeForm, closing_cash: e.target.value })}
+                    placeholder="0,00"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                      setCloseForm({ ...closeForm, closing_cash: raw });
+                    }}
                   />
                 </div>
 
