@@ -877,9 +877,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const grossPix  = roundMoney(paymentTotals.pix);
     const grossCard = roundMoney(paymentTotals.card);
 
-    const declaredGrossCash = Number(closeForm.declared_gross_cash) || 0;
-    const declaredGrossPix  = Number(closeForm.declared_gross_pix)  || 0;
-    const declaredGrossCard = Number(closeForm.declared_gross_card) || 0;
+    const declaredGrossCash = parseMoneyInput(closeForm.declared_gross_cash);
+    const declaredGrossPix  = parseMoneyInput(closeForm.declared_gross_pix);
+    const declaredGrossCard = parseMoneyInput(closeForm.declared_gross_card);
 
     const diffGrossCash = roundMoney(declaredGrossCash - grossCash);
     const diffGrossPix  = roundMoney(declaredGrossPix  - grossPix);
