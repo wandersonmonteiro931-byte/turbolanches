@@ -1388,59 +1388,13 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           }}
                         />
                       </div>
-                      <details className="pt-1">
-                          <summary className="cursor-pointer text-[11px] text-muted-foreground hover:text-foreground select-none pl-1">
-                            🔍 Detalhar PIX e Cartão
-                          </summary>
-                          <div className="mt-2 space-y-2 pl-3">
-                            <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                              <Label className="text-xs">📲 PIX</Label>
-                              <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedPix)}</strong>
-                              </span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={closeForm.closing_pix}
-                                onChange={(e) => {
-                                  const pix = Number(e.target.value) || 0;
-                                  const card = Number(closeForm.closing_card) || 0;
-                                  setCloseForm({
-                                    ...closeForm,
-                                    closing_pix: e.target.value,
-                                    closing_account: (pix + card).toFixed(2),
-                                  });
-                                }}
-                              />
-                            </div>
-                            <div className="grid grid-cols-[1fr_auto_120px] gap-2 items-center">
-                              <Label className="text-xs">💳 Cartão</Label>
-                              <span className="text-[11px] text-muted-foreground whitespace-nowrap">
-                                Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCard)}</strong>
-                              </span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={closeForm.closing_card}
-                                onChange={(e) => {
-                                  const card = Number(e.target.value) || 0;
-                                  const pix = Number(closeForm.closing_pix) || 0;
-                                  setCloseForm({
-                                    ...closeForm,
-                                    closing_card: e.target.value,
-                                    closing_account: (pix + card).toFixed(2),
-                                  });
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </details>
                     </div>
                   );
                 })()}
               </div>
+
+              {/* placeholder removed-details */}
+
 
               {/* ETAPA 3 — RESULTADO (consolidado: dinheiro vs conta) */}
               <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm space-y-2">
