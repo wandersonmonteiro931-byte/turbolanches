@@ -131,7 +131,7 @@ const Index = () => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative w-full"
       >
-      <div className="relative h-48 w-full overflow-hidden bg-primary">
+      <div className="relative w-full overflow-hidden bg-primary aspect-[1600/525]">
           {banners.length > 0 ? (
             <>
               <AnimatePresence mode="wait">
@@ -143,7 +143,7 @@ const Index = () => {
                   transition={{ duration: 0.5 }}
                   src={banners[activeBanner]?.image_url || "/placeholder.svg"}
                   alt={banners[activeBanner]?.title}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-contain"
                 />
               </AnimatePresence>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
