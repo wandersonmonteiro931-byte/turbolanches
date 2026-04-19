@@ -621,19 +621,20 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       });
       return;
     }
-    // ⚠️ Aviso (não bloqueia) se diferença > R$ 20
-    const diffMax = Math.max(
-      Math.abs(closeSummary.diffCash),
-      Math.abs(closeSummary.diffPix),
-      Math.abs(closeSummary.diffCard),
-    );
-    if (diffMax > 20) {
+    // ⚠️ Aviso (não bloqueia) se diferença > R$ 20 — APENAS para campos
+    // que o operador realmente digitou. Campos vazios não geram alerta.
+    const cashTyped = (closeForm.closing_cash ?? "").toString().trim() !== "";
+    const pixTyped  = (closeForm.closing_pix  ?? "").toString().trim() !== "";
+    const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
+    const diffs: string[] = [];
+    if (cashTyped && Math.abs(closeSummary.diffCash) > 20) diffs.push(`• Dinheiro: ${fmt(closeSummary.diffCash)}`);
+    if (pixTyped  && Math.abs(closeSummary.diffPix)  > 20) diffs.push(`• PIX: ${fmt(closeSummary.diffPix)}`);
+    if (cardTyped && Math.abs(closeSummary.diffCard) > 20) diffs.push(`• Cartão: ${fmt(closeSummary.diffCard)}`);
+    if (diffs.length > 0) {
       const ok = window.confirm(
         `⚠️ Divergência detectada (acima de R$ 20):\n\n` +
-        `• Dinheiro: ${fmt(closeSummary.diffCash)}\n` +
-        `• PIX: ${fmt(closeSummary.diffPix)}\n` +
-        `• Cartão: ${fmt(closeSummary.diffCard)}\n\n` +
-        `Confirma o fechamento mesmo assim?`
+        diffs.join("\n") +
+        `\n\nConfirma o fechamento mesmo assim?`
       );
       if (!ok) return;
     }
