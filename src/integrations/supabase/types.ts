@@ -226,16 +226,22 @@ export type Database = {
           expense_ads: number
           expense_ads_external: number
           expense_ads_method: string
+          expense_ads_paid: boolean
           expense_couriers: number
           expense_couriers_method: string
+          expense_couriers_paid: boolean
           expense_employees: number
           expense_employees_method: string
+          expense_employees_paid: boolean
           expense_gasoline: number
           expense_gasoline_method: string
+          expense_gasoline_paid: boolean
           expense_other: number
           expense_other_method: string
+          expense_other_paid: boolean
           expense_purchases: number
           expense_purchases_method: string
+          expense_purchases_paid: boolean
           final_card: number
           final_cash: number
           final_pix: number
@@ -283,16 +289,22 @@ export type Database = {
           expense_ads?: number
           expense_ads_external?: number
           expense_ads_method?: string
+          expense_ads_paid?: boolean
           expense_couriers?: number
           expense_couriers_method?: string
+          expense_couriers_paid?: boolean
           expense_employees?: number
           expense_employees_method?: string
+          expense_employees_paid?: boolean
           expense_gasoline?: number
           expense_gasoline_method?: string
+          expense_gasoline_paid?: boolean
           expense_other?: number
           expense_other_method?: string
+          expense_other_paid?: boolean
           expense_purchases?: number
           expense_purchases_method?: string
+          expense_purchases_paid?: boolean
           final_card?: number
           final_cash?: number
           final_pix?: number
@@ -340,16 +352,22 @@ export type Database = {
           expense_ads?: number
           expense_ads_external?: number
           expense_ads_method?: string
+          expense_ads_paid?: boolean
           expense_couriers?: number
           expense_couriers_method?: string
+          expense_couriers_paid?: boolean
           expense_employees?: number
           expense_employees_method?: string
+          expense_employees_paid?: boolean
           expense_gasoline?: number
           expense_gasoline_method?: string
+          expense_gasoline_paid?: boolean
           expense_other?: number
           expense_other_method?: string
+          expense_other_paid?: boolean
           expense_purchases?: number
           expense_purchases_method?: string
+          expense_purchases_paid?: boolean
           final_card?: number
           final_cash?: number
           final_pix?: number
