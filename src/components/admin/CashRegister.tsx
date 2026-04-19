@@ -1300,22 +1300,24 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           Esperado: <strong className="text-foreground">{fmt(expectedAccount)}</strong>
                         </span>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                          type="text"
+                          inputMode="decimal"
                           value={closeForm.closing_account ?? ""}
                           placeholder="0,00"
                           onChange={(e) => {
-                            const raw = e.target.value;
-                            const total = Number(raw) || 0;
-                            // Mantém string crua para permitir digitação livre,
-                            // e distribui o valor numérico: tudo no PIX (cartão = 0).
-                            // O detalhe permite ajuste fino entre PIX e cartão.
+                            // Aceita vírgula OU ponto. Mantém string crua para
+                            // permitir digitação livre, e distribui o valor
+                            // numérico exato (sem reformatar para .toFixed) para
+                            // não perder centavos durante a digitação.
+                            const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                            const normalized = raw.replace(",", ".");
+                            const total = Number(normalized);
+                            const safeTotal = Number.isFinite(total) ? total : 0;
                             setCloseForm({
                               ...closeForm,
                               closing_account: raw,
-                              closing_pix: total.toFixed(2),
-                              closing_card: "0.00",
+                              closing_pix: String(safeTotal),
+                              closing_card: "0",
                             });
                           }}
                         />
