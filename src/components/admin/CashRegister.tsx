@@ -433,24 +433,29 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     setCloseForm((prev) => {
       const next = { ...prev };
       const isZero = (v: string) => !v || Number(v) === 0;
-      // SEMPRE zera os campos "Valores reais ao final do dia" ao abrir o
-      // modal de fechamento — eles devem ser digitados manualmente a cada
-      // fechamento, sem herdar rascunho antigo do localStorage.
-      next.closing_cash = "";
-      next.closing_pix = "";
-      next.closing_card = "";
-      next.closing_account = "";
-      if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
-      // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
-      const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
-      const grossPixExp  = (register?.opening_pix  || 0) + paymentTotals.pix;
-      const grossCardExp = (register?.opening_card || 0) + paymentTotals.card;
-      if (isZero(prev.declared_gross_cash) && grossCashExp > 0) next.declared_gross_cash = grossCashExp.toFixed(2);
-      if (isZero(prev.declared_gross_pix)  && grossPixExp  > 0) next.declared_gross_pix  = grossPixExp.toFixed(2);
-      if (isZero(prev.declared_gross_card) && grossCardExp > 0) next.declared_gross_card = grossCardExp.toFixed(2);
+      // 🔧 Em modo EDIÇÃO de um fechamento já salvo, NÃO limpamos nem
+      // sobrescrevemos os valores — preservamos exatamente o que foi
+      // digitado/salvo originalmente para o operador apenas ajustar.
+      if (!editingRegId) {
+        // SEMPRE zera os campos "Valores reais ao final do dia" ao abrir o
+        // modal de fechamento NOVO — eles devem ser digitados manualmente,
+        // sem herdar rascunho antigo do localStorage.
+        next.closing_cash = "";
+        next.closing_pix = "";
+        next.closing_card = "";
+        next.closing_account = "";
+        if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
+        // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
+        const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
+        const grossPixExp  = (register?.opening_pix  || 0) + paymentTotals.pix;
+        const grossCardExp = (register?.opening_card || 0) + paymentTotals.card;
+        if (isZero(prev.declared_gross_cash) && grossCashExp > 0) next.declared_gross_cash = grossCashExp.toFixed(2);
+        if (isZero(prev.declared_gross_pix)  && grossPixExp  > 0) next.declared_gross_pix  = grossPixExp.toFixed(2);
+        if (isZero(prev.declared_gross_card) && grossCardExp > 0) next.declared_gross_card = grossCardExp.toFixed(2);
+      }
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, register]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, register, editingRegId]);
 
 
   const handleOpen = async () => {
@@ -1543,6 +1548,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                         closing_pix: String(r.closing_pix ?? 0),
                         closing_card: String(r.closing_card ?? 0),
                         closing_cash: String(r.closing_cash ?? 0),
+                        closing_account: ((Number(r.closing_pix) || 0) + (Number(r.closing_card) || 0)).toFixed(2),
                         declared_gross_cash: String((r as any).declared_gross_cash ?? (r as any).gross_cash ?? 0),
                         declared_gross_pix: String((r as any).declared_gross_pix ?? (r as any).gross_pix ?? 0),
                         declared_gross_card: String((r as any).declared_gross_card ?? (r as any).gross_card ?? 0),
