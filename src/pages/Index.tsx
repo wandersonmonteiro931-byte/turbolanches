@@ -133,56 +133,19 @@ const Index = () => {
       >
       <div className="relative w-full overflow-hidden aspect-[1600/525] bg-primary">
           {banners.length > 0 ? (
-            <>
-              {/* Stretched edge fill — extends image left/right edges to cover full width without zooming center */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={`edges-${activeBanner}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0"
-                >
-                  {/* Left edge stretched */}
-                  <div
-                    className="absolute inset-y-0 left-0 w-1/2"
-                    style={{
-                      backgroundImage: `url(${banners[activeBanner]?.image_url || "/placeholder.svg"})`,
-                      backgroundSize: "auto 100%",
-                      backgroundPosition: "left center",
-                      backgroundRepeat: "no-repeat",
-                      transform: "scaleX(20)",
-                      transformOrigin: "left center",
-                    }}
-                  />
-                  {/* Right edge stretched */}
-                  <div
-                    className="absolute inset-y-0 right-0 w-1/2"
-                    style={{
-                      backgroundImage: `url(${banners[activeBanner]?.image_url || "/placeholder.svg"})`,
-                      backgroundSize: "auto 100%",
-                      backgroundPosition: "right center",
-                      backgroundRepeat: "no-repeat",
-                      transform: "scaleX(20)",
-                      transformOrigin: "right center",
-                    }}
-                  />
-                </motion.div>
-              </AnimatePresence>
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={activeBanner}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                  src={banners[activeBanner]?.image_url || "/placeholder.svg"}
-                  alt={banners[activeBanner]?.title}
-                  className="relative h-full w-full object-contain"
-                />
-              </AnimatePresence>
-            </>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={activeBanner}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                src={banners[activeBanner]?.image_url || "/placeholder.svg"}
+                alt={banners[activeBanner]?.title}
+                className="absolute inset-0 h-full w-full"
+                style={{ objectFit: "fill" }}
+              />
+            </AnimatePresence>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-b from-primary/60 via-primary/30 to-transparent" />
           )}
