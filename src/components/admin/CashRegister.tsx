@@ -1548,6 +1548,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                         closing_pix: String(r.closing_pix ?? 0),
                         closing_card: String(r.closing_card ?? 0),
                         closing_cash: String(r.closing_cash ?? 0),
+                        closing_account: ((Number(r.closing_pix) || 0) + (Number(r.closing_card) || 0)).toFixed(2),
                         declared_gross_cash: String((r as any).declared_gross_cash ?? (r as any).gross_cash ?? 0),
                         declared_gross_pix: String((r as any).declared_gross_pix ?? (r as any).gross_pix ?? 0),
                         declared_gross_card: String((r as any).declared_gross_card ?? (r as any).gross_card ?? 0),
