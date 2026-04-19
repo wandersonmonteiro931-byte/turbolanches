@@ -19,6 +19,23 @@ import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
 type PayMethod = "cash" | "pix" | "card";
 
+/**
+ * Converte uma string monetária digitada (aceita vírgula OU ponto como
+ * separador decimal, e ignora separadores de milhar) em número.
+ * Ex.: "347,97" → 347.97 | "1.234,56" → 1234.56 | "" → 0
+ */
+const parseMoneyInput = (v: unknown): number => {
+  if (v === null || v === undefined) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  // Se contém vírgula, assumimos formato pt-BR (milhar com ".", decimal com ",")
+  const normalized = s.includes(",")
+    ? s.replace(/\./g, "").replace(",", ".")
+    : s;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+};
+
 interface CashRegister {
   id: string;
   store_id: string | null;
@@ -615,9 +632,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       return;
     }
     // 🚨 Validação: não permitir caixa negativo
-    const declaredCash = Number(closeForm.closing_cash) || 0;
-    const declaredPix = Number(closeForm.closing_pix) || 0;
-    const declaredCard = Number(closeForm.closing_card) || 0;
+    const declaredCash = parseMoneyInput(closeForm.closing_cash);
+    const declaredPix = parseMoneyInput(closeForm.closing_pix);
+    const declaredCard = parseMoneyInput(closeForm.closing_card);
     if (declaredCash < 0 || declaredPix < 0 || declaredCard < 0) {
       toast({
         title: "Valores inválidos",
@@ -636,29 +653,29 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       status: "closed" as const,
       closed_at: editingRegId && register.closed_at ? register.closed_at : new Date().toISOString(),
       closed_by: user.id,
-      expense_employees: Number(closeForm.expense_employees) || 0,
-      expense_couriers: Number(closeForm.expense_couriers) || 0,
-      expense_purchases: Number(closeForm.expense_purchases) || 0,
-      expense_gasoline: Number(closeForm.expense_gasoline) || 0,
-      expense_ads: Number(closeForm.expense_ads) || 0,
-      expense_ads_external: Number(closeForm.expense_ads_external) || 0,
-      expense_other: Number(closeForm.expense_other) || 0,
+      expense_employees: parseMoneyInput(closeForm.expense_employees),
+      expense_couriers: parseMoneyInput(closeForm.expense_couriers),
+      expense_purchases: parseMoneyInput(closeForm.expense_purchases),
+      expense_gasoline: parseMoneyInput(closeForm.expense_gasoline),
+      expense_ads: parseMoneyInput(closeForm.expense_ads),
+      expense_ads_external: parseMoneyInput(closeForm.expense_ads_external),
+      expense_other: parseMoneyInput(closeForm.expense_other),
       expense_employees_method: closeForm.expense_employees_method,
       expense_couriers_method: closeForm.expense_couriers_method,
       expense_purchases_method: closeForm.expense_purchases_method,
       expense_gasoline_method: closeForm.expense_gasoline_method,
       expense_ads_method: closeForm.expense_ads_method,
       expense_other_method: closeForm.expense_other_method,
-      closing_pix: Number(closeForm.closing_pix) || 0,
-      closing_card: Number(closeForm.closing_card) || 0,
-      closing_cash: Number(closeForm.closing_cash) || 0,
+      closing_pix: parseMoneyInput(closeForm.closing_pix),
+      closing_card: parseMoneyInput(closeForm.closing_card),
+      closing_cash: parseMoneyInput(closeForm.closing_cash),
       // Snapshot consolidado das métricas do fechamento
       expected_cash: closeSummary.expectedCash,
       expected_pix: closeSummary.expectedPix,
       expected_card: closeSummary.expectedCard,
-      declared_cash: Number(closeForm.closing_cash) || 0,
-      declared_pix: Number(closeForm.closing_pix) || 0,
-      declared_card: Number(closeForm.closing_card) || 0,
+      declared_cash: parseMoneyInput(closeForm.closing_cash),
+      declared_pix: parseMoneyInput(closeForm.closing_pix),
+      declared_card: parseMoneyInput(closeForm.closing_card),
       difference_cash: closeSummary.diffCash,
       difference_pix: closeSummary.diffPix,
       difference_card: closeSummary.diffCard,
@@ -843,9 +860,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
 
-    const declaredPix = Number(closeForm.closing_pix) || 0;
-    const declaredCard = Number(closeForm.closing_card) || 0;
-    const declaredCash = Number(closeForm.closing_cash) || 0;
+    const declaredPix = parseMoneyInput(closeForm.closing_pix);
+    const declaredCard = parseMoneyInput(closeForm.closing_card);
+    const declaredCash = parseMoneyInput(closeForm.closing_cash);
     const declaredTotal = declaredPix + declaredCard + declaredCash;
 
     const openingCash = register?.opening_cash || 0;
@@ -860,9 +877,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const grossPix  = roundMoney(paymentTotals.pix);
     const grossCard = roundMoney(paymentTotals.card);
 
-    const declaredGrossCash = Number(closeForm.declared_gross_cash) || 0;
-    const declaredGrossPix  = Number(closeForm.declared_gross_pix)  || 0;
-    const declaredGrossCard = Number(closeForm.declared_gross_card) || 0;
+    const declaredGrossCash = parseMoneyInput(closeForm.declared_gross_cash);
+    const declaredGrossPix  = parseMoneyInput(closeForm.declared_gross_pix);
+    const declaredGrossCard = parseMoneyInput(closeForm.declared_gross_card);
 
     const diffGrossCash = roundMoney(declaredGrossCash - grossCash);
     const diffGrossPix  = roundMoney(declaredGrossPix  - grossPix);
@@ -885,7 +902,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const netAfterCogs = netRevenue - productsCostInfo.totalCost;
     const cogsIsEstimate = productsCostInfo.missingCount > 0;
 
-    const externalAds = Number(closeForm.expense_ads_external) || 0;
+    const externalAds = parseMoneyInput(closeForm.expense_ads_external);
 
     return {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
@@ -1281,11 +1298,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                     Esperado: <strong className="text-foreground">{fmt(closeSummary.expectedCash)}</strong>
                   </span>
                   <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={closeForm.closing_cash}
-                    onChange={(e) => setCloseForm({ ...closeForm, closing_cash: e.target.value })}
+                    placeholder="0,00"
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                      setCloseForm({ ...closeForm, closing_cash: raw });
+                    }}
                   />
                 </div>
 
@@ -1300,22 +1320,24 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           Esperado: <strong className="text-foreground">{fmt(expectedAccount)}</strong>
                         </span>
                         <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
+                          type="text"
+                          inputMode="decimal"
                           value={closeForm.closing_account ?? ""}
                           placeholder="0,00"
                           onChange={(e) => {
-                            const raw = e.target.value;
-                            const total = Number(raw) || 0;
-                            // Mantém string crua para permitir digitação livre,
-                            // e distribui o valor numérico: tudo no PIX (cartão = 0).
-                            // O detalhe permite ajuste fino entre PIX e cartão.
+                            // Aceita vírgula OU ponto. Mantém string crua para
+                            // permitir digitação livre, e distribui o valor
+                            // numérico exato (sem reformatar para .toFixed) para
+                            // não perder centavos durante a digitação.
+                            const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                            const normalized = raw.replace(",", ".");
+                            const total = Number(normalized);
+                            const safeTotal = Number.isFinite(total) ? total : 0;
                             setCloseForm({
                               ...closeForm,
                               closing_account: raw,
-                              closing_pix: total.toFixed(2),
-                              closing_card: "0.00",
+                              closing_pix: String(safeTotal),
+                              closing_card: "0",
                             });
                           }}
                         />
@@ -1347,9 +1369,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
                   const accountTyped = pixTyped || cardTyped;
 
-                  const declaredCash = Number(closeForm.closing_cash) || 0;
-                  const declaredPix = Number(closeForm.closing_pix) || 0;
-                  const declaredCard = Number(closeForm.closing_card) || 0;
+                  const declaredCash = parseMoneyInput(closeForm.closing_cash);
+                  const declaredPix = parseMoneyInput(closeForm.closing_pix);
+                  const declaredCard = parseMoneyInput(closeForm.closing_card);
                   const expectedAccount = roundMoney(closeSummary.expectedPix + closeSummary.expectedCard);
                   const declaredAccount = roundMoney(declaredPix + declaredCard);
                   const diffCashTotal = roundMoney(declaredCash - closeSummary.expectedCash);
