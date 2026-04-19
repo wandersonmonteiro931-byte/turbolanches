@@ -19,6 +19,23 @@ import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
 type PayMethod = "cash" | "pix" | "card";
 
+/**
+ * Converte uma string monetária digitada (aceita vírgula OU ponto como
+ * separador decimal, e ignora separadores de milhar) em número.
+ * Ex.: "347,97" → 347.97 | "1.234,56" → 1234.56 | "" → 0
+ */
+const parseMoneyInput = (v: unknown): number => {
+  if (v === null || v === undefined) return 0;
+  const s = String(v).trim();
+  if (!s) return 0;
+  // Se contém vírgula, assumimos formato pt-BR (milhar com ".", decimal com ",")
+  const normalized = s.includes(",")
+    ? s.replace(/\./g, "").replace(",", ".")
+    : s;
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+};
+
 interface CashRegister {
   id: string;
   store_id: string | null;
