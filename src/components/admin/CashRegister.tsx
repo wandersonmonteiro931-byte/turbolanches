@@ -45,6 +45,12 @@ interface CashRegister {
   expense_gasoline_method: PayMethod;
   expense_ads_method: PayMethod;
   expense_other_method: PayMethod;
+  expense_employees_paid?: boolean;
+  expense_couriers_paid?: boolean;
+  expense_purchases_paid?: boolean;
+  expense_gasoline_paid?: boolean;
+  expense_ads_paid?: boolean;
+  expense_other_paid?: boolean;
   closing_pix: number;
   closing_card: number;
   closing_cash: number;
