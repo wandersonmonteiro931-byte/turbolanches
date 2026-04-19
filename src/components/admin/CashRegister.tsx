@@ -1369,9 +1369,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   const cardTyped = (closeForm.closing_card ?? "").toString().trim() !== "";
                   const accountTyped = pixTyped || cardTyped;
 
-                  const declaredCash = Number(closeForm.closing_cash) || 0;
-                  const declaredPix = Number(closeForm.closing_pix) || 0;
-                  const declaredCard = Number(closeForm.closing_card) || 0;
+                  const declaredCash = parseMoneyInput(closeForm.closing_cash);
+                  const declaredPix = parseMoneyInput(closeForm.closing_pix);
+                  const declaredCard = parseMoneyInput(closeForm.closing_card);
                   const expectedAccount = roundMoney(closeSummary.expectedPix + closeSummary.expectedCard);
                   const declaredAccount = roundMoney(declaredPix + declaredCard);
                   const diffCashTotal = roundMoney(declaredCash - closeSummary.expectedCash);
