@@ -860,9 +860,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
 
-    const declaredPix = Number(closeForm.closing_pix) || 0;
-    const declaredCard = Number(closeForm.closing_card) || 0;
-    const declaredCash = Number(closeForm.closing_cash) || 0;
+    const declaredPix = parseMoneyInput(closeForm.closing_pix);
+    const declaredCard = parseMoneyInput(closeForm.closing_card);
+    const declaredCash = parseMoneyInput(closeForm.closing_cash);
     const declaredTotal = declaredPix + declaredCard + declaredCash;
 
     const openingCash = register?.opening_cash || 0;
