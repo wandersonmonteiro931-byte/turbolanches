@@ -862,6 +862,21 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     // Troco agora é registrado por pedido (change_given_*), não no fechamento.
     const expensesTotal = expensesByMethod.cash + expensesByMethod.pix + expensesByMethod.card;
 
+    // ============= GASTOS APENAS PAGOS — afetam o "esperado" =============
+    // Se o gasto NÃO foi pago, o dinheiro/PIX/cartão ainda está na conta — não desconta do esperado.
+    const paidByMethod = { cash: 0, pix: 0, card: 0 };
+    const addPaid = (amountStr: string, method: PayMethod, paid: boolean) => {
+      if (!paid) return;
+      paidByMethod[method] += Number(amountStr) || 0;
+    };
+    addPaid(closeForm.expense_employees, closeForm.expense_employees_method, closeForm.expense_employees_paid);
+    addPaid(closeForm.expense_couriers,  closeForm.expense_couriers_method,  closeForm.expense_couriers_paid);
+    addPaid(closeForm.expense_purchases, closeForm.expense_purchases_method, closeForm.expense_purchases_paid);
+    addPaid(closeForm.expense_gasoline,  closeForm.expense_gasoline_method,  closeForm.expense_gasoline_paid);
+    addPaid(closeForm.expense_ads,       closeForm.expense_ads_method,       closeForm.expense_ads_paid);
+    addPaid(closeForm.expense_other,     closeForm.expense_other_method,     closeForm.expense_other_paid);
+    const unpaidTotal = expensesTotal - (paidByMethod.cash + paidByMethod.pix + paidByMethod.card);
+
     const declaredPix = Number(closeForm.closing_pix) || 0;
     const declaredCard = Number(closeForm.closing_card) || 0;
     const declaredCash = Number(closeForm.closing_cash) || 0;
