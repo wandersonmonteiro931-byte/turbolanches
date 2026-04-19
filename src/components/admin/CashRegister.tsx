@@ -632,9 +632,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       return;
     }
     // 🚨 Validação: não permitir caixa negativo
-    const declaredCash = Number(closeForm.closing_cash) || 0;
-    const declaredPix = Number(closeForm.closing_pix) || 0;
-    const declaredCard = Number(closeForm.closing_card) || 0;
+    const declaredCash = parseMoneyInput(closeForm.closing_cash);
+    const declaredPix = parseMoneyInput(closeForm.closing_pix);
+    const declaredCard = parseMoneyInput(closeForm.closing_card);
     if (declaredCash < 0 || declaredPix < 0 || declaredCard < 0) {
       toast({
         title: "Valores inválidos",
