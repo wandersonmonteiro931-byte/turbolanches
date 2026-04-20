@@ -1247,6 +1247,7 @@ export type Database = {
           original_price: number | null
           popular: boolean
           price: number
+          product_code: number
           sort_order: number
           store_id: string | null
           updated_at: string
@@ -1267,6 +1268,7 @@ export type Database = {
           original_price?: number | null
           popular?: boolean
           price: number
+          product_code: number
           sort_order?: number
           store_id?: string | null
           updated_at?: string
@@ -1287,6 +1289,7 @@ export type Database = {
           original_price?: number | null
           popular?: boolean
           price?: number
+          product_code?: number
           sort_order?: number
           store_id?: string | null
           updated_at?: string
@@ -2383,6 +2386,7 @@ export type Database = {
         Args: { _code: string }
         Returns: undefined
       }
+      next_product_code: { Args: { _category_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
