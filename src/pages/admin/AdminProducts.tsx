@@ -439,8 +439,9 @@ const AdminProducts = () => {
                       >
                         {p.active ? "✓ Visível" : "✕ Oculto"}
                       </button>
-                      <button onClick={() => openEdit(p)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
+                      <button onClick={() => openEdit(p)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                      <button onClick={() => handleDuplicate(p)} title="Duplicar" className="p-1.5 text-muted-foreground hover:text-primary"><Copy size={16} /></button>
+                      <button onClick={() => handleDelete(p.id)} title="Excluir" className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
                     </div>
                   );
                 })}
