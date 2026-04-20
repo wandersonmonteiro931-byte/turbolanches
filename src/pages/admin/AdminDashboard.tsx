@@ -1436,6 +1436,14 @@ const AdminDashboard = () => {
           <Wallet size={16} />
           Gastos
         </button>
+
+        <button
+          onClick={() => setShowCalculator(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Calculator size={16} />
+          Calculadora
+        </button>
       </div>
 
       {showPeriodReport && (
