@@ -344,7 +344,9 @@ const AdminProducts = () => {
                 })}
               </div>
             </div>
-          ))}
+            </div>
+            );
+          })}
         </div>
       )}
     </div>
