@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Download, X, Share, ShieldCheck, MoreVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PUSH_SW_URL } from "@/lib/pwa";
+import { useStoreName } from "@/hooks/useStoreName";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -178,7 +179,7 @@ const InstallGate = () => {
                 )}
               </div>
               <h2 className="text-xl font-bold text-foreground">
-                Instale o app Turbo Lanches!
+                Instale o app {storeName}!
               </h2>
 
               <p className="text-sm text-muted-foreground">
