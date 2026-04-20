@@ -19,6 +19,8 @@ const ITEM_TEMPLATE_TOKENS = [
   "[VALORITEM]",
   "[PREÇOPROD]",
   "[OBSITEM]",
+  "[CÓDIGOPROD]",
+  "[CODIGOPROD]",
 ] as const;
 
 const replaceTokens = (text: string, variables: Record<string, string>) => {
@@ -273,13 +275,16 @@ const AdminPrint = () => {
       "[NOMEENTREGADOR]": courierName || "",
     };
 
+    const formatCode = (c: any) => (c != null && c !== "" ? `[${c}] ` : "");
+
     const buildItemsTableHtml = () => {
       if (items.length === 0) return "";
       const fmt2 = fmt;
       let rows = "";
       items.forEach((item) => {
         const lineTotal = Number(item.unit_price) * item.quantity;
-        rows += `<tr><td class="items-qty">${item.quantity}x</td><td class="items-name">${escapeHtml(item.product_name)}</td><td class="items-price">${fmt2(lineTotal)}</td></tr>`;
+        const codePrefix = formatCode(item.product_code);
+        rows += `<tr><td class="items-qty">${item.quantity}x</td><td class="items-name">${escapeHtml(codePrefix + item.product_name)}</td><td class="items-price">${fmt2(lineTotal)}</td></tr>`;
         const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
         addons.forEach((addon: any) => {
           const addonLabel = `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`;
@@ -310,6 +315,7 @@ const AdminPrint = () => {
 
         return items.flatMap((item) => {
           const lineTotal = Number(item.unit_price) * item.quantity;
+          const codeStr = item.product_code != null ? String(item.product_code) : "";
           const itemVars = {
             "[PRODUTO]": item.product_name,
             "[PRODUTOS]": item.product_name,
@@ -318,6 +324,8 @@ const AdminPrint = () => {
             "[VALORITEM]": fmt(lineTotal),
             "[PREÇOPROD]": fmt(Number(item.unit_price)),
             "[OBSITEM]": item.observations?.trim() || "",
+            "[CÓDIGOPROD]": codeStr,
+            "[CODIGOPROD]": codeStr,
           };
 
           if (shouldHideOptionalItemLine(itemTemplate, itemVars)) {
