@@ -41,6 +41,8 @@ const AdminProducts = () => {
   const { toast } = useToast();
   const dragItem = useRef<number | null>(null);
   const dragOver = useRef<number | null>(null);
+  const dragCategory = useRef<number | null>(null);
+  const dragOverCategory = useRef<number | null>(null);
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
