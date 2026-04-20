@@ -282,11 +282,25 @@ const AdminProducts = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {Object.entries(groupedProducts).map(([catName, catProducts]) => (
+          {Object.entries(groupedProducts).map(([catName, catProducts]) => {
+            const catIdx = categories.findIndex((c) => c.name === catName);
+            const isCategoryDraggable = catIdx !== -1;
+            return (
             <div key={catName} className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="border-b border-border bg-muted/30 px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">{catName}</h3>
-                <p className="text-xs text-muted-foreground">{catProducts.length} produto(s)</p>
+              <div
+                className={`border-b border-border bg-muted/30 px-4 py-2 flex items-center gap-2 ${isCategoryDraggable ? "cursor-grab active:cursor-grabbing active:opacity-70" : ""}`}
+                draggable={isCategoryDraggable}
+                onDragStart={() => { if (isCategoryDraggable) dragCategory.current = catIdx; }}
+                onDragEnter={() => { if (isCategoryDraggable) dragOverCategory.current = catIdx; }}
+                onDragOver={(e) => { if (isCategoryDraggable) e.preventDefault(); }}
+                onDragEnd={handleCategoryDragEnd}
+                title={isCategoryDraggable ? "Arraste para reordenar a seção" : undefined}
+              >
+                {isCategoryDraggable && <GripVertical size={16} className="shrink-0 text-muted-foreground" />}
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-foreground">{catName}</h3>
+                  <p className="text-xs text-muted-foreground">{catProducts.length} produto(s)</p>
+                </div>
               </div>
               <div className="divide-y divide-border/50">
                 {catProducts.map((p) => {
