@@ -627,21 +627,12 @@ const AdminOrders = () => {
         </div>
       )}
 
-      {/* Status Summary + Results Count */}
+      {/* Results Count */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs font-bold text-muted-foreground">
           {filteredOrders.length} pedido(s)
           {(searchQuery || activeFiltersCount > 0) && ` de ${allOrders.length} total`}
         </span>
-        {Object.entries(statusConfig).map(([key, val]) => {
-          const count = filteredOrders.filter((o) => o.status === key).length;
-          if (count === 0) return null;
-          return (
-            <span key={key} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-medium ${val.color}`}>
-              {val.label} ({count})
-            </span>
-          );
-        })}
       </div>
 
       {filteredOrders.length === 0 && (
@@ -653,14 +644,14 @@ const AdminOrders = () => {
 
       {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
       {(() => {
-        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; blink?: boolean; trashed?: boolean }> = [
-          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-amber-400 bg-amber-50 text-amber-800", blink: true },
-          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-purple-400 bg-purple-50 text-purple-800" },
-          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-emerald-400 bg-emerald-50 text-emerald-800" },
-          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-cyan-400 bg-cyan-50 text-cyan-800" },
-          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-green-500 bg-green-50 text-green-800" },
-          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-red-400 bg-red-50 text-red-800" },
-          { key: "lixeira", label: "🗑️ Lixeira", statuses: ["cancelled"], accent: "border-gray-400 bg-gray-100 text-gray-700", trashed: true },
+        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
+          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-border bg-muted/40 text-foreground" },
+          { key: "lixeira", label: "🗑️ Lixeira", statuses: ["cancelled"], accent: "border-border bg-muted/40 text-foreground", trashed: true },
         ];
 
         // Auto-load items for any visible order so cards show full info without clicks
@@ -674,7 +665,6 @@ const AdminOrders = () => {
             return section.statuses.includes(o.status) && !o.trashed_at;
           });
           if (sectionOrders.length === 0) return null;
-          const hasPending = section.blink && sectionOrders.length > 0;
           // Pendentes & Em Preparo expandidos por padrão; demais colapsadas
           const defaultOpen = section.key === "pendentes" || section.key === "preparo";
           const isOpen = expandedSections[section.key] ?? defaultOpen;
@@ -684,13 +674,11 @@ const AdminOrders = () => {
               <button
                 type="button"
                 onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
-                className={`w-full flex items-center gap-2 rounded-xl border-2 px-4 py-2 ${section.accent} ${
-                  hasPending ? "animate-pulse" : ""
-                }`}
+                className={`w-full flex items-center gap-2 rounded-xl border px-4 py-2 ${section.accent}`}
               >
                 {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                <h2 className="text-sm font-black uppercase tracking-wider">{section.label}</h2>
-                <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-bold">
+                <h2 className="text-sm font-bold uppercase tracking-wide">{section.label}</h2>
+                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-bold">
                   {sectionOrders.length}
                 </span>
               </button>
@@ -708,13 +696,7 @@ const AdminOrders = () => {
                   return (
                     <div
                       key={order.id}
-                      className={`flex flex-col rounded-xl border-2 bg-card shadow-sm overflow-hidden ${
-                        order.status === "pending" || order.status === "paid"
-                          ? "border-amber-400 ring-2 ring-amber-300 animate-pulse"
-                          : order.status === "ready" && order.courier_id
-                            ? "border-red-500 animate-pulse"
-                            : "border-border"
-                      }`}
+                      className="flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden"
                     >
                       {/* Header */}
                       <div className="flex items-start gap-3 p-3 border-b border-border">
