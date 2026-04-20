@@ -4,9 +4,8 @@ import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-show-ingredients";
+const MENU_CACHE_VERSION = "2026-04-20-product-codes";
 
-// Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
 const productsCache = new Map<string, Product[]>();
 
@@ -103,7 +102,6 @@ export function useProducts() {
         : supabase.from("ingredients").select("id, name, is_internal"),
     ]);
 
-    // Exclude internal ingredients (packaging, sachets, etc.) from customer-facing menu
     const ingNameMap = new Map<string, string>(
       (ingRes.data ?? [])
         .filter((i: any) => !i.is_internal)
@@ -161,37 +159,10 @@ export function useProducts() {
     );
 
     if (productsRes.data) {
-      const mapped = data.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        icon: c.icon || "",
-        image: c.image_url || "/placeholder.svg",
-      }));
-      categoriesCache.set(key, mapped);
-      setCategories(mapped);
-    }
-    setLoading(false);
-  }, [storeId, key]);
-
-  useEffect(() => {
-    fetchCategories();
-    const channel = supabase
-      .channel("categories-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "categories" },
-        () => fetchCategories()
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [fetchCategories]);
-
-  return { categories, loading };
-}
-
-export function useProducts() {
+      const mapped = productsRes.data.map((p: any) => ({
+        id: p.id,
+        code: p.product_code,
+        name: p.name,
         description: sanitizeCustomerDescription(p.description),
         price: p.price,
         originalPrice: p.original_price ?? undefined,
