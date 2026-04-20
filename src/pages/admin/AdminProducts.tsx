@@ -51,7 +51,7 @@ const AdminProducts = () => {
 
   const fetchData = async () => {
     let prodQuery = supabase.from("products").select("*").order("sort_order").order("name");
-    let catQuery = supabase.from("categories").select("id, name").order("sort_order");
+    let catQuery = supabase.from("categories").select("id, name, sort_order").order("sort_order");
     if (storeId) {
       prodQuery = prodQuery.eq("store_id", storeId);
       catQuery = catQuery.eq("store_id", storeId);
