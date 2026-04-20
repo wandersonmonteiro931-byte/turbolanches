@@ -50,6 +50,8 @@ import Kitchen from "./pages/Kitchen";
 import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
 import CourierPortal from "./pages/CourierPortal";
+import AdminEmployees from "./pages/admin/AdminEmployees";
+import EmployeePortal from "./pages/EmployeePortal";
 
 const queryClient = new QueryClient();
 
@@ -127,6 +129,7 @@ const AppInner = () => {
             <Route path="precificacao" element={<AdminPricing />} />
             <Route path="etiquetas" element={<AdminLabels />} />
             <Route path="reposicao" element={<AdminRestock />} />
+            <Route path="funcionarios" element={<AdminEmployees />} />
             <Route path="ia" element={<AdminAiControl />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
@@ -135,6 +138,7 @@ const AppInner = () => {
           <Route path="/cozinha" element={<Kitchen />} />
           <Route path="/admin/cardapio-png" element={<MenuExport />} />
           <Route path="/entregador" element={<CourierPortal />} />
+          <Route path="/funcionario" element={<EmployeePortal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
