@@ -20,6 +20,7 @@ interface Product {
   image_url: string | null;
   is_combo?: boolean;
   combo_item_count?: number;
+  product_code?: number | null;
 }
 
 interface Category {
@@ -236,7 +237,7 @@ const AdminManualOrder = () => {
 
   const loadLatestData = useCallback(async () => {
     const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes] = await Promise.all([
-      supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count").eq("active", true).order("sort_order").order("name"),
+      supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code").eq("active", true).order("sort_order").order("name"),
       supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
       supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
@@ -332,7 +333,7 @@ const AdminManualOrder = () => {
       // Wait for products to load, then build cart
       const { data: allProducts } = await supabase
         .from("products")
-        .select("id, name, price, category_id, image_url, is_combo, combo_item_count")
+        .select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code")
         .eq("active", true);
 
       const productMap = new Map((allProducts || []).map(p => [p.id, p]));
@@ -391,10 +392,35 @@ const AdminManualOrder = () => {
   };
 
   const filteredProducts = products.filter((p) => {
-    const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      p.name.toLowerCase().includes(q) ||
+      String(p.product_code ?? "").includes(q);
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== "Enter") return;
+    const q = search.trim();
+    if (!q) return;
+    // Exact code match: add to cart and clear
+    const codeNum = parseInt(q);
+    if (!Number.isNaN(codeNum)) {
+      const exact = products.find((p) => p.product_code === codeNum);
+      if (exact) {
+        addToCart(exact);
+        setSearch("");
+        return;
+      }
+    }
+    // Single name match: add it
+    if (filteredProducts.length === 1) {
+      addToCart(filteredProducts[0]);
+      setSearch("");
+    }
+  };
 
   const addToCart = (product: Product) => {
     setCart((prev) => {
@@ -609,6 +635,7 @@ const AdminManualOrder = () => {
           order_id: editOrderId,
           product_id: item.product.id,
           product_name: item.product.name,
+          product_code: item.product.product_code ?? null,
           quantity: item.quantity,
           unit_price: item.customPrice,
           observations: item.observations || null,
@@ -661,6 +688,7 @@ const AdminManualOrder = () => {
           order_id: order.id,
           product_id: item.product.id,
           product_name: item.product.name,
+          product_code: item.product.product_code ?? null,
           quantity: item.quantity,
           unit_price: item.customPrice,
           observations: item.observations || null,
@@ -940,7 +968,12 @@ const AdminManualOrder = () => {
                               inCart ? "border-primary bg-primary/10 shadow-sm" : "border-border bg-background hover:bg-muted"
                             }`}
                           >
-                            <p className="line-clamp-2 text-sm font-bold text-foreground">{product.name}</p>
+                            <p className="line-clamp-2 text-sm font-bold text-foreground">
+                              {product.product_code != null && (
+                                <span className="mr-1 rounded bg-muted px-1 text-[10px] font-mono text-muted-foreground">{product.product_code}</span>
+                              )}
+                              {product.name}
+                            </p>
                             <div className="mt-2 flex items-center justify-between gap-2">
                               <p className="text-sm font-black text-primary">R$ {fmt(product.price)}</p>
                               {isProductCombo(product) && (
