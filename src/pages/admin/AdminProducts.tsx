@@ -25,6 +25,7 @@ interface Product {
 interface Category {
   id: string;
   name: string;
+  sort_order?: number;
 }
 
 const AdminProducts = () => {
@@ -40,6 +41,8 @@ const AdminProducts = () => {
   const { toast } = useToast();
   const dragItem = useRef<number | null>(null);
   const dragOver = useRef<number | null>(null);
+  const dragCategory = useRef<number | null>(null);
+  const dragOverCategory = useRef<number | null>(null);
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
@@ -48,7 +51,7 @@ const AdminProducts = () => {
 
   const fetchData = async () => {
     let prodQuery = supabase.from("products").select("*").order("sort_order").order("name");
-    let catQuery = supabase.from("categories").select("id, name").order("sort_order");
+    let catQuery = supabase.from("categories").select("id, name, sort_order").order("sort_order");
     if (storeId) {
       prodQuery = prodQuery.eq("store_id", storeId);
       catQuery = catQuery.eq("store_id", storeId);
@@ -77,12 +80,16 @@ const AdminProducts = () => {
 
   const groupedProducts = useMemo(() => {
     const catMap = new Map(categories.map((c) => [c.id, c.name]));
-    return filteredProducts.reduce<Record<string, Product[]>>((groups, p) => {
+    const groups: Record<string, Product[]> = {};
+    // seed groups in category order so iteration follows sort_order
+    for (const c of categories) groups[c.name] = [];
+    for (const p of filteredProducts) {
       const key = p.category_id ? (catMap.get(p.category_id) || "Sem categoria") : "Sem categoria";
       if (!groups[key]) groups[key] = [];
       groups[key].push(p);
-      return groups;
-    }, {});
+    }
+    // remove empty seeded groups
+    return Object.fromEntries(Object.entries(groups).filter(([, items]) => items.length > 0));
   }, [filteredProducts, categories]);
 
   const openNew = () => {
@@ -139,6 +146,30 @@ const AdminProducts = () => {
     const updates = reordered.map((p, i) => supabase.from("products").update({ sort_order: i }).eq("id", p.id));
     await Promise.all(updates);
     toast({ title: "Ordem atualizada!" });
+  };
+
+  const handleCategoryDragEnd = async () => {
+    if (
+      dragCategory.current === null ||
+      dragOverCategory.current === null ||
+      dragCategory.current === dragOverCategory.current
+    ) {
+      dragCategory.current = null;
+      dragOverCategory.current = null;
+      return;
+    }
+    const reordered = [...categories];
+    const [moved] = reordered.splice(dragCategory.current, 1);
+    reordered.splice(dragOverCategory.current, 0, moved);
+    dragCategory.current = null;
+    dragOverCategory.current = null;
+    setCategories(reordered);
+
+    const updates = reordered.map((c, i) =>
+      supabase.from("categories").update({ sort_order: i }).eq("id", c.id)
+    );
+    await Promise.all(updates);
+    toast({ title: "Ordem das seções atualizada!" });
   };
 
   const getGlobalIndex = (product: Product) => products.indexOf(product);
@@ -251,11 +282,25 @@ const AdminProducts = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {Object.entries(groupedProducts).map(([catName, catProducts]) => (
+          {Object.entries(groupedProducts).map(([catName, catProducts]) => {
+            const catIdx = categories.findIndex((c) => c.name === catName);
+            const isCategoryDraggable = catIdx !== -1;
+            return (
             <div key={catName} className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="border-b border-border bg-muted/30 px-4 py-2">
-                <h3 className="text-sm font-semibold text-foreground">{catName}</h3>
-                <p className="text-xs text-muted-foreground">{catProducts.length} produto(s)</p>
+              <div
+                className={`border-b border-border bg-muted/30 px-4 py-2 flex items-center gap-2 ${isCategoryDraggable ? "cursor-grab active:cursor-grabbing active:opacity-70" : ""}`}
+                draggable={isCategoryDraggable}
+                onDragStart={() => { if (isCategoryDraggable) dragCategory.current = catIdx; }}
+                onDragEnter={() => { if (isCategoryDraggable) dragOverCategory.current = catIdx; }}
+                onDragOver={(e) => { if (isCategoryDraggable) e.preventDefault(); }}
+                onDragEnd={handleCategoryDragEnd}
+                title={isCategoryDraggable ? "Arraste para reordenar a seção" : undefined}
+              >
+                {isCategoryDraggable && <GripVertical size={16} className="shrink-0 text-muted-foreground" />}
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-foreground">{catName}</h3>
+                  <p className="text-xs text-muted-foreground">{catProducts.length} produto(s)</p>
+                </div>
               </div>
               <div className="divide-y divide-border/50">
                 {catProducts.map((p) => {
@@ -299,7 +344,8 @@ const AdminProducts = () => {
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
