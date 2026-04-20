@@ -259,9 +259,16 @@ const AdminOrders = () => {
 
   // Filtered orders
   const filteredOrders = useMemo(() => {
-    let result = allOrders;
-
-    // Show all orders — no filtering
+    // Hide unpaid PIX orders that are still pending/awaiting payment
+    // (mirrors Dashboard behavior for consistency).
+    let result = allOrders.filter((o) => {
+      if (
+        o.payment_method === "pix" &&
+        !o.payment_confirmed &&
+        (o.status === "pending" || o.status === "awaiting_payment")
+      ) return false;
+      return true;
+    });
 
     // Search
     if (searchQuery.length >= 1) {
