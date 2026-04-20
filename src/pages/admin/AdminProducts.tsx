@@ -80,12 +80,16 @@ const AdminProducts = () => {
 
   const groupedProducts = useMemo(() => {
     const catMap = new Map(categories.map((c) => [c.id, c.name]));
-    return filteredProducts.reduce<Record<string, Product[]>>((groups, p) => {
+    const groups: Record<string, Product[]> = {};
+    // seed groups in category order so iteration follows sort_order
+    for (const c of categories) groups[c.name] = [];
+    for (const p of filteredProducts) {
       const key = p.category_id ? (catMap.get(p.category_id) || "Sem categoria") : "Sem categoria";
       if (!groups[key]) groups[key] = [];
       groups[key].push(p);
-      return groups;
-    }, {});
+    }
+    // remove empty seeded groups
+    return Object.fromEntries(Object.entries(groups).filter(([, items]) => items.length > 0));
   }, [filteredProducts, categories]);
 
   const openNew = () => {
