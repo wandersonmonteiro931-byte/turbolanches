@@ -20,6 +20,7 @@ interface KitchenOrder {
 interface KitchenItem {
   id: string;
   product_name: string;
+  product_code: number | null;
   quantity: number;
   observations: string | null;
   addons_json: any;
@@ -108,7 +109,7 @@ const Kitchen = () => {
     if (ids.length > 0) {
       const { data: itemsData } = await supabase
         .from("order_items")
-        .select("id, product_name, quantity, observations, addons_json, order_id")
+        .select("id, product_name, product_code, quantity, observations, addons_json, order_id")
         .in("order_id", ids);
       if (itemsData) {
         const grouped: Record<string, KitchenItem[]> = {};
@@ -444,7 +445,7 @@ const Kitchen = () => {
                     return (
                       <div key={item.id}>
                         <div className="kds-item">
-                          {item.quantity}x {item.product_name}
+                          {item.quantity}x {item.product_code != null ? `[${item.product_code}] ` : ""}{item.product_name}
                         </div>
                         {addons && addons.length > 0 && addons.map((a: any, i: number) => (
                           <div key={i} className="kds-addon">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
