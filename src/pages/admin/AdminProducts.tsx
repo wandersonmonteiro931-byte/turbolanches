@@ -148,6 +148,30 @@ const AdminProducts = () => {
     toast({ title: "Ordem atualizada!" });
   };
 
+  const handleCategoryDragEnd = async () => {
+    if (
+      dragCategory.current === null ||
+      dragOverCategory.current === null ||
+      dragCategory.current === dragOverCategory.current
+    ) {
+      dragCategory.current = null;
+      dragOverCategory.current = null;
+      return;
+    }
+    const reordered = [...categories];
+    const [moved] = reordered.splice(dragCategory.current, 1);
+    reordered.splice(dragOverCategory.current, 0, moved);
+    dragCategory.current = null;
+    dragOverCategory.current = null;
+    setCategories(reordered);
+
+    const updates = reordered.map((c, i) =>
+      supabase.from("categories").update({ sort_order: i }).eq("id", c.id)
+    );
+    await Promise.all(updates);
+    toast({ title: "Ordem das seções atualizada!" });
+  };
+
   const getGlobalIndex = (product: Product) => products.indexOf(product);
 
   return (
