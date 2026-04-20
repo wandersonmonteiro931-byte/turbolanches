@@ -921,12 +921,37 @@ const AdminManualOrder = () => {
               {showProducts && (
                 <motion.div {...fadeIn}>
                   <SectionBlock title="Busca e filtros" className="bg-muted/20">
+                    <div className="flex items-center gap-2 rounded-xl border-2 border-primary/40 bg-background px-3 py-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Cód.</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="Código rápido (Enter para adicionar)"
+                        onKeyDown={(e) => {
+                          if (e.key !== "Enter") return;
+                          const val = (e.target as HTMLInputElement).value.trim();
+                          if (!val) return;
+                          const codeNum = parseInt(val);
+                          if (Number.isNaN(codeNum)) return;
+                          const exact = products.find((p) => p.product_code === codeNum);
+                          if (exact) {
+                            addToCart(exact);
+                            (e.target as HTMLInputElement).value = "";
+                          } else {
+                            toast.error(`Código ${codeNum} não encontrado`);
+                          }
+                        }}
+                        className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none"
+                      />
+                    </div>
+
                     <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
                       <Search size={16} className="text-muted-foreground" />
                       <input
-                        placeholder="Buscar item, combo ou produto..."
+                        placeholder="Buscar item, combo, produto ou código..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                       />
                     </div>

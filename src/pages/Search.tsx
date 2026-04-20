@@ -27,13 +27,14 @@ const Search = () => {
   const filtered = useMemo(() => {
     let result = products.filter((p) => p.active !== false);
 
-    // Text search
-    if (query.length >= 2) {
-      const q = query.toLowerCase();
+    // Text search (matches name, description, or product code)
+    if (query.trim().length >= 1) {
+      const q = query.toLowerCase().trim();
       result = result.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
+          p.description.toLowerCase().includes(q) ||
+          (p.code != null && String(p.code).includes(q))
       );
     }
 
@@ -52,7 +53,7 @@ const Search = () => {
     return result;
   }, [products, query, selectedCategory, activeFilter]);
 
-  const hasActiveFilters = query.length >= 2 || activeFilter || selectedCategory;
+  const hasActiveFilters = query.trim().length >= 1 || activeFilter || selectedCategory;
 
   const clearAll = () => {
     setQuery("");
@@ -76,7 +77,7 @@ const Search = () => {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar hambúrguer, bebida, combo..."
+              placeholder="Buscar por nome ou código (ex: 201)..."
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               autoFocus
             />

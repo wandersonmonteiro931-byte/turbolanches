@@ -144,7 +144,12 @@ const Cart = () => {
                 <img src={item.product.image} alt={item.product.name} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-foreground text-sm truncate">{item.product.name}</h3>
+                    <h3 className="font-semibold text-foreground text-sm truncate">
+                      {item.product.code != null && (
+                        <span className="font-mono text-[10px] text-muted-foreground mr-1">[{item.product.code}]</span>
+                      )}
+                      {item.product.name}
+                    </h3>
                     <button onClick={() => removeItem(index)} className="text-muted-foreground hover:text-destructive shrink-0">
                       <Trash2 size={15} />
                     </button>
@@ -244,7 +249,11 @@ const Cart = () => {
             const lineTotal = (item.product.price + addonsTotal) * item.quantity;
             return (
               <div key={index} className="flex justify-between text-xs text-muted-foreground">
-                <span className="truncate mr-2">{item.quantity}x {item.product.name}</span>
+                <span className="truncate mr-2">
+                  {item.quantity}x {item.product.code != null && (
+                    <span className="font-mono text-muted-foreground/70">[{item.product.code}]</span>
+                  )} {item.product.name}
+                </span>
                 <span className="shrink-0 text-foreground">{fmt(lineTotal)}</span>
               </div>
             );

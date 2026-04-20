@@ -10,6 +10,7 @@ import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
 interface LastOrderItem {
   product_name: string;
+  product_code: number | null;
   quantity: number;
   unit_price: number;
   observations: string | null;
@@ -93,7 +94,7 @@ export default function ReorderSection() {
       const [{ data: items }, { data: existingReview }] = await Promise.all([
         supabase
           .from("order_items")
-          .select("product_name, quantity, unit_price, observations, addons_json, product_id")
+          .select("product_name, product_code, quantity, unit_price, observations, addons_json, product_id")
           .eq("order_id", order.id),
         supabase
           .from("reviews")
@@ -303,7 +304,7 @@ export default function ReorderSection() {
                 Pedido #{formattedOrderNumber} • {formatDate(lastOrder.created_at)}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                {lastOrder.items.map((i) => `${i.quantity}x ${i.product_name}`).join(", ")}
+                {lastOrder.items.map((i) => `${i.quantity}x ${i.product_code != null ? `[${i.product_code}] ` : ""}${i.product_name}`).join(", ")}
               </p>
             </div>
             <span className="shrink-0 rounded-lg bg-fire-gradient px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-sm">
