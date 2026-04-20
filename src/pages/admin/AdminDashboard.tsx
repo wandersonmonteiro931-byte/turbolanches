@@ -2196,6 +2196,8 @@ const AdminDashboard = () => {
           onClose={() => setShowExpenseManager(false)}
         />
       )}
+
+      <CalculatorModal open={showCalculator} onClose={() => setShowCalculator(false)} />
     </div>
   );
 };
