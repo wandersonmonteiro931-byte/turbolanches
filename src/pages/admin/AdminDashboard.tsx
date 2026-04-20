@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw
+  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,7 @@ import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
+import CalculatorModal from "@/components/admin/CalculatorModal";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -159,6 +160,7 @@ const AdminDashboard = () => {
   const [deliveryPeriodTo, setDeliveryPeriodTo] = useState<Date | undefined>(undefined);
   const [trackingCourierId, setTrackingCourierId] = useState<string | null>(null);
   const [showExpenseManager, setShowExpenseManager] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
@@ -1434,6 +1436,14 @@ const AdminDashboard = () => {
           <Wallet size={16} />
           Gastos
         </button>
+
+        <button
+          onClick={() => setShowCalculator(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Calculator size={16} />
+          Calculadora
+        </button>
       </div>
 
       {showPeriodReport && (
@@ -2186,6 +2196,8 @@ const AdminDashboard = () => {
           onClose={() => setShowExpenseManager(false)}
         />
       )}
+
+      <CalculatorModal open={showCalculator} onClose={() => setShowCalculator(false)} />
     </div>
   );
 };
