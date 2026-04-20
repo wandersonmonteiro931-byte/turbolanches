@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useAddresses } from "@/hooks/useAddresses";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
+import { useStoreName } from "@/hooks/useStoreName";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
 import footerLogo from "@/assets/footer-logo-footer.png";
 
