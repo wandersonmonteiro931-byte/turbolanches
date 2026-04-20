@@ -152,6 +152,28 @@ const CalculatorModal = ({ open, onClose }: Props) => {
     ]);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA") return;
+      const k = e.key;
+      if (/^[0-9]$/.test(k)) { e.preventDefault(); inputDigit(k); return; }
+      if (k === "." || k === ",") { e.preventDefault(); inputDigit("."); return; }
+      if (k === "Backspace") { e.preventDefault(); backspace(); return; }
+      if (k === "Escape") { e.preventDefault(); mode === "calc" ? reset() : (setReceived(""), setTotal("")); return; }
+      if (mode === "calc") {
+        if (k === "+" || k === "-" || k === "*" || k === "/") { e.preventDefault(); inputOp(k as Op); return; }
+        if (k === "Enter" || k === "=") { e.preventDefault(); equals(); return; }
+      } else {
+        if (k === "Tab") { e.preventDefault(); setActiveChangeField((f) => f === "received" ? "total" : "received"); return; }
+        if (k === "Enter") { e.preventDefault(); confirmChange(); return; }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, mode, display, previous, op, waitingNew, received, total, activeChangeField]);
+
   const Btn = ({
     children, onClick, variant = "num", className,
   }: { children: React.ReactNode; onClick: () => void; variant?: "num" | "op" | "eq" | "fn"; className?: string }) => (
