@@ -49,7 +49,7 @@ const AdminAddons = () => {
 
   const fetchData = async () => {
     const addonsQuery = supabase.from("product_addons").select("*").order("sort_order").order("name");
-    const productsQuery = supabase.from("products").select("id, name, is_combo, category_id, image_url").eq("active", true).order("name");
+    const productsQuery = supabase.from("products").select("id, name, is_combo, category_id, image_url").order("name");
     const linksQuery = supabase.from("addon_product_links").select("addon_id, product_id");
     const catsQuery = supabase.from("categories").select("id, name").eq("active", true).order("sort_order");
 
