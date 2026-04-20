@@ -33,6 +33,7 @@ const VARIABLES = [
   { key: "[PREÇOPROD]", desc: "Preço unitário do produto (dentro da linha com [ITENS])" },
   { key: "[QUANTIDADEPROD]", desc: "Quantidade do produto (dentro da linha com [ITENS])" },
   { key: "[OBSITEM]", desc: "Observação do item (dentro da linha com [ITENS] ou [ITEM])" },
+  { key: "[CÓDIGOPROD]", desc: "Código numérico do produto (ex.: 101). Use dentro da linha com [ITENS] ou [ITEM]" },
   { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA" },
   { key: "[RODAPÉ]", desc: "Mensagem de rodapé (campo editável)" },
   { key: "[DIVULGAÇÃO]", desc: "Mensagem promocional (campo editável)" },

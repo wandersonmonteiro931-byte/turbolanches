@@ -9,6 +9,7 @@ import ProductRecipeEditor from "@/components/admin/pricing/ProductRecipeEditor"
 
 interface Product {
   id: string;
+  product_code: number;
   name: string;
   description: string | null;
   price: number;
@@ -46,7 +47,7 @@ const AdminProducts = () => {
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
-    image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0",
+    image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0", product_code: "",
   });
 
   const fetchData = async () => {
@@ -66,7 +67,11 @@ const AdminProducts = () => {
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
     return products.filter((p) => {
-      const matchesSearch = !q || p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q);
+      const matchesSearch =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q) ||
+        String(p.product_code ?? "").includes(q);
       const matchesCategory = categoryFilter === "all" || p.category_id === categoryFilter;
       const matchesStatus =
         statusFilter === "all" ||
@@ -94,7 +99,7 @@ const AdminProducts = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0" });
+    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0", product_code: "" });
     setShowForm(true);
   };
 
@@ -105,6 +110,7 @@ const AdminProducts = () => {
       original_price: p.original_price ? String(p.original_price) : "",
       image_url: p.image_url || "", category_id: p.category_id || "",
       active: p.active, popular: p.popular, is_combo: p.is_combo, combo_item_count: String(p.combo_item_count || 1), sort_order: String(p.sort_order ?? 0),
+      product_code: String(p.product_code ?? ""),
     });
     setShowForm(true);
   };
@@ -116,12 +122,25 @@ const AdminProducts = () => {
       image_url: form.image_url, category_id: form.category_id || null,
       active: form.active, popular: form.popular, is_combo: form.is_combo, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
     };
+    // Only set product_code when admin entered one (otherwise trigger auto-assigns)
+    const codeNum = parseInt(form.product_code);
+    if (form.product_code.trim() && !Number.isNaN(codeNum)) {
+      payload.product_code = codeNum;
+    }
     if (!editing && storeId) payload.store_id = storeId;
     if (editing) {
-      await supabase.from("products").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("products").update(payload).eq("id", editing.id);
+      if (error) {
+        toast({ title: "Erro ao salvar", description: error.message.includes("product_code") ? "Código já está em uso por outro produto." : error.message, variant: "destructive" });
+        return;
+      }
       toast({ title: "Produto atualizado!" });
     } else {
-      await supabase.from("products").insert(payload);
+      const { error } = await supabase.from("products").insert(payload);
+      if (error) {
+        toast({ title: "Erro ao criar", description: error.message.includes("product_code") ? "Código já está em uso por outro produto." : error.message, variant: "destructive" });
+        return;
+      }
       toast({ title: "Produto criado!" });
     }
     setShowForm(false);
@@ -334,6 +353,17 @@ const AdminProducts = () => {
             </div>
             <div className="space-y-3">
               <input placeholder="Nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground">Código do produto {editing ? "" : "(deixe vazio para gerar automaticamente)"}</label>
+                <input
+                  placeholder={editing ? "Ex: 101" : "Será gerado automaticamente"}
+                  type="number"
+                  inputMode="numeric"
+                  value={form.product_code}
+                  onChange={(e) => setForm({ ...form, product_code: e.target.value.replace(/[^0-9]/g, "") })}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm font-mono"
+                />
+              </div>
               <textarea placeholder="Descrição" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" rows={3} />
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Preço" type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm" />
@@ -421,6 +451,9 @@ const AdminProducts = () => {
                       {p.image_url && <img src={p.image_url} alt={p.name} className="h-12 w-12 rounded-lg object-cover" />}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
+                          {p.product_code != null && (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-bold text-foreground">{p.product_code}</span>
+                          )}
                           <p className="text-sm font-bold text-foreground truncate">{p.name}</p>
                           {p.is_combo && (
                             <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
