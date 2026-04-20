@@ -33,6 +33,7 @@ const InstallGate = () => {
   const [installing, setInstalling] = useState(false);
   const [iosMode, setIosMode] = useState(false);
   const [hasPrompt, setHasPrompt] = useState(false);
+  const storeName = useStoreName();
 
   useEffect(() => {
     if (isStandalone()) return;
