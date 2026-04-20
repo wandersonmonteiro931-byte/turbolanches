@@ -47,6 +47,7 @@ const Index = () => {
   const { defaultAddress, loading: addrLoading } = useAddresses();
   const [addrSelectorOpen, setAddrSelectorOpen] = useState(false);
   const storeLogo = useStoreLogo();
+  const storeName = useStoreName();
   const [geoAddress, setGeoAddress] = useState("");
   const [activeBanner, setActiveBanner] = useState(0);
 
@@ -354,11 +355,11 @@ const Index = () => {
       <footer className="mx-auto mt-10 max-w-md border-t border-border px-4 pb-24 pt-6 text-center">
         <img
           src={storeLogo || footerLogo}
-          alt="Novo logotipo Turbo Lanches"
+          alt={`Logotipo ${storeName}`}
           className="mx-auto h-auto w-full max-w-[280px] object-contain"
           loading="lazy"
         />
-        <p className="mt-3 text-sm font-semibold text-muted-foreground">© {currentYear} Turbo Lanches — Todos os direitos reservados.</p>
+        <p className="mt-3 text-sm font-semibold text-muted-foreground">© {currentYear} {storeName} — Todos os direitos reservados.</p>
       </footer>
 
       <AddressSelector open={addrSelectorOpen} onClose={() => setAddrSelectorOpen(false)} />
