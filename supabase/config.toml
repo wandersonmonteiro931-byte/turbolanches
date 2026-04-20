@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.push-notification]
 verify_jwt = false
+
+[functions.employee-clock-in]
+verify_jwt = false
+
+[functions.employee-portal]
+verify_jwt = false

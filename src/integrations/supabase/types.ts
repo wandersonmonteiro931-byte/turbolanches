@@ -777,6 +777,122 @@ export type Database = {
           },
         ]
       }
+      employee_schedules: {
+        Row: {
+          active: boolean
+          created_at: string
+          day_of_week: number
+          employee_id: string
+          end_time: string
+          id: string
+          start_time: string
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          day_of_week: number
+          employee_id: string
+          end_time: string
+          id?: string
+          start_time: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          day_of_week?: number
+          employee_id?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_schedules_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          active: boolean
+          base_salary: number
+          cpf: string | null
+          created_at: string
+          employee_code: string
+          face_descriptor: Json | null
+          full_name: string
+          hire_date: string
+          id: string
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          role: string | null
+          store_id: string | null
+          termination_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_salary?: number
+          cpf?: string | null
+          created_at?: string
+          employee_code: string
+          face_descriptor?: Json | null
+          full_name: string
+          hire_date?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          role?: string | null
+          store_id?: string | null
+          termination_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_salary?: number
+          cpf?: string | null
+          created_at?: string
+          employee_code?: string
+          face_descriptor?: Json | null
+          full_name?: string
+          hire_date?: string
+          id?: string
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          role?: string | null
+          store_id?: string | null
+          termination_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extra_costs: {
         Row: {
           cost_type: string
@@ -873,6 +989,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ingredients_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      occurrence_justifications: {
+        Row: {
+          created_at: string
+          id: string
+          justification: string
+          justified_by: string
+          occurrence_id: string
+          status: string
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justification: string
+          justified_by: string
+          occurrence_id: string
+          status?: string
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justification?: string
+          justified_by?: string
+          occurrence_id?: string
+          status?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrence_justifications_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "time_clock_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occurrence_justifications_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -1074,6 +1235,63 @@ export type Database = {
           },
           {
             foreignKeyName: "orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payslips: {
+        Row: {
+          created_at: string
+          employee_id: string
+          gross_amount: number
+          id: string
+          net_amount: number
+          notes: string | null
+          pdf_url: string
+          reference_month: number
+          reference_year: number
+          store_id: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          pdf_url: string
+          reference_month: number
+          reference_year: number
+          store_id?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          gross_amount?: number
+          id?: string
+          net_amount?: number
+          notes?: string | null
+          pdf_url?: string
+          reference_month?: number
+          reference_year?: number
+          store_id?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payslips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payslips_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -2332,6 +2550,170 @@ export type Database = {
         }
         Relationships: []
       }
+      time_clock_occurrences: {
+        Row: {
+          created_at: string
+          details: string | null
+          detected_at: string
+          employee_id: string
+          id: string
+          minutes_delta: number | null
+          occurrence_date: string
+          occurrence_type: string
+          store_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          detected_at?: string
+          employee_id: string
+          id?: string
+          minutes_delta?: number | null
+          occurrence_date: string
+          occurrence_type: string
+          store_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          detected_at?: string
+          employee_id?: string
+          id?: string
+          minutes_delta?: number | null
+          occurrence_date?: string
+          occurrence_type?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_occurrences_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_clock_occurrences_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_clock_punches: {
+        Row: {
+          business_day: string
+          created_at: string
+          device_info: string | null
+          distance_meters: number | null
+          employee_id: string
+          face_match_score: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          punch_type: string
+          punched_at: string
+          selfie_url: string | null
+          store_id: string | null
+        }
+        Insert: {
+          business_day?: string
+          created_at?: string
+          device_info?: string | null
+          distance_meters?: number | null
+          employee_id: string
+          face_match_score?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          punch_type: string
+          punched_at?: string
+          selfie_url?: string | null
+          store_id?: string | null
+        }
+        Update: {
+          business_day?: string
+          created_at?: string
+          device_info?: string | null
+          distance_meters?: number | null
+          employee_id?: string
+          face_match_score?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          punch_type?: string
+          punched_at?: string
+          selfie_url?: string | null
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_punches_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "time_clock_punches_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      time_clock_settings: {
+        Row: {
+          allowed_radius_meters: number
+          created_at: string
+          face_match_threshold: number
+          id: string
+          late_tolerance_minutes: number
+          require_face_match: boolean
+          require_geolocation: boolean
+          store_id: string | null
+          store_lat: number | null
+          store_lng: number | null
+          updated_at: string
+        }
+        Insert: {
+          allowed_radius_meters?: number
+          created_at?: string
+          face_match_threshold?: number
+          id?: string
+          late_tolerance_minutes?: number
+          require_face_match?: boolean
+          require_geolocation?: boolean
+          store_id?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
+          updated_at?: string
+        }
+        Update: {
+          allowed_radius_meters?: number
+          created_at?: string
+          face_match_threshold?: number
+          id?: string
+          late_tolerance_minutes?: number
+          require_face_match?: boolean
+          require_geolocation?: boolean
+          store_id?: string | null
+          store_lat?: number | null
+          store_lng?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_clock_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -2389,6 +2771,7 @@ export type Database = {
         Args: { _code: string }
         Returns: undefined
       }
+      next_employee_code: { Args: never; Returns: string }
       next_product_code: { Args: { _category_id: string }; Returns: number }
     }
     Enums: {
