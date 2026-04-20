@@ -6,6 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
 
+interface OrderItemPreview {
+  product_name: string;
+  product_code: number | null;
+  quantity: number;
+}
+
 interface Order {
   id: string;
   order_number: number;
@@ -13,6 +19,7 @@ interface Order {
   total: number;
   payment_method: string;
   created_at: string;
+  items?: OrderItemPreview[];
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -40,10 +47,16 @@ const Orders = () => {
     const fetchOrders = async () => {
       const { data } = await supabase
         .from("orders")
-        .select("id, order_number, status, total, payment_method, created_at")
+        .select("id, order_number, status, total, payment_method, created_at, order_items(product_name, product_code, quantity)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      if (data) setOrders(data);
+      if (data) {
+        const mapped = (data as any[]).map((o) => ({
+          ...o,
+          items: (o.order_items || []) as OrderItemPreview[],
+        }));
+        setOrders(mapped);
+      }
       setLoading(false);
     };
 
@@ -127,6 +140,11 @@ const Orders = () => {
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">{formatDate(order.created_at)}</p>
+                    {order.items && order.items.length > 0 && (
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                        {order.items.map((it) => `${it.quantity}x ${it.product_code != null ? `[${it.product_code}] ` : ""}${it.product_name}`).join(", ")}
+                      </p>
+                    )}
                   </div>
                   <span className="text-sm font-bold text-primary">
                     R$ {Number(order.total).toFixed(2).replace(".", ",")}
