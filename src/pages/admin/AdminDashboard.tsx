@@ -160,6 +160,7 @@ const AdminDashboard = () => {
   const [deliveryPeriodTo, setDeliveryPeriodTo] = useState<Date | undefined>(undefined);
   const [trackingCourierId, setTrackingCourierId] = useState<string | null>(null);
   const [showExpenseManager, setShowExpenseManager] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
