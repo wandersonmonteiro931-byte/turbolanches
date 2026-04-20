@@ -230,6 +230,7 @@ const Checkout = () => {
       order_id: order.id,
       product_id: item.product.id,
       product_name: item.product.name,
+      product_code: (item.product as any).code ?? null,
       quantity: item.quantity,
       unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0),
       observations: item.observations || null,

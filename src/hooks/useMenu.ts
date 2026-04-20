@@ -4,9 +4,8 @@ import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-17-show-ingredients";
+const MENU_CACHE_VERSION = "2026-04-20-product-codes";
 
-// Module-level caches: persist across component unmount/remount (e.g. back navigation)
 const categoriesCache = new Map<string, Category[]>();
 const productsCache = new Map<string, Product[]>();
 
@@ -68,7 +67,7 @@ export function useProducts() {
   const fetchProducts = useCallback(async () => {
     let productsQuery = supabase
       .from("products")
-      .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count")
+      .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count, product_code")
       .order("sort_order")
       .order("name");
 
@@ -103,7 +102,6 @@ export function useProducts() {
         : supabase.from("ingredients").select("id, name, is_internal"),
     ]);
 
-    // Exclude internal ingredients (packaging, sachets, etc.) from customer-facing menu
     const ingNameMap = new Map<string, string>(
       (ingRes.data ?? [])
         .filter((i: any) => !i.is_internal)
@@ -163,6 +161,7 @@ export function useProducts() {
     if (productsRes.data) {
       const mapped = productsRes.data.map((p: any) => ({
         id: p.id,
+        code: p.product_code,
         name: p.name,
         description: sanitizeCustomerDescription(p.description),
         price: p.price,

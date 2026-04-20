@@ -53,6 +53,9 @@ const ProductCard = ({ product, index = 0, storeIsOpen = true }: ProductCardProp
               </span>
             )}
           </div>
+          {product.code != null && (
+            <p className="mt-0.5 text-[10px] font-mono text-muted-foreground/70">cód. {product.code}</p>
+          )}
           {safeDescription ? <p className="mt-1 text-xs text-muted-foreground break-words">{safeDescription}</p> : null}
           {product.ingredients && product.ingredients.length > 0 ? (
             <p className="mt-1 text-xs text-muted-foreground break-words">
