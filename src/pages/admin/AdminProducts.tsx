@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Pencil, Trash2, X, GripVertical, Search, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, X, GripVertical, Search, Image as ImageIcon, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
@@ -129,8 +129,110 @@ const AdminProducts = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
     await supabase.from("products").delete().eq("id", id);
     toast({ title: "Produto removido!" });
+    fetchData();
+  };
+
+  const handleDuplicate = async (p: Product) => {
+    // 1) Insert duplicated product
+    const insertPayload: any = {
+      name: `${p.name} (cópia)`,
+      description: p.description,
+      price: p.price,
+      original_price: p.original_price,
+      image_url: p.image_url,
+      category_id: p.category_id,
+      active: p.active,
+      popular: p.popular,
+      is_combo: p.is_combo,
+      combo_item_count: p.combo_item_count,
+      sort_order: (p.sort_order ?? 0) + 1,
+    };
+    if (storeId) insertPayload.store_id = storeId;
+
+    const { data: created, error } = await supabase
+      .from("products")
+      .insert(insertPayload)
+      .select("id")
+      .single();
+
+    if (error || !created) {
+      toast({ title: "Erro ao duplicar", description: error?.message, variant: "destructive" });
+      return;
+    }
+    const newId = created.id;
+
+    // 2) Duplicate ingredients (recipe)
+    const { data: ings } = await supabase
+      .from("product_ingredients")
+      .select("ingredient_id, quantity")
+      .eq("product_id", p.id);
+    if (ings && ings.length > 0) {
+      await supabase.from("product_ingredients").insert(
+        ings.map((i: any) => ({
+          product_id: newId,
+          ingredient_id: i.ingredient_id,
+          quantity: i.quantity,
+          ...(storeId ? { store_id: storeId } : {}),
+        }))
+      );
+    }
+
+    // 3) Duplicate addon links (apply_to_all addons stay global, no copy needed)
+    const { data: links } = await supabase
+      .from("addon_product_links")
+      .select("addon_id")
+      .eq("product_id", p.id);
+    if (links && links.length > 0) {
+      await supabase.from("addon_product_links").insert(
+        links.map((l: any) => ({
+          product_id: newId,
+          addon_id: l.addon_id,
+          ...(storeId ? { store_id: storeId } : {}),
+        }))
+      );
+    }
+
+    // 4) Duplicate product-specific addons (not apply_to_all, not linked via addon_product_links)
+    const { data: ownAddons } = await supabase
+      .from("product_addons")
+      .select("name, price, active, sort_order, is_internal, apply_to_all")
+      .eq("product_id", p.id);
+    if (ownAddons && ownAddons.length > 0) {
+      await supabase.from("product_addons").insert(
+        ownAddons.map((a: any) => ({
+          product_id: newId,
+          name: a.name,
+          price: a.price,
+          active: a.active,
+          sort_order: a.sort_order,
+          is_internal: a.is_internal,
+          apply_to_all: a.apply_to_all,
+          ...(storeId ? { store_id: storeId } : {}),
+        }))
+      );
+    }
+
+    // 5) Duplicate combo components
+    const { data: comboItems } = await supabase
+      .from("product_combo_items")
+      .select("component_product_id, quantity, sort_order")
+      .eq("product_id", p.id);
+    if (comboItems && comboItems.length > 0) {
+      await supabase.from("product_combo_items").insert(
+        comboItems.map((c: any) => ({
+          product_id: newId,
+          component_product_id: c.component_product_id,
+          quantity: c.quantity,
+          sort_order: c.sort_order,
+          ...(storeId ? { store_id: storeId } : {}),
+        }))
+      );
+    }
+
+    toast({ title: "Produto duplicado!" });
     fetchData();
   };
 
@@ -337,8 +439,9 @@ const AdminProducts = () => {
                       >
                         {p.active ? "✓ Visível" : "✕ Oculto"}
                       </button>
-                      <button onClick={() => openEdit(p)} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
-                      <button onClick={() => handleDelete(p.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
+                      <button onClick={() => openEdit(p)} title="Editar" className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                      <button onClick={() => handleDuplicate(p)} title="Duplicar" className="p-1.5 text-muted-foreground hover:text-primary"><Copy size={16} /></button>
+                      <button onClick={() => handleDelete(p.id)} title="Excluir" className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
                     </div>
                   );
                 })}
