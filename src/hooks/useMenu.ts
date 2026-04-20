@@ -68,7 +68,7 @@ export function useProducts() {
   const fetchProducts = useCallback(async () => {
     let productsQuery = supabase
       .from("products")
-      .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count")
+      .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count, product_code")
       .order("sort_order")
       .order("name");
 
@@ -161,9 +161,37 @@ export function useProducts() {
     );
 
     if (productsRes.data) {
-      const mapped = productsRes.data.map((p: any) => ({
-        id: p.id,
-        name: p.name,
+      const mapped = data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icon: c.icon || "",
+        image: c.image_url || "/placeholder.svg",
+      }));
+      categoriesCache.set(key, mapped);
+      setCategories(mapped);
+    }
+    setLoading(false);
+  }, [storeId, key]);
+
+  useEffect(() => {
+    fetchCategories();
+    const channel = supabase
+      .channel("categories-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "categories" },
+        () => fetchCategories()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchCategories]);
+
+  return { categories, loading };
+}
+
+export function useProducts() {
         description: sanitizeCustomerDescription(p.description),
         price: p.price,
         originalPrice: p.original_price ?? undefined,
