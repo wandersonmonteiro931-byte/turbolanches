@@ -5,6 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 
+const DEFAULT_CITY = "Anápolis";
+const DEFAULT_STATE = "Goiás";
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -20,8 +23,8 @@ const emptyForm = {
   neighborhood: "",
   quadra: "",
   lote: "",
-  city: "Anápolis",
-  state: "GO",
+  city: DEFAULT_CITY,
+  state: DEFAULT_STATE,
   zip_code: "",
 };
 
@@ -75,8 +78,8 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
             ...f,
             street: data.logradouro || f.street,
             neighborhood: data.bairro || f.neighborhood,
-            city: data.localidade || f.city,
-            state: data.uf || f.state,
+            city: DEFAULT_CITY,
+            state: DEFAULT_STATE,
           }));
         }
       } catch {
@@ -88,8 +91,8 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
   };
 
   const handleSave = async () => {
-    if (!form.street || !form.neighborhood || !form.complement || !form.quadra || !form.lote) {
-      toast({ title: "Preencha rua, bairro, complemento, quadra e lote", variant: "destructive" });
+    if (!form.street || !form.number || !form.neighborhood || !form.quadra || !form.lote) {
+      toast({ title: "Preencha rua/av, número, quadra, lote e bairro", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -103,13 +106,13 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
         neighborhood: form.neighborhood,
         quadra: form.quadra,
         lote: form.lote,
-        city: form.city,
-        state: form.state,
+        city: DEFAULT_CITY,
+        state: DEFAULT_STATE,
         zip_code: form.zip_code,
       });
       toast({ title: "✅ Endereço atualizado!" });
     } else {
-      await addAddress(form);
+      await addAddress({ ...form, city: DEFAULT_CITY, state: DEFAULT_STATE });
       toast({ title: "✅ Endereço adicionado!" });
     }
 
@@ -188,15 +191,15 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
         )}
       </div>
 
-      <input
-        placeholder="Rua"
+        <input
+          placeholder="Rua/Av *"
         value={form.street}
         onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
         className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
       />
       <div className="grid grid-cols-3 gap-2">
         <input
-          placeholder="Número"
+          placeholder="Número *"
           value={form.number}
           onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
@@ -216,28 +219,33 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
       </div>
-      <input
-        placeholder="Complemento (obrigatório)"
-        value={form.complement}
-        onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
-        className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
-      />
+        <div className="grid grid-cols-3 gap-2">
+          <button type="button" onClick={() => setForm((f) => ({ ...f, number: "S/N" }))} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-primary">Nº S/N</button>
+          <button type="button" onClick={() => setForm((f) => ({ ...f, quadra: "Não tem" }))} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-primary">Quadra não tem</button>
+          <button type="button" onClick={() => setForm((f) => ({ ...f, lote: "Não tem" }))} className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-primary">Lote não tem</button>
+        </div>
+        <input
+          placeholder="Complemento"
+          value={form.complement}
+          onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
+          className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
+        />
       <NeighborhoodAutocomplete
         value={form.neighborhood}
         onChange={(val) => setForm((f) => ({ ...f, neighborhood: val }))}
-        placeholder="Bairro"
+        placeholder="Bairro *"
       />
       <div className="grid grid-cols-2 gap-2">
         <input
           placeholder="Cidade"
-          value={form.city}
-          onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+          value={DEFAULT_CITY}
+          disabled
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
         <input
           placeholder="Estado"
-          value={form.state}
-          onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+          value={DEFAULT_STATE}
+          disabled
           className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
       </div>
