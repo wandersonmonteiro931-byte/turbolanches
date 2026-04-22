@@ -11,6 +11,7 @@ import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 import CustomerSearch from "@/components/admin/CustomerSearch";
 import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
+import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Product {
@@ -171,34 +172,10 @@ const loadDraft = (): Partial<DraftState> => {
 
 const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
-const openPrintPopup = () => {
-  const popup = window.open("", "_blank", "width=300,height=600");
-  if (!popup || popup.closed) return null;
-
-  try {
-    popup.document.open();
-    popup.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8" /><title>Preparando impressão...</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center;min-height:100vh;background:#fff;color:#000;font-weight:700}div{padding:16px;text-align:center}</style></head><body><div>Preparando impressão...</div></body></html>`);
-    popup.document.close();
-  } catch {
-    // noop
-  }
-
-  return popup;
-};
+const openPrintPopup = () => openPreparedPrintPopup("width=300,height=600");
 
 const routePopupToPrint = (popup: Window | null, url: string) => {
-  const stampedUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
-  if (!popup || popup.closed) {
-    window.open(stampedUrl, "_blank", "width=300,height=600");
-    return;
-  }
-
-  try {
-    popup.location.replace(stampedUrl);
-    popup.focus();
-  } catch {
-    window.open(stampedUrl, "_blank", "width=300,height=600");
-  }
+  routePreparedPrintPopup(popup, url, "width=300,height=600");
 };
 
 const AdminManualOrder = () => {
