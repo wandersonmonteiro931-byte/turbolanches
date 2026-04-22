@@ -171,6 +171,7 @@ const AdminPrint = () => {
 
   const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
   const repeatCount = Math.max(1, Math.min(20, Number(searchParams.get("copies") || "1") || 1));
+  const keepOpen = searchParams.get("keep_open") === "1";
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -382,13 +383,15 @@ const AdminPrint = () => {
       // (see buildAdminPrintDocument in adminPrintTemplates.ts).
       // Do NOT call window.print() here, otherwise it prints twice.
       // Just schedule auto-close after the print dialog has had time to handle the job.
-      setTimeout(() => {
-        try { window.close(); } catch { /* noop */ }
-      }, 1500);
+      if (!keepOpen) {
+        setTimeout(() => {
+          try { window.close(); } catch { /* noop */ }
+        }, 1500);
+      }
     }, Math.max(60, printDelayMs));
 
     return () => clearTimeout(timer);
-  }, [printDelayMs, printableDocument, ready]);
+  }, [keepOpen, printDelayMs, printableDocument, ready]);
 
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
   if (!ready || !printableDocument) return <div style={{ padding: 20, fontFamily: "monospace" }}>Preparando impressão...</div>;
