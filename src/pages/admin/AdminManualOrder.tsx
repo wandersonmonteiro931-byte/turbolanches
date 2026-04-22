@@ -856,10 +856,7 @@ const AdminManualOrder = () => {
                 return (
                   <div key={item.product.id} className="border-b border-r border-[hsl(200_45%_82%)] px-1 py-0.5 text-[10px] font-bold">
                     <div className="grid grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center gap-1">
-                      <div className="flex items-center gap-0.5">
-                        <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
-                        <input type="number" min="1" value={item.quantity} onChange={(e) => updateItemQuantityManual(item.product.id, e.target.value)} className="h-5 w-8 bg-[hsl(197_58%_91%)] text-center font-black outline-none" />
-                      </div>
+                      <input type="number" min="1" value={item.quantity} onChange={(e) => updateItemQuantityManual(item.product.id, e.target.value)} className="h-5 w-full bg-[hsl(197_58%_91%)] text-center font-black outline-none" />
                       <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
                       <span className="text-right font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
                       <button onClick={() => setAddonModalProductId(item.product.id)} className="min-h-5 bg-[hsl(203_88%_22%)] px-1 text-[8px] font-black uppercase leading-tight text-[hsl(0_0%_100%)]">{item.addons.length ? `${item.addons.length} add` : "+ Add"}</button>
