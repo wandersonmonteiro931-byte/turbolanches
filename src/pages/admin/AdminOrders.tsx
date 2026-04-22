@@ -49,14 +49,14 @@ interface OrderItem {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: "Novo", color: "bg-amber-100 text-amber-800", icon: Clock },
-  paid: { label: "Novo (Pago)", color: "bg-green-100 text-green-800", icon: Check },
-  accepted: { label: "Aceito", color: "bg-blue-100 text-blue-800", icon: Check },
-  preparing: { label: "Preparando", color: "bg-purple-100 text-purple-800", icon: ChefHat },
-  ready: { label: "Pronto", color: "bg-emerald-100 text-emerald-800", icon: Package },
-  delivering: { label: "Saiu p/ entrega", color: "bg-cyan-100 text-cyan-800", icon: Truck },
-  delivered: { label: "Entregue", color: "bg-green-100 text-green-800", icon: Check },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-800", icon: X },
+  pending: { label: "Novo", color: "bg-primary/10 text-primary border-primary/15", icon: Clock },
+  paid: { label: "Novo (Pago)", color: "bg-primary/10 text-primary border-primary/15", icon: Check },
+  accepted: { label: "Aceito", color: "bg-muted text-foreground border-border", icon: Check },
+  preparing: { label: "Preparando", color: "bg-primary/10 text-primary border-primary/15", icon: ChefHat },
+  ready: { label: "Pronto", color: "bg-muted text-foreground border-border", icon: Package },
+  delivering: { label: "Saiu p/ entrega", color: "bg-muted text-foreground border-border", icon: Truck },
+  delivered: { label: "Entregue", color: "bg-muted text-muted-foreground border-border", icon: Check },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/15", icon: X },
 };
 
 const nextStatus: Record<string, string> = {
@@ -635,8 +635,8 @@ const AdminOrders = () => {
       )}
 
       {/* Results Count */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-bold text-muted-foreground">
+      <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border/70 bg-card/70 px-3 py-2">
+        <span className="text-xs font-semibold text-muted-foreground">
           {filteredOrders.length} pedido(s)
           {(searchQuery || activeFiltersCount > 0) && ` de ${allOrders.length} total`}
         </span>
@@ -652,13 +652,13 @@ const AdminOrders = () => {
       {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
       {(() => {
         const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
-          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-border bg-muted/40 text-foreground" },
-          { key: "lixeira", label: "🗑️ Lixeira", statuses: ["cancelled"], accent: "border-border bg-muted/40 text-foreground", trashed: true },
+          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-primary/15 bg-primary/5 text-foreground" },
+          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border/80 bg-card text-foreground" },
+          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
+          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border/80 bg-card text-foreground" },
+          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border/80 bg-card text-muted-foreground" },
+          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-destructive/15 bg-destructive/5 text-foreground" },
+          { key: "lixeira", label: "Lixeira", statuses: ["cancelled"], accent: "border-border/80 bg-card text-muted-foreground", trashed: true },
         ];
 
         // Auto-load items for any visible order so cards show full info without clicks
@@ -681,11 +681,11 @@ const AdminOrders = () => {
               <button
                 type="button"
                 onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
-                className={`w-full flex items-center gap-2 rounded-xl border px-4 py-2 ${section.accent}`}
+                className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm transition-colors hover:bg-muted/60 ${section.accent}`}
               >
                 {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                <h2 className="text-sm font-bold uppercase tracking-wide">{section.label}</h2>
-                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-bold">
+                <h2 className="text-sm font-semibold">{section.label}</h2>
+                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                   {sectionOrders.length}
                 </span>
               </button>
@@ -703,28 +703,28 @@ const AdminOrders = () => {
                   return (
                     <div
                       key={order.id}
-                      className="flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+                      className="flex flex-col overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm transition-shadow hover:shadow-md"
                     >
                       {/* Header */}
-                      <div className="flex items-start gap-3 p-3 border-b border-border">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${status.color}`}>
+                      <div className="flex items-start gap-3 border-b border-border/70 bg-background/40 p-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${status.color}`}>
                           <StatusIcon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-base font-black text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
+                            <span className="text-base font-extrabold text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
                             {customerCode && (
-                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">{customerCode}</span>
+                              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{customerCode}</span>
                             )}
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${status.color}`}>{status.label}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>{status.label}</span>
                             {order.priority && (
-                              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">⚡</span>
                             )}
                             {order.status === "ready" && order.courier_id && (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">⚠️ DEVOLVIDO</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">⚠️ DEVOLVIDO</span>
                             )}
                             {!order.payment_confirmed && order.status !== "cancelled" && (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">$ Pendente</span>
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-muted-foreground break-words">
@@ -735,12 +735,12 @@ const AdminOrders = () => {
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-sm font-black text-foreground whitespace-nowrap">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+                          <span className="whitespace-nowrap text-sm font-extrabold text-foreground">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
                         </div>
                       </div>
 
                       {/* Body — always visible, never truncated */}
-                      <div className="flex-1 p-3 space-y-2.5">
+                        <div className="flex-1 space-y-2.5 p-3">
                         {/* Timeline */}
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                           <span>📥 {formatTime(order.created_at)}</span>
@@ -760,12 +760,12 @@ const AdminOrders = () => {
 
                         {/* Observations */}
                         {order.observations && (
-                          <p className="text-xs text-foreground bg-amber-50 rounded p-2 break-words">💬 {order.observations}</p>
+                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">💬 {order.observations}</p>
                         )}
 
                         {/* Cancellation reason */}
                         {order.cancellation_reason && (
-                          <p className="text-xs text-red-600 font-bold break-words">❌ Motivo: {order.cancellation_reason}</p>
+                          <p className="break-words text-xs font-semibold text-destructive">❌ Motivo: {order.cancellation_reason}</p>
                         )}
 
                         {/* Items */}
@@ -791,9 +791,9 @@ const AdminOrders = () => {
                         </div>
 
                         {/* Totals */}
-                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-[11px]">
+                        <div className="space-y-0.5 rounded-lg border border-border/70 bg-muted/35 p-2 text-[11px]">
                           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
-                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
+                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-primary">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
                           <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
                           <div className="flex justify-between font-bold text-xs"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
                           {order.change_for && order.change_for > 0 && (
@@ -813,7 +813,7 @@ const AdminOrders = () => {
                           </button>
                           {order.courier_id && (
                             <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
-                              className="flex items-center gap-1 rounded-lg border border-cyan-500 px-2 py-1 text-[10px] font-medium text-cyan-700 hover:bg-cyan-50">
+                              className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/5">
                               <Printer size={12} /> Rota
                             </button>
                           )}
@@ -849,7 +849,7 @@ const AdminOrders = () => {
               </button>
               <button
                 onClick={() => confirmRouteClosure(showRouteClosureModal)}
-                className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
               >
                 Sim, Finalizar
               </button>
