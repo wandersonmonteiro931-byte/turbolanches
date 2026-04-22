@@ -800,6 +800,9 @@ const AdminManualOrder = () => {
             <h1 className="text-sm font-black uppercase tracking-wide text-[hsl(0_0%_100%)]">{headerTitle}</h1>
           </div>
           <div className="ml-auto flex items-center gap-1 text-[10px] font-bold">
+            <span className="hidden h-7 items-center rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 uppercase text-[hsl(0_0%_100%)] sm:flex">
+              Operador: Admin - Wanderson Camargo
+            </span>
             <button onClick={() => void loadLatestData()} className="h-7 rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 text-[hsl(0_0%_100%)]">Atualizar</button>
             <span className="h-7 rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 leading-7">{cartItemCount} itens</span>
           </div>
