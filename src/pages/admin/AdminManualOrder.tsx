@@ -548,7 +548,7 @@ const AdminManualOrder = () => {
   const subtotal = cart.reduce((sum, i) => sum + i.customPrice * i.quantity, 0) + addonsTotal;
 
   const matchedZone = deliveryZones.find((zone) => normalizeNeighborhood(zone.neighborhood) === normalizeNeighborhood(addressNeighborhood));
-  const rawDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
+  const rawDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 0;
 
   const isTempFree = Boolean(matchedZone?.temp_free_delivery || deliveryConfig.temp_free_delivery_all);
   const isKmFree = Boolean(deliveryConfig.free_delivery_max_km > 0 && matchedZone?.distance_km != null && matchedZone.distance_km >= 0 && matchedZone.distance_km <= deliveryConfig.free_delivery_max_km);
@@ -609,7 +609,7 @@ const AdminManualOrder = () => {
       const isPixEntrega = paymentMethod === "pix_entrega";
       const isPixPago = paymentMethod === "pix_pago";
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
-      const actualPaid = isPixPago || isPaid;
+      const actualPaid = isPixPago;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -938,7 +938,7 @@ const AdminManualOrder = () => {
           <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             <div className="grid grid-cols-5 gap-1">
               {paymentMethods.map((pm) => (
-                <button key={pm.id} type="button" onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
+                <button key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
             </div>
 
@@ -963,7 +963,6 @@ const AdminManualOrder = () => {
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
-              <button type="button" onClick={() => setIsPaid((prev) => !prev)} className={cn("flex min-h-7 items-center gap-1 border px-1 text-left", isPaid ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Já está pago<span className="ml-auto">{isPaid ? "✓" : "□"}</span></button>
               {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco para: R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
             {paymentMethod === "dinheiro" && changeReturnValue > 0 && (
