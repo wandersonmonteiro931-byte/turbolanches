@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 import CustomerSearch from "@/components/admin/CustomerSearch";
-import ManualOrderAddonSelector from "@/components/admin/ManualOrderAddonSelector";
 import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Product {
   id: string;
@@ -203,6 +203,7 @@ const AdminManualOrder = () => {
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
+  const [addonModalProductId, setAddonModalProductId] = useState<string | null>(null);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
   const comboSelectionInitializedRef = useRef(false);
