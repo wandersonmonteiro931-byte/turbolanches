@@ -78,7 +78,7 @@ const deliveryTypes = [
 const paymentMethods = [
   { id: "dinheiro", label: "Dinheiro", icon: "💵" },
   { id: "pix_entrega", label: "PIX Entrega", icon: "📱" },
-  { id: "pix_pago", label: "Já está pago", icon: "✅" },
+  { id: "pix_pago", label: "PIX Pago", icon: "✅" },
   { id: "cartao", label: "Cartão", icon: "💳" },
   { id: "fiado", label: "Fiado", icon: "📝" },
 ];
@@ -135,7 +135,6 @@ interface DraftState {
   cart: CartItem[];
   deliveryType: string;
   paymentMethod: string;
-  isPaid: boolean;
   customerName: string;
   customerPhone: string;
   selectedCustomerId: string | null;
@@ -146,8 +145,6 @@ interface DraftState {
   addressNeighborhood: string;
   addressComplement: string;
   observations: string;
-  changeFor: string;
-  changeMethod: string; // "dinheiro" | "pix" | "card" — método de devolução do troco
   customDeliveryFee: string;
   deliveryFeeOverridden: boolean;
   discount: string;
@@ -156,7 +153,19 @@ interface DraftState {
 const loadDraft = (): Partial<DraftState> => {
   try {
     const raw = sessionStorage.getItem(DRAFT_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+
+    const draft = JSON.parse(raw) as Partial<DraftState> & { changeFor?: string; changeMethod?: string; isPaid?: boolean };
+    delete draft.changeFor;
+    delete draft.changeMethod;
+    delete draft.isPaid;
+
+    if (String(draft.customDeliveryFee ?? "").replace(",", ".") === "5.99") {
+      draft.customDeliveryFee = "";
+      draft.deliveryFeeOverridden = false;
+    }
+
+    return draft;
   } catch { return {}; }
 };
 
@@ -206,7 +215,6 @@ const AdminManualOrder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
   const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
-  const [isPaid, setIsPaid] = useState(editOrderId ? false : (draft.isPaid ?? false));
   const [customerName, setCustomerName] = useState(editOrderId ? "" : (draft.customerName ?? ""));
   const [customerPhone, setCustomerPhone] = useState(editOrderId ? "" : (draft.customerPhone ?? ""));
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(editOrderId ? null : (draft.selectedCustomerId ?? null));
@@ -217,8 +225,8 @@ const AdminManualOrder = () => {
   const [addressNeighborhood, setAddressNeighborhood] = useState(editOrderId ? "" : (draft.addressNeighborhood ?? ""));
   const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
   const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
-  const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
-  const [changeMethod, setChangeMethod] = useState<string>(editOrderId ? "dinheiro" : (draft.changeMethod ?? "dinheiro"));
+  const [changeFor, setChangeFor] = useState("");
+  const [changeMethod, setChangeMethod] = useState<string>("dinheiro");
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
@@ -248,16 +256,16 @@ const AdminManualOrder = () => {
   useEffect(() => {
     if (editOrderId) return;
     const d: DraftState = {
-      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+      cart, deliveryType, paymentMethod, customerName, customerPhone,
       selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
       addressNumber, addressNeighborhood, addressComplement, observations,
-      changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount,
+      customDeliveryFee, deliveryFeeOverridden, discount,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+  }, [editOrderId, cart, deliveryType, paymentMethod, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
-    changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount]);
+    customDeliveryFee, deliveryFeeOverridden, discount]);
 
   useEffect(() => {
     const cartIds = cart.map((item) => item.product.id);
@@ -338,7 +346,6 @@ const AdminManualOrder = () => {
       setCustomDeliveryFee(String(order.delivery_fee || 0));
       setDeliveryFeeOverridden(true);
       setChangeFor(order.change_for ? String(order.change_for) : "");
-      setIsPaid(order.payment_confirmed || false);
 
       // Restore change method (troco devolvido via dinheiro/pix/cartão)
       const cgPix = Number(order.change_given_pix || 0);
@@ -553,7 +560,7 @@ const AdminManualOrder = () => {
   const subtotal = cart.reduce((sum, i) => sum + i.customPrice * i.quantity, 0) + addonsTotal;
 
   const matchedZone = deliveryZones.find((zone) => normalizeNeighborhood(zone.neighborhood) === normalizeNeighborhood(addressNeighborhood));
-  const rawDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 5.99;
+  const rawDeliveryFee = matchedZone ? Number(matchedZone.delivery_fee) : 0;
 
   const isTempFree = Boolean(matchedZone?.temp_free_delivery || deliveryConfig.temp_free_delivery_all);
   const isKmFree = Boolean(deliveryConfig.free_delivery_max_km > 0 && matchedZone?.distance_km != null && matchedZone.distance_km >= 0 && matchedZone.distance_km <= deliveryConfig.free_delivery_max_km);
@@ -614,7 +621,7 @@ const AdminManualOrder = () => {
       const isPixEntrega = paymentMethod === "pix_entrega";
       const isPixPago = paymentMethod === "pix_pago";
       const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
-      const actualPaid = isPixPago || isPaid;
+      const actualPaid = isPixPago;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -943,7 +950,7 @@ const AdminManualOrder = () => {
           <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             <div className="grid grid-cols-5 gap-1">
               {paymentMethods.map((pm) => (
-                <button key={pm.id} type="button" onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
+                <button key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
             </div>
 
@@ -968,7 +975,6 @@ const AdminManualOrder = () => {
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
-              <button type="button" onClick={() => setIsPaid((prev) => !prev)} className={cn("flex min-h-7 items-center gap-1 border px-1 text-left", isPaid ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Já está pago<span className="ml-auto">{isPaid ? "✓" : "□"}</span></button>
               {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco para: R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
             {paymentMethod === "dinheiro" && changeReturnValue > 0 && (
