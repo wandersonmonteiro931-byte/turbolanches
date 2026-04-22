@@ -681,11 +681,11 @@ const AdminOrders = () => {
               <button
                 type="button"
                 onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
-                className={`w-full flex items-center gap-2 rounded-xl border px-4 py-2 ${section.accent}`}
+                className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm transition-colors hover:bg-muted/60 ${section.accent}`}
               >
                 {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                <h2 className="text-sm font-bold uppercase tracking-wide">{section.label}</h2>
-                <span className="rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-bold">
+                <h2 className="text-sm font-semibold">{section.label}</h2>
+                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
                   {sectionOrders.length}
                 </span>
               </button>
@@ -703,11 +703,11 @@ const AdminOrders = () => {
                   return (
                     <div
                       key={order.id}
-                      className="flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+                      className="flex flex-col overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm transition-shadow hover:shadow-md"
                     >
                       {/* Header */}
-                      <div className="flex items-start gap-3 p-3 border-b border-border">
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${status.color}`}>
+                      <div className="flex items-start gap-3 border-b border-border/70 bg-background/40 p-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${status.color}`}>
                           <StatusIcon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
