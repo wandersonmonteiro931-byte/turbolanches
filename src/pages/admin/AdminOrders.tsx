@@ -712,19 +712,19 @@ const AdminOrders = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-base font-black text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
+                            <span className="text-base font-extrabold text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
                             {customerCode && (
-                              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">{customerCode}</span>
+                              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{customerCode}</span>
                             )}
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${status.color}`}>{status.label}</span>
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>{status.label}</span>
                             {order.priority && (
-                              <span className="rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-700">⚡</span>
+                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">⚡</span>
                             )}
                             {order.status === "ready" && order.courier_id && (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">⚠️ DEVOLVIDO</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">⚠️ DEVOLVIDO</span>
                             )}
                             {!order.payment_confirmed && order.status !== "cancelled" && (
-                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">$ Pendente</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">$ Pendente</span>
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-muted-foreground break-words">
@@ -735,7 +735,7 @@ const AdminOrders = () => {
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="text-sm font-black text-foreground whitespace-nowrap">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+                          <span className="whitespace-nowrap text-sm font-extrabold text-foreground">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
                         </div>
                       </div>
 
