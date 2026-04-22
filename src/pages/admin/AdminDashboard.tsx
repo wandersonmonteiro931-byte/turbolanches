@@ -20,6 +20,8 @@ const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTracki
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
 import CalculatorModal from "@/components/admin/CalculatorModal";
+import { buildAdminPrintDocument, escapeHtml } from "@/lib/adminPrintTemplates";
+import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -936,46 +938,20 @@ const AdminDashboard = () => {
     const totalLiquido = fullRows.reduce((s, r) => s + r.total_liquido, 0);
     const totalOrders = fullRows.reduce((s, r) => s + r.total_orders, 0);
 
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
-
     const periodLabel = `${format(periodFrom, "dd/MM/yyyy")} a ${format(periodTo, "dd/MM/yyyy")}`;
 
     const reportRows = fullRows.map(r => `
-      <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
+      <div class="report-row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
     `).join("");
-
-    w.document.write(`<!DOCTYPE html>
-      <html><head><style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Courier New',monospace; width:72mm; padding:2mm; font-size:10px; }
-        .center { text-align:center; }
-        .sep { border-top:1px dashed #000; margin:3px 0; }
-        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; }
-        .big { font-size:14px; font-weight:900; }
-        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
-        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
-        @page { size:72mm auto; margin:0; }
-      </style></head><body>
-        <h1>TURBO LANCHES</h1>
-        <h2>RELATÓRIO DE PERÍODO</h2>
-        <div class="center">${periodLabel}</div>
-        <div class="sep"></div>
-        <div class="row" style="font-size:8px;color:#666"><span>Data</span><span>Pedidos</span><span>Bruto</span><span>Líquido</span></div>
-        ${reportRows}
-        <div class="sep"></div>
-        <div class="row"><span>Total Pedidos:</span><span>${totalOrders}</span></div>
-        <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${totalBruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Pago Entregadores:</span><span>R$ ${totalCourierPaid.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Gastos:</span><span>R$ ${totalGastos.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de período gerado automaticamente</div>
-        <script>window.onload=function(){window.print();}</script>
-      </body></html>
-    `);
-    w.document.close();
+    await printReportTemplate("relatorio_periodo", {
+      "[PERIODO]": periodLabel,
+      "[LINHAS]": reportRows,
+      "[TOTALPEDIDOS]": String(totalOrders),
+      "[TOTALBRUTO]": `R$ ${totalBruto.toFixed(2).replace(".",",")}`,
+      "[TOTALENTREGADORES]": `R$ ${totalCourierPaid.toFixed(2).replace(".",",")}`,
+      "[TOTALGASTOS]": `R$ ${totalGastos.toFixed(2).replace(".",",")}`,
+      "[TOTALLIQUIDO]": `R$ ${totalLiquido.toFixed(2).replace(".",",")}`,
+    }, { "[LINHAS]": reportRows });
   };
 
   const handleCloseDay = async () => {
