@@ -19,6 +19,7 @@ const ITEM_TEMPLATE_TOKENS = [
   "[VALORITEM]",
   "[PREÇOPROD]",
   "[OBSITEM]",
+  "[ADICIONAIS]",
   "[CÓDIGOPROD]",
   "[CODIGOPROD]",
 ] as const;
@@ -277,14 +278,23 @@ const AdminPrint = () => {
       "[NOMEENTREGADOR]": courierName || "",
     };
 
-    const formatCode = (c: any) => (c != null && c !== "" ? `[${c}] ` : "");
+    const shouldShowProductCode = resolvedType !== "pedido";
+    const formatCode = (c: any) => (shouldShowProductCode && c != null && c !== "" ? `[${c}] ` : "");
+    const formatAddonsText = (item: any) => {
+      const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
+      return addons.map((addon: any) => `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`).join(" | ");
+    };
+    const getAddonsTotal = (item: any) => {
+      const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
+      return addons.reduce((sum: number, addon: any) => sum + (Number(addon.price) || 0) * (Number(addon.quantity) || 1), 0);
+    };
 
     const buildItemsTableHtml = () => {
       if (items.length === 0) return "";
       const fmt2 = fmt;
       let rows = "";
       items.forEach((item) => {
-        const lineTotal = Number(item.unit_price) * item.quantity;
+        const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
         const codePrefix = formatCode(item.product_code);
         rows += `<tr><td class="items-qty">${item.quantity}x</td><td class="items-name">${escapeHtml(codePrefix + item.product_name)}</td><td class="items-price">${fmt2(lineTotal)}</td></tr>`;
         const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
@@ -316,8 +326,10 @@ const AdminPrint = () => {
         }
 
         return items.flatMap((item) => {
-          const lineTotal = Number(item.unit_price) * item.quantity;
-          const codeStr = item.product_code != null ? String(item.product_code) : "";
+          const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
+          const codeStr = shouldShowProductCode && item.product_code != null ? String(item.product_code) : "";
+          const addonsText = formatAddonsText(item);
+          const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""].filter(Boolean).join(" | ");
           const itemVars = {
             "[PRODUTO]": item.product_name,
             "[PRODUTOS]": item.product_name,
@@ -325,7 +337,8 @@ const AdminPrint = () => {
             "[QUANTIDADEPROD]": String(item.quantity),
             "[VALORITEM]": fmt(lineTotal),
             "[PREÇOPROD]": fmt(Number(item.unit_price)),
-            "[OBSITEM]": item.observations?.trim() || "",
+            "[OBSITEM]": obsWithAddons,
+            "[ADICIONAIS]": addonsText,
             "[CÓDIGOPROD]": codeStr,
             "[CODIGOPROD]": codeStr,
           };
