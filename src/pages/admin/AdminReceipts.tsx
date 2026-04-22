@@ -80,7 +80,7 @@ const AdminReceipts = () => {
         return;
       }
       const stamp = Date.now();
-      const queue = Array.from({ length: qty }, (_, index) => `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${index + 1}&delay_ms=${index === 0 ? 100 : 250}&t=${stamp}_${index}`);
+      const queue = Array.from({ length: qty }, (_, index) => `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${index + 1}&keep_open=1&delay_ms=${index === 0 ? 100 : 250}&t=${stamp}_${index}`);
       const win = window.open(queue[0], `_print_${type}_${stamp}`, "width=320,height=640");
       if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
