@@ -1,5 +1,5 @@
-// SW Version 63 — standard service worker + immediate update
-var SW_VERSION = "v63";
+// SW Version 64 — network-first, no stale app shell cache
+var SW_VERSION = "v64";
 
 self.addEventListener("install", function () {
   self.skipWaiting();
@@ -10,10 +10,16 @@ self.addEventListener("activate", function (event) {
 });
 
 self.addEventListener("fetch", function (event) {
+  if (event.request.method !== "GET") return;
+
   event.respondWith(
-    fetch(event.request).catch(function () {
-      return caches.match(event.request);
-    }),
+    fetch(event.request, { cache: "no-store" })
+      .then(function (response) {
+        return response;
+      })
+      .catch(function () {
+        return caches.match(event.request);
+      }),
   );
 });
 
