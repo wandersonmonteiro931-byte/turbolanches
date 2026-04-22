@@ -740,7 +740,7 @@ const AdminOrders = () => {
                       </div>
 
                       {/* Body — always visible, never truncated */}
-                      <div className="flex-1 p-3 space-y-2.5">
+                        <div className="flex-1 space-y-2.5 p-3">
                         {/* Timeline */}
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                           <span>📥 {formatTime(order.created_at)}</span>
@@ -760,12 +760,12 @@ const AdminOrders = () => {
 
                         {/* Observations */}
                         {order.observations && (
-                          <p className="text-xs text-foreground bg-amber-50 rounded p-2 break-words">💬 {order.observations}</p>
+                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">💬 {order.observations}</p>
                         )}
 
                         {/* Cancellation reason */}
                         {order.cancellation_reason && (
-                          <p className="text-xs text-red-600 font-bold break-words">❌ Motivo: {order.cancellation_reason}</p>
+                          <p className="break-words text-xs font-semibold text-destructive">❌ Motivo: {order.cancellation_reason}</p>
                         )}
 
                         {/* Items */}
@@ -791,9 +791,9 @@ const AdminOrders = () => {
                         </div>
 
                         {/* Totals */}
-                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-[11px]">
+                        <div className="space-y-0.5 rounded-lg border border-border/70 bg-muted/35 p-2 text-[11px]">
                           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
-                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-green-600">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
+                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-primary">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
                           <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
                           <div className="flex justify-between font-bold text-xs"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
                           {order.change_for && order.change_for > 0 && (
@@ -813,7 +813,7 @@ const AdminOrders = () => {
                           </button>
                           {order.courier_id && (
                             <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
-                              className="flex items-center gap-1 rounded-lg border border-cyan-500 px-2 py-1 text-[10px] font-medium text-cyan-700 hover:bg-cyan-50">
+                              className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/5">
                               <Printer size={12} /> Rota
                             </button>
                           )}
