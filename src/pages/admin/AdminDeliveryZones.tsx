@@ -755,12 +755,9 @@ const AdminDeliveryZones = () => {
       {showAdd && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
           <h3 className="text-sm font-bold text-foreground">Adicionar Região</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input placeholder="Nome do bairro" value={newZone.neighborhood} onChange={e => setNewZone(z => ({ ...z, neighborhood: e.target.value }))} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground sm:col-span-2" />
-            <div className="flex gap-2">
-              <input type="number" step="0.01" min="0" placeholder="Taxa (R$)" value={newZone.delivery_fee} onChange={e => setNewZone(z => ({ ...z, delivery_fee: Number(e.target.value) }))} className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground" />
-              <button onClick={addZone} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+            <input placeholder="Nome do bairro" value={newZone.neighborhood} onChange={e => setNewZone(z => ({ ...z, neighborhood: e.target.value }))} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
+            <button onClick={addZone} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
           </div>
         </div>
       )}
@@ -792,10 +789,6 @@ const AdminDeliveryZones = () => {
                       <div className="flex items-center gap-1">
                         <span className="text-[11px] text-muted-foreground">km:</span>
                         <input type="number" step="0.1" min="0" value={editData.distance_km ?? ""} onChange={e => setEditData(d => ({ ...d, distance_km: e.target.value ? Number(e.target.value) : null }))} className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] text-muted-foreground">R$:</span>
-                        <input type="number" step="0.01" min="0" value={editData.delivery_fee} onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) }))} className="w-20 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
                       </div>
                       <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                         <input type="checkbox" checked={editData.active} onChange={e => setEditData(d => ({ ...d, active: e.target.checked }))} /> Ativo
