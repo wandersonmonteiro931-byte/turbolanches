@@ -473,7 +473,8 @@ const AdminOrders = () => {
   };
 
   const safePrint = (url: string) => {
-    const win = window.open(url, "_blank", "width=300,height=600");
+    const stampedUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    const win = window.open(stampedUrl, `_print_${Date.now()}`, "width=300,height=600");
     if (!win || win.closed) {
       toast({ title: "❌ Popup bloqueado! Permita popups neste site para impressão automática.", variant: "destructive" });
     }

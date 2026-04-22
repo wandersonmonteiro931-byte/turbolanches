@@ -187,16 +187,17 @@ const openPrintPopup = () => {
 };
 
 const routePopupToPrint = (popup: Window | null, url: string) => {
+  const stampedUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
   if (!popup || popup.closed) {
-    window.open(url, "_blank", "width=300,height=600");
+    window.open(stampedUrl, "_blank", "width=300,height=600");
     return;
   }
 
   try {
-    popup.location.href = url;
+    popup.location.replace(stampedUrl);
     popup.focus();
   } catch {
-    window.open(url, "_blank", "width=300,height=600");
+    window.open(stampedUrl, "_blank", "width=300,height=600");
   }
 };
 

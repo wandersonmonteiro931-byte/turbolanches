@@ -576,7 +576,8 @@ const AdminDashboard = () => {
 
   const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, "_blank", "width=300,height=600");
+    const stamp = Date.now();
+    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}&t=${stamp}`, `_print_${tipo}_${stamp}`, "width=300,height=600");
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };

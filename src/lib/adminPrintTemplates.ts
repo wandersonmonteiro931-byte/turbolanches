@@ -455,13 +455,26 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   var started = false;
   var printFinished = false;
   var attempts = 0;
-  var maxAttempts = 5;
+  var maxAttempts = 12;
+  var retryTimers = [];
+
+  function clearRetryTimers() {
+    while (retryTimers.length) {
+      try { clearTimeout(retryTimers.pop()); } catch (error) {}
+    }
+  }
+
+  function markFinished() {
+    printFinished = true;
+    clearRetryTimers();
+  }
 
   function runPrint() {
     if (printFinished || attempts >= maxAttempts) return;
     attempts += 1;
 
     try { window.focus(); } catch (error) {}
+    try { document.body && document.body.offsetHeight; } catch (error) {}
 
     try {
       window.print();
@@ -469,19 +482,40 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       // Keep retrying: kiosk/thermal Chromium can ignore the first call while
       // the generated document is still being painted.
     }
+
+    try {
+      if (document.execCommand) {
+        document.execCommand("print", false);
+      }
+    } catch (error) {}
+  }
+
+  function queuePrint(delay) {
+    retryTimers.push(setTimeout(function () {
+      if (printFinished) return;
+      try {
+        requestAnimationFrame(function () {
+          requestAnimationFrame(runPrint);
+        });
+      } catch (error) {
+        runPrint();
+      }
+    }, delay));
   }
 
   function firePrint() {
-    if (started) return;
-    started = true;
-
     var run = function () {
+      if (printFinished) return;
       runPrint();
-      setTimeout(runPrint, 80);
-      setTimeout(runPrint, 220);
-      setTimeout(runPrint, 520);
-      setTimeout(runPrint, 900);
+      [40, 120, 260, 480, 800, 1200, 1800, 2600, 3600].forEach(queuePrint);
     };
+
+    if (started) {
+      run();
+      return;
+    }
+
+    started = true;
 
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(run).catch(run);
@@ -492,24 +526,43 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   }
 
   if (document.readyState === "complete") {
-    setTimeout(firePrint, 80);
+    setTimeout(firePrint, 40);
   } else {
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(firePrint, 20);
+    }, { once: true });
     window.addEventListener("load", function () {
-      setTimeout(firePrint, 80);
+      setTimeout(firePrint, 20);
     }, { once: true });
   }
 
   window.addEventListener("pageshow", function () {
-    setTimeout(firePrint, 40);
-  }, { once: true });
+    setTimeout(firePrint, 20);
+  });
+
+  window.addEventListener("focus", function () {
+    setTimeout(firePrint, 10);
+  });
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      setTimeout(firePrint, 10);
+    }
+  });
 
   window.addEventListener("beforeprint", function () {
-    printFinished = true;
+    markFinished();
   });
 
   window.addEventListener("afterprint", function () {
-    printFinished = true;
+    markFinished();
   });
+
+  retryTimers.push(setTimeout(function () {
+    if (!printFinished) {
+      firePrint();
+    }
+  }, 5000));
 
   if (!keepOpen) {
     window.addEventListener("afterprint", function () {
