@@ -384,6 +384,28 @@ const AdminOrders = () => {
     return result;
   }, [allOrders, searchQuery, filterStatus, filterPayment, filterDeliveryType, filterDateFrom, filterDateTo, filterMinValue, filterMaxValue, filterPaid, filterProductName, allItems, profiles]);
 
+  const sectionOrdersMap = useMemo(() => {
+    return Object.fromEntries(
+      sectionDefs.map((section) => [
+        section.key,
+        filteredOrders.filter((order) => {
+          if (section.trashed) return order.status === "cancelled" && !!order.trashed_at;
+          return section.statuses.includes(order.status) && !order.trashed_at;
+        }),
+      ]),
+    ) as Record<string, Order[]>;
+  }, [filteredOrders]);
+
+  useEffect(() => {
+    const visibleOrderIds = sectionDefs.flatMap((section) => {
+      const sectionOrders = sectionOrdersMap[section.key] || [];
+      const visibleCount = sectionVisibleCount[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT;
+      return sectionOrders.slice(0, visibleCount).map((order) => order.id);
+    });
+
+    void fetchItemsBatch(visibleOrderIds);
+  }, [sectionOrdersMap, sectionVisibleCount, fetchItemsBatch]);
+
   const activeFiltersCount = [
     filterStatus.length > 0,
     filterPayment.length > 0,
@@ -425,7 +447,6 @@ const AdminOrders = () => {
       return;
     }
     await fetchOrders();
-    setExpandedOrder(orderId);
     toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     if (newStatus === "preparing") {
@@ -461,14 +482,6 @@ const AdminOrders = () => {
   const printReceipt = (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
-  };
-  const toggleExpand = (orderId: string) => {
-    if (expandedOrder === orderId) {
-      setExpandedOrder(null);
-    } else {
-      setExpandedOrder(orderId);
-      fetchItems(orderId);
-    }
   };
 
   const formatDateTime = (date: string) => {
