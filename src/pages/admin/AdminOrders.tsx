@@ -4,6 +4,7 @@ import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, F
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
+import { openPrintUrl } from "@/lib/printPopup";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -473,8 +474,7 @@ const AdminOrders = () => {
   };
 
   const safePrint = (url: string) => {
-    const stampedUrl = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
-    const win = window.open(stampedUrl, `_print_${Date.now()}`, "width=300,height=600");
+    const win = openPrintUrl(url, "print", "width=300,height=600");
     if (!win || win.closed) {
       toast({ title: "❌ Popup bloqueado! Permita popups neste site para impressão automática.", variant: "destructive" });
     }

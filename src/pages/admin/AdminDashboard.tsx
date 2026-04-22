@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { openPrintUrl } from "@/lib/printPopup";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
@@ -576,8 +577,7 @@ const AdminDashboard = () => {
 
   const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
-    const stamp = Date.now();
-    const w = window.open(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}&t=${stamp}`, `_print_${tipo}_${stamp}`, "width=300,height=600");
+    const w = openPrintUrl(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, `print_${tipo}`, "width=300,height=600");
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };

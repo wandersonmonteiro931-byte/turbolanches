@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { openPrintUrl } from "@/lib/printPopup";
 import { toast } from "sonner";
 
 const tabConfig = [
@@ -83,9 +84,7 @@ const AdminReceipts = () => {
         toast.error("Nenhum pedido encontrado para teste de impressão.");
         return;
       }
-      const stamp = Date.now();
-      const printUrl = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&t=${stamp}`;
-      const win = window.open(printUrl, `_print_${type}_${stamp}`, "width=320,height=640");
+      const win = openPrintUrl(`/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100`, `print_${type}`, "width=320,height=640");
       if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
       } else {
