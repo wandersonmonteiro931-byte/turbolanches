@@ -700,31 +700,14 @@ const AdminOrders = () => {
       )}
 
       {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
-      {(() => {
-        const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
-          { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-primary/15 bg-primary/5 text-foreground" },
-          { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border/80 bg-card text-foreground" },
-          { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
-          { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border/80 bg-card text-foreground" },
-          { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border/80 bg-card text-muted-foreground" },
-          { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-destructive/15 bg-destructive/5 text-foreground" },
-          { key: "lixeira", label: "Lixeira", statuses: ["cancelled"], accent: "border-border/80 bg-card text-muted-foreground", trashed: true },
-        ];
-
-        // Auto-load items for any visible order so cards show full info without clicks
-        filteredOrders.forEach((o) => {
-          if (!items[o.id]) void fetchItems(o.id);
-        });
-
-        return sectionDefs.map((section) => {
-          const sectionOrders = filteredOrders.filter((o) => {
-            if (section.trashed) return o.status === "cancelled" && !!o.trashed_at;
-            return section.statuses.includes(o.status) && !o.trashed_at;
-          });
+      {sectionDefs.map((section) => {
+          const sectionOrders = sectionOrdersMap[section.key] || [];
           if (sectionOrders.length === 0) return null;
-          // Pendentes & Em Preparo expandidos por padrão; demais colapsadas
           const defaultOpen = section.key === "pendentes" || section.key === "preparo";
           const isOpen = expandedSections[section.key] ?? defaultOpen;
+          const visibleCount = sectionVisibleCount[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT;
+          const visibleOrders = sectionOrders.slice(0, visibleCount);
+          const hasMore = sectionOrders.length > visibleCount;
 
           return (
             <section key={section.key} className="space-y-3">
@@ -742,7 +725,7 @@ const AdminOrders = () => {
 
               {isOpen && (
                 <div className="flex flex-col gap-3">
-                  {sectionOrders.map((order) => {
+                  {visibleOrders.map((order) => {
                   const status = statusConfig[order.status] || statusConfig.pending;
                   const StatusIcon = status.icon;
                   const next = nextStatus[order.status];
@@ -873,12 +856,24 @@ const AdminOrders = () => {
                     </div>
                   );
                   })}
+
+                  {hasMore && (
+                    <button
+                      type="button"
+                      onClick={() => setSectionVisibleCount((prev) => ({
+                        ...prev,
+                        [section.key]: (prev[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT) + SECTION_LOAD_MORE_STEP,
+                      }))}
+                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                    >
+                      Carregar mais {Math.min(SECTION_LOAD_MORE_STEP, sectionOrders.length - visibleCount)} pedidos
+                    </button>
+                  )}
                 </div>
               )}
             </section>
           );
-        });
-      })()}
+        })}
       {/* Route Closure Confirmation Modal */}
       {showRouteClosureModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
