@@ -84,6 +84,19 @@ const deliveryLabels: Record<string, string> = {
   consumo: "Consumo",
 };
 
+const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
+  { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-primary/15 bg-primary/5 text-foreground" },
+  { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border/80 bg-card text-foreground" },
+  { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
+  { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border/80 bg-card text-foreground" },
+  { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border/80 bg-card text-muted-foreground" },
+  { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-destructive/15 bg-destructive/5 text-foreground" },
+  { key: "lixeira", label: "Lixeira", statuses: ["cancelled"], accent: "border-border/80 bg-card text-muted-foreground", trashed: true },
+];
+
+const INITIAL_SECTION_VISIBLE_COUNT = 20;
+const SECTION_LOAD_MORE_STEP = 20;
+
 const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
   if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
   if (paymentMethod === "fiado") return "FIADO";
@@ -95,8 +108,8 @@ const AdminOrders = () => {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [sectionVisibleCount, setSectionVisibleCount] = useState<Record<string, number>>({});
   const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const { toast } = useToast();
@@ -211,6 +224,30 @@ const AdminOrders = () => {
       .eq("order_id", orderId);
     if (data) setItems((prev) => ({ ...prev, [orderId]: data }));
   };
+
+  const fetchItemsBatch = useCallback(async (orderIds: string[]) => {
+    const missingIds = [...new Set(orderIds)].filter((orderId) => !items[orderId]);
+    if (missingIds.length === 0) return;
+
+    const { data } = await supabase
+      .from("order_items")
+      .select("*")
+      .in("order_id", missingIds);
+
+    if (!data) return;
+
+    const grouped = missingIds.reduce<Record<string, OrderItem[]>>((acc, orderId) => {
+      acc[orderId] = [];
+      return acc;
+    }, {});
+
+    data.forEach((item: any) => {
+      if (!grouped[item.order_id]) grouped[item.order_id] = [];
+      grouped[item.order_id].push(item);
+    });
+
+    setItems((prev) => ({ ...prev, ...grouped }));
+  }, [items]);
 
   useEffect(() => {
     void fetchOrders();
