@@ -75,10 +75,14 @@ const AdminCustomers = () => {
   const [changes, setChanges] = useState<Record<string, ProfileChange[]>>({});
   const [editingProfile, setEditingProfile] = useState<Record<string, Partial<Profile>>>({});
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
+  const [newZipCode, setNewZipCode] = useState("");
+  const [newStreet, setNewStreet] = useState("");
+  const [newNumber, setNewNumber] = useState("");
+  const [newNeighborhood, setNewNeighborhood] = useState("");
+  const [newQuadra, setNewQuadra] = useState("");
+  const [newLote, setNewLote] = useState("");
   const [creating, setCreating] = useState(false);
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
@@ -188,24 +192,28 @@ const AdminCustomers = () => {
   };
 
   const createCustomer = async () => {
-    if (!newEmail || !newPassword) {
-      toast({ title: "Email e senha são obrigatórios", variant: "destructive" });
+    if (!newName || !newPhone || !newStreet || !newNumber || !newNeighborhood || !newQuadra || !newLote) {
+      toast({ title: "Preencha todos os campos obrigatórios (*)", variant: "destructive" });
       return;
     }
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-create-customer", {
-        body: { email: newEmail, password: newPassword, full_name: newName, phone: newPhone },
+        body: { full_name: newName, phone: newPhone, zip_code: newZipCode, street: newStreet, number: newNumber, neighborhood: newNeighborhood, quadra: newQuadra, lote: newLote, city: "Anápolis", state: "Goiás" },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       toast({ title: "✅ Cliente criado com sucesso!" });
       setShowCreateForm(false);
-      setNewEmail("");
-      setNewPassword("");
       setNewName("");
       setNewPhone("");
+      setNewZipCode("");
+      setNewStreet("");
+      setNewNumber("");
+      setNewNeighborhood("");
+      setNewQuadra("");
+      setNewLote("");
       fetchProfiles();
     } catch (err: any) {
       toast({ title: err.message || "Erro ao criar cliente", variant: "destructive" });
