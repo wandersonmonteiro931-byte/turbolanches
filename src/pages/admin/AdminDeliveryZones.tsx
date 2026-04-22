@@ -506,8 +506,8 @@ const AdminDeliveryZones = () => {
   const { storeId } = useStore();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ neighborhood: "", delivery_fee: 0, active: true, distance_km: null as number | null });
-  const [newZone, setNewZone] = useState({ neighborhood: "", delivery_fee: 0 });
+  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null });
+  const [newZone, setNewZone] = useState({ neighborhood: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE);
@@ -515,8 +515,6 @@ const AdminDeliveryZones = () => {
 
   const [filterKmMin, setFilterKmMin] = useState("");
   const [filterKmMax, setFilterKmMax] = useState("");
-  const [filterPriceMin, setFilterPriceMin] = useState("");
-  const [filterPriceMax, setFilterPriceMax] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -572,21 +570,20 @@ const AdminDeliveryZones = () => {
 
   const addZone = async () => {
     if (!newZone.neighborhood.trim()) { toast({ title: "Informe o bairro", variant: "destructive" }); return; }
-    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee, store_id: storeId });
+    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), store_id: storeId });
     toast({ title: "✅ Região adicionada!" });
-    setNewZone({ neighborhood: "", delivery_fee: 0 }); setShowAdd(false); fetchZones();
+    setNewZone({ neighborhood: "" }); setShowAdd(false); fetchZones();
   };
 
   const startEdit = (zone: DeliveryZone) => {
     setEditingId(zone.id);
-    setEditData({ neighborhood: zone.neighborhood, delivery_fee: zone.delivery_fee, active: zone.active, distance_km: zone.distance_km });
+    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km });
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
     await supabase.from("delivery_zones").update({
       neighborhood: editData.neighborhood,
-      delivery_fee: editData.delivery_fee,
       active: editData.active,
       distance_km: editData.distance_km,
     } as any).eq("id", editingId);
@@ -621,14 +618,12 @@ const AdminDeliveryZones = () => {
       if (filterStatus === "inactive" && z.active) return false;
       if (filterKmMin && (z.distance_km === null || z.distance_km < Number(filterKmMin))) return false;
       if (filterKmMax && (z.distance_km === null || z.distance_km > Number(filterKmMax))) return false;
-      if (filterPriceMin && z.delivery_fee < Number(filterPriceMin)) return false;
-      if (filterPriceMax && z.delivery_fee > Number(filterPriceMax)) return false;
       return true;
     });
-  }, [zones, searchTerm, filterStatus, filterKmMin, filterKmMax, filterPriceMin, filterPriceMax]);
+  }, [zones, searchTerm, filterStatus, filterKmMin, filterKmMax]);
 
   const zonesWithoutDistance = zones.filter(z => z.distance_km === null).length;
-  const activeFilters = [filterKmMin, filterKmMax, filterPriceMin, filterPriceMax, filterStatus !== "all" ? filterStatus : ""].filter(Boolean).length;
+  const activeFilters = [filterKmMin, filterKmMax, filterStatus !== "all" ? filterStatus : ""].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -733,7 +728,7 @@ const AdminDeliveryZones = () => {
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Filter size={14} /> Filtros</h3>
-            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterPriceMin(""); setFilterPriceMax(""); setFilterStatus("all"); }} className="text-xs text-primary font-medium">Limpar</button>
+            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterStatus("all"); }} className="text-xs text-primary font-medium">Limpar</button>
           </div>
           <div className="flex gap-2 mb-2">
             {(["all", "active", "inactive"] as const).map(s => (
@@ -742,7 +737,7 @@ const AdminDeliveryZones = () => {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block">Km mín</label>
               <input type="number" step="0.5" min="0" value={filterKmMin} onChange={e => setFilterKmMin(e.target.value)} placeholder="0" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
@@ -750,14 +745,6 @@ const AdminDeliveryZones = () => {
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block">Km máx</label>
               <input type="number" step="0.5" min="0" value={filterKmMax} onChange={e => setFilterKmMax(e.target.value)} placeholder="∞" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block">Preço mín</label>
-              <input type="number" step="1" min="0" value={filterPriceMin} onChange={e => setFilterPriceMin(e.target.value)} placeholder="R$ 0" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block">Preço máx</label>
-              <input type="number" step="1" min="0" value={filterPriceMax} onChange={e => setFilterPriceMax(e.target.value)} placeholder="R$ ∞" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">{filteredZones.length} de {zones.length} bairros</p>
@@ -768,12 +755,9 @@ const AdminDeliveryZones = () => {
       {showAdd && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
           <h3 className="text-sm font-bold text-foreground">Adicionar Região</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input placeholder="Nome do bairro" value={newZone.neighborhood} onChange={e => setNewZone(z => ({ ...z, neighborhood: e.target.value }))} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground sm:col-span-2" />
-            <div className="flex gap-2">
-              <input type="number" step="0.01" min="0" placeholder="Taxa (R$)" value={newZone.delivery_fee} onChange={e => setNewZone(z => ({ ...z, delivery_fee: Number(e.target.value) }))} className="flex-1 rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground" />
-              <button onClick={addZone} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+            <input placeholder="Nome do bairro" value={newZone.neighborhood} onChange={e => setNewZone(z => ({ ...z, neighborhood: e.target.value }))} className="rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground" />
+            <button onClick={addZone} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Salvar</button>
           </div>
         </div>
       )}
@@ -806,10 +790,6 @@ const AdminDeliveryZones = () => {
                         <span className="text-[11px] text-muted-foreground">km:</span>
                         <input type="number" step="0.1" min="0" value={editData.distance_km ?? ""} onChange={e => setEditData(d => ({ ...d, distance_km: e.target.value ? Number(e.target.value) : null }))} className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] text-muted-foreground">R$:</span>
-                        <input type="number" step="0.01" min="0" value={editData.delivery_fee} onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) }))} className="w-20 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
-                      </div>
                       <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                         <input type="checkbox" checked={editData.active} onChange={e => setEditData(d => ({ ...d, active: e.target.checked }))} /> Ativo
                       </label>
@@ -832,12 +812,8 @@ const AdminDeliveryZones = () => {
                         <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold shrink-0">N/A</span>
                       )}
 
-                      {isFree ? (
+                      {isFree && (
                         <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[11px] font-bold shrink-0">GRÁTIS 🎁</span>
-                      ) : (
-                        <span className={`text-sm font-bold shrink-0 ${zone.delivery_fee === 0 ? "text-green-600" : "text-foreground"}`}>
-                          {zone.delivery_fee === 0 ? "GRÁTIS" : `R$ ${zone.delivery_fee.toFixed(0)}`}
-                        </span>
                       )}
 
                       {isBlocked && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-bold shrink-0">BLOQUEADO</span>}
