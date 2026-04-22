@@ -771,7 +771,7 @@ export const buildAdminPrintDocument = ({
         ${sharedStyles}
       </style>
     </head>
-    <body>
+    <body data-print-document="ready">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
@@ -844,7 +844,7 @@ export const buildBatchPrintDocument = (
         ${sharedStyles}
       </style>
     </head>
-    <body>
+    <body data-print-document="ready">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
