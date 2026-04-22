@@ -11,6 +11,7 @@ import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 import CustomerSearch from "@/components/admin/CustomerSearch";
 import ManualOrderAddonSelector from "@/components/admin/ManualOrderAddonSelector";
 import { formatBusinessDate } from "@/lib/businessDay";
+import { useStoreName } from "@/hooks/useStoreName";
 
 interface Product {
   id: string;
@@ -161,6 +162,7 @@ const AdminManualOrder = () => {
   const editOrderId = searchParams.get("edit");
   const { user } = useAuth();
   const { storeId } = useStore();
+  const storeName = useStoreName();
   const draft = useRef(loadDraft()).current;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -713,6 +715,9 @@ const AdminManualOrder = () => {
   const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
   const fmt = (v: number) => v.toFixed(2).replace(".", ",");
   const hasCart = cart.length > 0;
+  const headerTitle = editOrderId
+    ? `EDITAR PEDIDO #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "XXXXX"}`
+    : "CRIAR NOVO PEDIDO";
 
   return (
     <div className="min-h-full bg-[hsl(205_86%_28%)] text-[hsl(0_0%_98%)]">
@@ -722,8 +727,8 @@ const AdminManualOrder = () => {
             <ArrowLeft size={16} />
           </button>
           <div className="leading-none">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-[hsl(198_70%_84%)]">Data Caixa</p>
-            <h1 className="text-sm font-black uppercase tracking-wide text-[hsl(0_0%_100%)]">RESTAURANTE</h1>
+            <p className="max-w-[240px] truncate text-[10px] font-bold uppercase tracking-wide text-[hsl(198_70%_84%)]">{storeName}</p>
+            <h1 className="text-sm font-black uppercase tracking-wide text-[hsl(0_0%_100%)]">{headerTitle}</h1>
           </div>
           <div className="ml-auto flex items-center gap-1 text-[10px] font-bold">
             <button onClick={() => void loadLatestData()} className="h-7 rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 text-[hsl(0_0%_100%)]">Atualizar</button>
