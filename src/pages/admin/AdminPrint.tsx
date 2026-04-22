@@ -262,7 +262,7 @@ const AdminPrint = () => {
       "[TAXAENTREGA]": fmt(deliveryFee),
       "[DESCONTO]": fmt(discount),
       "[CUPOM]": couponInfo,
-      "[TROCO]": troco > 0 ? fmt(troco) : "R$ 0,00",
+      "[TROCO]": troco > 0 ? `[FUNDPRETO]DEVOLVER: ${fmt(troco)}[/FUNDPRETO]` : "R$ 0,00",
       "[NOMELOJA]": storeName,
       "[TIPOCOMANDA]": tipoLabel,
       "[DATAHORA]": dataAgora,
@@ -329,7 +329,7 @@ const AdminPrint = () => {
           const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
           const codeStr = shouldShowProductCode && item.product_code != null ? String(item.product_code) : "";
           const addonsText = formatAddonsText(item);
-          const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""].filter(Boolean).join(" | ");
+          const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""].filter(Boolean).map((value) => `[FUNDPRETO]${value}[/FUNDPRETO]`).join(" ");
           const itemVars = {
             "[PRODUTO]": item.product_name,
             "[PRODUTOS]": item.product_name,
@@ -338,7 +338,7 @@ const AdminPrint = () => {
             "[VALORITEM]": fmt(lineTotal),
             "[PREÇOPROD]": fmt(Number(item.unit_price)),
             "[OBSITEM]": obsWithAddons,
-            "[ADICIONAIS]": addonsText,
+            "[ADICIONAIS]": addonsText ? `[FUNDPRETO]${addonsText}[/FUNDPRETO]` : "",
             "[CÓDIGOPROD]": codeStr,
             "[CODIGOPROD]": codeStr,
           };
