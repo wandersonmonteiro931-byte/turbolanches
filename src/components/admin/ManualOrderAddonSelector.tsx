@@ -80,7 +80,7 @@ const ManualOrderAddonSelector = ({
         <div className="flex gap-2">
           <button
             onClick={onSelectAll}
-            className="rounded-sm border border-primary bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary"
+            className="rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] px-2 py-1 text-[10px] font-bold text-[hsl(203_88%_22%)]"
           >
             Todos
           </button>
@@ -102,12 +102,12 @@ const ManualOrderAddonSelector = ({
             <div key={item.productId} className="space-y-1">
               <div
                 className={`flex items-center gap-2 rounded-sm px-3 py-2 cursor-pointer transition-all ${
-                  isSelected ? "bg-primary/10 border border-primary/30" : "bg-background border border-border"
+                  isSelected ? "bg-[hsl(197_58%_91%)] border border-[hsl(199_76%_36%)]" : "bg-background border border-border"
                 }`}
                 onClick={() => onToggleSelectItem(item.productId)}
               >
                 <div className={`flex h-5 w-5 items-center justify-center rounded border ${
-                  isSelected ? "bg-primary border-primary" : "border-border"
+                  isSelected ? "bg-[hsl(203_88%_22%)] border-[hsl(203_88%_22%)]" : "border-border"
                 }`}>
                   {isSelected && <Check size={12} className="text-primary-foreground" />}
                 </div>
@@ -121,7 +121,7 @@ const ManualOrderAddonSelector = ({
                   }}
                   className={`flex items-center gap-1 rounded-sm px-2 py-1 text-[10px] font-bold transition-all ${
                     item.isCombo
-                      ? "bg-accent text-accent-foreground ring-1 ring-accent"
+                      ? "bg-[hsl(43_95%_50%)] text-[hsl(203_88%_22%)] ring-1 ring-[hsl(43_95%_50%)]"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -129,7 +129,7 @@ const ManualOrderAddonSelector = ({
                   Combo
                 </button>
                 {addonsTotal > 0 && (
-                  <span className="text-[10px] font-bold text-primary">
+                  <span className="text-[10px] font-bold text-[hsl(203_88%_22%)]">
                     +R$ {addonsTotal.toFixed(2).replace(".", ",")}
                   </span>
                 )}
@@ -153,7 +153,7 @@ const ManualOrderAddonSelector = ({
       {/* Addon panel toggle */}
       <button
         onClick={() => setShowAddonPanel(!showAddonPanel)}
-        className="w-full rounded-sm border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+        className="w-full rounded-sm border border-dashed border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] px-3 py-2 text-xs font-bold text-[hsl(203_88%_22%)] transition-all hover:bg-[hsl(200_45%_82%)]"
       >
         {showAddonPanel ? "▲ Fechar adicionais" : `▼ Adicionar extras ${selectedItemIds.length > 0 ? `(${selectedItemIds.length} itens)` : ""}`}
       </button>
