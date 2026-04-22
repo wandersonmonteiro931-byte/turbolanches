@@ -78,9 +78,15 @@ const deliveryTypes = [
 const paymentMethods = [
   { id: "dinheiro", label: "Dinheiro", icon: "💵" },
   { id: "pix_entrega", label: "PIX Entrega", icon: "📱" },
-  { id: "pix_pago", label: "PIX Pago", icon: "✅" },
+  { id: "pix_pago", label: "Já está pago", icon: "✅" },
   { id: "cartao", label: "Cartão", icon: "💳" },
   { id: "fiado", label: "Fiado", icon: "📝" },
+];
+
+const changeMethods = [
+  { id: "dinheiro", label: "Troco dinheiro" },
+  { id: "pix", label: "Troco PIX" },
+  { id: "card", label: "Troco cartão" },
 ];
 
 const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
@@ -737,7 +743,7 @@ const AdminManualOrder = () => {
         </div>
       </header>
 
-      <main className="grid h-[calc(100vh-45px)] grid-cols-[minmax(390px,1fr)_330px] gap-1 overflow-hidden p-1 max-lg:grid-cols-1 max-lg:overflow-auto">
+      <main className="grid h-[calc(100vh-45px)] grid-cols-[minmax(390px,1fr)_360px] gap-1 overflow-hidden p-1 max-lg:grid-cols-1 max-lg:overflow-auto">
         <section className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(199_88%_31%)]">
           <div className="grid grid-cols-[1fr_120px] gap-1 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] p-1">
             <div className="grid grid-cols-5 gap-1">
@@ -779,7 +785,7 @@ const AdminManualOrder = () => {
             <div className="space-y-1 overflow-y-auto pr-0.5">
               <button onClick={() => setSelectedCategory(null)} className={cn("h-9 w-full border text-[9px] font-black uppercase", !selectedCategory ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>Todos</button>
               {categories.map((cat) => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={cn("h-9 w-full border px-1 text-[8px] font-black uppercase leading-tight", selectedCategory === cat.id ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>{cat.name}</button>
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={cn("min-h-9 w-full whitespace-normal break-words border px-1 py-1 text-[8px] font-black uppercase leading-tight", selectedCategory === cat.id ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>{cat.name}</button>
               ))}
             </div>
 
@@ -794,7 +800,7 @@ const AdminManualOrder = () => {
                   className="min-w-0 flex-1 bg-transparent text-[12px] font-bold outline-none placeholder:text-[hsl(203_60%_38%)]"
                 />
               </div>
-              <div className="grid flex-1 auto-rows-[58px] grid-cols-5 gap-1 overflow-y-auto pr-1 max-xl:grid-cols-4 max-md:grid-cols-3">
+              <div className="grid flex-1 auto-rows-min grid-cols-5 gap-1 overflow-y-auto pr-1 max-xl:grid-cols-4 max-md:grid-cols-3">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((i) => i.product.id === product.id);
                   return (
