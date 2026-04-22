@@ -92,6 +92,34 @@ PAGAMENTO: [FORMAPAGTO]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_RELATORIO_ENTREGAS = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+[CENTRO][PERIODO][/CENTRO]
+[CENTRO][NOMEENTREGADOR][/CENTRO]
+---
+[LINHAS]
+---
+TOTAL DE ENTREGAS: [TOTALENTREGAS]
+TOTAL TAXAS DE ENTREGA: [TOTALTAXAS]
+TAXA FIXA: [TAXAFIXA]
+[GRANDE]TOTAL ENTREGADOR: [TOTALENTREGADOR][/GRANDE]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
+export const DEFAULT_RELATORIO_PERIODO = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+[CENTRO][PERIODO][/CENTRO]
+---
+[LINHAS]
+---
+TOTAL PEDIDOS: [TOTALPEDIDOS]
+TOTAL BRUTO: [TOTALBRUTO]
+PAGO ENTREGADORES: [TOTALENTREGADORES]
+TOTAL GASTOS: [TOTALGASTOS]
+[GRANDE]TOTAL LÍQUIDO: [TOTALLIQUIDO][/GRANDE]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
     case "pedido": return DEFAULT_PEDIDO;
@@ -99,6 +127,8 @@ export const getDefaultTemplate = (type: string): string => {
     case "etiquetas": return DEFAULT_ETIQUETAS;
     case "reposicao": return DEFAULT_REPOSICAO;
     case "entregador": return DEFAULT_ENTREGADOR;
+    case "relatorio_entregas": return DEFAULT_RELATORIO_ENTREGAS;
+    case "relatorio_periodo": return DEFAULT_RELATORIO_PERIODO;
     // Legacy fallbacks
     case "cozinha": return DEFAULT_PEDIDO;
     case "entrega": return DEFAULT_PEDIDO;
