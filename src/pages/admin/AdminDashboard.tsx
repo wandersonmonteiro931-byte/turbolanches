@@ -839,6 +839,35 @@ const AdminDashboard = () => {
     return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
   };
 
+  const printReportTemplate = async (templateType: string, variables: Record<string, string>, blocks: Record<string, string> = {}) => {
+    const { data } = await supabase.from("receipt_templates" as any).select("*").eq("template_type", templateType).maybeSingle();
+    const template = data as any;
+    const label = template?.label || (templateType === "relatorio_entregas" ? "RELATÓRIO DE ENTREGAS" : "RELATÓRIO DE PERÍODO");
+    const html = buildAdminPrintDocument({
+      title: label,
+      template: template?.body_template || getDefaultTemplate(templateType),
+      variables: {
+        "[NOMELOJA]": template?.store_name || "TURBO LANCHES",
+        "[TIPOCOMANDA]": label,
+        "[RODAPÉ]": template?.footer_message || "",
+        ...variables,
+      },
+      blocks,
+      pageWidthMm: 72,
+      pageHeightMm: "auto",
+      pageMarginMm: 0,
+      bodyFontFamily: "Arial, Helvetica, sans-serif",
+      bodyFontSizePx: template?.body_font_size ?? 10,
+      labelFontSizePx: template?.label_font_size ?? 18,
+      sectionPaddingMm: 0,
+      extraCss: ".report-row{display:flex;justify-content:space-between;gap:4px;font-weight:900;font-size:9px;padding:1px 0}.report-row span{white-space:normal;overflow-wrap:anywhere}.report-row span:last-child{white-space:nowrap}",
+    });
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  };
+
   const reprintPeriodReport = async () => {
     if (!periodFrom || !periodTo) {
       toast({ title: "Selecione as datas de início e fim", variant: "destructive" });
