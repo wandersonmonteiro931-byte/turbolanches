@@ -49,14 +49,14 @@ interface OrderItem {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: "Novo", color: "bg-amber-100 text-amber-800", icon: Clock },
-  paid: { label: "Novo (Pago)", color: "bg-green-100 text-green-800", icon: Check },
-  accepted: { label: "Aceito", color: "bg-blue-100 text-blue-800", icon: Check },
-  preparing: { label: "Preparando", color: "bg-purple-100 text-purple-800", icon: ChefHat },
-  ready: { label: "Pronto", color: "bg-emerald-100 text-emerald-800", icon: Package },
-  delivering: { label: "Saiu p/ entrega", color: "bg-cyan-100 text-cyan-800", icon: Truck },
-  delivered: { label: "Entregue", color: "bg-green-100 text-green-800", icon: Check },
-  cancelled: { label: "Cancelado", color: "bg-red-100 text-red-800", icon: X },
+  pending: { label: "Novo", color: "bg-primary/10 text-primary border-primary/15", icon: Clock },
+  paid: { label: "Novo (Pago)", color: "bg-primary/10 text-primary border-primary/15", icon: Check },
+  accepted: { label: "Aceito", color: "bg-muted text-foreground border-border", icon: Check },
+  preparing: { label: "Preparando", color: "bg-primary/10 text-primary border-primary/15", icon: ChefHat },
+  ready: { label: "Pronto", color: "bg-muted text-foreground border-border", icon: Package },
+  delivering: { label: "Saiu p/ entrega", color: "bg-muted text-foreground border-border", icon: Truck },
+  delivered: { label: "Entregue", color: "bg-muted text-muted-foreground border-border", icon: Check },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/15", icon: X },
 };
 
 const nextStatus: Record<string, string> = {
