@@ -80,17 +80,22 @@ const AdminReceipts = () => {
         return;
       }
       const stamp = Date.now();
-      let opened = 0;
-      for (let i = 0; i < qty; i += 1) {
-        const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}&t=${stamp}_${i}`;
-        const win = window.open(url, `_print_${type}_${stamp}_${i}`, "width=320,height=640,noopener");
-        if (win) opened += 1;
-      }
-      if (opened === 0) {
+      const queue = Array.from({ length: qty }, (_, index) => `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${index + 1}&delay_ms=${index === 0 ? 100 : 250}&t=${stamp}_${index}`);
+      const win = window.open(queue[0], `_print_${type}_${stamp}`, "width=320,height=640");
+      if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
-      } else if (opened < qty) {
-        toast.warning(`${opened} de ${qty} impressões separadas foram abertas. Permita pop-ups para abrir todas.`);
       } else {
+        for (let i = 1; i < queue.length; i += 1) {
+          setTimeout(() => {
+            try {
+              if (!win.closed) {
+                win.location.href = queue[i];
+              }
+            } catch (error) {
+              console.error("[AdminReceipts] queue print navigation error", error);
+            }
+          }, i * 1800);
+        }
         toast.success(`${qty} impressões separadas enviadas à impressora.`);
       }
     } finally {
