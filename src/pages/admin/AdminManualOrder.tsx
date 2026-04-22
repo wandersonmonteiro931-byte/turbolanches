@@ -808,7 +808,7 @@ const AdminManualOrder = () => {
                       key={product.id}
                       onClick={() => addToCart(product)}
                       className={cn(
-                        "relative flex items-center gap-1 border bg-[hsl(197_58%_91%)] p-1 text-left text-[hsl(203_88%_22%)] shadow-sm",
+                        "relative flex min-h-[58px] items-start gap-1 border bg-[hsl(197_58%_91%)] p-1 text-left text-[hsl(203_88%_22%)] shadow-sm",
                         inCart ? "border-[hsl(43_95%_50%)] ring-2 ring-[hsl(43_95%_50%)]" : "border-[hsl(199_76%_36%)]",
                       )}
                     >
@@ -816,7 +816,7 @@ const AdminManualOrder = () => {
                         {product.product_code ?? ""}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="line-clamp-2 text-[9px] font-black uppercase leading-tight">{product.name}</p>
+                        <p className="whitespace-normal break-words text-[9px] font-black uppercase leading-tight">{product.name}</p>
                         <p className="mt-0.5 text-[10px] font-black">R$ {fmt(product.price)}</p>
                       </div>
                       {inCart && <span className="absolute right-0 top-0 bg-[hsl(43_95%_50%)] px-1 text-[9px] font-black text-[hsl(203_88%_22%)]">{inCart.quantity}</span>}
@@ -858,7 +858,7 @@ const AdminManualOrder = () => {
             />
           </div>
 
-          <div className="grid h-7 grid-cols-[30px_1fr_64px_26px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
+          <div className="grid h-7 grid-cols-[30px_minmax(0,1fr)_78px_26px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
             <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
           </div>
 
@@ -869,14 +869,14 @@ const AdminManualOrder = () => {
               const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
               return (
                 <div key={item.product.id} className="border-b border-[hsl(200_45%_82%)] px-1 py-1 text-[10px] font-bold">
-                  <div className="grid grid-cols-[30px_1fr_64px_26px] items-center gap-1">
+                   <div className="grid grid-cols-[30px_minmax(0,1fr)_78px_26px] items-center gap-1">
                     <div className="flex items-center gap-0.5">
                       <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
                       <span>{item.quantity}</span>
                     </div>
-                    <span className="truncate uppercase">{item.product.name}</span>
+                    <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
                     <input type="number" step="0.01" value={item.customPrice} onChange={(e) => updateItemPrice(item.product.id, e.target.value)} className="h-5 w-full bg-[hsl(197_58%_91%)] px-1 text-right font-black outline-none" />
-                    <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(355_85%_52%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
+                    <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
                   </div>
                   <div className="mt-1 flex gap-1">
                     <button onClick={() => updateQuantity(item.product.id, 1)} className="bg-[hsl(203_88%_22%)] px-1.5 text-[9px] text-[hsl(0_0%_100%)]">+1</button>
