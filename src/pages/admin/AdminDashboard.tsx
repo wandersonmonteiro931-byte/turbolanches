@@ -1185,48 +1185,20 @@ const AdminDashboard = () => {
     });
 
     const rows = allDeliveryOrders.map((o, idx) => `
-      <div class="row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${o.address_street || "S/R"}, ${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+      <div class="report-row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${escapeHtml(o.address_street || "S/R")}, ${escapeHtml(o.address_neighborhood || "")}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
     `).join("");
 
     const fixedFeeLabel = isPeriod ? "Taxa Fixa (período)" : "Taxa Fixa do Dia";
 
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
-
-    w.document.write(`
-      <html><head><style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
-        .center { text-align:center; }
-        .sep { border-top:1px dashed #000; margin:3px 0; }
-        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
-        .row span:last-child { white-space:nowrap; flex-shrink:0; }
-        .row span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .big { font-size:14px; font-weight:900; }
-        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
-        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
-        @page { size:72mm auto; margin:0; }
-      </style></head><body>
-        <h1>TURBO LANCHES</h1>
-        <h2>RELATÓRIO DE ENTREGAS</h2>
-        <div class="center">${dateLabel}</div>
-        <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
-        <div class="sep"></div>
-        <div class="row" style="font-size:8px;color:#666"><span>Endereço</span><span>Taxa</span></div>
-        ${rows}
-        <div class="sep"></div>
-        <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
-        <div class="row"><span>Total Taxas de Entrega:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>${fixedFeeLabel}:</span><span>R$ ${totalFixedFees.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de entregas gerado automaticamente</div>
-      </body></html>
-    `);
-    w.document.close();
-    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+    await printReportTemplate("relatorio_entregas", {
+      "[PERIODO]": dateLabel,
+      "[NOMEENTREGADOR]": `🚚 ${courierName}`,
+      "[LINHAS]": rows,
+      "[TOTALENTREGAS]": String(allDeliveryOrders.length),
+      "[TOTALTAXAS]": `R$ ${totalTaxas.toFixed(2).replace(".",",")}`,
+      "[TAXAFIXA]": `R$ ${totalFixedFees.toFixed(2).replace(".",",")}`,
+      "[TOTALENTREGADOR]": `R$ ${totalEntregador.toFixed(2).replace(".",",")}`,
+    }, { "[LINHAS]": rows });
   };
 
   const activeTabConfig = tabs.find(t => t.key === activeTab);
