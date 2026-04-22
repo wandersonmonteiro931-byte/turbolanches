@@ -850,7 +850,7 @@ const AdminManualOrder = () => {
             <div className="grid h-7 grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
               <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span className="text-center">Adic.</span><span />
             </div>
-            <div className="grid max-h-[28vh] auto-rows-min grid-cols-1 gap-0 overflow-y-auto min-[980px]:grid-cols-2">
+            <div className="grid max-h-[28vh] auto-rows-min grid-cols-1 gap-0 overflow-y-auto">
               {!hasCart ? (
                 <div className="col-span-full p-2 text-center text-[11px] font-bold text-[hsl(203_60%_38%)]">Selecione os produtos acima</div>
               ) : cart.map((item) => {
