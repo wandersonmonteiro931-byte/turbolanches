@@ -453,18 +453,21 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   } catch (error) {}
 
   var started = false;
-  var printAttempted = false;
+  var printFinished = false;
+  var attempts = 0;
+  var maxAttempts = 5;
 
   function runPrint() {
-    if (printAttempted) return;
-    printAttempted = true;
+    if (printFinished || attempts >= maxAttempts) return;
+    attempts += 1;
 
     try { window.focus(); } catch (error) {}
 
     try {
       window.print();
     } catch (error) {
-      printAttempted = false;
+      // Keep retrying: kiosk/thermal Chromium can ignore the first call while
+      // the generated document is still being painted.
     }
   }
 
@@ -474,8 +477,10 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
 
     var run = function () {
       runPrint();
-      setTimeout(runPrint, 120);
-      setTimeout(runPrint, 320);
+      setTimeout(runPrint, 80);
+      setTimeout(runPrint, 220);
+      setTimeout(runPrint, 520);
+      setTimeout(runPrint, 900);
     };
 
     if (document.fonts && document.fonts.ready) {
@@ -497,6 +502,14 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   window.addEventListener("pageshow", function () {
     setTimeout(firePrint, 40);
   }, { once: true });
+
+  window.addEventListener("beforeprint", function () {
+    printFinished = true;
+  });
+
+  window.addEventListener("afterprint", function () {
+    printFinished = true;
+  });
 
   if (!keepOpen) {
     window.addEventListener("afterprint", function () {
