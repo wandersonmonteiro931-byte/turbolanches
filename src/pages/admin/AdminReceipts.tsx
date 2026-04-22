@@ -15,6 +15,8 @@ const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
   { type: "obrigado", label: "Comanda Obrigado", icon: Heart },
   { type: "entregador", label: "Fechamento de Rota", icon: Truck },
+  { type: "relatorio_entregas", label: "Relatório Entregador", icon: Truck },
+  { type: "relatorio_periodo", label: "Relatório Período", icon: ClipboardList },
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
@@ -23,6 +25,8 @@ const DEFAULT_LABELS: Record<string, string> = {
   pedido: "PEDIDO",
   obrigado: "OBRIGADO!",
   entregador: "FECHAMENTO DE ROTA",
+  relatorio_entregas: "RELATÓRIO DE ENTREGAS",
+  relatorio_periodo: "RELATÓRIO DE PERÍODO",
   etiquetas: "ETIQUETA",
   reposicao: "LISTA DE COMPRAS",
 };
@@ -63,7 +67,7 @@ const AdminReceipts = () => {
     e.preventDefault();
     e.stopPropagation();
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
-    if (type === "etiquetas" || type === "reposicao") {
+    if (type === "etiquetas" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
       toast.info("Teste de impressão disponível apenas para Pedido / Obrigado / Fechamento de Rota.");
       return;
     }
@@ -140,7 +144,7 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7">
           {tabConfig.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
               <tab.icon size={16} className="text-primary" />
