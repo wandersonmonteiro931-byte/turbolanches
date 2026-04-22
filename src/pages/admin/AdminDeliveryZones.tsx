@@ -506,8 +506,8 @@ const AdminDeliveryZones = () => {
   const { storeId } = useStore();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ neighborhood: "", delivery_fee: 0, active: true, distance_km: null as number | null });
-  const [newZone, setNewZone] = useState({ neighborhood: "", delivery_fee: 0 });
+  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null });
+  const [newZone, setNewZone] = useState({ neighborhood: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [storeConfig, setStoreConfig] = useState<StoreConfig>(DEFAULT_STORE);
@@ -515,8 +515,6 @@ const AdminDeliveryZones = () => {
 
   const [filterKmMin, setFilterKmMin] = useState("");
   const [filterKmMax, setFilterKmMax] = useState("");
-  const [filterPriceMin, setFilterPriceMin] = useState("");
-  const [filterPriceMax, setFilterPriceMax] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -572,21 +570,20 @@ const AdminDeliveryZones = () => {
 
   const addZone = async () => {
     if (!newZone.neighborhood.trim()) { toast({ title: "Informe o bairro", variant: "destructive" }); return; }
-    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), delivery_fee: newZone.delivery_fee, store_id: storeId });
+    await supabase.from("delivery_zones").insert({ neighborhood: newZone.neighborhood.trim(), store_id: storeId });
     toast({ title: "✅ Região adicionada!" });
-    setNewZone({ neighborhood: "", delivery_fee: 0 }); setShowAdd(false); fetchZones();
+    setNewZone({ neighborhood: "" }); setShowAdd(false); fetchZones();
   };
 
   const startEdit = (zone: DeliveryZone) => {
     setEditingId(zone.id);
-    setEditData({ neighborhood: zone.neighborhood, delivery_fee: zone.delivery_fee, active: zone.active, distance_km: zone.distance_km });
+    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km });
   };
 
   const saveEdit = async () => {
     if (!editingId) return;
     await supabase.from("delivery_zones").update({
       neighborhood: editData.neighborhood,
-      delivery_fee: editData.delivery_fee,
       active: editData.active,
       distance_km: editData.distance_km,
     } as any).eq("id", editingId);
