@@ -722,6 +722,8 @@ const AdminManualOrder = () => {
   const cartItemCount = cart.reduce((s, i) => s + i.quantity, 0);
   const fmt = (v: number) => v.toFixed(2).replace(".", ",");
   const hasCart = cart.length > 0;
+  const addonModalItem = cart.find((item) => item.product.id === addonModalProductId) ?? null;
+  const addonModalOptions = addonModalItem ? getAddonsForProduct(addonModalItem.product.id) : [];
   const headerTitle = editOrderId
     ? `EDITAR PEDIDO #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "XXXXX"}`
     : "CRIAR NOVO PEDIDO";
@@ -829,8 +831,8 @@ const AdminManualOrder = () => {
           </div>
 
           <div className="shrink-0 border-t border-[hsl(199_78%_18%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]">
-            <div className="grid h-7 grid-cols-[34px_minmax(0,1fr)_86px_24px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
-              <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
+            <div className="grid h-7 grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
+              <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span className="text-center">Adic.</span><span />
             </div>
             <div className="grid max-h-[28vh] auto-rows-min grid-cols-1 gap-0 overflow-y-auto min-[980px]:grid-cols-2">
               {!hasCart ? (
@@ -839,13 +841,14 @@ const AdminManualOrder = () => {
                 const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
                 return (
                   <div key={item.product.id} className="border-b border-r border-[hsl(200_45%_82%)] px-1 py-0.5 text-[10px] font-bold">
-                    <div className="grid grid-cols-[34px_minmax(0,1fr)_86px_24px] items-center gap-1">
+                    <div className="grid grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center gap-1">
                       <div className="flex items-center gap-0.5">
                         <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
                         <span>{item.quantity}</span>
                       </div>
                       <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
                       <span className="text-right font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
+                      <button onClick={() => setAddonModalProductId(item.product.id)} className="min-h-5 bg-[hsl(203_88%_22%)] px-1 text-[8px] font-black uppercase leading-tight text-[hsl(0_0%_100%)]">{item.addons.length ? `${item.addons.length} add` : "+ Add"}</button>
                       <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
                     </div>
                   </div>
