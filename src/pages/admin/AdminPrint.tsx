@@ -170,6 +170,7 @@ const AdminPrint = () => {
   }, [id, tipo]);
 
   const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
+  const repeatCount = Math.max(1, Math.min(20, Number(searchParams.get("copies") || "1") || 1));
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -352,6 +353,7 @@ const AdminPrint = () => {
       pageWidthMm: 72,
       pageHeightMm: "auto",
       pageMarginMm: 0,
+      repeatCount,
       bodyFontFamily: "Arial, Helvetica, sans-serif",
       bodyFontSizePx: bodyFontSize,
       labelFontSizePx: tpl?.label_font_size ?? 22,
@@ -359,7 +361,7 @@ const AdminPrint = () => {
       sectionPaddingMm: 0,
       extraCss: LEGACY_RECEIPT_PRINT_CSS,
     });
-  }, [items, order, profile, ready, tipo, tpl]);
+  }, [items, order, profile, ready, repeatCount, tipo, tpl]);
 
   useEffect(() => {
     if (!printableDocument || !ready) return;

@@ -79,19 +79,11 @@ const AdminReceipts = () => {
         toast.error("Nenhum pedido encontrado para teste de impressão.");
         return;
       }
-      // Abre todas as janelas IMEDIATAMENTE (síncrono) para evitar bloqueio de pop-up.
-      // Cada janela é independente -> impressora recebe N jobs separados.
       const stamp = Date.now();
-      let opened = 0;
-      for (let i = 0; i < qty; i++) {
-        const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}&t=${stamp}_${i}`;
-        const win = window.open(url, `_print_${type}_${stamp}_${i}`, "width=320,height=640,noopener");
-        if (win) opened++;
-      }
-      if (opened === 0) {
+      const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&t=${stamp}`;
+      const win = window.open(url, `_print_${type}_${stamp}`, "width=320,height=640,noopener");
+      if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
-      } else if (opened < qty) {
-        toast.warning(`${opened} de ${qty} cópias enviadas. Permita pop-ups para enviar todas.`);
       } else {
         toast.success(`${qty} impressão(ões) enviada(s) à impressora.`);
       }
