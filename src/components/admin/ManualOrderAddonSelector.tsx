@@ -111,7 +111,7 @@ const ManualOrderAddonSelector = ({
                 }`}>
                   {isSelected && <Check size={12} className="text-primary-foreground" />}
                 </div>
-                <span className="flex-1 text-xs font-medium text-foreground">
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-xs font-medium leading-tight text-foreground">
                   {item.quantity}x {item.productName}
                 </span>
                 <button
@@ -139,7 +139,7 @@ const ManualOrderAddonSelector = ({
               {item.addons.length > 0 && (
                 <div className="ml-7 flex flex-wrap gap-1">
                   {item.addons.map((a) => (
-                    <span key={a.addon_id} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span key={a.addon_id} className="rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {a.quantity}x {a.name}
                     </span>
                   ))}
@@ -176,12 +176,12 @@ const ManualOrderAddonSelector = ({
             return (
               <div
                 key={addon.id}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 ${
+                className={`flex items-center justify-between rounded-sm px-3 py-2 ${
                   totalQty > 0 ? "bg-primary/5 border border-primary/20" : "bg-card"
                 }`}
               >
                 <div>
-                  <span className="text-xs font-medium text-foreground">{addon.name}</span>
+                    <span className="text-xs font-medium text-foreground">{addon.name}</span>
                   <p className="text-[10px] font-semibold text-primary">
                     {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
                   </p>
@@ -191,7 +191,7 @@ const ManualOrderAddonSelector = ({
                     <button
                       onClick={() => handleAddonChange(addon, -1)}
                       disabled={selectedItemIds.length === 0}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-primary text-primary disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm border border-primary text-primary disabled:opacity-30"
                     >
                       <Minus size={14} />
                     </button>
@@ -202,7 +202,7 @@ const ManualOrderAddonSelector = ({
                   <button
                     onClick={() => handleAddonChange(addon, 1)}
                     disabled={selectedItemIds.length === 0}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-30"
+                    className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground disabled:opacity-30"
                   >
                     <Plus size={14} />
                   </button>
