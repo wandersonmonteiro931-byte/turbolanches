@@ -8,9 +8,58 @@ const buildStampedPrintUrl = (url: string) => {
 const schedulePopupActivation = (popup: Window | null) => {
   if (!popup || popup.closed || typeof window === "undefined") return;
 
+  let printed = false;
+
+  const tryPrintWhenReady = () => {
+    if (!popup || popup.closed || printed) return true;
+
+    try {
+      const popupDocument = popup.document;
+      const body = popupDocument?.body;
+      const isReady = body?.dataset?.printDocument === "ready";
+
+      if (!isReady) return false;
+
+      printed = true;
+      try {
+        popup.focus();
+      } catch {}
+
+      try {
+        popup.postMessage({ type: "turbo-print-now" }, window.location.origin);
+      } catch {}
+
+      try {
+        popup.print();
+      } catch {}
+
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const pollUntilReady = (maxAttempts = 80, intervalMs = 100) => {
+    let attempts = 0;
+
+    const tick = () => {
+      if (!popup || popup.closed || printed) return;
+      attempts += 1;
+
+      const done = tryPrintWhenReady();
+      if (!done && attempts < maxAttempts) {
+        window.setTimeout(tick, intervalMs);
+      }
+    };
+
+    window.setTimeout(tick, 40);
+  };
+
   [500, 1200, 2200, 3600, 5200].forEach((delay) => {
     window.setTimeout(() => {
       if (!popup || popup.closed) return;
+
+      if (tryPrintWhenReady()) return;
 
       try {
         popup.focus();
@@ -21,6 +70,8 @@ const schedulePopupActivation = (popup: Window | null) => {
       } catch {}
     }, delay);
   });
+
+  pollUntilReady();
 };
 
 export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
