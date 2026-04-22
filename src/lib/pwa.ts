@@ -1,5 +1,5 @@
-export const SW_VERSION = "v63";
-export const APP_VERSION = "2026-04-17-show-ingredients";
+export const SW_VERSION = "v64";
+export const APP_VERSION = "2026-04-22-force-refresh";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 const isInIframe = (() => {
@@ -60,13 +60,14 @@ export async function cleanupLegacyPushServiceWorkers(currentPushUrl?: string | 
   } catch {}
 }
 
-/**
- * No-op kept for backwards compatibility. Previously cleared caches on version bump,
- * which caused unwanted reloads. Version tracking is now passive.
- */
 export async function enforceLatestAppVersion() {
   if (typeof window === "undefined") return;
   try {
+    const previousVersion = localStorage.getItem("__turbo_app_version__");
+    if (previousVersion && previousVersion !== APP_VERSION && "caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key).catch(() => false)));
+    }
     localStorage.setItem("__turbo_app_version__", APP_VERSION);
   } catch {}
 }
