@@ -84,9 +84,9 @@ const paymentMethods = [
 ];
 
 const changeMethods = [
-  { id: "dinheiro", label: "Troco dinheiro" },
-  { id: "pix", label: "Troco PIX" },
-  { id: "card", label: "Troco cartão" },
+  { id: "dinheiro", label: "Dinheiro" },
+  { id: "pix", label: "Pix" },
+  { id: "card", label: "Cartão" },
 ];
 
 const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
@@ -934,13 +934,16 @@ const AdminManualOrder = () => {
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
               <button type="button" onClick={() => setIsPaid((prev) => !prev)} className={cn("flex min-h-7 items-center gap-1 border px-1 text-left", isPaid ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Já está pago<span className="ml-auto">{isPaid ? "✓" : "□"}</span></button>
-              {paymentMethod === "dinheiro" && !isPaid && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
+              {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
-            {paymentMethod === "dinheiro" && !isPaid && changeFor && Number(changeFor) > total && (
-              <div className="mt-1 grid grid-cols-3 gap-1 text-[9px] font-black uppercase">
+            {paymentMethod === "dinheiro" && changeFor && Number(changeFor) > total && (
+              <div className="mt-1 space-y-1 text-[9px] font-black uppercase">
+                <p className="text-[hsl(203_88%_22%)]">Troco feito em</p>
+                <div className="grid grid-cols-3 gap-1">
                 {changeMethods.map((method) => (
                   <button key={method.id} onClick={() => setChangeMethod(method.id)} className={cn("min-h-7 border px-1", changeMethod === method.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>{method.label}</button>
                 ))}
+                </div>
               </div>
             )}
           </div>
