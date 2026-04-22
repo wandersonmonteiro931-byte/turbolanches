@@ -547,6 +547,8 @@ const AdminManualOrder = () => {
   const deliveryFee = deliveryType === "delivery" ? (deliveryFeeOverridden ? parseFloat(customDeliveryFee.replace(",", ".")) || 0 : autoDeliveryFee) : 0;
   const discountValue = parseFloat(discount.replace(",", ".")) || 0;
   const total = Math.max(0, subtotal + deliveryFee - discountValue);
+  const changeForValue = paymentMethod === "dinheiro" ? Number(changeFor) || 0 : 0;
+  const changeReturnValue = Math.max(0, changeForValue - total);
 
   const handleSubmit = async () => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
@@ -934,10 +936,11 @@ const AdminManualOrder = () => {
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
               <button type="button" onClick={() => setIsPaid((prev) => !prev)} className={cn("flex min-h-7 items-center gap-1 border px-1 text-left", isPaid ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Já está pago<span className="ml-auto">{isPaid ? "✓" : "□"}</span></button>
-              {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
+              {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco para: R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
-            {paymentMethod === "dinheiro" && changeFor && Number(changeFor) > total && (
+            {paymentMethod === "dinheiro" && changeReturnValue > 0 && (
               <div className="mt-1 space-y-1 text-[9px] font-black uppercase">
+                <div className="bg-[hsl(0_0%_0%)] px-2 py-1 text-center text-[13px] text-[hsl(0_0%_100%)]">Devolver: R$ {fmt(changeReturnValue)}</div>
                 <p className="text-[hsl(203_88%_22%)]">Troco feito em</p>
                 <div className="grid grid-cols-3 gap-1">
                 {changeMethods.map((method) => (
