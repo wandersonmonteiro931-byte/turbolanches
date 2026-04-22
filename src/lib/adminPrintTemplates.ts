@@ -527,7 +527,8 @@ const getSharedPrintStyles = ({
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-document { page-break-inside: avoid; }
+          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; }
+          .print-document:last-child { page-break-after: auto; break-after: auto; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff; color: #000000; }
@@ -544,7 +545,7 @@ const getSharedPrintStyles = ({
         }
         .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
         .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
-        .print-document + .print-document { margin-top: ${gapMm}mm; border-top: 1px dashed #aaa; padding-top: ${gapMm}mm; }
+        .print-document + .print-document { margin-top: 0; border-top: 0; padding-top: 0; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; max-width: 100%; }
         ${frameCss}
