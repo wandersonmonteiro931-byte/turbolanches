@@ -618,14 +618,12 @@ const AdminDeliveryZones = () => {
       if (filterStatus === "inactive" && z.active) return false;
       if (filterKmMin && (z.distance_km === null || z.distance_km < Number(filterKmMin))) return false;
       if (filterKmMax && (z.distance_km === null || z.distance_km > Number(filterKmMax))) return false;
-      if (filterPriceMin && z.delivery_fee < Number(filterPriceMin)) return false;
-      if (filterPriceMax && z.delivery_fee > Number(filterPriceMax)) return false;
       return true;
     });
-  }, [zones, searchTerm, filterStatus, filterKmMin, filterKmMax, filterPriceMin, filterPriceMax]);
+  }, [zones, searchTerm, filterStatus, filterKmMin, filterKmMax]);
 
   const zonesWithoutDistance = zones.filter(z => z.distance_km === null).length;
-  const activeFilters = [filterKmMin, filterKmMax, filterPriceMin, filterPriceMax, filterStatus !== "all" ? filterStatus : ""].filter(Boolean).length;
+  const activeFilters = [filterKmMin, filterKmMax, filterStatus !== "all" ? filterStatus : ""].filter(Boolean).length;
 
   return (
     <div className="space-y-4">
@@ -730,7 +728,7 @@ const AdminDeliveryZones = () => {
         <div className="rounded-xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Filter size={14} /> Filtros</h3>
-            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterPriceMin(""); setFilterPriceMax(""); setFilterStatus("all"); }} className="text-xs text-primary font-medium">Limpar</button>
+            <button onClick={() => { setFilterKmMin(""); setFilterKmMax(""); setFilterStatus("all"); }} className="text-xs text-primary font-medium">Limpar</button>
           </div>
           <div className="flex gap-2 mb-2">
             {(["all", "active", "inactive"] as const).map(s => (
@@ -739,7 +737,7 @@ const AdminDeliveryZones = () => {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block">Km mín</label>
               <input type="number" step="0.5" min="0" value={filterKmMin} onChange={e => setFilterKmMin(e.target.value)} placeholder="0" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
@@ -747,14 +745,6 @@ const AdminDeliveryZones = () => {
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block">Km máx</label>
               <input type="number" step="0.5" min="0" value={filterKmMax} onChange={e => setFilterKmMax(e.target.value)} placeholder="∞" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block">Preço mín</label>
-              <input type="number" step="1" min="0" value={filterPriceMin} onChange={e => setFilterPriceMin(e.target.value)} placeholder="R$ 0" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
-            </div>
-            <div>
-              <label className="text-[11px] text-muted-foreground mb-1 block">Preço máx</label>
-              <input type="number" step="1" min="0" value={filterPriceMax} onChange={e => setFilterPriceMax(e.target.value)} placeholder="R$ ∞" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">{filteredZones.length} de {zones.length} bairros</p>
