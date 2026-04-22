@@ -78,7 +78,7 @@ const deliveryTypes = [
 const paymentMethods = [
   { id: "dinheiro", label: "Dinheiro", icon: "💵" },
   { id: "pix_entrega", label: "PIX Entrega", icon: "📱" },
-  { id: "pix_pago", label: "Já está pago", icon: "✅" },
+  { id: "pix_pago", label: "PIX Pago", icon: "✅" },
   { id: "cartao", label: "Cartão", icon: "💳" },
   { id: "fiado", label: "Fiado", icon: "📝" },
 ];
@@ -135,7 +135,6 @@ interface DraftState {
   cart: CartItem[];
   deliveryType: string;
   paymentMethod: string;
-  isPaid: boolean;
   customerName: string;
   customerPhone: string;
   selectedCustomerId: string | null;
@@ -146,8 +145,6 @@ interface DraftState {
   addressNeighborhood: string;
   addressComplement: string;
   observations: string;
-  changeFor: string;
-  changeMethod: string; // "dinheiro" | "pix" | "card" — método de devolução do troco
   customDeliveryFee: string;
   deliveryFeeOverridden: boolean;
   discount: string;
@@ -206,7 +203,6 @@ const AdminManualOrder = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
   const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
-  const [isPaid, setIsPaid] = useState(editOrderId ? false : (draft.isPaid ?? false));
   const [customerName, setCustomerName] = useState(editOrderId ? "" : (draft.customerName ?? ""));
   const [customerPhone, setCustomerPhone] = useState(editOrderId ? "" : (draft.customerPhone ?? ""));
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(editOrderId ? null : (draft.selectedCustomerId ?? null));
@@ -217,8 +213,8 @@ const AdminManualOrder = () => {
   const [addressNeighborhood, setAddressNeighborhood] = useState(editOrderId ? "" : (draft.addressNeighborhood ?? ""));
   const [addressComplement, setAddressComplement] = useState(editOrderId ? "" : (draft.addressComplement ?? ""));
   const [observations, setObservations] = useState(editOrderId ? "" : (draft.observations ?? ""));
-  const [changeFor, setChangeFor] = useState(editOrderId ? "" : (draft.changeFor ?? ""));
-  const [changeMethod, setChangeMethod] = useState<string>(editOrderId ? "dinheiro" : (draft.changeMethod ?? "dinheiro"));
+  const [changeFor, setChangeFor] = useState("");
+  const [changeMethod, setChangeMethod] = useState<string>("dinheiro");
   const [loading, setLoading] = useState(false);
   const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
   const [deliveryConfig, setDeliveryConfig] = useState<DeliveryConfig>({
