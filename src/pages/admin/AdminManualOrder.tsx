@@ -743,9 +743,9 @@ const AdminManualOrder = () => {
         </div>
       </header>
 
-      <main className="grid h-[calc(100vh-45px)] grid-cols-[minmax(390px,1fr)_360px] gap-1 overflow-hidden p-1 max-lg:grid-cols-1 max-lg:overflow-auto">
+      <main className="grid h-[calc(100vh-45px)] grid-cols-[minmax(0,1fr)_340px] gap-1 overflow-hidden p-1 max-sm:grid-cols-1 max-sm:overflow-auto">
         <section className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(199_88%_31%)]">
-          <div className="grid grid-cols-[1fr_120px] gap-1 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] p-1">
+          <div className="grid grid-cols-[1fr_104px] gap-1 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] p-1">
             <div className="grid grid-cols-5 gap-1">
               {deliveryTypes.map((dt) => (
                 <button
@@ -781,7 +781,7 @@ const AdminManualOrder = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-[86px_1fr] gap-1 overflow-hidden p-1 max-lg:min-h-[520px]">
+          <div className="grid min-h-0 grid-cols-[76px_1fr] gap-1 overflow-hidden p-1 max-sm:min-h-[520px]">
             <div className="space-y-1 overflow-y-auto pr-0.5">
               <button onClick={() => setSelectedCategory(null)} className={cn("h-9 w-full border text-[9px] font-black uppercase", !selectedCategory ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>Todos</button>
               {categories.map((cat) => (
@@ -800,7 +800,7 @@ const AdminManualOrder = () => {
                   className="min-w-0 flex-1 bg-transparent text-[12px] font-bold outline-none placeholder:text-[hsl(203_60%_38%)]"
                 />
               </div>
-              <div className="grid flex-1 auto-rows-min grid-cols-5 gap-1 overflow-y-auto pr-1 max-xl:grid-cols-4 max-md:grid-cols-3">
+              <div className="grid flex-1 auto-rows-min grid-cols-3 gap-1 overflow-y-auto pr-1 min-[1180px]:grid-cols-5 min-[900px]:grid-cols-4 max-sm:grid-cols-3">
                 {filteredProducts.map((product) => {
                   const inCart = cart.find((i) => i.product.id === product.id);
                   return (
@@ -828,7 +828,7 @@ const AdminManualOrder = () => {
           </div>
         </section>
 
-        <aside className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)] max-lg:min-h-[760px]">
+        <aside className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)] max-sm:min-h-[760px]">
           <div className="grid grid-cols-2 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">
             <label className="border-r border-[hsl(199_76%_36%)] px-2 py-1 text-[10px] font-black uppercase">
               Código
@@ -862,7 +862,7 @@ const AdminManualOrder = () => {
             <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
           </div>
 
-          <div className="min-h-[150px] flex-1 overflow-y-auto bg-[hsl(0_0%_100%)]">
+          <div className="min-h-[72px] flex-1 overflow-y-auto bg-[hsl(0_0%_100%)]">
             {!hasCart ? (
               <div className="p-3 text-center text-[11px] font-bold text-[hsl(203_60%_38%)]">Selecione os produtos à esquerda</div>
             ) : cart.map((item) => {
@@ -889,9 +889,9 @@ const AdminManualOrder = () => {
             })}
           </div>
 
-          <div className="border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
+          <div className="max-h-[52vh] overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             {hasCart && (
-              <div className="mb-1 max-h-32 overflow-y-auto border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] p-1">
+              <div className="mb-1 max-h-20 overflow-y-auto border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] p-1">
                 <ManualOrderAddonSelector
                   items={cart.map((i) => ({ productId: i.product.id, productName: i.product.name, quantity: i.quantity, isCombo: i.isCombo, addons: i.addons }))}
                   availableAddons={getAddonsForSelectedItems().map((a) => ({ id: a.id, name: a.name, price: a.price }))}
@@ -907,7 +907,7 @@ const AdminManualOrder = () => {
 
             <div className="grid grid-cols-5 gap-1">
               {paymentMethods.map((pm) => (
-                <button key={pm.id} onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("h-8 border text-[8px] font-black uppercase", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
+                <button key={pm.id} type="button" onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
             </div>
 
@@ -932,7 +932,7 @@ const AdminManualOrder = () => {
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
-              <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Já está pago<input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="ml-auto h-4 w-4 accent-[hsl(203_88%_22%)]" /></label>
+              <button type="button" onClick={() => setIsPaid((prev) => !prev)} className={cn("flex min-h-7 items-center gap-1 border px-1 text-left", isPaid ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Já está pago<span className="ml-auto">{isPaid ? "✓" : "□"}</span></button>
               {paymentMethod === "dinheiro" && !isPaid && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
             {paymentMethod === "dinheiro" && !isPaid && changeFor && Number(changeFor) > total && (
@@ -944,7 +944,7 @@ const AdminManualOrder = () => {
             )}
           </div>
 
-          <div className="border-t-4 border-[hsl(203_88%_22%)] bg-[hsl(197_58%_91%)] p-2">
+          <div className="shrink-0 border-t-4 border-[hsl(203_88%_22%)] bg-[hsl(197_58%_91%)] p-2">
             <p className="text-sm font-black text-[hsl(203_88%_22%)]">Valor Total</p>
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
