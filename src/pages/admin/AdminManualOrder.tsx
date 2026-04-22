@@ -967,6 +967,7 @@ const AdminManualOrder = () => {
             </DialogHeader>
             {addonModalItem && (
               <div className="space-y-2">
+                <label className="flex h-8 items-center gap-2 border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] px-2 text-xs font-black">Quantidade<input type="number" min="1" value={addonModalItem.quantity} onChange={(e) => updateItemQuantityManual(addonModalItem.product.id, e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
                 <button onClick={() => toggleCombo(addonModalItem.product.id)} className={cn("w-full border px-2 py-2 text-xs font-black uppercase", addonModalItem.isCombo ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Combo</button>
                 <input placeholder="Obs item" value={addonModalItem.observations} onChange={(e) => updateItemObs(addonModalItem.product.id, e.target.value)} className="h-8 w-full border border-[hsl(199_76%_36%)] px-2 text-xs font-bold outline-none" />
                 <label className="flex h-8 items-center gap-2 border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] px-2 text-xs font-black">Valor R$<input type="number" step="0.01" value={addonModalItem.customPrice} onChange={(e) => updateItemPrice(addonModalItem.product.id, e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
