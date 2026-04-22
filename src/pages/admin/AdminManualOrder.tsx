@@ -250,6 +250,7 @@ const AdminManualOrder = () => {
   const [editOriginalOrderNumber, setEditOriginalOrderNumber] = useState<number | null>(null);
   const [editOriginalCreatedAt, setEditOriginalCreatedAt] = useState<string | null>(null);
   const [editOriginalUserId, setEditOriginalUserId] = useState<string | null>(null);
+  const [nextOrderNumber, setNextOrderNumber] = useState<number | null>(null);
 
   // Persist draft on every relevant change
   // Persist draft on every relevant change (skip in edit mode)
@@ -282,13 +283,14 @@ const AdminManualOrder = () => {
   }, [cart]);
 
   const loadLatestData = useCallback(async () => {
-    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes] = await Promise.all([
+    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes] = await Promise.all([
       supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code").eq("active", true).order("sort_order").order("name"),
       supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
       supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
       supabase.from("addon_product_links").select("addon_id, product_id"),
       supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all").limit(1).single(),
+      supabase.from("orders").select("order_number").order("order_number", { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
@@ -304,6 +306,7 @@ const AdminManualOrder = () => {
         temp_free_delivery_all: Boolean(config.temp_free_delivery_all),
       });
     }
+    setNextOrderNumber((Number(latestOrderRes.data?.order_number) || 0) + 1);
     setDataRefreshKey((k) => k + 1);
   }, []);
 
@@ -783,6 +786,7 @@ const AdminManualOrder = () => {
   const headerTitle = editOrderId
     ? `EDITAR PEDIDO #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "XXXXX"}`
     : "CRIAR NOVO PEDIDO";
+  const displayedOrderNumber = editOriginalOrderNumber ?? nextOrderNumber;
 
   return (
     <div className="min-h-full bg-[hsl(205_86%_28%)] text-[hsl(0_0%_98%)]">
@@ -921,7 +925,7 @@ const AdminManualOrder = () => {
           <div className="grid grid-cols-2 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">
             <label className="border-r border-[hsl(199_76%_36%)] px-2 py-1 text-[10px] font-black uppercase">
               Código
-              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{selectedCustomerCode || "0021"}</div>
+              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">#{displayedOrderNumber ? String(displayedOrderNumber).padStart(5, "0") : "XXXXX"}</div>
             </label>
             <label className="px-2 py-1 text-[10px] font-black uppercase">
               Cliente
