@@ -80,23 +80,12 @@ const AdminReceipts = () => {
         return;
       }
       const stamp = Date.now();
-      const queue = Array.from({ length: qty }, (_, index) => `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${index + 1}&keep_open=1&delay_ms=${index === 0 ? 100 : 250}&t=${stamp}_${index}`);
-      const win = window.open(queue[0], `_print_${type}_${stamp}`, "width=320,height=640");
+      const printUrl = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&t=${stamp}`;
+      const win = window.open(printUrl, `_print_${type}_${stamp}`, "width=320,height=640");
       if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
       } else {
-        for (let i = 1; i < queue.length; i += 1) {
-          setTimeout(() => {
-            try {
-              if (!win.closed) {
-                win.location.href = queue[i];
-              }
-            } catch (error) {
-              console.error("[AdminReceipts] queue print navigation error", error);
-            }
-          }, i * 1800);
-        }
-        toast.success(`${qty} impressões separadas enviadas à impressora.`);
+        toast.success(`${qty} página${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} para impressão.`);
       }
     } finally {
       setPrinting(false);
