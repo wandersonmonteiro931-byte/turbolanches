@@ -258,13 +258,34 @@ const AdminCustomers = () => {
             <button onClick={() => setShowCreateForm(false)}><X size={16} className="text-muted-foreground" /></button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <input placeholder="Email *" value={newEmail} onChange={(e) => setNewEmail(e.target.value)}
+            <input placeholder="Nome completo *" value={newName} onChange={(e) => setNewName(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
-            <input placeholder="Senha *" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+            <input placeholder="WhatsApp *" value={newPhone} onChange={(e) => setNewPhone(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
-            <input placeholder="Nome" value={newName} onChange={(e) => setNewName(e.target.value)}
+            <input placeholder="CEP" value={newZipCode} onChange={(e) => setNewZipCode(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
-            <input placeholder="Telefone" value={newPhone} onChange={(e) => setNewPhone(e.target.value)}
+            <input placeholder="Rua/Av *" value={newStreet} onChange={(e) => setNewStreet(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
+            <div className="flex gap-1">
+              <input placeholder="Número *" value={newNumber} onChange={(e) => setNewNumber(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
+              <button type="button" onClick={() => setNewNumber("S/N")} className="rounded-lg border border-border px-2 text-xs font-bold text-primary">S/N</button>
+            </div>
+            <input placeholder="Bairro *" value={newNeighborhood} onChange={(e) => setNewNeighborhood(e.target.value)}
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
+            <div className="flex gap-1">
+              <input placeholder="Quadra *" value={newQuadra} onChange={(e) => setNewQuadra(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
+              <button type="button" onClick={() => setNewQuadra("Não tem")} className="rounded-lg border border-border px-2 text-xs font-bold text-primary">Não tem</button>
+            </div>
+            <div className="flex gap-1">
+              <input placeholder="Lote *" value={newLote} onChange={(e) => setNewLote(e.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
+              <button type="button" onClick={() => setNewLote("Não tem")} className="rounded-lg border border-border px-2 text-xs font-bold text-primary">Não tem</button>
+            </div>
+            <input value="Anápolis" disabled
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+            <input value="Goiás" disabled
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground" />
           </div>
           <button onClick={createCustomer} disabled={creating}
