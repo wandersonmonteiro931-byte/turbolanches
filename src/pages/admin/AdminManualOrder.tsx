@@ -153,7 +153,19 @@ interface DraftState {
 const loadDraft = (): Partial<DraftState> => {
   try {
     const raw = sessionStorage.getItem(DRAFT_KEY);
-    return raw ? JSON.parse(raw) : {};
+    if (!raw) return {};
+
+    const draft = JSON.parse(raw) as Partial<DraftState> & { changeFor?: string; changeMethod?: string; isPaid?: boolean };
+    delete draft.changeFor;
+    delete draft.changeMethod;
+    delete draft.isPaid;
+
+    if (String(draft.customDeliveryFee ?? "").replace(",", ".") === "5.99") {
+      draft.customDeliveryFee = "";
+      draft.deliveryFeeOverridden = false;
+    }
+
+    return draft;
   } catch { return {}; }
 };
 
