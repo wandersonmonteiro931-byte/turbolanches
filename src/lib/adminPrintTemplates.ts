@@ -473,9 +473,9 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     started = true;
 
     var run = function () {
-      setTimeout(runPrint, 40);
-      setTimeout(runPrint, 180);
-      setTimeout(runPrint, 480);
+      runPrint();
+      setTimeout(runPrint, 120);
+      setTimeout(runPrint, 320);
     };
 
     if (document.fonts && document.fonts.ready) {
