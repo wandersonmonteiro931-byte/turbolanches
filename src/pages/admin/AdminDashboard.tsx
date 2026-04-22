@@ -20,6 +20,8 @@ const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTracki
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
 import CalculatorModal from "@/components/admin/CalculatorModal";
+import { buildAdminPrintDocument, escapeHtml } from "@/lib/adminPrintTemplates";
+import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -837,6 +839,35 @@ const AdminDashboard = () => {
     return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
   };
 
+  const printReportTemplate = async (templateType: string, variables: Record<string, string>, blocks: Record<string, string> = {}) => {
+    const { data } = await supabase.from("receipt_templates" as any).select("*").eq("template_type", templateType).maybeSingle();
+    const template = data as any;
+    const label = template?.label || (templateType === "relatorio_entregas" ? "RELATÓRIO DE ENTREGAS" : "RELATÓRIO DE PERÍODO");
+    const html = buildAdminPrintDocument({
+      title: label,
+      template: template?.body_template || getDefaultTemplate(templateType),
+      variables: {
+        "[NOMELOJA]": template?.store_name || "TURBO LANCHES",
+        "[TIPOCOMANDA]": label,
+        "[RODAPÉ]": template?.footer_message || "",
+        ...variables,
+      },
+      blocks,
+      pageWidthMm: 72,
+      pageHeightMm: "auto",
+      pageMarginMm: 0,
+      bodyFontFamily: "Arial, Helvetica, sans-serif",
+      bodyFontSizePx: template?.body_font_size ?? 10,
+      labelFontSizePx: template?.label_font_size ?? 18,
+      sectionPaddingMm: 0,
+      extraCss: ".report-row{display:flex;justify-content:space-between;gap:4px;font-weight:900;font-size:9px;padding:1px 0}.report-row span{white-space:normal;overflow-wrap:anywhere}.report-row span:last-child{white-space:nowrap}",
+    });
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+  };
+
   const reprintPeriodReport = async () => {
     if (!periodFrom || !periodTo) {
       toast({ title: "Selecione as datas de início e fim", variant: "destructive" });
@@ -936,46 +967,20 @@ const AdminDashboard = () => {
     const totalLiquido = fullRows.reduce((s, r) => s + r.total_liquido, 0);
     const totalOrders = fullRows.reduce((s, r) => s + r.total_orders, 0);
 
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
-
     const periodLabel = `${format(periodFrom, "dd/MM/yyyy")} a ${format(periodTo, "dd/MM/yyyy")}`;
 
     const reportRows = fullRows.map(r => `
-      <div class="row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
+      <div class="report-row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
     `).join("");
-
-    w.document.write(`<!DOCTYPE html>
-      <html><head><style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Courier New',monospace; width:72mm; padding:2mm; font-size:10px; }
-        .center { text-align:center; }
-        .sep { border-top:1px dashed #000; margin:3px 0; }
-        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; }
-        .big { font-size:14px; font-weight:900; }
-        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
-        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
-        @page { size:72mm auto; margin:0; }
-      </style></head><body>
-        <h1>TURBO LANCHES</h1>
-        <h2>RELATÓRIO DE PERÍODO</h2>
-        <div class="center">${periodLabel}</div>
-        <div class="sep"></div>
-        <div class="row" style="font-size:8px;color:#666"><span>Data</span><span>Pedidos</span><span>Bruto</span><span>Líquido</span></div>
-        ${reportRows}
-        <div class="sep"></div>
-        <div class="row"><span>Total Pedidos:</span><span>${totalOrders}</span></div>
-        <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${totalBruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Pago Entregadores:</span><span>R$ ${totalCourierPaid.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Total Gastos:</span><span>R$ ${totalGastos.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${totalLiquido.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de período gerado automaticamente</div>
-        <script>window.onload=function(){window.print();}</script>
-      </body></html>
-    `);
-    w.document.close();
+    await printReportTemplate("relatorio_periodo", {
+      "[PERIODO]": periodLabel,
+      "[LINHAS]": reportRows,
+      "[TOTALPEDIDOS]": String(totalOrders),
+      "[TOTALBRUTO]": `R$ ${totalBruto.toFixed(2).replace(".",",")}`,
+      "[TOTALENTREGADORES]": `R$ ${totalCourierPaid.toFixed(2).replace(".",",")}`,
+      "[TOTALGASTOS]": `R$ ${totalGastos.toFixed(2).replace(".",",")}`,
+      "[TOTALLIQUIDO]": `R$ ${totalLiquido.toFixed(2).replace(".",",")}`,
+    }, { "[LINHAS]": reportRows });
   };
 
   const handleCloseDay = async () => {
@@ -1180,48 +1185,20 @@ const AdminDashboard = () => {
     });
 
     const rows = allDeliveryOrders.map((o, idx) => `
-      <div class="row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${o.address_street || "S/R"}, ${o.address_neighborhood || ""}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
+      <div class="report-row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${escapeHtml(o.address_street || "S/R")}, ${escapeHtml(o.address_neighborhood || "")}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
     `).join("");
 
     const fixedFeeLabel = isPeriod ? "Taxa Fixa (período)" : "Taxa Fixa do Dia";
 
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
-
-    w.document.write(`
-      <html><head><style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
-        .center { text-align:center; }
-        .sep { border-top:1px dashed #000; margin:3px 0; }
-        .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; font-size:9px; gap:4px; }
-        .row span:last-child { white-space:nowrap; flex-shrink:0; }
-        .row span:first-child { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .big { font-size:14px; font-weight:900; }
-        h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
-        h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
-        @page { size:72mm auto; margin:0; }
-      </style></head><body>
-        <h1>TURBO LANCHES</h1>
-        <h2>RELATÓRIO DE ENTREGAS</h2>
-        <div class="center">${dateLabel}</div>
-        <div class="center" style="font-weight:900;font-size:12px;margin:4px 0;">🚚 ${courierName}</div>
-        <div class="sep"></div>
-        <div class="row" style="font-size:8px;color:#666"><span>Endereço</span><span>Taxa</span></div>
-        ${rows}
-        <div class="sep"></div>
-        <div class="row"><span>Total de Entregas:</span><span>${allDeliveryOrders.length}</span></div>
-        <div class="row"><span>Total Taxas de Entrega:</span><span>R$ ${totalTaxas.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>${fixedFeeLabel}:</span><span>R$ ${totalFixedFees.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="row big"><span>TOTAL ENTREGADOR:</span><span>R$ ${totalEntregador.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="center" style="margin-top:8px;font-size:8px;">Relatório de entregas gerado automaticamente</div>
-      </body></html>
-    `);
-    w.document.close();
-    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+    await printReportTemplate("relatorio_entregas", {
+      "[PERIODO]": dateLabel,
+      "[NOMEENTREGADOR]": `🚚 ${courierName}`,
+      "[LINHAS]": rows,
+      "[TOTALENTREGAS]": String(allDeliveryOrders.length),
+      "[TOTALTAXAS]": `R$ ${totalTaxas.toFixed(2).replace(".",",")}`,
+      "[TAXAFIXA]": `R$ ${totalFixedFees.toFixed(2).replace(".",",")}`,
+      "[TOTALENTREGADOR]": `R$ ${totalEntregador.toFixed(2).replace(".",",")}`,
+    }, { "[LINHAS]": rows });
   };
 
   const activeTabConfig = tabs.find(t => t.key === activeTab);

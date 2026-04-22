@@ -458,6 +458,20 @@ const AdminManualOrder = () => {
     );
   };
 
+  const updateItemQuantityManual = (productId: string, value: string) => {
+    const newQty = Math.max(0, Math.floor(Number(value) || 0));
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id !== productId) return item;
+        if (newQty === 0) return { ...item, quantity: 0 };
+        const updatedAddons = item.isCombo
+          ? item.addons.map((addon) => ({ ...addon, quantity: Math.round((addon.quantity / Math.max(1, item.quantity)) * newQty) }))
+          : item.addons;
+        return { ...item, quantity: newQty, addons: updatedAddons };
+      }).filter((item) => item.quantity > 0)
+    );
+  };
+
   const removeItem = (productId: string) => {
     setCart((prev) => prev.filter((i) => i.product.id !== productId));
     setSelectedCartItemIds((prev) => prev.filter((id) => id !== productId));
@@ -844,13 +858,19 @@ const AdminManualOrder = () => {
                     <div className="grid grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center gap-1">
                       <div className="flex items-center gap-0.5">
                         <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
-                        <span>{item.quantity}</span>
+                        <input type="number" min="1" value={item.quantity} onChange={(e) => updateItemQuantityManual(item.product.id, e.target.value)} className="h-5 w-8 bg-[hsl(197_58%_91%)] text-center font-black outline-none" />
                       </div>
                       <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
                       <span className="text-right font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
                       <button onClick={() => setAddonModalProductId(item.product.id)} className="min-h-5 bg-[hsl(203_88%_22%)] px-1 text-[8px] font-black uppercase leading-tight text-[hsl(0_0%_100%)]">{item.addons.length ? `${item.addons.length} add` : "+ Add"}</button>
                       <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
                     </div>
+                    {(item.addons.length > 0 || item.observations.trim()) && (
+                      <div className="ml-9 mt-0.5 space-y-0.5 text-[9px] font-black leading-tight text-[hsl(203_60%_38%)]">
+                        {item.addons.map((addon) => <p key={addon.addon_id} className="whitespace-normal break-words">+ {addon.quantity}x {addon.name}</p>)}
+                        {item.observations.trim() && <p className="whitespace-normal break-words">Obs: {item.observations.trim()}</p>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -947,6 +967,7 @@ const AdminManualOrder = () => {
             </DialogHeader>
             {addonModalItem && (
               <div className="space-y-2">
+                <label className="flex h-8 items-center gap-2 border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] px-2 text-xs font-black">Quantidade<input type="number" min="1" value={addonModalItem.quantity} onChange={(e) => updateItemQuantityManual(addonModalItem.product.id, e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
                 <button onClick={() => toggleCombo(addonModalItem.product.id)} className={cn("w-full border px-2 py-2 text-xs font-black uppercase", addonModalItem.isCombo ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Combo</button>
                 <input placeholder="Obs item" value={addonModalItem.observations} onChange={(e) => updateItemObs(addonModalItem.product.id, e.target.value)} className="h-8 w-full border border-[hsl(199_76%_36%)] px-2 text-xs font-bold outline-none" />
                 <label className="flex h-8 items-center gap-2 border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] px-2 text-xs font-black">Valor R$<input type="number" step="0.01" value={addonModalItem.customPrice} onChange={(e) => updateItemPrice(addonModalItem.product.id, e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
