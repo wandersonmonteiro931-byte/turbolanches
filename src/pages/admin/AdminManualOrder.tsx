@@ -781,7 +781,7 @@ const AdminManualOrder = () => {
             </div>
           </div>
 
-          <div className="grid min-h-0 grid-cols-[76px_1fr] gap-1 overflow-hidden p-1 max-sm:min-h-[520px]">
+          <div className="grid min-h-0 flex-1 grid-cols-[76px_1fr] gap-1 overflow-hidden p-1 max-sm:min-h-[520px]">
             <div className="space-y-1 overflow-y-auto pr-0.5">
               <button onClick={() => setSelectedCategory(null)} className={cn("h-9 w-full border text-[9px] font-black uppercase", !selectedCategory ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>Todos</button>
               {categories.map((cat) => (
@@ -826,6 +826,32 @@ const AdminManualOrder = () => {
               </div>
             </div>
           </div>
+
+          <div className="shrink-0 border-t border-[hsl(199_78%_18%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]">
+            <div className="grid h-7 grid-cols-[34px_minmax(0,1fr)_86px_24px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
+              <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
+            </div>
+            <div className="grid max-h-[28vh] auto-rows-min grid-cols-1 gap-0 overflow-y-auto min-[980px]:grid-cols-2">
+              {!hasCart ? (
+                <div className="col-span-full p-2 text-center text-[11px] font-bold text-[hsl(203_60%_38%)]">Selecione os produtos acima</div>
+              ) : cart.map((item) => {
+                const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+                return (
+                  <div key={item.product.id} className="border-b border-r border-[hsl(200_45%_82%)] px-1 py-0.5 text-[10px] font-bold">
+                    <div className="grid grid-cols-[34px_minmax(0,1fr)_86px_24px] items-center gap-1">
+                      <div className="flex items-center gap-0.5">
+                        <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
+                        <span>{item.quantity}</span>
+                      </div>
+                      <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
+                      <span className="text-right font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
+                      <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </section>
 
         <aside className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)] max-sm:min-h-[760px]">
@@ -858,38 +884,7 @@ const AdminManualOrder = () => {
             />
           </div>
 
-          <div className="grid h-7 grid-cols-[30px_minmax(0,1fr)_78px_26px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
-            <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
-          </div>
-
-          <div className="min-h-[72px] flex-1 overflow-y-auto bg-[hsl(0_0%_100%)]">
-            {!hasCart ? (
-              <div className="p-3 text-center text-[11px] font-bold text-[hsl(203_60%_38%)]">Selecione os produtos à esquerda</div>
-            ) : cart.map((item) => {
-              const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
-              return (
-                <div key={item.product.id} className="border-b border-[hsl(200_45%_82%)] px-1 py-1 text-[10px] font-bold">
-                   <div className="grid grid-cols-[30px_minmax(0,1fr)_78px_26px] items-center gap-1">
-                    <div className="flex items-center gap-0.5">
-                      <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
-                      <span>{item.quantity}</span>
-                    </div>
-                    <span className="whitespace-normal break-words uppercase leading-tight">{item.product.name}</span>
-                    <input type="number" step="0.01" value={item.customPrice} onChange={(e) => updateItemPrice(item.product.id, e.target.value)} className="h-5 w-full bg-[hsl(197_58%_91%)] px-1 text-right font-black outline-none" />
-                    <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
-                  </div>
-                  <div className="mt-1 flex gap-1">
-                    <button onClick={() => updateQuantity(item.product.id, 1)} className="bg-[hsl(203_88%_22%)] px-1.5 text-[9px] text-[hsl(0_0%_100%)]">+1</button>
-                    <button onClick={() => toggleCombo(item.product.id)} className={cn("px-1.5 text-[9px]", item.isCombo ? "bg-[hsl(43_95%_50%)]" : "bg-[hsl(200_45%_82%)]")}>Combo</button>
-                    <span className="ml-auto font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
-                  </div>
-                  <input placeholder="Obs item" value={item.observations} onChange={(e) => updateItemObs(item.product.id, e.target.value)} className="mt-1 h-5 w-full border border-[hsl(200_45%_82%)] px-1 text-[10px] outline-none" />
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="max-h-[52vh] overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
+          <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             {hasCart && (
               <div className="mb-1 max-h-20 overflow-y-auto border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] p-1">
                 <ManualOrderAddonSelector
