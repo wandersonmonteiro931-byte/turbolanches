@@ -80,13 +80,13 @@ const ManualOrderAddonSelector = ({
         <div className="flex gap-2">
           <button
             onClick={onSelectAll}
-            className="rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary"
+            className="rounded-sm border border-primary bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary"
           >
             Todos
           </button>
           <button
             onClick={onClearSelection}
-            className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground"
+            className="rounded-sm border border-border bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground"
           >
             Limpar
           </button>
@@ -101,7 +101,7 @@ const ManualOrderAddonSelector = ({
           return (
             <div key={item.productId} className="space-y-1">
               <div
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-all ${
+                className={`flex items-center gap-2 rounded-sm px-3 py-2 cursor-pointer transition-all ${
                   isSelected ? "bg-primary/10 border border-primary/30" : "bg-background border border-border"
                 }`}
                 onClick={() => onToggleSelectItem(item.productId)}
@@ -119,7 +119,7 @@ const ManualOrderAddonSelector = ({
                     e.stopPropagation();
                     onToggleCombo(item.productId);
                   }}
-                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`flex items-center gap-1 rounded-sm px-2 py-1 text-[10px] font-bold transition-all ${
                     item.isCombo
                       ? "bg-accent text-accent-foreground ring-1 ring-accent"
                       : "bg-muted text-muted-foreground"
@@ -153,14 +153,14 @@ const ManualOrderAddonSelector = ({
       {/* Addon panel toggle */}
       <button
         onClick={() => setShowAddonPanel(!showAddonPanel)}
-        className="w-full rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+        className="w-full rounded-sm border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10"
       >
         {showAddonPanel ? "▲ Fechar adicionais" : `▼ Adicionar extras ${selectedItemIds.length > 0 ? `(${selectedItemIds.length} itens)` : ""}`}
       </button>
 
       {/* Addon list */}
       {showAddonPanel && availableAddons.length > 0 && (
-        <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+        <div className="rounded-sm border border-border bg-background p-3 space-y-2">
           <p className="text-[10px] text-muted-foreground">
             {selectedItemIds.length > 0
               ? `Aplicando para: ${selectedItems.map((i) => `${i.quantity}x ${i.productName}`).join(", ")}`
