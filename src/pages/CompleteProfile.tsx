@@ -6,6 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import NeighborhoodAutocomplete from "@/components/NeighborhoodAutocomplete";
 
+const DEFAULT_CITY = "Anápolis";
+const DEFAULT_STATE = "Goiás";
+
+const requiredFields = ["full_name", "phone", "street", "number", "neighborhood", "quadra", "lote"] as const;
+
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -57,8 +62,8 @@ const CompleteProfile = () => {
         neighborhood: data?.neighborhood || "",
         quadra: data?.quadra || "",
         lote: data?.lote || "",
-        city: data?.city || "",
-        state: data?.state || "",
+        city: DEFAULT_CITY,
+        state: DEFAULT_STATE,
         zip_code: data?.zip_code || "",
       });
 
@@ -93,8 +98,8 @@ const CompleteProfile = () => {
         zip_code: cep,
         street: data.logradouro || prev.street,
         neighborhood: data.bairro || prev.neighborhood,
-        city: data.localidade || prev.city,
-        state: data.uf || prev.state,
+            city: DEFAULT_CITY,
+            state: DEFAULT_STATE,
       }));
     } catch {
       toast.error("Erro ao buscar CEP");
@@ -106,12 +111,19 @@ const CompleteProfile = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    const missing = requiredFields.some((key) => !form[key]?.trim());
+    if (missing) {
+      toast.error("Preencha todos os campos obrigatórios (*)");
+      return;
+    }
     setLoading(true);
 
     try {
       const payload = {
         user_id: user.id,
         ...form,
+        city: DEFAULT_CITY,
+        state: DEFAULT_STATE,
       };
 
       const { data: existingProfile, error: profileLookupError } = await supabase
@@ -127,7 +139,7 @@ const CompleteProfile = () => {
       const { error } = existingProfile
         ? await supabase
             .from("profiles")
-            .update(form)
+            .update({ ...form, city: DEFAULT_CITY, state: DEFAULT_STATE })
             .eq("id", existingProfile.id)
         : await supabase
             .from("profiles")
@@ -155,17 +167,16 @@ const CompleteProfile = () => {
   };
 
   const fields = [
-    { key: "full_name", label: "Nome completo", icon: User, required: true },
-    { key: "phone", label: "WhatsApp (com DDD)", icon: Phone, required: true },
-    { key: "zip_code", label: "CEP", icon: Hash, required: true },
-    { key: "street", label: "Rua", icon: MapPin, required: true },
-    { key: "number", label: "Número", icon: Hash, required: true },
-    { key: "complement", label: "Complemento", icon: Building, required: true },
-    { key: "quadra", label: "Quadra", icon: Hash, required: true },
-    { key: "lote", label: "Lote", icon: Hash, required: true },
-    { key: "neighborhood", label: "Bairro", icon: Map, required: true },
-    { key: "city", label: "Cidade", icon: Building, required: true },
-    { key: "state", label: "Estado (sigla)", icon: Map, required: true },
+    { key: "full_name", label: "Nome completo *", icon: User, required: true },
+    { key: "phone", label: "WhatsApp *", icon: Phone, required: true },
+    { key: "zip_code", label: "CEP", icon: Hash, required: false },
+    { key: "street", label: "Rua/Av *", icon: MapPin, required: true },
+    { key: "number", label: "Número *", icon: Hash, required: true, quickValue: "S/N" },
+    { key: "quadra", label: "Quadra *", icon: Hash, required: true, quickValue: "Não tem" },
+    { key: "lote", label: "Lote *", icon: Hash, required: true, quickValue: "Não tem" },
+    { key: "neighborhood", label: "Bairro *", icon: Map, required: true },
+    { key: "city", label: "Cidade", icon: Building, required: true, disabled: true },
+    { key: "state", label: "Estado", icon: Map, required: true, disabled: true },
   ];
 
   return (
@@ -190,17 +201,18 @@ const CompleteProfile = () => {
                   <NeighborhoodAutocomplete
                     value={form.neighborhood}
                     onChange={(val) => update("neighborhood", val)}
-                    placeholder="Bairro"
+                    placeholder="Bairro *"
                   />
                 </div>
               );
             }
+            const isFixed = Boolean((f as any).disabled);
             return (
               <div key={f.key} className="flex items-center gap-3 rounded-xl bg-card px-4 py-3">
                 <f.icon size={18} className="flex-shrink-0 text-muted-foreground" />
                 <input
                   type="text"
-                  value={(form as any)[f.key]}
+                  value={isFixed ? (f.key === "city" ? DEFAULT_CITY : DEFAULT_STATE) : (form as any)[f.key]}
                   onChange={(e) => {
                     const val = e.target.value;
                     update(f.key, val);
@@ -213,8 +225,14 @@ const CompleteProfile = () => {
                   }}
                   placeholder={f.label + (f.key === "zip_code" && cepLoading ? " (buscando...)" : "")}
                   required={f.required}
+                  disabled={isFixed}
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
+                {(f as any).quickValue && !isFixed && (
+                  <button type="button" onClick={() => update(f.key, (f as any).quickValue)} className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-primary">
+                    {(f as any).quickValue}
+                  </button>
+                )}
               </div>
             );
           })}

@@ -61,6 +61,7 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
+  const [locationToWhatsAppConfirmed, setLocationToWhatsAppConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -88,8 +89,8 @@ const Checkout = () => {
     ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
         const p = profileRes.data;
-        if (!p.full_name || !p.phone || !p.street || !p.neighborhood || !p.complement) {
-          toast.error("Complete seu perfil (rua, complemento e WhatsApp são obrigatórios)");
+        if (!p.full_name || !p.phone || !p.street || !p.number || !p.neighborhood || !p.quadra || !p.lote) {
+          toast.error("Complete os campos obrigatórios do cadastro");
           navigate("/completar-perfil");
           return;
         }
@@ -249,6 +250,10 @@ const Checkout = () => {
       toast.error("A loja está fechada no momento");
       return;
     }
+    if (!locationToWhatsAppConfirmed) {
+      toast.error("Confirme o envio da localização da loja no WhatsApp");
+      return;
+    }
 
     if (appliedCoupon) {
       const validation = await validateCouponForOrder({
@@ -348,7 +353,8 @@ const Checkout = () => {
     msg += `Cliente: ${profile?.full_name}\n`;
     msg += `Telefone: ${profile?.phone}\n`;
     if (deliveryType === "delivery") {
-      msg += `Endereço: ${profile?.street}, ${profile?.number} - ${profile?.neighborhood}\n`;
+      msg += `Endereço: ${profile?.street}, ${profile?.number} - Qd. ${profile?.quadra} Lt. ${profile?.lote} - ${profile?.neighborhood}\n`;
+      msg += `Localização: cliente confirmou que vai enviar a localização no WhatsApp\n`;
     } else {
       msg += `Retirada na loja\n`;
     }
@@ -561,6 +567,19 @@ const Checkout = () => {
                 rows={2}
               />
             </div>
+
+            <label className="flex items-start gap-3 rounded-xl bg-card p-4 text-left">
+              <input
+                type="checkbox"
+                checked={locationToWhatsAppConfirmed}
+                onChange={(e) => setLocationToWhatsAppConfirmed(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-primary"
+                required
+              />
+              <span className="text-sm font-bold text-foreground">
+                Enviar localização para loja no Zap <span className="text-primary">*</span>
+              </span>
+            </label>
 
 
 

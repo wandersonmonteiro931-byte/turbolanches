@@ -40,19 +40,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, phone } = await req.json();
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: "Email e senha são obrigatórios" }), {
+    const { email, password, full_name, phone, street, number, neighborhood, quadra, lote, city, state, zip_code } = await req.json();
+    if (!full_name || !phone || !street || !number || !neighborhood || !quadra || !lote) {
+      return new Response(JSON.stringify({ error: "Preencha todos os campos obrigatórios" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const phoneDigits = String(phone).replace(/\D/g, "");
+    const finalEmail = email || `cliente.${phoneDigits || crypto.randomUUID()}@turbolanches.local`;
+    const finalPassword = password || crypto.randomUUID();
+
     // Create user with service role (auto-confirms email)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
+      email: finalEmail,
+      password: finalPassword,
       email_confirm: true,
       user_metadata: { full_name: full_name || "" },
     });
@@ -66,9 +70,18 @@ Deno.serve(async (req) => {
 
     // Update profile with provided data
     if (newUser?.user) {
-      const updates: Record<string, string> = {};
-      if (full_name) updates.full_name = full_name;
-      if (phone) updates.phone = phone;
+      const updates: Record<string, string> = {
+        full_name,
+        phone,
+        street,
+        number,
+        neighborhood,
+        quadra,
+        lote,
+        city: city || "Anápolis",
+        state: state || "Goiás",
+        zip_code: zip_code || "",
+      };
 
       if (Object.keys(updates).length > 0) {
         await adminClient.from("profiles").update(updates).eq("user_id", newUser.user.id);
