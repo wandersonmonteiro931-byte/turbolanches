@@ -849,7 +849,7 @@ const AdminOrders = () => {
               </button>
               <button
                 onClick={() => confirmRouteClosure(showRouteClosureModal)}
-                className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+                className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
               >
                 Sim, Finalizar
               </button>
