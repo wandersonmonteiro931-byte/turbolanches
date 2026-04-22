@@ -453,17 +453,29 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   } catch (error) {}
 
   var started = false;
+  var printAttempted = false;
+
+  function runPrint() {
+    if (printAttempted) return;
+    printAttempted = true;
+
+    try { window.focus(); } catch (error) {}
+
+    try {
+      window.print();
+    } catch (error) {
+      printAttempted = false;
+    }
+  }
 
   function firePrint() {
     if (started) return;
     started = true;
 
     var run = function () {
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          window.print();
-        });
-      });
+      setTimeout(runPrint, 40);
+      setTimeout(runPrint, 180);
+      setTimeout(runPrint, 480);
     };
 
     if (document.fonts && document.fonts.ready) {
@@ -481,6 +493,10 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       setTimeout(firePrint, 80);
     }, { once: true });
   }
+
+  window.addEventListener("pageshow", function () {
+    setTimeout(firePrint, 40);
+  }, { once: true });
 
   if (!keepOpen) {
     window.addEventListener("afterprint", function () {
