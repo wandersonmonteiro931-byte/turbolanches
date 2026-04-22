@@ -400,7 +400,14 @@ const AdminPrint = () => {
   }, [keepOpen, printDelayMs, printableDocument, ready]);
 
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
-  if (!ready || !printableDocument) return <div style={{ padding: 20, fontFamily: "monospace" }}>Preparando impressão...</div>;
+  if (!ready || !printableDocument) {
+    return (
+      <div style={{ padding: 20, fontFamily: "monospace" }}>
+        <style>{`@media print { body, #root { background: #fff !important; } body * { visibility: hidden !important; } } [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display:none !important; visibility:hidden !important; }`}</style>
+        Carregando comanda...
+      </div>
+    );
+  }
 
   return <div style={{ padding: 20, fontFamily: "monospace" }}>Abrindo impressão...</div>;
 };

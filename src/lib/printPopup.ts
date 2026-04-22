@@ -5,10 +5,10 @@ const buildStampedPrintUrl = (url: string) => {
   return `${url}${separator}t=${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 };
 
-const schedulePopupAutoPrint = (popup: Window | null) => {
+const schedulePopupActivation = (popup: Window | null) => {
   if (!popup || popup.closed || typeof window === "undefined") return;
 
-  [300, 700, 1300, 2200, 3400].forEach((delay) => {
+  [500, 1200, 2200, 3600, 5200].forEach((delay) => {
     window.setTimeout(() => {
       if (!popup || popup.closed) return;
 
@@ -18,10 +18,6 @@ const schedulePopupAutoPrint = (popup: Window | null) => {
 
       try {
         popup.postMessage({ type: "turbo-print-now" }, window.location.origin);
-      } catch {}
-
-      try {
-        popup.print();
       } catch {}
     }, delay);
   });
@@ -45,18 +41,18 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 
   if (!popup || popup.closed) {
     const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, features);
-    schedulePopupAutoPrint(nextPopup);
+    schedulePopupActivation(nextPopup);
     return nextPopup;
   }
 
   try {
     popup.location.replace(stampedUrl);
     popup.focus();
-    schedulePopupAutoPrint(popup);
+    schedulePopupActivation(popup);
     return popup;
   } catch {
     const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, features);
-    schedulePopupAutoPrint(nextPopup);
+    schedulePopupActivation(nextPopup);
     return nextPopup;
   }
 };
@@ -64,6 +60,6 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 export const openPrintUrl = (url: string, namePrefix = "print", features = DEFAULT_PRINT_FEATURES) => {
   const stampedUrl = buildStampedPrintUrl(url);
   const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, features);
-  schedulePopupAutoPrint(popup);
+  schedulePopupActivation(popup);
   return popup;
 };
