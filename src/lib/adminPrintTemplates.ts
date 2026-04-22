@@ -457,6 +457,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   var attempts = 0;
   var maxAttempts = 12;
   var retryTimers = [];
+  var closeTimer = null;
 
   function clearRetryTimers() {
     while (retryTimers.length) {
@@ -469,6 +470,13 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     clearRetryTimers();
   }
 
+  function scheduleClose(delay) {
+    if (keepOpen || closeTimer) return;
+    closeTimer = setTimeout(function () {
+      try { window.close(); } catch (error) {}
+    }, delay);
+  }
+
   function runPrint() {
     if (printFinished || attempts >= maxAttempts) return;
     attempts += 1;
@@ -478,6 +486,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
 
     try {
       window.print();
+      scheduleClose(2200);
     } catch (error) {
       // Keep retrying: kiosk/thermal Chromium can ignore the first call while
       // the generated document is still being painted.
@@ -568,10 +577,12 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
 
   window.addEventListener("beforeprint", function () {
     markFinished();
+    scheduleClose(900);
   });
 
   window.addEventListener("afterprint", function () {
     markFinished();
+    scheduleClose(120);
   });
 
   retryTimers.push(setTimeout(function () {
@@ -580,13 +591,6 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     }
   }, 5000));
 
-  if (!keepOpen) {
-    window.addEventListener("afterprint", function () {
-      setTimeout(function () {
-        try { window.close(); } catch (error) {}
-      }, 120);
-    }, { once: true });
-  }
 })();
 </script>`;
 
