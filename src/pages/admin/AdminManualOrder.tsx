@@ -162,6 +162,35 @@ const loadDraft = (): Partial<DraftState> => {
 
 const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
+const openPrintPopup = () => {
+  const popup = window.open("", "_blank", "width=300,height=600");
+  if (!popup || popup.closed) return null;
+
+  try {
+    popup.document.open();
+    popup.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8" /><title>Preparando impressão...</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center;min-height:100vh;background:#fff;color:#000;font-weight:700}div{padding:16px;text-align:center}</style></head><body><div>Preparando impressão...</div></body></html>`);
+    popup.document.close();
+  } catch {
+    // noop
+  }
+
+  return popup;
+};
+
+const routePopupToPrint = (popup: Window | null, url: string) => {
+  if (!popup || popup.closed) {
+    window.open(url, "_blank", "width=300,height=600");
+    return;
+  }
+
+  try {
+    popup.location.href = url;
+    popup.focus();
+  } catch {
+    window.open(url, "_blank", "width=300,height=600");
+  }
+};
+
 const AdminManualOrder = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -559,6 +588,8 @@ const AdminManualOrder = () => {
       if (!addressComplement) { toast.error("Preencha o complemento para delivery"); return; }
     }
 
+    const printPopup = openPrintPopup();
+
     // Require open cash register for new orders
     if (!editOrderId && storeId) {
       const todayBd = formatBusinessDate(new Date());
@@ -569,6 +600,7 @@ const AdminManualOrder = () => {
         .eq("business_day", todayBd)
         .maybeSingle();
       if (!reg || reg.status !== "open") {
+        try { printPopup?.close(); } catch { /* noop */ }
         toast.error("Abra o caixa antes de criar um pedido", {
           description: "Vá ao painel e clique em 'Abrir Caixa'.",
           action: { label: "Abrir caixa", onClick: () => navigate("/admin") },
@@ -673,7 +705,7 @@ const AdminManualOrder = () => {
         const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
         toast.success(`Pedido #${orderNum} atualizado!`);
         clearDraft();
-        window.open(`/admin/imprimir/${editOrderId}?tipo=pedido`, "_blank", "width=300,height=600");
+        routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=pedido`);
         navigate("/admin");
       } else {
         // CREATE new order
@@ -725,10 +757,11 @@ const AdminManualOrder = () => {
 
         toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
         clearDraft();
-        window.open(`/admin/imprimir/${order.id}?tipo=pedido`, "_blank", "width=300,height=600");
+        routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
         navigate("/admin");
       }
     } catch (error: any) {
+      try { printPopup?.close(); } catch { /* noop */ }
       toast.error(error.message || "Erro ao criar pedido");
     } finally {
       setLoading(false);
