@@ -80,12 +80,18 @@ const AdminReceipts = () => {
         return;
       }
       const stamp = Date.now();
-      const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&t=${stamp}`;
-      const win = window.open(url, `_print_${type}_${stamp}`, "width=320,height=640,noopener");
-      if (!win) {
+      let opened = 0;
+      for (let i = 0; i < qty; i += 1) {
+        const url = `/admin/imprimir/${lastOrder.id}?tipo=${type}&copy=${i + 1}&t=${stamp}_${i}`;
+        const win = window.open(url, `_print_${type}_${stamp}_${i}`, "width=320,height=640,noopener");
+        if (win) opened += 1;
+      }
+      if (opened === 0) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
+      } else if (opened < qty) {
+        toast.warning(`${opened} de ${qty} impressões separadas foram abertas. Permita pop-ups para abrir todas.`);
       } else {
-        toast.success(`${qty} impressão(ões) enviada(s) à impressora.`);
+        toast.success(`${qty} impressões separadas enviadas à impressora.`);
       }
     } finally {
       setPrinting(false);
