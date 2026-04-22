@@ -244,16 +244,16 @@ const AdminManualOrder = () => {
   useEffect(() => {
     if (editOrderId) return;
     const d: DraftState = {
-      cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+      cart, deliveryType, paymentMethod, customerName, customerPhone,
       selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
       addressNumber, addressNeighborhood, addressComplement, observations,
-      changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount,
+      customDeliveryFee, deliveryFeeOverridden, discount,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [editOrderId, cart, deliveryType, paymentMethod, isPaid, customerName, customerPhone,
+  }, [editOrderId, cart, deliveryType, paymentMethod, customerName, customerPhone,
     selectedCustomerId, selectedCustomerCode, tableNumber, addressStreet,
     addressNumber, addressNeighborhood, addressComplement, observations,
-    changeFor, changeMethod, customDeliveryFee, deliveryFeeOverridden, discount]);
+    customDeliveryFee, deliveryFeeOverridden, discount]);
 
   useEffect(() => {
     const cartIds = cart.map((item) => item.product.id);
@@ -334,7 +334,6 @@ const AdminManualOrder = () => {
       setCustomDeliveryFee(String(order.delivery_fee || 0));
       setDeliveryFeeOverridden(true);
       setChangeFor(order.change_for ? String(order.change_for) : "");
-      setIsPaid(order.payment_confirmed || false);
 
       // Restore change method (troco devolvido via dinheiro/pix/cartão)
       const cgPix = Number(order.change_given_pix || 0);
