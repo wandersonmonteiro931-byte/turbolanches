@@ -921,7 +921,9 @@ const AdminManualOrder = () => {
                 <input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} placeholder="Rua" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
                 <input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="Nº" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
                 <input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Complemento" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
-                <NeighborhoodAutocomplete value={addressNeighborhood} onChange={(val, fee) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2)); }} placeholder="Bairro" allowInactive refreshKey={dataRefreshKey} />
+                <div className="col-span-2">
+                  <NeighborhoodAutocomplete value={addressNeighborhood} onChange={(val, fee) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2)); }} placeholder="Bairro" allowInactive refreshKey={dataRefreshKey} className="rounded-none border-[hsl(199_76%_36%)] px-2 py-1" dropdownClassName="left-0 right-0 w-full" />
+                </div>
               </div>
             )}
 
@@ -930,17 +932,25 @@ const AdminManualOrder = () => {
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
+              <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Já está pago<input type="checkbox" checked={isPaid} onChange={(e) => setIsPaid(e.target.checked)} className="ml-auto h-4 w-4 accent-[hsl(203_88%_22%)]" /></label>
               {paymentMethod === "dinheiro" && !isPaid && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
+            {paymentMethod === "dinheiro" && !isPaid && changeFor && Number(changeFor) > total && (
+              <div className="mt-1 grid grid-cols-3 gap-1 text-[9px] font-black uppercase">
+                {changeMethods.map((method) => (
+                  <button key={method.id} onClick={() => setChangeMethod(method.id)} className={cn("min-h-7 border px-1", changeMethod === method.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>{method.label}</button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="border-t-4 border-[hsl(203_88%_22%)] bg-[hsl(197_58%_91%)] p-2">
             <p className="text-sm font-black text-[hsl(203_88%_22%)]">Valor Total</p>
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
-              <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(355_85%_52%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={handleSubmit} disabled={loading || !hasCart} className="h-8 bg-[hsl(116_38%_40%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
-                {loading ? "Salvando..." : editOrderId ? "Salvar" : "Finalizar"}
+              <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
+              <button onClick={handleSubmit} disabled={loading || !hasCart} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+                {loading ? "Salvando..." : editOrderId ? "Salvar pedido" : "Criar pedido"}
               </button>
             </div>
           </div>
