@@ -518,7 +518,15 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     started = true;
 
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(run).catch(run);
+      var fontsReadyResolved = false;
+      var runWhenReady = function () {
+        if (fontsReadyResolved) return;
+        fontsReadyResolved = true;
+        run();
+      };
+
+      document.fonts.ready.then(runWhenReady).catch(runWhenReady);
+      setTimeout(runWhenReady, 220);
       return;
     }
 
@@ -548,6 +556,14 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     if (document.visibilityState === "visible") {
       setTimeout(firePrint, 10);
     }
+  });
+
+  window.addEventListener("message", function (event) {
+    try {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== "turbo-print-now") return;
+      setTimeout(firePrint, 10);
+    } catch (error) {}
   });
 
   window.addEventListener("beforeprint", function () {
