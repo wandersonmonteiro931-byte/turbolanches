@@ -107,7 +107,7 @@ const NeighborhoodAutocomplete = ({
               >
                 <div className="flex min-w-0 flex-1 items-start gap-2">
                   {blocked ? (
-                    <Ban size={14} className="shrink-0 text-destructive" />
+                    <Ban size={14} className="shrink-0 text-admin-primary" />
                   ) : (
                     <MapPin size={14} className="shrink-0 text-primary" />
                   )}
@@ -116,7 +116,7 @@ const NeighborhoodAutocomplete = ({
 
                 <div className="ml-2 shrink-0 text-right">
                   {blocked ? (
-                    <span className="text-[10px] font-semibold text-destructive">Não atendido</span>
+                    <span className="text-[10px] font-semibold text-admin-primary">Não atendido</span>
                   ) : isPromoFree ? (
                     <div className="space-y-0.5">
                       <div className="text-xs font-bold text-primary">Grátis</div>
