@@ -392,15 +392,8 @@ const AdminPrint = () => {
         return;
       }
 
-      // The injected document already triggers window.print() on load
-      // (see buildAdminPrintDocument in adminPrintTemplates.ts).
-      // Do NOT call window.print() here, otherwise it prints twice.
-      // Just schedule auto-close after the print dialog has had time to handle the job.
-      if (!keepOpen) {
-        setTimeout(() => {
-          try { window.close(); } catch { /* noop */ }
-        }, 1500);
-      }
+      // The injected document triggers window.print() and closes only after the
+      // browser reports afterprint. Closing by timeout can cancel thermal jobs.
     }, Math.max(60, printDelayMs));
 
     return () => clearTimeout(timer);
