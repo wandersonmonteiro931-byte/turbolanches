@@ -80,13 +80,13 @@ const ManualOrderAddonSelector = ({
         <div className="flex gap-2">
           <button
             onClick={onSelectAll}
-            className="rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary"
+            className="rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] px-2 py-1 text-[10px] font-bold text-[hsl(203_88%_22%)]"
           >
             Todos
           </button>
           <button
             onClick={onClearSelection}
-            className="rounded-lg bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground"
+            className="rounded-sm border border-border bg-muted px-2 py-1 text-[10px] font-bold text-muted-foreground"
           >
             Limpar
           </button>
@@ -101,17 +101,17 @@ const ManualOrderAddonSelector = ({
           return (
             <div key={item.productId} className="space-y-1">
               <div
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 cursor-pointer transition-all ${
-                  isSelected ? "bg-primary/10 border border-primary/30" : "bg-background border border-border"
+                className={`flex items-center gap-2 rounded-sm px-3 py-2 cursor-pointer transition-all ${
+                  isSelected ? "bg-[hsl(197_58%_91%)] border border-[hsl(199_76%_36%)]" : "bg-background border border-border"
                 }`}
                 onClick={() => onToggleSelectItem(item.productId)}
               >
                 <div className={`flex h-5 w-5 items-center justify-center rounded border ${
-                  isSelected ? "bg-primary border-primary" : "border-border"
+                  isSelected ? "bg-[hsl(203_88%_22%)] border-[hsl(203_88%_22%)]" : "border-border"
                 }`}>
                   {isSelected && <Check size={12} className="text-primary-foreground" />}
                 </div>
-                <span className="flex-1 text-xs font-medium text-foreground">
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-xs font-medium leading-tight text-foreground">
                   {item.quantity}x {item.productName}
                 </span>
                 <button
@@ -119,9 +119,9 @@ const ManualOrderAddonSelector = ({
                     e.stopPropagation();
                     onToggleCombo(item.productId);
                   }}
-                  className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold transition-all ${
+                  className={`flex items-center gap-1 rounded-sm px-2 py-1 text-[10px] font-bold transition-all ${
                     item.isCombo
-                      ? "bg-accent text-accent-foreground ring-1 ring-accent"
+                      ? "bg-[hsl(43_95%_50%)] text-[hsl(203_88%_22%)] ring-1 ring-[hsl(43_95%_50%)]"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -129,7 +129,7 @@ const ManualOrderAddonSelector = ({
                   Combo
                 </button>
                 {addonsTotal > 0 && (
-                  <span className="text-[10px] font-bold text-primary">
+                  <span className="text-[10px] font-bold text-[hsl(203_88%_22%)]">
                     +R$ {addonsTotal.toFixed(2).replace(".", ",")}
                   </span>
                 )}
@@ -139,7 +139,7 @@ const ManualOrderAddonSelector = ({
               {item.addons.length > 0 && (
                 <div className="ml-7 flex flex-wrap gap-1">
                   {item.addons.map((a) => (
-                    <span key={a.addon_id} className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span key={a.addon_id} className="rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {a.quantity}x {a.name}
                     </span>
                   ))}
@@ -153,14 +153,14 @@ const ManualOrderAddonSelector = ({
       {/* Addon panel toggle */}
       <button
         onClick={() => setShowAddonPanel(!showAddonPanel)}
-        className="w-full rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-bold text-primary transition-all hover:bg-primary/10"
+        className="w-full rounded-sm border border-dashed border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] px-3 py-2 text-xs font-bold text-[hsl(203_88%_22%)] transition-all hover:bg-[hsl(200_45%_82%)]"
       >
         {showAddonPanel ? "▲ Fechar adicionais" : `▼ Adicionar extras ${selectedItemIds.length > 0 ? `(${selectedItemIds.length} itens)` : ""}`}
       </button>
 
       {/* Addon list */}
       {showAddonPanel && availableAddons.length > 0 && (
-        <div className="rounded-xl border border-border bg-background p-3 space-y-2">
+        <div className="rounded-sm border border-border bg-background p-3 space-y-2">
           <p className="text-[10px] text-muted-foreground">
             {selectedItemIds.length > 0
               ? `Aplicando para: ${selectedItems.map((i) => `${i.quantity}x ${i.productName}`).join(", ")}`
@@ -176,13 +176,13 @@ const ManualOrderAddonSelector = ({
             return (
               <div
                 key={addon.id}
-                className={`flex items-center justify-between rounded-lg px-3 py-2 ${
-                  totalQty > 0 ? "bg-primary/5 border border-primary/20" : "bg-card"
+                className={`flex items-center justify-between rounded-sm px-3 py-2 ${
+                  totalQty > 0 ? "bg-[hsl(197_58%_91%)] border border-[hsl(199_76%_36%)]" : "bg-card"
                 }`}
               >
                 <div>
-                  <span className="text-xs font-medium text-foreground">{addon.name}</span>
-                  <p className="text-[10px] font-semibold text-primary">
+                    <span className="text-xs font-medium text-foreground">{addon.name}</span>
+                  <p className="text-[10px] font-semibold text-[hsl(203_88%_22%)]">
                     {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ const ManualOrderAddonSelector = ({
                     <button
                       onClick={() => handleAddonChange(addon, -1)}
                       disabled={selectedItemIds.length === 0}
-                      className="flex h-7 w-7 items-center justify-center rounded-full border border-primary text-primary disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(203_88%_22%)] text-[hsl(203_88%_22%)] disabled:opacity-30"
                     >
                       <Minus size={14} />
                     </button>
@@ -202,7 +202,7 @@ const ManualOrderAddonSelector = ({
                   <button
                     onClick={() => handleAddonChange(addon, 1)}
                     disabled={selectedItemIds.length === 0}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-30"
+                    className="flex h-7 w-7 items-center justify-center rounded-sm bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)] disabled:opacity-30"
                   >
                     <Plus size={14} />
                   </button>

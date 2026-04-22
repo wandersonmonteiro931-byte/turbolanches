@@ -14,6 +14,7 @@ interface Props {
   onChange: (neighborhood: string, fee?: number) => void;
   placeholder?: string;
   className?: string;
+  dropdownClassName?: string;
   /** If true, allows selecting inactive zones (for admin) */
   allowInactive?: boolean;
   /** Change this value to force a data refresh */
@@ -25,6 +26,7 @@ const NeighborhoodAutocomplete = ({
   onChange,
   placeholder = "Bairro",
   className = "",
+  dropdownClassName = "",
   allowInactive = false,
   refreshKey = 0,
 }: Props) => {
@@ -88,7 +90,7 @@ const NeighborhoodAutocomplete = ({
       </div>
 
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
+        <div className={`absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-lg ${dropdownClassName}`}>
           {filtered.map((zone) => {
             const blocked = !zone.active && !allowInactive;
             const isPromoFree = Boolean(zone.temp_free_delivery);
@@ -99,17 +101,17 @@ const NeighborhoodAutocomplete = ({
                 type="button"
                 onClick={() => handleSelect(zone)}
                 disabled={blocked}
-                className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors ${
+                className={`flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left text-sm transition-colors ${
                   blocked ? "cursor-not-allowed bg-muted/30 opacity-50" : "cursor-pointer hover:bg-muted"
                 } ${zone.neighborhood.toLowerCase() === query.toLowerCase() ? "bg-primary/5" : ""}`}
               >
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-start gap-2">
                   {blocked ? (
                     <Ban size={14} className="shrink-0 text-destructive" />
                   ) : (
                     <MapPin size={14} className="shrink-0 text-primary" />
                   )}
-                  <span className={`truncate ${blocked ? "text-muted-foreground" : "text-foreground"}`}>{zone.neighborhood}</span>
+                  <span className={`whitespace-normal break-words leading-snug ${blocked ? "text-muted-foreground" : "text-foreground"}`}>{zone.neighborhood}</span>
                 </div>
 
                 <div className="ml-2 shrink-0 text-right">
