@@ -177,12 +177,12 @@ const ManualOrderAddonSelector = ({
               <div
                 key={addon.id}
                 className={`flex items-center justify-between rounded-sm px-3 py-2 ${
-                  totalQty > 0 ? "bg-primary/5 border border-primary/20" : "bg-card"
+                  totalQty > 0 ? "bg-[hsl(197_58%_91%)] border border-[hsl(199_76%_36%)]" : "bg-card"
                 }`}
               >
                 <div>
                     <span className="text-xs font-medium text-foreground">{addon.name}</span>
-                  <p className="text-[10px] font-semibold text-primary">
+                  <p className="text-[10px] font-semibold text-[hsl(203_88%_22%)]">
                     {addon.price > 0 ? `+ R$ ${addon.price.toFixed(2).replace(".", ",")}` : "Grátis"}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ const ManualOrderAddonSelector = ({
                     <button
                       onClick={() => handleAddonChange(addon, -1)}
                       disabled={selectedItemIds.length === 0}
-                      className="flex h-7 w-7 items-center justify-center rounded-sm border border-primary text-primary disabled:opacity-30"
+                      className="flex h-7 w-7 items-center justify-center rounded-sm border border-[hsl(203_88%_22%)] text-[hsl(203_88%_22%)] disabled:opacity-30"
                     >
                       <Minus size={14} />
                     </button>
@@ -202,7 +202,7 @@ const ManualOrderAddonSelector = ({
                   <button
                     onClick={() => handleAddonChange(addon, 1)}
                     disabled={selectedItemIds.length === 0}
-                    className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground disabled:opacity-30"
+                    className="flex h-7 w-7 items-center justify-center rounded-sm bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)] disabled:opacity-30"
                   >
                     <Plus size={14} />
                   </button>
