@@ -889,21 +889,6 @@ const AdminManualOrder = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
-            {hasCart && (
-              <div className="mb-1 max-h-20 overflow-y-auto border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] p-1">
-                <ManualOrderAddonSelector
-                  items={cart.map((i) => ({ productId: i.product.id, productName: i.product.name, quantity: i.quantity, isCombo: i.isCombo, addons: i.addons }))}
-                  availableAddons={getAddonsForSelectedItems().map((a) => ({ id: a.id, name: a.name, price: a.price }))}
-                  selectedItemIds={selectedCartItemIds}
-                  onToggleCombo={toggleCombo}
-                  onToggleSelectItem={toggleSelectItem}
-                  onSelectAll={selectAllItems}
-                  onClearSelection={clearSelection}
-                  onSetAddon={handleSetAddon}
-                />
-              </div>
-            )}
-
             <div className="grid grid-cols-5 gap-1">
               {paymentMethods.map((pm) => (
                 <button key={pm.id} type="button" onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
@@ -954,6 +939,38 @@ const AdminManualOrder = () => {
             </div>
           </div>
         </aside>
+
+        <Dialog open={Boolean(addonModalItem)} onOpenChange={(open) => !open && setAddonModalProductId(null)}>
+          <DialogContent className="max-h-[86vh] max-w-[520px] overflow-y-auto border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] p-3 text-[hsl(203_88%_22%)]">
+            <DialogHeader>
+              <DialogTitle className="text-sm font-black uppercase text-[hsl(203_88%_22%)]">Adicionais: {addonModalItem?.product.name}</DialogTitle>
+            </DialogHeader>
+            {addonModalItem && (
+              <div className="space-y-2">
+                <button onClick={() => toggleCombo(addonModalItem.product.id)} className={cn("w-full border px-2 py-2 text-xs font-black uppercase", addonModalItem.isCombo ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]")}>Combo</button>
+                <input placeholder="Obs item" value={addonModalItem.observations} onChange={(e) => updateItemObs(addonModalItem.product.id, e.target.value)} className="h-8 w-full border border-[hsl(199_76%_36%)] px-2 text-xs font-bold outline-none" />
+                <label className="flex h-8 items-center gap-2 border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] px-2 text-xs font-black">Valor R$<input type="number" step="0.01" value={addonModalItem.customPrice} onChange={(e) => updateItemPrice(addonModalItem.product.id, e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
+                {addonModalOptions.length === 0 ? <p className="py-3 text-center text-xs font-bold">Nenhum adicional disponível</p> : addonModalOptions.map((addon) => {
+                  const currentQty = addonModalItem.addons.find((a) => a.addon_id === addon.id)?.quantity || 0;
+                  const step = addonModalItem.isCombo ? addonModalItem.quantity : 1;
+                  return (
+                    <div key={addon.id} className={cn("flex items-center justify-between border p-2", currentQty > 0 ? "border-[hsl(203_88%_22%)] bg-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>
+                      <div className="min-w-0 pr-2">
+                        <p className="whitespace-normal break-words text-xs font-black uppercase leading-tight">{addon.name}</p>
+                        <p className="text-[10px] font-bold">{addon.price > 0 ? `+ R$ ${fmt(addon.price)}` : "Grátis"}</p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button onClick={() => handleSetAddon([addonModalItem.product.id], addon.id, addon, Math.max(0, currentQty - step))} className="grid h-8 w-8 place-items-center border border-[hsl(203_88%_22%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]"><Minus size={14} /></button>
+                        <span className="min-w-7 text-center text-sm font-black">{currentQty}</span>
+                        <button onClick={() => handleSetAddon([addonModalItem.product.id], addon.id, addon, currentQty + step)} className="grid h-8 w-8 place-items-center bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]"><Plus size={14} /></button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
