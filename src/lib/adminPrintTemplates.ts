@@ -11,6 +11,7 @@ const TAG_RULES = [
   { open: "[TZTBORDA]", close: "[/TZTBORDA]", className: "txt-borda-preta" },
   { open: "[TXTBORDATXT]", close: "[/TXTBORDATXT]", className: "txt-borda-inline" },
   { open: "[BORDA]", close: "[/BORDA]", className: "inline-border" },
+  { open: "[FUNDPRETO]", close: "[/FUNDPRETO]", className: "black-highlight" },
 ] as const;
 
 const WRAPPER_RULES = [
@@ -559,6 +560,7 @@ const getSharedPrintStyles = ({
         .txt-gigante { font-size: ${giantTextPx}px !important; font-weight: 900; line-height: 1.12; }
         .txt-borda-preta { display: block; width: 100%; margin: 1.5px 0; padding: 1mm 2mm; background: #000; color: #fff; font-weight: 900; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .txt-borda-inline { display: inline; padding: 0.3mm 2mm; background: #000; color: #fff; font-weight: 900; line-height: 1.35; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .black-highlight { display: block; width: 100%; margin: 1px 0; padding: 0.8mm 1.5mm; background: #000; color: #fff; font-weight: 900; line-height: 1.25; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .inline-border { display: block; width: 100%; margin: 1.5px 0; padding: 0.8mm 1.5mm; border: 2.5px solid #000; font-weight: 900; line-height: 1.35; }
         .tipo-comanda-row { margin: 0; }
         .tipo-label {
@@ -591,8 +593,8 @@ const getSharedPrintStyles = ({
         .items-table .items-qty { white-space: nowrap; width: 1%; padding-right: 4px; }
         .items-table .items-name { word-break: break-word; }
         .items-table .items-price { white-space: nowrap; width: 1%; text-align: right; padding-left: 4px; }
-        .items-table .items-obs-td { padding-top: 0; padding-bottom: 2px; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
-        .items-table .items-addon-td { padding-top: 0; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; }
+        .items-table .items-obs-td,
+        .items-table .items-addon-td { padding: 0.8mm 1.5mm; background: #000; color: #fff; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         .list-block { display: flex; flex-direction: column; gap: 4px; margin: 2px 0; }
         .list-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d4d4d4; padding: 4px 0; }
         .list-name { flex: 1; min-width: 0; word-break: break-word; }
