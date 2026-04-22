@@ -427,7 +427,9 @@ const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
 const PRINT_BOOTSTRAP_SCRIPT = `<script>
 if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = false; }
 (function () {
+  var keepOpen = false;
   try {
+    keepOpen = /(?:\?|&)keep_open=1(?:&|$)/.test(window.location.search || "");
     var scopes = [];
     if (typeof globalThis !== "undefined") scopes.push(globalThis);
     if (typeof window !== "undefined") scopes.push(window);
@@ -479,11 +481,13 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     }, { once: true });
   }
 
-  window.addEventListener("afterprint", function () {
-    setTimeout(function () {
-      try { window.close(); } catch (error) {}
-    }, 120);
-  }, { once: true });
+  if (!keepOpen) {
+    window.addEventListener("afterprint", function () {
+      setTimeout(function () {
+        try { window.close(); } catch (error) {}
+      }, 120);
+    }, { once: true });
+  }
 })();
 </script>`;
 
