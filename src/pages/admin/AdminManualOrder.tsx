@@ -715,410 +715,174 @@ const AdminManualOrder = () => {
   const hasCart = cart.length > 0;
 
   return (
-    <div className="flex min-h-full flex-col bg-background">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,_hsl(var(--primary)/0.18),_transparent_55%)]" />
-
-      <header className="sticky top-0 z-40 border-b border-border bg-card/95 px-4 py-3 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-3">
-          <button onClick={() => navigate("/admin")} className="rounded-xl p-2 transition-colors hover:bg-muted">
-            <ArrowLeft size={20} className="text-foreground" />
+    <div className="min-h-full bg-[hsl(205_86%_28%)] text-[hsl(0_0%_98%)]">
+      <header className="border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-2 py-1 shadow-sm">
+        <div className="flex h-9 items-center gap-2">
+          <button onClick={() => navigate("/admin")} className="grid h-7 w-7 place-items-center rounded-sm bg-[hsl(199_78%_18%)] text-[hsl(0_0%_100%)]">
+            <ArrowLeft size={16} />
           </button>
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-foreground">
-              {editOrderId
-                ? `Editando Pedido #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "..."}`
-                : "Novo Pedido Manual"}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {editOrderId
-                ? "Edite os itens, valores e dados. Data/hora e número do pedido serão preservados."
-                : "Tela redesenhada com atualização dinâmica de produtos, frete e adicionais."}
-            </p>
+          <div className="leading-none">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[hsl(198_70%_84%)]">Data Caixa</p>
+            <h1 className="text-sm font-black uppercase tracking-wide text-[hsl(0_0%_100%)]">RESTAURANTE</h1>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => void loadLatestData()}
-              className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-            >
-              Atualizar dados
-            </button>
-            <AnimatePresence>
-              {cartItemCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
-                  className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-md"
-                >
-                  <ShoppingBag size={13} /> {cartItemCount}
-                </motion.span>
-              )}
-            </AnimatePresence>
+          <div className="ml-auto flex items-center gap-1 text-[10px] font-bold">
+            <button onClick={() => void loadLatestData()} className="h-7 rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 text-[hsl(0_0%_100%)]">Atualizar</button>
+            <span className="h-7 rounded-sm border border-[hsl(199_76%_36%)] bg-[hsl(204_80%_16%)] px-3 leading-7">{cartItemCount} itens</span>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-7xl flex-1 gap-4 px-4 pb-6 pt-5 xl:grid-cols-[1.25fr_0.95fr]">
-        <section className="space-y-4">
-          <SectionCard title="1. Contexto do Pedido" icon="🧭" className="animate-enter">
-            <SectionBlock title="Tipo de atendimento" className="bg-muted/30">
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                {deliveryTypes.map((dt) => (
-                  <motion.button
-                    key={dt.id}
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setDeliveryType(dt.id)}
-                    className={`rounded-xl border-2 px-2 py-3 text-center transition-all ${
-                      deliveryType === dt.id
-                        ? "border-primary bg-primary text-primary-foreground shadow-lg"
-                        : "border-border bg-background text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <div className="text-xl">{dt.icon}</div>
-                    <div className="mt-1 text-[10px] font-extrabold uppercase tracking-wide">{dt.label}</div>
-                  </motion.button>
-                ))}
-              </div>
-            </SectionBlock>
-
-            <SectionBlock title="Dados do cliente" className="bg-muted/20">
-              <CustomerSearch
-                onSelect={(profile) => {
-                  setCustomerName(profile.full_name);
-                  setCustomerPhone(profile.phone);
-                  setSelectedCustomerId(profile.user_id);
-                  setSelectedCustomerCode(`T${String(profile.customer_code).padStart(5, "0")}`);
-                  if (deliveryType === "delivery") {
-                    setAddressStreet(profile.street || "");
-                    setAddressNumber(profile.number || "");
-                    setAddressNeighborhood(profile.neighborhood || "");
-                    setAddressComplement(
-                      [profile.complement, profile.quadra ? `Qd ${profile.quadra}` : "", profile.lote ? `Lt ${profile.lote}` : ""]
-                        .filter(Boolean)
-                        .join(" "),
-                    );
-                  }
-                }}
-                onClear={() => {
-                  setSelectedCustomerId(null);
-                  setSelectedCustomerCode("");
-                }}
-              />
-
-              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <input
-                  placeholder="Nome do cliente"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <div className="space-y-1">
-                  <input
-                    placeholder="WhatsApp (opcional)"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                  <p className="text-[11px] text-muted-foreground">Você pode criar pedido sem telefone.</p>
-                </div>
-              </div>
-
-              {(deliveryType === "mesa" || deliveryType === "consumo") && (
-                <motion.div {...fadeIn} className="mt-2">
-                  <input
-                    placeholder="Número da mesa"
-                    value={tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </motion.div>
-              )}
-            </SectionBlock>
-
-            <AnimatePresence>
-              {deliveryType === "delivery" && (
-                <motion.div {...fadeIn}>
-                  <SectionBlock title="Endereço de entrega" className="space-y-2 bg-muted/20">
-                    <div className="flex items-center justify-end">
-                      <span className="text-[11px] font-medium text-muted-foreground">Obrigatório: rua + complemento + bairro</span>
-                    </div>
-
-                    <input
-                      placeholder="Rua *"
-                      value={addressStreet}
-                      onChange={(e) => setAddressStreet(e.target.value)}
-                      className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    />
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <input
-                        placeholder="Número"
-                        value={addressNumber}
-                        onChange={(e) => setAddressNumber(e.target.value)}
-                        className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                      <input
-                        placeholder="Complemento *"
-                        value={addressComplement}
-                        onChange={(e) => setAddressComplement(e.target.value)}
-                        className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-
-                    <NeighborhoodAutocomplete
-                      value={addressNeighborhood}
-                      onChange={(val, fee) => {
-                        setAddressNeighborhood(val);
-                        setDeliveryFeeOverridden(false);
-                        if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2));
-                      }}
-                      placeholder="Bairro *"
-                      allowInactive
-                      refreshKey={dataRefreshKey}
-                    />
-
-                    {matchedZone && (
-                      <motion.div {...fadeIn} className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
-                        <span className="text-xs font-bold text-primary">Taxa atual: R$ {fmt(autoDeliveryFee)}</span>
-                        {autoDeliveryReason && <span className="text-[11px] font-semibold text-primary/80">{autoDeliveryReason}</span>}
-                        {!autoDeliveryReason && matchedZone.temp_free_delivery && (
-                          <span className="text-[11px] font-semibold text-primary/80">Frete promocional aplicado</span>
-                        )}
-                      </motion.div>
-                    )}
-                  </SectionBlock>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <SectionBlock title="Observações do pedido" className="bg-muted/20">
-              <textarea
-                placeholder="Observações do pedido"
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                rows={3}
-                className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </SectionBlock>
-          </SectionCard>
-
-          <SectionCard title="2. Catálogo Atualizado" icon="🛒" className="animate-enter">
-            <SectionBlock className="bg-muted/30">
-              <div className="flex items-center justify-between gap-2">
-                <div className="text-xs font-bold text-foreground">Produtos e preços sincronizados no acesso da tela</div>
+      <main className="grid h-[calc(100vh-45px)] grid-cols-[minmax(390px,1fr)_330px] gap-1 overflow-hidden p-1 max-lg:grid-cols-1 max-lg:overflow-auto">
+        <section className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(199_88%_31%)]">
+          <div className="grid grid-cols-[1fr_120px] gap-1 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] p-1">
+            <div className="grid grid-cols-5 gap-1">
+              {deliveryTypes.map((dt) => (
                 <button
-                  onClick={() => setShowProducts((prev) => !prev)}
-                  className="flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-xs font-bold text-foreground transition-colors hover:bg-muted"
+                  key={dt.id}
+                  onClick={() => setDeliveryType(dt.id)}
+                  className={cn(
+                    "h-8 border text-[9px] font-black uppercase leading-none",
+                    deliveryType === dt.id
+                      ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]"
+                      : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]",
+                  )}
                 >
-                  {showProducts ? "Ocultar" : "Mostrar"}
-                  {showProducts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {dt.label}
                 </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-1 bg-[hsl(197_58%_91%)] px-2 text-[10px] font-black text-[hsl(203_88%_22%)]">
+              <Search size={12} />
+              <input
+                placeholder="Código"
+                type="number"
+                inputMode="numeric"
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  const codeNum = parseInt(val);
+                  const exact = products.find((p) => p.product_code === codeNum);
+                  if (exact) { addToCart(exact); (e.target as HTMLInputElement).value = ""; }
+                  else if (val) toast.error(`Código ${val} não encontrado`);
+                }}
+                className="min-w-0 flex-1 bg-transparent text-[11px] font-black outline-none placeholder:text-[hsl(203_60%_38%)]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[86px_1fr] gap-1 overflow-hidden p-1 max-lg:min-h-[520px]">
+            <div className="space-y-1 overflow-y-auto pr-0.5">
+              <button onClick={() => setSelectedCategory(null)} className={cn("h-9 w-full border text-[9px] font-black uppercase", !selectedCategory ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>Todos</button>
+              {categories.map((cat) => (
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={cn("h-9 w-full border px-1 text-[8px] font-black uppercase leading-tight", selectedCategory === cat.id ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>{cat.name}</button>
+              ))}
+            </div>
+
+            <div className="flex min-h-0 flex-col gap-1 overflow-hidden">
+              <div className="flex h-8 items-center gap-2 bg-[hsl(197_58%_91%)] px-2 text-[hsl(203_88%_22%)]">
+                <Search size={14} />
+                <input
+                  placeholder="Buscar produtos"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  className="min-w-0 flex-1 bg-transparent text-[12px] font-bold outline-none placeholder:text-[hsl(203_60%_38%)]"
+                />
               </div>
-            </SectionBlock>
-
-            <AnimatePresence>
-              {showProducts && (
-                <motion.div {...fadeIn}>
-                  <SectionBlock title="Busca e filtros" className="bg-muted/20">
-                    <div className="flex items-center gap-2 rounded-xl border-2 border-primary/40 bg-background px-3 py-2.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wide text-primary">Cód.</span>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="Código rápido (Enter para adicionar)"
-                        onKeyDown={(e) => {
-                          if (e.key !== "Enter") return;
-                          const val = (e.target as HTMLInputElement).value.trim();
-                          if (!val) return;
-                          const codeNum = parseInt(val);
-                          if (Number.isNaN(codeNum)) return;
-                          const exact = products.find((p) => p.product_code === codeNum);
-                          if (exact) {
-                            addToCart(exact);
-                            (e.target as HTMLInputElement).value = "";
-                          } else {
-                            toast.error(`Código ${codeNum} não encontrado`);
-                          }
-                        }}
-                        className="flex-1 bg-transparent text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
-                      <Search size={16} className="text-muted-foreground" />
-                      <input
-                        placeholder="Buscar item, combo, produto ou código..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={handleSearchKeyDown}
-                        className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="flex gap-1.5 overflow-x-auto pb-1">
-                      <button
-                        onClick={() => setSelectedCategory(null)}
-                        className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                          !selectedCategory ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
-                        }`}
-                      >
-                        Todos
-                      </button>
-                      {categories.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => setSelectedCategory(cat.id)}
-                          className={`whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
-                            selectedCategory === cat.id ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground"
-                          }`}
-                        >
-                          {cat.name}
-                        </button>
-                      ))}
-                    </div>
-                  </SectionBlock>
-
-                  <SectionBlock title="Produtos" className="mt-3 bg-muted/20">
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                      {filteredProducts.map((product) => {
-                        const inCart = cart.find((i) => i.product.id === product.id);
-                        return (
-                          <motion.button
-                            key={product.id}
-                            whileHover={{ y: -3 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => addToCart(product)}
-                            className={`relative rounded-xl border-2 p-3 text-left transition-all ${
-                              inCart ? "border-primary bg-primary/10 shadow-sm" : "border-border bg-background hover:bg-muted"
-                            }`}
-                          >
-                            <p className="line-clamp-2 text-sm font-bold text-foreground">
-                              {product.product_code != null && (
-                                <span className="mr-1 rounded bg-muted px-1 text-[10px] font-mono text-muted-foreground">{product.product_code}</span>
-                              )}
-                              {product.name}
-                            </p>
-                            <div className="mt-2 flex items-center justify-between gap-2">
-                              <p className="text-sm font-black text-primary">R$ {fmt(product.price)}</p>
-                              {isProductCombo(product) && (
-                                <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground">COMBO</span>
-                              )}
-                            </div>
-
-                            <AnimatePresence>
-                              {inCart && (
-                                <motion.span
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  exit={{ scale: 0 }}
-                                  className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
-                                >
-                                  {inCart.quantity}
-                                </motion.span>
-                              )}
-                            </AnimatePresence>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-                  </SectionBlock>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </SectionCard>
-        </section>
-
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <SectionCard title={`Itens no Carrinho (${cartItemCount})`} icon="📦" className="animate-enter">
-            {!hasCart ? (
-              <div className="rounded-xl border border-dashed border-border bg-background/70 px-4 py-6 text-center text-sm text-muted-foreground">
-                Adicione itens no catálogo para começar.
-              </div>
-            ) : (
-              <div className="max-h-[40vh] space-y-3 overflow-y-auto pr-1">
-                {cart.map((item) => {
-                  const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+              <div className="grid flex-1 auto-rows-[58px] grid-cols-5 gap-1 overflow-y-auto pr-1 max-xl:grid-cols-4 max-md:grid-cols-3">
+                {filteredProducts.map((product) => {
+                  const inCart = cart.find((i) => i.product.id === product.id);
                   return (
-                    <motion.div key={item.product.id} layout {...fadeIn} className="rounded-xl border border-border bg-background p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-bold text-foreground">{item.product.name}</p>
-                        <button
-                          onClick={() => removeItem(item.product.id)}
-                          className="rounded-lg p-1.5 text-destructive transition-colors hover:bg-destructive/10"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1 rounded-xl bg-muted p-0.5">
-                          <button onClick={() => updateQuantity(item.product.id, -1)} className="rounded-lg p-1.5 transition-colors hover:bg-background">
-                            <Minus size={13} />
-                          </button>
-                          <span className="min-w-[24px] text-center text-sm font-bold text-foreground">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.product.id, 1)} className="rounded-lg p-1.5 transition-colors hover:bg-background">
-                            <Plus size={13} />
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={() => toggleCombo(item.product.id)}
-                          className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-bold ${
-                            item.isCombo ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          <Package size={12} /> Combo
-                        </button>
-
-                        <div className="flex items-center gap-1 rounded-xl bg-muted px-2 py-1">
-                          <Edit2 size={11} className="text-muted-foreground" />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={item.customPrice}
-                            onChange={(e) => updateItemPrice(item.product.id, e.target.value)}
-                            className="w-14 bg-transparent text-center text-xs font-bold text-foreground focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <input
-                        placeholder="Observação do item"
-                        value={item.observations}
-                        onChange={(e) => updateItemObs(item.product.id, e.target.value)}
-                        className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                      />
-
-                      {item.addons.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {item.addons.map((a) => (
-                            <span key={a.addon_id} className="rounded-lg bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
-                              {a.quantity}x {a.name} (+R$ {fmt(a.price * a.quantity)})
-                            </span>
-                          ))}
-                        </div>
+                    <button
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className={cn(
+                        "relative flex items-center gap-1 border bg-[hsl(197_58%_91%)] p-1 text-left text-[hsl(203_88%_22%)] shadow-sm",
+                        inCart ? "border-[hsl(43_95%_50%)] ring-2 ring-[hsl(43_95%_50%)]" : "border-[hsl(199_76%_36%)]",
                       )}
-
-                      <div className="mt-2 text-right text-xs font-black text-primary">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</div>
-                    </motion.div>
+                    >
+                      <div className="grid h-9 w-9 shrink-0 place-items-center border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] text-[10px] font-black">
+                        {product.product_code ?? ""}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-[9px] font-black uppercase leading-tight">{product.name}</p>
+                        <p className="mt-0.5 text-[10px] font-black">R$ {fmt(product.price)}</p>
+                      </div>
+                      {inCart && <span className="absolute right-0 top-0 bg-[hsl(43_95%_50%)] px-1 text-[9px] font-black text-[hsl(203_88%_22%)]">{inCart.quantity}</span>}
+                    </button>
                   );
                 })}
               </div>
-            )}
-          </SectionCard>
+            </div>
+          </div>
+        </section>
 
-          <AnimatePresence>
+        <aside className="flex min-h-0 flex-col overflow-hidden border border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)] max-lg:min-h-[760px]">
+          <div className="grid grid-cols-2 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">
+            <label className="border-r border-[hsl(199_76%_36%)] px-2 py-1 text-[10px] font-black uppercase">
+              Código
+              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{selectedCustomerCode || "0021"}</div>
+            </label>
+            <label className="px-2 py-1 text-[10px] font-black uppercase">
+              Cliente
+              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Cliente" className="mt-1 h-6 w-full bg-[hsl(197_58%_91%)] px-1 text-[11px] font-black text-[hsl(203_88%_22%)] outline-none" />
+            </label>
+          </div>
+
+          <div className="border-b border-[hsl(199_78%_18%)] p-1">
+            <CustomerSearch
+              onSelect={(profile) => {
+                setCustomerName(profile.full_name);
+                setCustomerPhone(profile.phone);
+                setSelectedCustomerId(profile.user_id);
+                setSelectedCustomerCode(`T${String(profile.customer_code).padStart(5, "0")}`);
+                if (deliveryType === "delivery") {
+                  setAddressStreet(profile.street || "");
+                  setAddressNumber(profile.number || "");
+                  setAddressNeighborhood(profile.neighborhood || "");
+                  setAddressComplement([profile.complement, profile.quadra ? `Qd ${profile.quadra}` : "", profile.lote ? `Lt ${profile.lote}` : ""].filter(Boolean).join(" "));
+                }
+              }}
+              onClear={() => { setSelectedCustomerId(null); setSelectedCustomerCode(""); }}
+            />
+          </div>
+
+          <div className="grid h-7 grid-cols-[30px_1fr_64px_26px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
+            <span>Qtde</span><span>Produto</span><span className="text-right">Valor</span><span />
+          </div>
+
+          <div className="min-h-[150px] flex-1 overflow-y-auto bg-[hsl(0_0%_100%)]">
+            {!hasCart ? (
+              <div className="p-3 text-center text-[11px] font-bold text-[hsl(203_60%_38%)]">Selecione os produtos à esquerda</div>
+            ) : cart.map((item) => {
+              const itemAddonsTotal = item.addons.reduce((s, a) => s + a.price * a.quantity, 0);
+              return (
+                <div key={item.product.id} className="border-b border-[hsl(200_45%_82%)] px-1 py-1 text-[10px] font-bold">
+                  <div className="grid grid-cols-[30px_1fr_64px_26px] items-center gap-1">
+                    <div className="flex items-center gap-0.5">
+                      <button onClick={() => updateQuantity(item.product.id, -1)} className="h-4 w-4 bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">-</button>
+                      <span>{item.quantity}</span>
+                    </div>
+                    <span className="truncate uppercase">{item.product.name}</span>
+                    <input type="number" step="0.01" value={item.customPrice} onChange={(e) => updateItemPrice(item.product.id, e.target.value)} className="h-5 w-full bg-[hsl(197_58%_91%)] px-1 text-right font-black outline-none" />
+                    <button onClick={() => removeItem(item.product.id)} className="grid h-5 w-5 place-items-center bg-[hsl(355_85%_52%)] text-[hsl(0_0%_100%)]"><Trash2 size={11} /></button>
+                  </div>
+                  <div className="mt-1 flex gap-1">
+                    <button onClick={() => updateQuantity(item.product.id, 1)} className="bg-[hsl(203_88%_22%)] px-1.5 text-[9px] text-[hsl(0_0%_100%)]">+1</button>
+                    <button onClick={() => toggleCombo(item.product.id)} className={cn("px-1.5 text-[9px]", item.isCombo ? "bg-[hsl(43_95%_50%)]" : "bg-[hsl(200_45%_82%)]")}>Combo</button>
+                    <span className="ml-auto font-black">R$ {fmt(item.customPrice * item.quantity + itemAddonsTotal)}</span>
+                  </div>
+                  <input placeholder="Obs item" value={item.observations} onChange={(e) => updateItemObs(item.product.id, e.target.value)} className="mt-1 h-5 w-full border border-[hsl(200_45%_82%)] px-1 text-[10px] outline-none" />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             {hasCart && (
-              <SectionCard title="Adicionais / Combo" icon="🧩" className="animate-enter">
+              <div className="mb-1 max-h-32 overflow-y-auto border border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)] p-1">
                 <ManualOrderAddonSelector
-                  items={cart.map((i) => ({
-                    productId: i.product.id,
-                    productName: i.product.name,
-                    quantity: i.quantity,
-                    isCombo: i.isCombo,
-                    addons: i.addons,
-                  }))}
+                  items={cart.map((i) => ({ productId: i.product.id, productName: i.product.name, quantity: i.quantity, isCombo: i.isCombo, addons: i.addons }))}
                   availableAddons={getAddonsForSelectedItems().map((a) => ({ id: a.id, name: a.name, price: a.price }))}
                   selectedItemIds={selectedCartItemIds}
                   onToggleCombo={toggleCombo}
@@ -1127,180 +891,50 @@ const AdminManualOrder = () => {
                   onClearSelection={clearSelection}
                   onSetAddon={handleSetAddon}
                 />
-              </SectionCard>
+              </div>
             )}
-          </AnimatePresence>
 
-          <SectionCard title="3. Pagamento" icon="💳" className="animate-enter">
-            <SectionBlock title="Forma de pagamento" className="bg-muted/20">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-                {paymentMethods.map((pm) => (
-                  <motion.button
-                    key={pm.id}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      setPaymentMethod(pm.id);
-                      if (pm.id === "pix_pago") setIsPaid(true);
-                      if (pm.id === "pix_entrega") setIsPaid(false);
-                    }}
-                    className={`rounded-xl border-2 px-2 py-3 text-center transition-all ${
-                      paymentMethod === pm.id
-                        ? "border-primary bg-primary text-primary-foreground shadow-md"
-                        : "border-border bg-background text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <div className="text-lg">{pm.icon}</div>
-                    <div className="mt-1 text-[10px] font-extrabold leading-tight">{pm.label}</div>
-                  </motion.button>
-                ))}
+            <div className="grid grid-cols-5 gap-1">
+              {paymentMethods.map((pm) => (
+                <button key={pm.id} onClick={() => { setPaymentMethod(pm.id); if (pm.id === "pix_pago") setIsPaid(true); if (pm.id === "pix_entrega") setIsPaid(false); }} className={cn("h-8 border text-[8px] font-black uppercase", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
+              ))}
+            </div>
+
+            <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-bold">
+              <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Telefone" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
+              {(deliveryType === "mesa" || deliveryType === "consumo") && <input value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="Mesa" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />}
+            </div>
+
+            {deliveryType === "delivery" && (
+              <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-bold">
+                <input value={addressStreet} onChange={(e) => setAddressStreet(e.target.value)} placeholder="Rua" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
+                <input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="Nº" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
+                <input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Complemento" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
+                <NeighborhoodAutocomplete value={addressNeighborhood} onChange={(val, fee) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2)); }} placeholder="Bairro" allowInactive refreshKey={dataRefreshKey} />
               </div>
-            </SectionBlock>
+            )}
 
-            <SectionBlock title="Status do pagamento" className="bg-muted/20">
-              {paymentMethod === "pix_entrega" || paymentMethod === "pix_pago" ? (
-                <motion.div
-                  {...fadeIn}
-                  className={`rounded-xl border px-4 py-3 text-sm font-bold ${
-                    paymentMethod === "pix_pago"
-                      ? "border-accent/40 bg-accent/15 text-accent-foreground"
-                      : "border-primary/20 bg-primary/10 text-foreground"
-                  }`}
-                >
-                  {paymentMethod === "pix_pago" ? "✅ PIX PAGO — valor já recebido." : "📱 PIX ENTREGA — cobrar na entrega."}
-                </motion.div>
-              ) : (
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-background px-4 py-3 transition-colors hover:bg-muted">
-                  <input
-                    type="checkbox"
-                    checked={isPaid}
-                    onChange={(e) => setIsPaid(e.target.checked)}
-                    className="h-5 w-5 rounded border-border accent-primary"
-                  />
-                  <div>
-                    <span className="text-sm font-bold text-foreground">Já está pago</span>
-                    <p className="text-[11px] text-muted-foreground">Nenhum valor a receber.</p>
-                  </div>
-                </label>
-              )}
+            <textarea value={observations} onChange={(e) => setObservations(e.target.value)} placeholder="Observações" rows={2} className="mt-1 w-full resize-none border border-[hsl(199_76%_36%)] px-1 text-[10px] font-bold outline-none" />
 
-              {paymentMethod === "dinheiro" && !isPaid && (
-                <motion.div {...fadeIn} className="space-y-2">
-                  <input
-                    type="number"
-                    placeholder="Troco para quanto? (R$)"
-                    value={changeFor}
-                    onChange={(e) => setChangeFor(e.target.value)}
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                  {Number(changeFor) > total && (
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-muted-foreground">
-                        Devolver troco via:
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: "dinheiro", label: "💵 Dinheiro" },
-                          { id: "pix", label: "📱 PIX" },
-                          { id: "cartao", label: "💳 Cartão" },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setChangeMethod(opt.id)}
-                            className={`rounded-lg border-2 px-2 py-2 text-xs font-bold transition-all ${
-                              changeMethod === opt.id
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground hover:bg-muted"
-                            }`}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground italic">
-                        Troco de R$ {fmt(Number(changeFor) - total)} {changeMethod !== "dinheiro" ? `sairá da conta (${changeMethod === "pix" ? "PIX" : "cartão"}).` : "sai da gaveta."}
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </SectionBlock>
-          </SectionCard>
+            <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
+              {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
+              <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
+              {paymentMethod === "dinheiro" && !isPaid && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
+            </div>
+          </div>
 
-          <SectionCard title="4. Resumo e Criação" icon="🧾" className="animate-enter">
-            <SectionBlock title="Resumo financeiro" className="bg-muted/20">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Subtotal</span>
-                  <span>R$ {fmt(subtotal)}</span>
-                </div>
-
-                {deliveryType === "delivery" && (
-                  <div className="space-y-1 rounded-xl border border-border bg-background px-3 py-2">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Entrega</span>
-                      <div className="flex items-center gap-1">
-                        <span>R$</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={customDeliveryFee}
-                          onChange={(e) => {
-                            setCustomDeliveryFee(e.target.value);
-                            setDeliveryFeeOverridden(true);
-                          }}
-                          className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                    {!deliveryFeeOverridden && autoDeliveryReason && (
-                      <p className="text-[11px] font-medium text-primary">{autoDeliveryReason}</p>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Desconto</span>
-                  <div className="flex items-center gap-1">
-                    <span>R$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0"
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      className="w-20 rounded-lg border border-border bg-background px-2 py-1 text-right text-xs font-bold text-foreground focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-primary/20 bg-primary/10 px-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-foreground">Total do Pedido</span>
-                    <span className="text-xl font-black text-primary">R$ {fmt(total)}</span>
-                  </div>
-                </div>
-              </div>
-            </SectionBlock>
-          </SectionCard>
+          <div className="border-t-4 border-[hsl(203_88%_22%)] bg-[hsl(197_58%_91%)] p-2">
+            <p className="text-sm font-black text-[hsl(203_88%_22%)]">Valor Total</p>
+            <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
+            <div className="mt-2 grid grid-cols-2 gap-1">
+              <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(355_85%_52%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
+              <button onClick={handleSubmit} disabled={loading || !hasCart} className="h-8 bg-[hsl(116_38%_40%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+                {loading ? "Salvando..." : editOrderId ? "Salvar" : "Finalizar"}
+              </button>
+            </div>
+          </div>
         </aside>
       </main>
-
-      {/* Fixed bottom bar */}
-      <div className="sticky bottom-0 z-30 border-t border-border bg-card px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
-        <motion.button
-          whileTap={{ scale: 0.98 }}
-          onClick={handleSubmit}
-          disabled={loading || !hasCart}
-          className="mx-auto block w-full max-w-2xl rounded-2xl bg-primary py-3.5 text-sm font-black text-primary-foreground shadow-lg transition-all disabled:opacity-50"
-        >
-          {loading
-            ? (editOrderId ? "Salvando..." : "Criando pedido...")
-            : editOrderId
-              ? `Salvar e Reimprimir · R$ ${fmt(total)}`
-              : `Criar Pedido · R$ ${fmt(total)}`}
-        </motion.button>
-      </div>
     </div>
   );
 };
