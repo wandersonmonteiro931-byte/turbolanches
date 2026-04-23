@@ -1496,6 +1496,7 @@ export type Database = {
           product_code: number
           sort_order: number
           store_id: string | null
+          store_only: boolean
           updated_at: string
         }
         Insert: {
@@ -1517,6 +1518,7 @@ export type Database = {
           product_code: number
           sort_order?: number
           store_id?: string | null
+          store_only?: boolean
           updated_at?: string
         }
         Update: {
@@ -1538,6 +1540,7 @@ export type Database = {
           product_code?: number
           sort_order?: number
           store_id?: string | null
+          store_only?: boolean
           updated_at?: string
         }
         Relationships: [

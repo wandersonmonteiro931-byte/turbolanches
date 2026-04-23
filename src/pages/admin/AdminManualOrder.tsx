@@ -313,7 +313,7 @@ const AdminManualOrder = () => {
       ? supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)").eq("store_id", storeId)
       : supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)");
     const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes, tablesRes, openTablesRes] = await Promise.all([
-      supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code").eq("active", true).order("sort_order").order("name"),
+      supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code, store_only").eq("active", true).order("sort_order").order("name"),
       supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
       supabase.from("product_addons").select("id, name, price, apply_to_all, product_id").eq("active", true).order("sort_order"),
@@ -416,7 +416,7 @@ const AdminManualOrder = () => {
       // Wait for products to load, then build cart
       const { data: allProducts } = await supabase
         .from("products")
-        .select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code")
+        .select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code, store_only")
         .eq("active", true);
 
       const productMap = new Map((allProducts || []).map(p => [p.id, p]));
