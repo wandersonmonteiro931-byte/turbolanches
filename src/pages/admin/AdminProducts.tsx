@@ -19,6 +19,7 @@ interface Product {
   active: boolean;
   popular: boolean;
   is_combo: boolean;
+  store_only: boolean;
   combo_item_count: number;
   sort_order: number;
 }
@@ -47,7 +48,7 @@ const AdminProducts = () => {
 
   const [form, setForm] = useState({
     name: "", description: "", price: "", original_price: "",
-    image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0", product_code: "",
+    image_url: "", category_id: "", active: true, popular: false, is_combo: false, store_only: false, combo_item_count: "1", sort_order: "0", product_code: "",
   });
 
   const fetchData = async () => {
@@ -99,7 +100,7 @@ const AdminProducts = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, combo_item_count: "1", sort_order: "0", product_code: "" });
+    setForm({ name: "", description: "", price: "", original_price: "", image_url: "", category_id: "", active: true, popular: false, is_combo: false, store_only: false, combo_item_count: "1", sort_order: "0", product_code: "" });
     setShowForm(true);
   };
 
@@ -109,7 +110,7 @@ const AdminProducts = () => {
       name: p.name, description: p.description || "", price: String(p.price),
       original_price: p.original_price ? String(p.original_price) : "",
       image_url: p.image_url || "", category_id: p.category_id || "",
-      active: p.active, popular: p.popular, is_combo: p.is_combo, combo_item_count: String(p.combo_item_count || 1), sort_order: String(p.sort_order ?? 0),
+      active: p.active, popular: p.popular, is_combo: p.is_combo, store_only: Boolean(p.store_only), combo_item_count: String(p.combo_item_count || 1), sort_order: String(p.sort_order ?? 0),
       product_code: String(p.product_code ?? ""),
     });
     setShowForm(true);
@@ -117,10 +118,10 @@ const AdminProducts = () => {
 
   const handleSave = async () => {
     const payload: any = {
-      name: form.name, description: form.description, price: parseFloat(form.price),
+      name: form.name.trim() || (form.store_only ? "Produto de loja" : ""), description: form.description, price: parseFloat(form.price) || 0,
       original_price: form.original_price ? parseFloat(form.original_price) : null,
       image_url: form.image_url, category_id: form.category_id || null,
-      active: form.active, popular: form.popular, is_combo: form.is_combo, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
+      active: form.active, popular: form.popular, is_combo: form.is_combo, store_only: form.store_only, combo_item_count: parseInt(form.combo_item_count) || 1, sort_order: parseInt(form.sort_order) || 0,
     };
     // Only set product_code when admin entered one (otherwise trigger auto-assigns)
     const codeNum = parseInt(form.product_code);
