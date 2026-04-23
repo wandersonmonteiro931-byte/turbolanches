@@ -250,25 +250,14 @@ const AdminDashboard = () => {
         })()
       : null;
 
-    let fiadoQuery = supabase
-      .from("orders")
-      .select("*")
-      .eq("payment_method", "fiado")
-      .neq("status", "cancelled")
-      .is("trashed_at", null)
-      .order("created_at", { ascending: false });
-    if (storeId) fiadoQuery = fiadoQuery.eq("store_id", storeId);
-
-    const [dayRes, activeRes, fiadoRes] = await Promise.all([
+    const [dayRes, activeRes] = await Promise.all([
       dayQuery,
       activeQuery ?? Promise.resolve({ data: [] as any[] }),
-      fiadoQuery,
     ]);
 
     const merged = new Map<string, Order>();
     (dayRes.data ?? []).forEach((o: any) => merged.set(o.id, o as Order));
     (activeRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
-    (fiadoRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
     const data = Array.from(merged.values()).sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -279,7 +268,6 @@ const AdminDashboard = () => {
       range: { start, end },
       dayCount: dayRes.data?.length ?? 0,
       activeCount: activeRes.data?.length ?? 0,
-      fiadoCount: fiadoRes.data?.length ?? 0,
       mergedCount: data.length,
       preparingCount: data.filter(o => o.status === "preparing").length,
       preparing: data.filter(o => o.status === "preparing").map(o => ({
