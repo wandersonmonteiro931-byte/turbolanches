@@ -108,6 +108,13 @@ const changeMethods = [
 
 const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
 
+const cleanManualOrderObservation = (value: string) =>
+  value
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
+    .join(" | ");
+
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
