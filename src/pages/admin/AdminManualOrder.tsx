@@ -496,7 +496,7 @@ const AdminManualOrder = () => {
         return prev.map((i) => {
           if (i.product.id !== product.id) return i;
           const updatedAddons = i.isCombo ? i.addons.map((a) => ({ ...a, quantity: Math.round((a.quantity / i.quantity) * newQty) })) : i.addons;
-          return { ...i, quantity: newQty, addons: updatedAddons };
+          return { ...i, quantity: newQty, addons: updatedAddons, sentToKitchen: false };
         });
       }
       return [...prev, { product, quantity: 1, observations: "", customPrice: product.price, isCombo: isProductCombo(product), addons: [] }];
@@ -510,7 +510,7 @@ const AdminManualOrder = () => {
         const newQty = Math.max(0, i.quantity + delta);
         if (newQty === 0) return { ...i, quantity: 0 };
         const updatedAddons = i.isCombo ? i.addons.map((a) => ({ ...a, quantity: Math.round((a.quantity / i.quantity) * newQty) })) : i.addons;
-        return { ...i, quantity: newQty, addons: updatedAddons };
+        return { ...i, quantity: newQty, addons: updatedAddons, sentToKitchen: false };
       }).filter((i) => i.quantity > 0)
     );
   };
@@ -524,7 +524,7 @@ const AdminManualOrder = () => {
         const updatedAddons = item.isCombo
           ? item.addons.map((addon) => ({ ...addon, quantity: Math.round((addon.quantity / Math.max(1, item.quantity)) * newQty) }))
           : item.addons;
-        return { ...item, quantity: newQty, addons: updatedAddons };
+        return { ...item, quantity: newQty, addons: updatedAddons, sentToKitchen: false };
       }).filter((item) => item.quantity > 0)
     );
   };
@@ -535,12 +535,12 @@ const AdminManualOrder = () => {
   };
 
   const updateItemObs = (productId: string, obs: string) => {
-    setCart((prev) => prev.map((i) => (i.product.id === productId ? { ...i, observations: obs } : i)));
+    setCart((prev) => prev.map((i) => (i.product.id === productId ? { ...i, observations: obs, sentToKitchen: false } : i)));
   };
 
   const updateItemPrice = (productId: string, newPrice: string) => {
     const val = parseFloat(newPrice.replace(",", "."));
-    if (!isNaN(val) && val >= 0) setCart((prev) => prev.map((i) => (i.product.id === productId ? { ...i, customPrice: val } : i)));
+    if (!isNaN(val) && val >= 0) setCart((prev) => prev.map((i) => (i.product.id === productId ? { ...i, customPrice: val, sentToKitchen: false } : i)));
   };
 
   const toggleCombo = (productId: string) => {
@@ -549,7 +549,7 @@ const AdminManualOrder = () => {
         if (i.product.id !== productId) return i;
         const newIsCombo = !i.isCombo;
         const updatedAddons = newIsCombo ? i.addons.map((a) => ({ ...a, quantity: a.quantity > 0 ? a.quantity * i.quantity : 0 })) : i.addons;
-        return { ...i, isCombo: newIsCombo, addons: updatedAddons };
+        return { ...i, isCombo: newIsCombo, addons: updatedAddons, sentToKitchen: false };
       })
     );
   };
