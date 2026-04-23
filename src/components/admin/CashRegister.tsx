@@ -462,6 +462,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   // Pre-fill close form with payment totals when opening modal
   useEffect(() => {
     if (showClose && register) {
+      if (!editingRegId && register.status === "open" && register.reopen_count > 0 && register.closed_at) {
+        const cM = (register.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
+        setCloseForm(closeFormFromRegister(register, cM ? cM[1].trim() : ""));
+      }
       fetchPaymentTotals(register.business_day);
     }
   }, [showClose, register, fetchPaymentTotals]);
@@ -478,7 +482,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       // 🔧 Em modo EDIÇÃO de um fechamento já salvo, NÃO limpamos nem
       // sobrescrevemos os valores — preservamos exatamente o que foi
       // digitado/salvo originalmente para o operador apenas ajustar.
-      if (!editingRegId) {
+      const isReopenedRegister = register?.status === "open" && (register?.reopen_count || 0) > 0 && !!register?.closed_at;
+      if (!editingRegId && !isReopenedRegister) {
         // SEMPRE zera os campos "Valores reais ao final do dia" ao abrir o
         // modal de fechamento NOVO — eles devem ser digitados manualmente,
         // sem herdar rascunho antigo do localStorage.
