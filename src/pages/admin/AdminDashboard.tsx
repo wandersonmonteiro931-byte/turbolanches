@@ -114,6 +114,26 @@ const nextStatus: Record<string, string> = {
   delivering: "delivered",
 };
 
+const getTableCode = (order: Pick<Order, "delivery_type" | "table_code" | "observations">) => {
+  if (order.delivery_type !== "mesa") return null;
+  const fromColumn = order.table_code?.trim();
+  if (fromColumn) return fromColumn;
+  const fromObs = order.observations?.match(/#?MESA\d+/i)?.[0];
+  return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "MESA";
+};
+
+const cleanOrderObservation = (value: string | null) =>
+  (value || "")
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part) && !/^#?MESA\d+$/i.test(part))
+    .join(" | ");
+
+const getNextStatusForOrder = (order: Pick<Order, "status" | "delivery_type">) => {
+  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada")) return "delivered";
+  return nextStatus[order.status];
+};
+
 const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
   if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
   if (paymentMethod === "fiado") return "FIADO";
@@ -230,25 +250,14 @@ const AdminDashboard = () => {
         })()
       : null;
 
-    let fiadoQuery = supabase
-      .from("orders")
-      .select("*")
-      .eq("payment_method", "fiado")
-      .neq("status", "cancelled")
-      .is("trashed_at", null)
-      .order("created_at", { ascending: false });
-    if (storeId) fiadoQuery = fiadoQuery.eq("store_id", storeId);
-
-    const [dayRes, activeRes, fiadoRes] = await Promise.all([
+    const [dayRes, activeRes] = await Promise.all([
       dayQuery,
       activeQuery ?? Promise.resolve({ data: [] as any[] }),
-      fiadoQuery,
     ]);
 
     const merged = new Map<string, Order>();
     (dayRes.data ?? []).forEach((o: any) => merged.set(o.id, o as Order));
     (activeRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
-    (fiadoRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
     const data = Array.from(merged.values()).sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -259,7 +268,6 @@ const AdminDashboard = () => {
       range: { start, end },
       dayCount: dayRes.data?.length ?? 0,
       activeCount: activeRes.data?.length ?? 0,
-      fiadoCount: fiadoRes.data?.length ?? 0,
       mergedCount: data.length,
       preparingCount: data.filter(o => o.status === "preparing").length,
       preparing: data.filter(o => o.status === "preparing").map(o => ({
@@ -474,6 +482,7 @@ const AdminDashboard = () => {
   const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    const order = orders.find(o => o.id === orderId);
     // Block accepting and finalization if cash register is closed
     if ((newStatus === "preparing" || newStatus === "delivered") && !cashRegisterOpen) {
       toast({
@@ -493,8 +502,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    // If moving to delivered, require route closure confirmation
-    if (newStatus === "delivered") {
+    // Delivery orders require route closure; mesa/retirada finalize directly from Aguardando.
+    if (newStatus === "delivered" && order?.delivery_type === "delivery") {
       setShowRouteClosureModal(orderId);
       return;
     }
@@ -507,13 +516,14 @@ const AdminDashboard = () => {
       updateData.delivering_at = nowISO;
       if (courierId) updateData.courier_id = courierId;
     }
+    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
-    toast({ title: `Pedido atualizado!` });
+    toast({ title: newStatus === "delivered" ? "✅ Pedido finalizado!" : `Pedido atualizado!` });
     await fetchOrders();
 
     // Mark coupon as used when order is accepted (preparing)
@@ -585,7 +595,7 @@ const AdminDashboard = () => {
   };
 
   const markAsFiado = async (orderId: string) => {
-    await supabase.from("orders").update({ payment_confirmed: true, payment_method: "fiado" }).eq("id", orderId);
+    await supabase.from("orders").update({ payment_confirmed: false, payment_method: "fiado" }).eq("id", orderId);
     toast({ title: "📝 Pedido marcado como fiado!" });
     fetchOrders();
   };
@@ -1272,8 +1282,6 @@ const AdminDashboard = () => {
   }), [visibleOrders]);
 
   const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
-  const fiadoOrders = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.payment_method === "fiado" && o.status !== "cancelled"), [visibleOrders]);
-  const fiadoTotal = useMemo(() => fiadoOrders.reduce((s, o) => s + Number(o.total), 0), [fiadoOrders]);
 
   return (
     <div className="space-y-4">
@@ -1543,27 +1551,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {fiadoOrders.length > 0 && (
-        <div className="rounded-xl border border-amber-500/40 bg-card p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-black uppercase text-foreground">Todos Fiados</h2>
-            <span className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-black text-white">Pendente: R$ {fiadoTotal.toFixed(2).replace(".", ",")}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {fiadoOrders.map((order) => (
-              <div key={order.id} className="rounded-lg border border-border bg-background p-3 text-sm">
-                <div className="flex items-center justify-between gap-2 font-bold text-foreground">
-                  <span>{order.delivery_type === "mesa" ? (order.table_code || "Mesa") : `#${String(order.order_number).padStart(5, "0")}`}</span>
-                  <span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{order.delivery_type === "mesa" ? "Mesa fiada" : "Pedido fiado"} · Total a receber pendente</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-
       {showCloseDay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
@@ -1668,11 +1655,13 @@ const AdminDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredOrders.map((order) => {
-            const next = order.status === "awaiting_payment" ? null : nextStatus[order.status];
+            const next = order.status === "awaiting_payment" ? null : getNextStatusForOrder(order);
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
             const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
             const isEditing = editingOrder === order.id;
+            const tableCode = getTableCode(order);
+            const displayObservation = cleanOrderObservation(order.observations);
             // Auto-load items so every card shows full info without a click
             if (!items[order.id]) void fetchItems(order.id);
 
@@ -1696,6 +1685,11 @@ const AdminDashboard = () => {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
                       </span>
+                      {tableCode && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          {tableCode}
+                        </span>
+                      )}
                       {order.status === "paid" && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
                           💰 PAGO
@@ -1911,8 +1905,8 @@ const AdminDashboard = () => {
                             {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
                           </p>
                         )}
-                        {order.observations && (
-                          <p className="text-xs text-amber-600 font-medium">💬 {order.observations}</p>
+                        {displayObservation && (
+                          <p className="text-xs text-amber-600 font-medium">💬 {displayObservation}</p>
                         )}
                       </>
                     )}
@@ -1990,7 +1984,7 @@ const AdminDashboard = () => {
                           onClick={() => updateStatus(order.id, next)}
                           className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                         >
-                          {next === "preparing" ? "✅ Aceitar Pedido" : `Avançar → ${tabs.find(t => t.key === next)?.label}`}
+                          {next === "preparing" ? "✅ Aceitar Pedido" : next === "delivered" ? "Finalizar" : `Avançar → ${tabs.find(t => t.key === next)?.label}`}
                         </button>
                       )}
                       {order.status !== "cancelled" && (
