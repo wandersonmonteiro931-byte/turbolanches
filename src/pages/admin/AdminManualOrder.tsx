@@ -716,7 +716,7 @@ const AdminManualOrder = () => {
       if (!isDeferredTableOpen && actualPaid !== false || actualPaid) {
         // Sempre registra valor pago (para pagamentos confirmados)
       }
-      if (!isDeferredTableOpen) {
+      if (!isDeferredTableOpen && actualPaymentMethod !== "fiado") {
         if (changeForNum > total && actualPaymentMethod === "dinheiro") {
           // Cliente entregou mais que o total: amount_paid_cash = changeFor, troco = diferença
           amountPaid.cash = changeForNum;
@@ -1091,9 +1091,9 @@ const AdminManualOrder = () => {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
+            <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             {(!isTableOrder || isChargingTable) && <div className="grid grid-cols-5 gap-1">
-              {paymentMethods.map((pm) => (
+              {(isTableOrder ? tablePaymentMethods : paymentMethods).map((pm) => (
                 <button key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
             </div>}
@@ -1139,7 +1139,7 @@ const AdminManualOrder = () => {
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : isTableOrder && isChargingTable ? setTableConfirmAction("finalize") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
                 {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : "Abrir mesa"}
               </button>
             </div>
