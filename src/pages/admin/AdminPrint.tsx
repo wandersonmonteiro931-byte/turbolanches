@@ -38,6 +38,13 @@ const replaceTokens = (text: string, variables: Record<string, string>) => {
 
 const hasItemTemplateTokens = (text: string) => ITEM_TEMPLATE_TOKENS.some((token) => text.includes(token));
 
+const cleanSystemObservation = (value: string) =>
+  value
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
+    .join(" | ");
+
 const getTemplateForItemsLine = (rawLine: string) => {
   let lineWithoutItems = rawLine;
 
@@ -225,6 +232,7 @@ const AdminPrint = () => {
             : "PAGO NA ENTREGA";
 
     const obsText = order.observations || "";
+    const printableObsText = cleanSystemObservation(obsText);
     const isManualOrder = obsText.includes("[PDV]");
     const manualClienteMatch = obsText.match(/Cliente:\s*([^|]+)/);
     const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
@@ -278,7 +286,7 @@ const AdminPrint = () => {
       "[DATAHORAENTREGA]": horarioMax,
       "[DATAHORASAÍDAENTREGA]": horarioSaida,
       "[HORASAIDA]": horarioSaida,
-      "[OBS]": obsText ? `OBS: ${obsText}` : "",
+      "[OBS]": printableObsText ? `OBS: ${printableObsText}` : "",
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[RODAPÉ]": rodape,
       "[DIVULGAÇÃO]": divulgacao,
