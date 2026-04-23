@@ -1051,6 +1051,8 @@ export type Database = {
           product_id: string | null
           product_name: string
           quantity: number
+          sent_to_kitchen: boolean
+          sent_to_kitchen_at: string | null
           unit_price: number
         }
         Insert: {
@@ -1062,6 +1064,8 @@ export type Database = {
           product_id?: string | null
           product_name: string
           quantity?: number
+          sent_to_kitchen?: boolean
+          sent_to_kitchen_at?: string | null
           unit_price: number
         }
         Update: {
@@ -1073,6 +1077,8 @@ export type Database = {
           product_id?: string | null
           product_name?: string
           quantity?: number
+          sent_to_kitchen?: boolean
+          sent_to_kitchen_at?: string | null
           unit_price?: number
         }
         Relationships: [
@@ -1106,6 +1112,7 @@ export type Database = {
           change_given_card: number
           change_given_cash: number
           change_given_pix: number
+          charged_at: string | null
           coupon_code: string | null
           courier_id: string | null
           created_at: string
@@ -1129,9 +1136,12 @@ export type Database = {
           preparing_at: string | null
           priority: boolean
           ready_at: string | null
+          restaurant_table_id: string | null
           status: string
           store_id: string | null
           subtotal: number
+          table_code: string | null
+          table_stage: string
           total: number
           trashed_at: string | null
           updated_at: string
@@ -1150,6 +1160,7 @@ export type Database = {
           change_given_card?: number
           change_given_cash?: number
           change_given_pix?: number
+          charged_at?: string | null
           coupon_code?: string | null
           courier_id?: string | null
           created_at?: string
@@ -1173,9 +1184,12 @@ export type Database = {
           preparing_at?: string | null
           priority?: boolean
           ready_at?: string | null
+          restaurant_table_id?: string | null
           status?: string
           store_id?: string | null
           subtotal: number
+          table_code?: string | null
+          table_stage?: string
           total: number
           trashed_at?: string | null
           updated_at?: string
@@ -1194,6 +1208,7 @@ export type Database = {
           change_given_card?: number
           change_given_cash?: number
           change_given_pix?: number
+          charged_at?: string | null
           coupon_code?: string | null
           courier_id?: string | null
           created_at?: string
@@ -1217,9 +1232,12 @@ export type Database = {
           preparing_at?: string | null
           priority?: boolean
           ready_at?: string | null
+          restaurant_table_id?: string | null
           status?: string
           store_id?: string | null
           subtotal?: number
+          table_code?: string | null
+          table_stage?: string
           total?: number
           trashed_at?: string | null
           updated_at?: string
@@ -1231,6 +1249,13 @@ export type Database = {
             columns: ["courier_id"]
             isOneToOne: false
             referencedRelation: "couriers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_restaurant_table_id_fkey"
+            columns: ["restaurant_table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
           },
           {
@@ -1867,6 +1892,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      restaurant_tables: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          store_id: string | null
+          table_number: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          store_id?: string | null
+          table_number: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          store_id?: string | null
+          table_number?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       restock_items: {
         Row: {

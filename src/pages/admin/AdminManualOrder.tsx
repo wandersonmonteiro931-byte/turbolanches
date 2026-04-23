@@ -45,6 +45,7 @@ interface CartItem {
   customPrice: number;
   isCombo: boolean;
   addons: CartItemAddon[];
+  sentToKitchen?: boolean;
 }
 
 interface AvailableAddon {
@@ -66,6 +67,21 @@ interface DeliveryConfig {
   free_delivery_min_order: number;
   free_delivery_max_km: number;
   temp_free_delivery_all: boolean;
+}
+
+interface RestaurantTable {
+  id: string;
+  table_number: number;
+  name: string;
+  active: boolean;
+}
+
+interface OpenTableOrder {
+  id: string;
+  restaurant_table_id: string | null;
+  table_code: string | null;
+  table_stage: string | null;
+  status: string;
 }
 
 const deliveryTypes = [
@@ -217,6 +233,10 @@ const AdminManualOrder = () => {
   const [discount, setDiscount] = useState<string>(editOrderId ? "0" : (draft.discount ?? ""));
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
+  const [restaurantTables, setRestaurantTables] = useState<RestaurantTable[]>([]);
+  const [openTableOrders, setOpenTableOrders] = useState<OpenTableOrder[]>([]);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [tableStage, setTableStage] = useState<string>("none");
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
   const [addonModalProductId, setAddonModalProductId] = useState<string | null>(null);
   const [showProducts, setShowProducts] = useState(true);
@@ -261,7 +281,13 @@ const AdminManualOrder = () => {
   }, [cart]);
 
   const loadLatestData = useCallback(async () => {
-    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes] = await Promise.all([
+    const tableQuery = storeId
+      ? supabase.from("restaurant_tables" as any).select("id, table_number, name, active").eq("active", true).eq("store_id", storeId).order("sort_order").order("table_number")
+      : supabase.from("restaurant_tables" as any).select("id, table_number, name, active").eq("active", true).order("sort_order").order("table_number");
+    const openTablesQuery = storeId
+      ? supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)").eq("store_id", storeId)
+      : supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)");
+    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes, tablesRes, openTablesRes] = await Promise.all([
       supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code").eq("active", true).order("sort_order").order("name"),
       supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
@@ -269,6 +295,8 @@ const AdminManualOrder = () => {
       supabase.from("addon_product_links").select("addon_id, product_id"),
       supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all").limit(1).single(),
       supabase.from("orders").select("order_number").order("order_number", { ascending: false }).limit(1).maybeSingle(),
+      tableQuery,
+      openTablesQuery,
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
@@ -276,6 +304,8 @@ const AdminManualOrder = () => {
     if (zonesRes.data) setDeliveryZones(zonesRes.data as DeliveryZone[]);
     if (addonsRes.data) setAvailableAddons(addonsRes.data);
     if (linksRes.data) setAddonProductLinks(linksRes.data);
+    if (tablesRes.data) setRestaurantTables(tablesRes.data as unknown as RestaurantTable[]);
+    if (openTablesRes.data) setOpenTableOrders(openTablesRes.data as unknown as OpenTableOrder[]);
     if (settingsRes.data) {
       const config = settingsRes.data as DeliveryConfig;
       setDeliveryConfig({
@@ -286,7 +316,7 @@ const AdminManualOrder = () => {
     }
     setNextOrderNumber((Number(latestOrderRes.data?.order_number) || 0) + 1);
     setDataRefreshKey((k) => k + 1);
-  }, []);
+  }, [storeId]);
 
   useEffect(() => { void loadLatestData(); }, [loadLatestData]);
 
@@ -315,6 +345,8 @@ const AdminManualOrder = () => {
       setEditOriginalOrderNumber(order.order_number);
       setEditOriginalCreatedAt(order.created_at);
       setEditOriginalUserId(order.user_id);
+      setSelectedTableId((order as any).restaurant_table_id || null);
+      setTableStage((order as any).table_stage || "none");
 
       // Set order fields
       setDeliveryType(order.delivery_type || "mesa");
@@ -390,6 +422,7 @@ const AdminManualOrder = () => {
           customPrice: Number(item.unit_price),
           isCombo: Boolean(product?.is_combo),
           addons,
+          sentToKitchen: Boolean(item.sent_to_kitchen),
         };
       });
 
@@ -566,17 +599,25 @@ const AdminManualOrder = () => {
   const total = Math.max(0, subtotal + deliveryFee - discountValue);
   const changeForValue = paymentMethod === "dinheiro" ? Number(changeFor) || 0 : 0;
   const changeReturnValue = Math.max(0, changeForValue - total);
+  const isTableOrder = deliveryType === "mesa";
+  const selectedTable = restaurantTables.find((table) => table.id === selectedTableId) ?? null;
+  const currentTableOrder = selectedTableId ? openTableOrders.find((order) => order.restaurant_table_id === selectedTableId && order.id !== editOrderId) : null;
+  const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : "#MESA--";
+  const isChargingTable = isTableOrder && tableStage === "charging";
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options: { stay?: boolean; printKitchen?: "all" | "new" } = {}) => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
+    if (isTableOrder && !selectedTable) { toast.error("Selecione uma mesa"); return; }
+    if (isTableOrder && currentTableOrder) { toast.error("Mesa já está em uso"); return; }
     if (deliveryType === "delivery") {
       if (!addressStreet) { toast.error("Preencha a rua para delivery"); return; }
       if (!addressNeighborhood) { toast.error("Preencha o bairro para delivery"); return; }
       if (!addressComplement) { toast.error("Preencha o complemento para delivery"); return; }
     }
 
-    const printPopup = openPrintPopup();
+    const shouldPrintFinalReceipt = !isTableOrder || isChargingTable;
+    const printPopup = shouldPrintFinalReceipt ? openPrintPopup() : null;
 
     // Require open cash register for new orders
     if (!editOrderId && storeId) {
@@ -601,8 +642,8 @@ const AdminManualOrder = () => {
     try {
       const isPixEntrega = paymentMethod === "pix_entrega";
       const isPixPago = paymentMethod === "pix_pago";
-      const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
-      const actualPaid = isPixPago;
+      const actualPaymentMethod = isTableOrder && !isChargingTable ? "fiado" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
+      const actualPaid = isTableOrder && !isChargingTable ? false : isPixPago;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -637,10 +678,10 @@ const AdminManualOrder = () => {
 
       const obsText = [
         "[PDV]",
-        customerName ? `Cliente: ${customerName}` : null,
-        customerPhone ? `Tel: ${customerPhone}` : null,
-        selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
-        tableNumber ? `Mesa: ${tableNumber}` : null,
+        !isTableOrder && customerName ? `Cliente: ${customerName}` : null,
+        !isTableOrder && customerPhone ? `Tel: ${customerPhone}` : null,
+        !isTableOrder && selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
+        isTableOrder ? `Mesa: ${mesaCode}` : tableNumber ? `Mesa: ${tableNumber}` : null,
         observations || null,
       ].filter(Boolean).join(" | ") || "[PDV]";
 
@@ -654,6 +695,10 @@ const AdminManualOrder = () => {
             discount: discountValue,
             total,
             delivery_type: deliveryType,
+            restaurant_table_id: isTableOrder ? selectedTable.id : null,
+            table_code: isTableOrder ? mesaCode : null,
+            table_stage: isTableOrder ? tableStage : "none",
+            charged_at: isChargingTable ? new Date().toISOString() : null,
             payment_method: actualPaymentMethod,
             payment_confirmed: actualPaid,
             address_street: deliveryType === "delivery" ? addressStreet : null,
@@ -685,6 +730,8 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+          sent_to_kitchen: options.printKitchen === "all" ? true : Boolean(item.sentToKitchen),
+          sent_to_kitchen_at: options.printKitchen === "all" || item.sentToKitchen ? new Date().toISOString() : null,
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
@@ -692,9 +739,10 @@ const AdminManualOrder = () => {
 
         const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
         toast.success(`Pedido #${orderNum} atualizado!`);
+        if (options.printKitchen) routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
         clearDraft();
-        routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=pedido`);
-        navigate("/admin");
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "mesa_cliente" : "pedido"}`);
+        if (options.stay) await loadLatestData(); else navigate("/admin");
       } else {
         // CREATE new order
         const { data: order, error: orderError } = await supabase
@@ -709,6 +757,10 @@ const AdminManualOrder = () => {
             status: "preparing",
             preparing_at: new Date().toISOString(),
             delivery_type: deliveryType,
+            restaurant_table_id: isTableOrder ? selectedTable.id : null,
+            table_code: isTableOrder ? mesaCode : null,
+            table_stage: isTableOrder ? "open" : "none",
+            charged_at: null,
             payment_method: actualPaymentMethod,
             payment_confirmed: actualPaid,
             address_street: deliveryType === "delivery" ? addressStreet : null,
@@ -738,15 +790,18 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+          sent_to_kitchen: true,
+          sent_to_kitchen_at: new Date().toISOString(),
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
 
-        toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+        toast.success(isTableOrder ? `${mesaCode} aberta!` : `Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
         clearDraft();
-        routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
-        navigate("/admin");
+        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=pedido`);
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
+        if (options.stay) navigate(`/admin/novo-pedido?edit=${order.id}`); else navigate("/admin");
       }
     } catch (error: any) {
       try { printPopup?.close(); } catch { /* noop */ }
@@ -906,15 +961,22 @@ const AdminManualOrder = () => {
           <div className="grid grid-cols-2 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">
             <label className="border-r border-[hsl(199_76%_36%)] px-2 py-1 text-[10px] font-black uppercase">
               Código
-              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">#{displayedOrderNumber ? String(displayedOrderNumber).padStart(5, "0") : "XXXXX"}</div>
+              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{isTableOrder ? mesaCode : `#${displayedOrderNumber ? String(displayedOrderNumber).padStart(5, "0") : "XXXXX"}`}</div>
             </label>
-            <label className="px-2 py-1 text-[10px] font-black uppercase">
-              Cliente
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Cliente" className="mt-1 h-6 w-full bg-[hsl(197_58%_91%)] px-1 text-[11px] font-black text-[hsl(203_88%_22%)] outline-none" />
-            </label>
+            {!isTableOrder ? (
+              <label className="px-2 py-1 text-[10px] font-black uppercase">
+                Cliente
+                <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Cliente" className="mt-1 h-6 w-full bg-[hsl(197_58%_91%)] px-1 text-[11px] font-black text-[hsl(203_88%_22%)] outline-none" />
+              </label>
+            ) : (
+              <div className="px-2 py-1 text-[10px] font-black uppercase">
+                Status
+                <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{isChargingTable ? "Aguard. pagamento" : editOrderId ? "Aberta" : selectedTable ? "Livre" : "Selecione"}</div>
+              </div>
+            )}
           </div>
 
-          <div className="border-b border-[hsl(199_78%_18%)] p-1">
+          {!isTableOrder && <div className="border-b border-[hsl(199_78%_18%)] p-1">
             <CustomerSearch
               onSelect={(profile) => {
                 setCustomerName(profile.full_name);
@@ -930,18 +992,33 @@ const AdminManualOrder = () => {
               }}
               onClear={() => { setSelectedCustomerId(null); setSelectedCustomerCode(""); }}
             />
-          </div>
+          </div>}
+
+          {isTableOrder && !editOrderId && (
+            <div className="border-b border-[hsl(199_78%_18%)] p-1">
+              <div className="grid max-h-32 grid-cols-3 gap-1 overflow-y-auto">
+                {restaurantTables.map((table) => {
+                  const openOrder = openTableOrders.find((order) => order.restaurant_table_id === table.id);
+                  const occupied = Boolean(openOrder);
+                  const charging = openOrder?.table_stage === "charging";
+                  return (
+                    <button key={table.id} type="button" onClick={() => occupied ? toast.error("Mesa já está em uso") : setSelectedTableId(table.id)} className={cn("min-h-10 border px-1 text-[9px] font-black uppercase leading-tight", selectedTableId === table.id ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)]" : occupied ? "border-[hsl(0_72%_51%)] bg-[hsl(0_72%_92%)]" : "border-[hsl(142_70%_35%)] bg-[hsl(142_70%_92%)]")}>{table.name || `Mesa ${String(table.table_number).padStart(2, "0")}`}<br />{occupied ? (charging ? "Cobrar" : "Ocupada") : "Livre"}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
-            <div className="grid grid-cols-5 gap-1">
+            {(!isTableOrder || isChargingTable) && <div className="grid grid-cols-5 gap-1">
               {paymentMethods.map((pm) => (
                 <button key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
-            </div>
+            </div>}
 
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-bold">
-              <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Telefone" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
-              {(deliveryType === "mesa" || deliveryType === "consumo") && <input value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="Mesa" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />}
+              {!isTableOrder && <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Telefone" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />}
+              {!isTableOrder && (deliveryType === "consumo") && <input value={tableNumber} onChange={(e) => setTableNumber(e.target.value)} placeholder="Mesa" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />}
             </div>
 
             {deliveryType === "delivery" && (
@@ -960,7 +1037,7 @@ const AdminManualOrder = () => {
             <div className="mt-1 grid grid-cols-2 gap-1 text-[10px] font-black">
               {deliveryType === "delivery" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Entrega R$<input type="number" step="0.01" value={customDeliveryFee} onChange={(e) => { setCustomDeliveryFee(e.target.value); setDeliveryFeeOverridden(true); }} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
               <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Desconto R$<input type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>
-              {paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco para: R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
+              {(!isTableOrder || isChargingTable) && paymentMethod === "dinheiro" && <label className="flex items-center gap-1 bg-[hsl(0_0%_100%)] px-1">Troco para: R$<input type="number" value={changeFor} onChange={(e) => setChangeFor(e.target.value)} className="min-w-0 flex-1 bg-transparent text-right outline-none" /></label>}
             </div>
             {paymentMethod === "dinheiro" && changeReturnValue > 0 && (
               <div className="mt-1 space-y-1 text-[9px] font-black uppercase">
@@ -980,10 +1057,16 @@ const AdminManualOrder = () => {
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={handleSubmit} disabled={loading || !hasCart} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
-                {loading ? "Salvando..." : editOrderId ? "Salvar pedido" : "Criar pedido"}
+              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+                {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : "Abrir mesa"}
               </button>
             </div>
+            {isTableOrder && editOrderId && !isChargingTable && (
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar novos</button>
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
+              </div>
+            )}
           </div>
         </aside>
 
