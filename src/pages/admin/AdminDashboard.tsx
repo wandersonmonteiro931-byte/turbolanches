@@ -1292,8 +1292,6 @@ const AdminDashboard = () => {
   }), [visibleOrders]);
 
   const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
-  const fiadoOrders = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.payment_method === "fiado" && o.status !== "cancelled"), [visibleOrders]);
-  const fiadoTotal = useMemo(() => fiadoOrders.reduce((s, o) => s + Number(o.total), 0), [fiadoOrders]);
 
   return (
     <div className="space-y-4">
@@ -1562,27 +1560,6 @@ const AdminDashboard = () => {
           </Button>
         </div>
       )}
-
-      {fiadoOrders.length > 0 && (
-        <div className="rounded-xl border border-amber-500/40 bg-card p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-black uppercase text-foreground">Todos Fiados</h2>
-            <span className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-black text-white">Pendente: R$ {fiadoTotal.toFixed(2).replace(".", ",")}</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {fiadoOrders.map((order) => (
-              <div key={order.id} className="rounded-lg border border-border bg-background p-3 text-sm">
-                <div className="flex items-center justify-between gap-2 font-bold text-foreground">
-                  <span>{order.delivery_type === "mesa" ? (order.table_code || "Mesa") : `#${String(order.order_number).padStart(5, "0")}`}</span>
-                  <span>R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{order.delivery_type === "mesa" ? "Mesa fiada" : "Pedido fiado"} · Total a receber pendente</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
 
       {showCloseDay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
