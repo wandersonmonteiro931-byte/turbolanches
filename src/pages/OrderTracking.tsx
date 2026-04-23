@@ -256,7 +256,6 @@ const OrderTracking = () => {
     }
 
     setLocating(true);
-    const whatsappWindow = window.open("about:blank", "_blank");
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const lat = coords.latitude.toFixed(7);
@@ -271,12 +270,10 @@ Segue minha localização atual precisa para agilizar a entrega:
 Coordenadas: ${lat}, ${lng}`;
 
         const href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-        if (whatsappWindow) whatsappWindow.location.href = href;
-        else window.open(href, "_blank");
+        window.location.href = href;
         setLocating(false);
       },
       () => {
-        whatsappWindow?.close();
         setLocating(false);
         toast.error("Não foi possível pegar sua localização. Ative o GPS e tente novamente.");
       },
