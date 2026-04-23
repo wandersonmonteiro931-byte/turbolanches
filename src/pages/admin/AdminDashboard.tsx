@@ -114,6 +114,26 @@ const nextStatus: Record<string, string> = {
   delivering: "delivered",
 };
 
+const getTableCode = (order: Pick<Order, "delivery_type" | "table_code" | "observations">) => {
+  if (order.delivery_type !== "mesa") return null;
+  const fromColumn = order.table_code?.trim();
+  if (fromColumn) return fromColumn;
+  const fromObs = order.observations?.match(/#?MESA\d+/i)?.[0];
+  return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "MESA";
+};
+
+const cleanOrderObservation = (value: string | null) =>
+  (value || "")
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part) && !/^#?MESA\d+$/i.test(part))
+    .join(" | ");
+
+const getNextStatusForOrder = (order: Pick<Order, "status" | "delivery_type">) => {
+  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada")) return "delivered";
+  return nextStatus[order.status];
+};
+
 const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): string => {
   if (paymentMethod === "pix") return paymentConfirmed ? "PIX PAGO" : "PIX ENTREGA";
   if (paymentMethod === "fiado") return "FIADO";
