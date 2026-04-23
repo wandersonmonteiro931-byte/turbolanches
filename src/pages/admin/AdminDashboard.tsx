@@ -1665,11 +1665,13 @@ const AdminDashboard = () => {
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredOrders.map((order) => {
-            const next = order.status === "awaiting_payment" ? null : nextStatus[order.status];
+            const next = order.status === "awaiting_payment" ? null : getNextStatusForOrder(order);
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
             const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
             const isEditing = editingOrder === order.id;
+            const tableCode = getTableCode(order);
+            const displayObservation = cleanOrderObservation(order.observations);
             // Auto-load items so every card shows full info without a click
             if (!items[order.id]) void fetchItems(order.id);
 
@@ -1693,6 +1695,11 @@ const AdminDashboard = () => {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
                         {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
                       </span>
+                      {tableCode && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          {tableCode}
+                        </span>
+                      )}
                       {order.status === "paid" && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
                           💰 PAGO
@@ -1908,8 +1915,8 @@ const AdminDashboard = () => {
                             {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
                           </p>
                         )}
-                        {order.observations && (
-                          <p className="text-xs text-amber-600 font-medium">💬 {order.observations}</p>
+                        {displayObservation && (
+                          <p className="text-xs text-amber-600 font-medium">💬 {displayObservation}</p>
                         )}
                       </>
                     )}
@@ -1987,7 +1994,7 @@ const AdminDashboard = () => {
                           onClick={() => updateStatus(order.id, next)}
                           className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                         >
-                          {next === "preparing" ? "✅ Aceitar Pedido" : `Avançar → ${tabs.find(t => t.key === next)?.label}`}
+                          {next === "preparing" ? "✅ Aceitar Pedido" : next === "delivered" ? "Finalizar" : `Avançar → ${tabs.find(t => t.key === next)?.label}`}
                         </button>
                       )}
                       {order.status !== "cancelled" && (
