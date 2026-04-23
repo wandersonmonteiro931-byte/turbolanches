@@ -1057,10 +1057,16 @@ const AdminManualOrder = () => {
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={() => handleSubmit()} disabled={loading || !hasCart} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
-                {loading ? "Salvando..." : editOrderId ? "Salvar pedido" : "Criar pedido"}
+              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+                {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : "Abrir mesa"}
               </button>
             </div>
+            {isTableOrder && editOrderId && !isChargingTable && (
+              <div className="mt-1 grid grid-cols-2 gap-1">
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar novos</button>
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
+              </div>
+            )}
           </div>
         </aside>
 
