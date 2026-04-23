@@ -1035,7 +1035,7 @@ const AdminManualOrder = () => {
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={handleSubmit} disabled={loading || !hasCart} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+              <button onClick={() => handleSubmit()} disabled={loading || !hasCart} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
                 {loading ? "Salvando..." : editOrderId ? "Salvar pedido" : "Criar pedido"}
               </button>
             </div>
