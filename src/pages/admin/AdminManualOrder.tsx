@@ -304,8 +304,8 @@ const AdminManualOrder = () => {
     if (zonesRes.data) setDeliveryZones(zonesRes.data as DeliveryZone[]);
     if (addonsRes.data) setAvailableAddons(addonsRes.data);
     if (linksRes.data) setAddonProductLinks(linksRes.data);
-    if (tablesRes.data) setRestaurantTables(tablesRes.data as RestaurantTable[]);
-    if (openTablesRes.data) setOpenTableOrders(openTablesRes.data as OpenTableOrder[]);
+    if (tablesRes.data) setRestaurantTables(tablesRes.data as unknown as RestaurantTable[]);
+    if (openTablesRes.data) setOpenTableOrders(openTablesRes.data as unknown as OpenTableOrder[]);
     if (settingsRes.data) {
       const config = settingsRes.data as DeliveryConfig;
       setDeliveryConfig({
