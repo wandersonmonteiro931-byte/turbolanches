@@ -757,8 +757,8 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
-          sent_to_kitchen: options.printKitchen === "all" || (options.printKitchen === "new" && !item.sentToKitchen) ? true : Boolean(item.sentToKitchen),
-          sent_to_kitchen_at: options.printKitchen === "all" || (options.printKitchen === "new" && !item.sentToKitchen) || item.sentToKitchen ? new Date().toISOString() : null,
+          sent_to_kitchen: options.printKitchen === "all" ? true : Boolean(item.sentToKitchen),
+          sent_to_kitchen_at: options.printKitchen === "all" || item.sentToKitchen ? new Date().toISOString() : null,
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
