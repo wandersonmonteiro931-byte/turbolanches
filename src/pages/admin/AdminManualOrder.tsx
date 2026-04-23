@@ -776,7 +776,7 @@ const AdminManualOrder = () => {
                 .update({ sent_to_kitchen: true, sent_to_kitchen_at: new Date().toISOString() })
                 .eq("order_id", editOrderId)
                 .eq("sent_to_kitchen", false);
-            }, 1800);
+            }, 5000);
           }
         }
         clearDraft();
