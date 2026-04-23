@@ -285,8 +285,7 @@ const AdminPrint = () => {
       "[NOMEENTREGADOR]": courierName || "",
     };
 
-    const shouldShowProductCode = resolvedType !== "pedido";
-    const formatCode = (c: any) => (shouldShowProductCode && c != null && c !== "" ? `[${c}] ` : "");
+    const formatCode = () => "";
     const formatAddonsText = (item: any) => {
       const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
       return addons.map((addon: any) => `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`).join(" | ");
@@ -334,7 +333,7 @@ const AdminPrint = () => {
 
         return items.flatMap((item) => {
           const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
-          const codeStr = shouldShowProductCode && item.product_code != null ? String(item.product_code) : "";
+          const codeStr = "";
           const addonsText = formatAddonsText(item);
           const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""].filter(Boolean).map((value) => `[FUNDPRETO]${value}[/FUNDPRETO]`).join(" ");
           const itemVars = {
