@@ -695,7 +695,8 @@ const AdminManualOrder = () => {
       const isPixPago = paymentMethod === "pix_pago";
       const isDeferredTableOpen = isTableOrder && !isChargingTable;
       const actualPaymentMethod = isDeferredTableOpen ? "dinheiro" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
-      const actualPaid = isTableOrder && !isChargingTable ? false : isPixPago;
+      const actualPaid = isDeferredTableOpen ? false : (isTableOrder ? paymentMethod !== "fiado" : isPixPago);
+      const finalStatus = isTableOrder && isChargingTable ? "delivered" : undefined;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -741,6 +742,7 @@ const AdminManualOrder = () => {
         const { error: orderError } = await supabase
           .from("orders")
           .update({
+            ...(finalStatus ? { status: finalStatus, delivered_at: new Date().toISOString() } : {}),
             subtotal,
             delivery_fee: deliveryFee,
             discount: discountValue,
