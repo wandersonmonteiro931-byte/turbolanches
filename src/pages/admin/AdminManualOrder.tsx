@@ -780,7 +780,7 @@ const AdminManualOrder = () => {
           }
         }
         clearDraft();
-        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "pedido" : "pedido"}`);
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isChargingTable ? "mesa_cobrar" : "pedido"}`);
         if (options.stay) await loadLatestData(); else navigate("/admin");
       } else {
         // CREATE new order
