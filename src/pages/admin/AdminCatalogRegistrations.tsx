@@ -302,6 +302,131 @@ const BrandsTab = () => {
   );
 };
 
+interface RestaurantTable {
+  id: string;
+  table_number: number;
+  name: string;
+  active: boolean;
+}
+
+const RestaurantTablesTab = () => {
+  const { storeId } = useStore();
+  const { toast } = useToast();
+  const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [newNumber, setNewNumber] = useState("");
+  const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingNumber, setEditingNumber] = useState("");
+  const [editingName, setEditingName] = useState("");
+
+  const fetchTables = async () => {
+    const db = supabase as any;
+    let query = db.from("restaurant_tables").select("id, table_number, name, active").eq("active", true).order("sort_order").order("table_number");
+    if (storeId) query = query.eq("store_id", storeId);
+    const { data, error } = await query;
+    if (error) {
+      toast({ title: "Erro ao carregar mesas", description: error.message, variant: "destructive" });
+      return;
+    }
+    setTables((data ?? []) as RestaurantTable[]);
+  };
+
+  useEffect(() => { void fetchTables(); }, [storeId]);
+
+  const handleAdd = async () => {
+    const tableNumber = Number(newNumber);
+    if (!Number.isInteger(tableNumber) || tableNumber <= 0) {
+      toast({ title: "Informe um número de mesa válido", variant: "destructive" });
+      return;
+    }
+    const db = supabase as any;
+    const { error } = await db.from("restaurant_tables").insert({
+      table_number: tableNumber,
+      name: newName.trim() || `Mesa ${String(tableNumber).padStart(2, "0")}`,
+      sort_order: tableNumber,
+      store_id: storeId ?? null,
+    });
+    if (error) {
+      toast({ title: "Erro ao adicionar mesa", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewNumber(""); setNewName("");
+    toast({ title: "Mesa cadastrada!" });
+    void fetchTables();
+  };
+
+  const handleUpdate = async (id: string) => {
+    const tableNumber = Number(editingNumber);
+    if (!Number.isInteger(tableNumber) || tableNumber <= 0) {
+      toast({ title: "Informe um número de mesa válido", variant: "destructive" });
+      return;
+    }
+    const db = supabase as any;
+    const { error } = await db.from("restaurant_tables").update({
+      table_number: tableNumber,
+      name: editingName.trim() || `Mesa ${String(tableNumber).padStart(2, "0")}`,
+      sort_order: tableNumber,
+    }).eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao atualizar mesa", description: error.message, variant: "destructive" });
+      return;
+    }
+    setEditingId(null);
+    toast({ title: "Mesa atualizada!" });
+    void fetchTables();
+  };
+
+  const handleDelete = async (id: string) => {
+    const db = supabase as any;
+    const { error } = await db.from("restaurant_tables").update({ active: false }).eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao remover mesa", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Mesa removida!" });
+    void fetchTables();
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      <p className="text-sm text-muted-foreground">Cadastre as mesas que aparecerão no sistema de comanda.</p>
+      <div className="grid gap-2 sm:grid-cols-[140px_1fr_auto]">
+        <Input type="number" min="1" value={newNumber} onChange={(e) => setNewNumber(e.target.value)} placeholder="Nº da mesa" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+        <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome opcional. Ex: Mesa 01" onKeyDown={(e) => e.key === "Enter" && handleAdd()} />
+        <Button onClick={handleAdd} disabled={!newNumber.trim()}><Plus className="h-4 w-4" /> Adicionar</Button>
+      </div>
+
+      <div className="overflow-auto rounded-xl border border-border bg-card">
+        {tables.length === 0 ? (
+          <div className="p-4 text-center text-sm text-muted-foreground">Nenhuma mesa cadastrada.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {tables.map((table) => (
+              <div key={table.id} className="flex items-center gap-3 px-4 py-3">
+                {editingId === table.id ? (
+                  <>
+                    <Input className="w-28" type="number" min="1" value={editingNumber} onChange={(e) => setEditingNumber(e.target.value)} autoFocus />
+                    <Input className="flex-1" value={editingName} onChange={(e) => setEditingName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleUpdate(table.id)} />
+                    <Button size="sm" onClick={() => handleUpdate(table.id)}>Salvar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                  </>
+                ) : (
+                  <>
+                    <Badge variant="outline">#MESA{String(table.table_number).padStart(2, "0")}</Badge>
+                    <span className="flex-1 text-sm font-medium text-foreground">{table.name || `Mesa ${String(table.table_number).padStart(2, "0")}`}</span>
+                    <button onClick={() => { setEditingId(table.id); setEditingNumber(String(table.table_number)); setEditingName(table.name); }} className="p-1.5 text-muted-foreground hover:text-foreground"><Pencil size={16} /></button>
+                    <button onClick={() => handleDelete(table.id)} className="p-1.5 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const AdminCatalogRegistrations = () => {
   const [tab, setTab] = useState("items");
 
@@ -329,6 +454,7 @@ const AdminCatalogRegistrations = () => {
               <TabsTrigger value="items">Itens</TabsTrigger>
               <TabsTrigger value="ingredients">Ingredientes</TabsTrigger>
               <TabsTrigger value="brands">Marcas</TabsTrigger>
+              <TabsTrigger value="tables">Mesas</TabsTrigger>
               <TabsTrigger value="storage" className="gap-1"><Thermometer className="h-3.5 w-3.5" />Armazenamento</TabsTrigger>
             </TabsList>
             <TabsContent value="items" className="mt-4">
@@ -339,6 +465,9 @@ const AdminCatalogRegistrations = () => {
             </TabsContent>
             <TabsContent value="brands" className="mt-4">
               <BrandsTab />
+            </TabsContent>
+            <TabsContent value="tables" className="mt-4">
+              <RestaurantTablesTab />
             </TabsContent>
             <TabsContent value="storage" className="mt-4">
               <StorageConfigsTab />
