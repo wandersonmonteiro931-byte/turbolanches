@@ -451,8 +451,9 @@ const AdminOrders = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
+    const order = allOrders.find(o => o.id === orderId);
     // If moving to delivered, require route closure confirmation
-    if (newStatus === "delivered") {
+    if (newStatus === "delivered" && order?.delivery_type === "delivery") {
       setShowRouteClosureModal(orderId);
       return;
     }
@@ -462,6 +463,7 @@ const AdminOrders = () => {
     if (newStatus === "preparing") updateData.preparing_at = now;
     if (newStatus === "ready") updateData.ready_at = now;
     if (newStatus === "delivering") updateData.delivering_at = now;
+    if (newStatus === "delivered") updateData.delivered_at = now;
 
     const { error: updateErr } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (updateErr) {
@@ -469,7 +471,7 @@ const AdminOrders = () => {
       return;
     }
     await fetchOrders();
-    toast({ title: `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
+    toast({ title: newStatus === "delivered" ? "✅ Pedido finalizado!" : `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
 
     if (newStatus === "preparing") {
       safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
@@ -750,10 +752,12 @@ const AdminOrders = () => {
                   {visibleOrders.map((order) => {
                   const status = statusConfig[order.status] || statusConfig.pending;
                   const StatusIcon = status.icon;
-                  const next = nextStatus[order.status];
+                  const next = getNextStatusForOrder(order);
                   const profile = profiles[order.user_id];
                   const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
                   const orderItems = items[order.id] || [];
+                  const tableCode = getTableCode(order);
+                  const displayObservation = cleanOrderObservation(order.observations);
 
                   return (
                     <div
@@ -772,6 +776,9 @@ const AdminOrders = () => {
                               <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{customerCode}</span>
                             )}
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>{status.label}</span>
+                            {tableCode && (
+                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{tableCode}</span>
+                            )}
                             {order.priority && (
                               <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">⚡</span>
                             )}
@@ -814,8 +821,8 @@ const AdminOrders = () => {
                         )}
 
                         {/* Observations */}
-                        {order.observations && (
-                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">💬 {order.observations}</p>
+                        {displayObservation && (
+                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">💬 {displayObservation}</p>
                         )}
 
                         {/* Cancellation reason */}
