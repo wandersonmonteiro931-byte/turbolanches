@@ -566,7 +566,7 @@ const AdminManualOrder = () => {
           if (existingIdx >= 0) newAddons[existingIdx] = { ...newAddons[existingIdx], quantity };
           else newAddons.push({ addon_id: addonId, name: addon.name, price: addon.price, quantity });
         }
-        return { ...item, addons: newAddons };
+        return { ...item, addons: newAddons, sentToKitchen: false };
       })
     );
   };
@@ -757,8 +757,8 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
-          sent_to_kitchen: options.printKitchen === "all" ? true : Boolean(item.sentToKitchen),
-          sent_to_kitchen_at: options.printKitchen === "all" || item.sentToKitchen ? new Date().toISOString() : null,
+          sent_to_kitchen: options.printKitchen === "all" || (options.printKitchen === "new" && !item.sentToKitchen) ? true : Boolean(item.sentToKitchen),
+          sent_to_kitchen_at: options.printKitchen === "all" || (options.printKitchen === "new" && !item.sentToKitchen) || item.sentToKitchen ? new Date().toISOString() : null,
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
@@ -1119,7 +1119,7 @@ const AdminManualOrder = () => {
             </div>
             {isTableOrder && editOrderId && !isChargingTable && (
               <div className="mt-1 grid grid-cols-2 gap-1">
-                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar novos</button>
+              <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className={cn("min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50", hasUnsentKitchenItems && "animate-pulse ring-2 ring-[hsl(43_95%_50%)]")}>Enviar novos</button>
                 <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
               </div>
             )}
