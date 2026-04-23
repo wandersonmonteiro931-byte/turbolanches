@@ -775,12 +775,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       .maybeSingle();
 
     const snapshot = lastReopen?.snapshot as Partial<CashRegister> | null;
-    if (eventError || !snapshot || snapshot.status !== "closed") {
-      toast({ title: "Não foi possível descartar", description: "Snapshot do último fechamento não encontrado.", variant: "destructive" });
-      return;
-    }
+    const baseRestore = !eventError && snapshot && snapshot.status === "closed"
+      ? snapshot
+      : { ...register, status: "closed" as const };
 
-    const restorePayload = { ...snapshot, reopen_count: Math.max((register.reopen_count || 1) - 1, 0), last_reopened_at: null };
+    const restorePayload = { ...baseRestore, reopen_count: Math.max((register.reopen_count || 1) - 1, 0), last_reopened_at: null };
     delete (restorePayload as any).id;
     const { error } = await supabase.from("cash_registers").update(restorePayload as any).eq("id", register.id);
     if (error) {
