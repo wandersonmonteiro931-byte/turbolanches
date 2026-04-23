@@ -361,7 +361,7 @@ const AdminManualOrder = () => {
       setAddressNumber(order.address_number || "");
       setAddressNeighborhood(order.address_neighborhood || "");
       setAddressComplement(order.address_complement || "");
-      setObservations(order.observations || "");
+      setObservations(cleanManualOrderObservation(order.observations || ""));
       setDiscount(String(order.discount || 0));
       setCustomDeliveryFee(String(order.delivery_fee || 0));
       setDeliveryFeeOverridden(true);
