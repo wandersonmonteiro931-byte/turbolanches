@@ -8,6 +8,7 @@ import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
+  { path: "/cozinha", icon: UtensilsCrossed, label: "Cozinha" },
   { path: "/admin/fiados", icon: WalletCards, label: "Fiados" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
   { path: "/admin/cadastros", icon: FolderPlus, label: "Cadastros" },
@@ -69,13 +70,6 @@ const AdminLayout = () => {
     }
   }, [isAdmin, loading, navigate, redirectTarget, user]);
 
-  useEffect(() => {
-    if (!loading && isAdmin) {
-      const kioskUrl = `/cozinha?kiosk=${Date.now()}`;
-      window.open(kioskUrl, "kitchen_screen", "popup");
-    }
-  }, [loading, isAdmin]);
-
   // Reset unlocked sections when config changes
   useEffect(() => {
     setUnlockedSections(new Set());
@@ -97,6 +91,12 @@ const AdminLayout = () => {
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
   const handleNavClick = (path: string) => {
+    if (path === "/cozinha") {
+      window.open(`/cozinha?kiosk=${Date.now()}`, "kitchen_screen", "popup");
+      setSidebarOpen(false);
+      return;
+    }
+
     // Always navigate so sidebar highlights
     navigate(path);
     setSidebarOpen(false);
