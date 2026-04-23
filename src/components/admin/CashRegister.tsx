@@ -189,6 +189,31 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     }
   };
 
+  const closeFormFromRegister = (reg: CashRegister, responsibleName = "") => ({
+    ...defaultCloseForm,
+    expense_employees: String(reg.expense_employees ?? 0),
+    expense_couriers: String(reg.expense_couriers ?? 0),
+    expense_purchases: String(reg.expense_purchases ?? 0),
+    expense_gasoline: String(reg.expense_gasoline ?? 0),
+    expense_ads: String(reg.expense_ads ?? 0),
+    expense_ads_external: String(reg.expense_ads_external ?? 0),
+    expense_other: String(reg.expense_other ?? 0),
+    expense_employees_method: (reg.expense_employees_method as PayMethod) || "cash",
+    expense_couriers_method: (reg.expense_couriers_method as PayMethod) || "cash",
+    expense_purchases_method: (reg.expense_purchases_method as PayMethod) || "cash",
+    expense_gasoline_method: (reg.expense_gasoline_method as PayMethod) || "cash",
+    expense_ads_method: (reg.expense_ads_method as PayMethod) || "cash",
+    expense_other_method: (reg.expense_other_method as PayMethod) || "cash",
+    closing_pix: String(reg.closing_pix ?? 0),
+    closing_card: String(reg.closing_card ?? 0),
+    closing_cash: String(reg.closing_cash ?? 0),
+    closing_account: ((Number(reg.closing_pix) || 0) + (Number(reg.closing_card) || 0)).toFixed(2),
+    declared_gross_cash: String((reg as any).declared_gross_cash ?? (reg as any).gross_cash ?? 0),
+    declared_gross_pix: String((reg as any).declared_gross_pix ?? (reg as any).gross_pix ?? 0),
+    declared_gross_card: String((reg as any).declared_gross_card ?? (reg as any).gross_card ?? 0),
+    responsible_name: responsibleName,
+  });
+
   // Open form
   const [openForm, setOpenForm] = useState(() => loadDraft(openDraftKey, defaultOpenForm));
 
@@ -563,9 +588,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     };
 
     // Upsert into today's slot (handles reopen also)
-    const { data: existing } = await supabase
+      const { data: existing } = await supabase
       .from("cash_registers")
-      .select("id,reopen_count")
+      .select("*")
       .eq("store_id", storeId)
       .eq("business_day", todayBusinessDay)
       .maybeSingle();
@@ -591,7 +616,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         store_id: storeId,
         event_type: "reopen",
         performed_by: user.id,
-        snapshot: payload,
+        snapshot: existing,
       });
       toast({ title: "🔓 Caixa reaberto" });
     } else {
