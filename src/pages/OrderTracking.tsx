@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle, Gift, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, ChefHat, Truck, Package, Clock, Inbox, ThumbsUp, XCircle, PartyPopper, MessageCircle, Gift, Sparkles, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatTimeBR } from "@/lib/brasiliaTime";
@@ -103,6 +103,7 @@ const OrderTracking = () => {
   const [items, setItems] = useState<OrderItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [storeAddress, setStoreAddress] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("5562994753582");
   const [scratchEligible, setScratchEligible] = useState(false);
   const [alreadyScratched, setAlreadyScratched] = useState(false);
   const [showReview, setShowReview] = useState(false);
@@ -113,7 +114,7 @@ const OrderTracking = () => {
     const [orderRes, itemsRes, settingsRes] = await Promise.all([
       supabase.from("orders").select("*").eq("id", id).single(),
       supabase.from("order_items").select("*").eq("order_id", id),
-      supabase.from("store_settings").select("store_address_full").limit(1).single(),
+      supabase.from("store_settings").select("store_address_full, whatsapp_number").limit(1).single(),
     ]);
     if (orderRes.data) {
       setOrder(orderRes.data);
@@ -121,7 +122,10 @@ const OrderTracking = () => {
       checkScratchEligibility(orderRes.data);
     }
     if (itemsRes.data) setItems(itemsRes.data);
-    if (settingsRes.data) setStoreAddress(settingsRes.data.store_address_full || "");
+    if (settingsRes.data) {
+      setStoreAddress(settingsRes.data.store_address_full || "");
+      setWhatsappNumber((settingsRes.data.whatsapp_number || "5562994753582").replace(/\D/g, ""));
+    }
     setLoading(false);
   };
 
