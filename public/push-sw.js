@@ -1,5 +1,5 @@
-// SW Version 64 — network-first, no stale app shell cache
-var SW_VERSION = "v64";
+// SW Version 65 — network-first, no stale app shell cache
+var SW_VERSION = "v65";
 
 self.addEventListener("install", function () {
   self.skipWaiting();

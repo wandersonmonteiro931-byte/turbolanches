@@ -1,5 +1,5 @@
-export const SW_VERSION = "v64";
-export const APP_VERSION = "2026-04-22-force-refresh";
+export const SW_VERSION = "v65";
+export const APP_VERSION = "2026-04-23-kiosk-refresh";
 export const PUSH_SW_URL = `/push-sw.js?${SW_VERSION}`;
 
 const isInIframe = (() => {
