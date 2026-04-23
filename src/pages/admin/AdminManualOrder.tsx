@@ -13,6 +13,16 @@ import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Product {
   id: string;
@@ -1145,12 +1155,33 @@ const AdminManualOrder = () => {
             </div>
             {isTableOrder && editOrderId && !isChargingTable && (
               <div className="mt-1 grid grid-cols-2 gap-1">
-              <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className={cn("min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50", hasUnsentKitchenItems && "animate-pulse ring-2 ring-[hsl(43_95%_50%)]")}>Enviar novos</button>
+                <button onClick={() => routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=mesa_conta`)} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Imprimir conta</button>
+                <button onClick={() => setTableConfirmAction("cancel")} disabled={loading} className="min-h-8 bg-[hsl(0_72%_51%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Cancelar mesa</button>
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className={cn("min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50", hasUnsentKitchenItems && "animate-pulse ring-2 ring-[hsl(43_95%_50%)]")}>Enviar novos</button>
                 <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
               </div>
             )}
           </div>
         </aside>
+
+        <AlertDialog open={Boolean(tableConfirmAction)} onOpenChange={(open) => !open && setTableConfirmAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{tableConfirmAction === "cancel" ? "Cancelar mesa?" : "Finalizar mesa?"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {tableConfirmAction === "cancel"
+                  ? "A mesa será enviada diretamente para cancelados."
+                  : "A mesa será finalizada e enviada diretamente para finalizados."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>Voltar</AlertDialogCancel>
+              <AlertDialogAction onClick={(event) => { event.preventDefault(); tableConfirmAction === "cancel" ? void cancelTableOrder() : void handleSubmit(); }} disabled={loading}>
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Dialog open={Boolean(addonModalItem)} onOpenChange={(open) => !open && setAddonModalProductId(null)}>
           <DialogContent className="max-h-[86vh] max-w-[520px] overflow-y-auto border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] p-3 text-[hsl(203_88%_22%)]">
