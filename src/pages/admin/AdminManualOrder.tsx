@@ -661,7 +661,8 @@ const AdminManualOrder = () => {
     try {
       const isPixEntrega = paymentMethod === "pix_entrega";
       const isPixPago = paymentMethod === "pix_pago";
-      const actualPaymentMethod = isTableOrder && !isChargingTable ? "fiado" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
+      const isDeferredTableOpen = isTableOrder && !isChargingTable;
+      const actualPaymentMethod = isDeferredTableOpen ? "dinheiro" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
       const actualPaid = isTableOrder && !isChargingTable ? false : isPixPago;
 
       // ===== Cálculo de pagamento detalhado por método =====
@@ -678,12 +679,11 @@ const AdminManualOrder = () => {
       // Valor entregue pelo cliente em cada método
       const amountPaid = { cash: 0, pix: 0, card: 0 };
       const changeGiven = { cash: 0, pix: 0, card: 0 };
-      // Para fiado/outros: nada entra no caixa
-      const isFiado = actualPaymentMethod === "fiado";
-      if (!isFiado && actualPaid !== false || actualPaid) {
+      // Mesa aberta ainda não entra no caixa; só registra pagamento após Cobrar/Finalizar.
+      if (!isDeferredTableOpen && actualPaid !== false || actualPaid) {
         // Sempre registra valor pago (para pagamentos confirmados)
       }
-      if (!isFiado) {
+      if (!isDeferredTableOpen) {
         if (changeForNum > total && actualPaymentMethod === "dinheiro") {
           // Cliente entregou mais que o total: amount_paid_cash = changeFor, troco = diferença
           amountPaid.cash = changeForNum;
