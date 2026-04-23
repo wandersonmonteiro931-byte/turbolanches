@@ -599,17 +599,25 @@ const AdminManualOrder = () => {
   const total = Math.max(0, subtotal + deliveryFee - discountValue);
   const changeForValue = paymentMethod === "dinheiro" ? Number(changeFor) || 0 : 0;
   const changeReturnValue = Math.max(0, changeForValue - total);
+  const isTableOrder = deliveryType === "mesa";
+  const selectedTable = restaurantTables.find((table) => table.id === selectedTableId) ?? null;
+  const currentTableOrder = selectedTableId ? openTableOrders.find((order) => order.restaurant_table_id === selectedTableId && order.id !== editOrderId) : null;
+  const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : "#MESA--";
+  const isChargingTable = isTableOrder && tableStage === "charging";
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (options: { stay?: boolean; printKitchen?: "all" | "new" } = {}) => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
+    if (isTableOrder && !selectedTable) { toast.error("Selecione uma mesa"); return; }
+    if (isTableOrder && currentTableOrder) { toast.error("Mesa já está em uso"); return; }
     if (deliveryType === "delivery") {
       if (!addressStreet) { toast.error("Preencha a rua para delivery"); return; }
       if (!addressNeighborhood) { toast.error("Preencha o bairro para delivery"); return; }
       if (!addressComplement) { toast.error("Preencha o complemento para delivery"); return; }
     }
 
-    const printPopup = openPrintPopup();
+    const shouldPrintFinalReceipt = !isTableOrder || isChargingTable;
+    const printPopup = shouldPrintFinalReceipt ? openPrintPopup() : null;
 
     // Require open cash register for new orders
     if (!editOrderId && storeId) {
@@ -634,8 +642,8 @@ const AdminManualOrder = () => {
     try {
       const isPixEntrega = paymentMethod === "pix_entrega";
       const isPixPago = paymentMethod === "pix_pago";
-      const actualPaymentMethod = isPixEntrega || isPixPago ? "pix" : paymentMethod;
-      const actualPaid = isPixPago;
+      const actualPaymentMethod = isTableOrder && !isChargingTable ? "fiado" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
+      const actualPaid = isTableOrder && !isChargingTable ? false : isPixPago;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -670,10 +678,10 @@ const AdminManualOrder = () => {
 
       const obsText = [
         "[PDV]",
-        customerName ? `Cliente: ${customerName}` : null,
-        customerPhone ? `Tel: ${customerPhone}` : null,
-        selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
-        tableNumber ? `Mesa: ${tableNumber}` : null,
+        !isTableOrder && customerName ? `Cliente: ${customerName}` : null,
+        !isTableOrder && customerPhone ? `Tel: ${customerPhone}` : null,
+        !isTableOrder && selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
+        isTableOrder ? `Mesa: ${mesaCode}` : tableNumber ? `Mesa: ${tableNumber}` : null,
         observations || null,
       ].filter(Boolean).join(" | ") || "[PDV]";
 
