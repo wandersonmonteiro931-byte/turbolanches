@@ -372,6 +372,7 @@ const AdminManualOrder = () => {
       setEditOriginalUserId(order.user_id);
       setSelectedTableId((order as any).restaurant_table_id || null);
       setTableStage((order as any).table_stage || "none");
+      if ((order as any).table_code) setTableNumber(String((order as any).table_code).toUpperCase());
 
       // Set order fields
       setDeliveryType(order.delivery_type || "mesa");
@@ -409,9 +410,9 @@ const AdminManualOrder = () => {
       setSelectedCustomerId(null);
       setSelectedCustomerCode("");
 
-      // Parse observations for table number
+      // Parse observations for table number only as a fallback for legacy orders
       const obsMatch = order.observations?.match(/Mesa:\s*(\S+)/);
-      if (obsMatch) setTableNumber(obsMatch[1]);
+      if (!(order as any).table_code && obsMatch) setTableNumber(obsMatch[1].toUpperCase());
 
       // Wait for products to load, then build cart
       const { data: allProducts } = await supabase
@@ -627,7 +628,7 @@ const AdminManualOrder = () => {
   const isTableOrder = deliveryType === "mesa";
   const selectedTable = restaurantTables.find((table) => table.id === selectedTableId) ?? null;
   const currentTableOrder = selectedTableId ? openTableOrders.find((order) => order.restaurant_table_id === selectedTableId && order.id !== editOrderId) : null;
-  const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : "#MESA--";
+  const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : (tableNumber || "#MESA--").toUpperCase();
   const isChargingTable = isTableOrder && tableStage === "charging";
   const shouldShowTablePicker = isTableOrder && !editOrderId && !selectedTable;
   const hasUnsentKitchenItems = cart.some((item) => !item.sentToKitchen);
@@ -892,8 +893,12 @@ const AdminManualOrder = () => {
   const addonModalItem = cart.find((item) => item.product.id === addonModalProductId) ?? null;
   const addonModalOptions = addonModalItem ? getAddonsForProduct(addonModalItem.product.id) : [];
   const headerTitle = editOrderId
-    ? `EDITAR PEDIDO #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "XXXXX"}`
-    : "CRIAR NOVO PEDIDO";
+    ? isTableOrder
+      ? `EDITAR ${mesaCode}`
+      : `EDITAR PEDIDO #${editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "XXXXX"}`
+    : isTableOrder && selectedTable
+      ? `CRIAR ${mesaCode}`
+      : "CRIAR NOVO PEDIDO";
   const displayedOrderNumber = editOriginalOrderNumber ?? nextOrderNumber;
 
   return (
