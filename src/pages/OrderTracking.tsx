@@ -243,6 +243,15 @@ const OrderTracking = () => {
   const msg = pickupReadyMsg || statusMessages[order.status] || statusMessages.pending;
 
   const visibleSteps = isPickup ? pickupStatusSteps : statusSteps;
+  const customerLocationAddress = [order.address_street, order.address_number, order.address_neighborhood]
+    .filter(Boolean)
+    .join(", ");
+  const customerLocationUrl = customerLocationAddress
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerLocationAddress)}`
+    : "";
+  const locationWhatsAppMessage = `Olá! Meu pedido é o #${String(order.order_number).padStart(5, "0")}. Segue minha localização fixa para agilizar a entrega: ${customerLocationUrl}`;
+  const locationWhatsAppHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(locationWhatsAppMessage)}`;
+  const storeWhatsAppHref = `https://wa.me/${whatsappNumber}`;
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -386,6 +395,36 @@ const OrderTracking = () => {
           )}
         </motion.div>
 
+        {isDelivery && !isCancelled && order.status !== "delivered" && customerLocationUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", bounce: 0.4, delay: 0.15 }}
+            className="rounded-2xl border-2 border-primary/30 bg-primary/10 p-5 shadow-sm"
+          >
+            <div className="mb-4 flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                <MapPin size={24} />
+              </div>
+              <div>
+                <h2 className="text-base font-extrabold text-foreground">Envie sua localização</h2>
+                <p className="text-sm font-bold text-primary">
+                  Envie a sua localização para o WhatsApp da loja para agilizar sua entrega!
+                </p>
+              </div>
+            </div>
+            <a
+              href={locationWhatsAppHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-center text-sm font-extrabold text-primary-foreground shadow-sm transition-all active:scale-[0.98]"
+            >
+              <MessageCircle size={20} />
+              Enviar localização pelo WhatsApp
+            </a>
+          </motion.div>
+        )}
+
         {/* Pickup Ready - Store Address + WhatsApp */}
         {isPickup && (order.status === "ready" || order.status === "delivering") && storeAddress && (
           <motion.div
@@ -400,7 +439,7 @@ const OrderTracking = () => {
             </div>
             <p className="text-sm text-foreground">{storeAddress}</p>
             <a
-              href="https://wa.me/5562994753582"
+              href={storeWhatsAppHref}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition-all hover:bg-green-700"
@@ -636,7 +675,7 @@ const OrderTracking = () => {
           >
             <h2 className="font-bold text-foreground text-sm mb-2">💬 Precisa de ajuda?</h2>
             <a
-              href="https://wa.me/5562994753582"
+              href={storeWhatsAppHref}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition-all hover:bg-green-700"
