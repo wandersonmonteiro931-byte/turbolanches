@@ -38,6 +38,7 @@ interface Order {
   cancellation_reason: string | null;
   courier_id: string | null;
   trashed_at: string | null;
+  table_code?: string | null;
 }
 
 interface OrderItem {
@@ -67,6 +68,26 @@ const nextStatus: Record<string, string> = {
   ready: "delivering",
   delivering: "delivered",
 };
+
+const getNextStatusForOrder = (order: Pick<Order, "status" | "delivery_type">) => {
+  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada")) return "delivered";
+  return nextStatus[order.status];
+};
+
+const getTableCode = (order: Pick<Order, "delivery_type" | "table_code" | "observations">) => {
+  if (order.delivery_type !== "mesa") return null;
+  const fromColumn = order.table_code?.trim();
+  if (fromColumn) return fromColumn;
+  const fromObs = order.observations?.match(/#?MESA\d+/i)?.[0];
+  return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "MESA";
+};
+
+const cleanOrderObservation = (value: string | null) =>
+  (value || "")
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part) && !/^#?MESA\d+$/i.test(part))
+    .join(" | ");
 
 const paymentLabels: Record<string, string> = {
   dinheiro: "Dinheiro",
@@ -143,7 +164,7 @@ const AdminOrders = () => {
     while (hasMore) {
       let query = supabase
         .from("orders")
-        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id, trashed_at")
+        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id, trashed_at, table_code")
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
 
