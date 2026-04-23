@@ -121,6 +121,7 @@ const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const tipo = searchParams.get("tipo") || "pedido";
+  const kitchenMode = searchParams.get("kitchen") || "";
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +153,8 @@ const AdminPrint = () => {
         supabase.from("receipt_templates" as any).select("*").eq("template_type", tplType).single(),
       ]);
 
-      setItems(itemsRes.data || []);
+      const orderItems = itemsRes.data || [];
+      setItems(kitchenMode === "new" ? orderItems.filter((item: any) => !item.sent_to_kitchen) : orderItems);
       setProfile(profileRes.data);
       setTpl((tplRes.data as unknown as ReceiptTemplate) || null);
 
@@ -169,7 +171,7 @@ const AdminPrint = () => {
       setReady(true);
     };
     load();
-  }, [id, tipo]);
+  }, [id, tipo, kitchenMode]);
 
   const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
   const repeatCount = Math.max(1, Math.min(20, Number(searchParams.get("copies") || "1") || 1));

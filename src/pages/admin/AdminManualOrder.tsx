@@ -766,8 +766,19 @@ const AdminManualOrder = () => {
 
         const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
         toast.success(`Pedido #${orderNum} atualizado!`);
-        if (options.printKitchen) routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
-        if (options.printKitchen) setCart((prev) => prev.map((item) => ({ ...item, sentToKitchen: true })));
+        if (options.printKitchen) {
+          routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
+          setCart((prev) => prev.map((item) => ({ ...item, sentToKitchen: true })));
+          if (options.printKitchen === "new") {
+            window.setTimeout(() => {
+              void supabase
+                .from("order_items")
+                .update({ sent_to_kitchen: true, sent_to_kitchen_at: new Date().toISOString() })
+                .eq("order_id", editOrderId)
+                .eq("sent_to_kitchen", false);
+            }, 1800);
+          }
+        }
         clearDraft();
         if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "pedido" : "pedido"}`);
         if (options.stay) await loadLatestData(); else navigate("/admin");
@@ -1108,7 +1119,7 @@ const AdminManualOrder = () => {
             </div>
             {isTableOrder && editOrderId && !isChargingTable && (
               <div className="mt-1 grid grid-cols-2 gap-1">
-                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar novos</button>
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar novos</button>
                 <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
               </div>
             )}
