@@ -13,6 +13,16 @@ import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Product {
   id: string;
@@ -97,6 +107,13 @@ const paymentMethods = [
   { id: "pix_entrega", label: "PIX Entrega", icon: "📱" },
   { id: "pix_pago", label: "PIX Pago", icon: "✅" },
   { id: "cartao", label: "Cartão", icon: "💳" },
+  { id: "fiado", label: "Fiado", icon: "📝" },
+];
+
+const tablePaymentMethods = [
+  { id: "dinheiro", label: "Dinheiro Pago", icon: "💵" },
+  { id: "cartao", label: "Cartão Pago", icon: "💳" },
+  { id: "pix_pago", label: "PIX Pago", icon: "✅" },
   { id: "fiado", label: "Fiado", icon: "📝" },
 ];
 
@@ -248,6 +265,7 @@ const AdminManualOrder = () => {
   const [addonModalProductId, setAddonModalProductId] = useState<string | null>(null);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [tableConfirmAction, setTableConfirmAction] = useState<"finalize" | "cancel" | null>(null);
   const comboSelectionInitializedRef = useRef(false);
   const editLoadedRef = useRef(false);
 
@@ -632,6 +650,22 @@ const AdminManualOrder = () => {
     setTableStage("none");
   };
 
+  const cancelTableOrder = async () => {
+    if (!editOrderId || !isTableOrder) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("orders").update({ status: "cancelled", cancellation_reason: "Mesa cancelada", table_stage: "cancelled" }).eq("id", editOrderId);
+      if (error) throw error;
+      toast.success(`${mesaCode} cancelada!`);
+      navigate("/admin");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao cancelar mesa");
+    } finally {
+      setLoading(false);
+      setTableConfirmAction(null);
+    }
+  };
+
   const handleSubmit = async (options: { stay?: boolean; printKitchen?: "all" | "new" } = {}) => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
@@ -671,7 +705,8 @@ const AdminManualOrder = () => {
       const isPixPago = paymentMethod === "pix_pago";
       const isDeferredTableOpen = isTableOrder && !isChargingTable;
       const actualPaymentMethod = isDeferredTableOpen ? "dinheiro" : (isPixEntrega || isPixPago ? "pix" : paymentMethod);
-      const actualPaid = isTableOrder && !isChargingTable ? false : isPixPago;
+      const actualPaid = isDeferredTableOpen ? false : (isTableOrder ? paymentMethod !== "fiado" : isPixPago);
+      const finalStatus = isTableOrder && isChargingTable ? "delivered" : undefined;
 
       // ===== Cálculo de pagamento detalhado por método =====
       // Mapeia o método principal para a "chave" do banco (cash/pix/card).
@@ -691,7 +726,7 @@ const AdminManualOrder = () => {
       if (!isDeferredTableOpen && actualPaid !== false || actualPaid) {
         // Sempre registra valor pago (para pagamentos confirmados)
       }
-      if (!isDeferredTableOpen) {
+      if (!isDeferredTableOpen && actualPaymentMethod !== "fiado") {
         if (changeForNum > total && actualPaymentMethod === "dinheiro") {
           // Cliente entregou mais que o total: amount_paid_cash = changeFor, troco = diferença
           amountPaid.cash = changeForNum;
@@ -717,6 +752,7 @@ const AdminManualOrder = () => {
         const { error: orderError } = await supabase
           .from("orders")
           .update({
+            ...(finalStatus ? { status: finalStatus, delivered_at: new Date().toISOString() } : {}),
             subtotal,
             delivery_fee: deliveryFee,
             discount: discountValue,
@@ -1065,9 +1101,9 @@ const AdminManualOrder = () => {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
+            <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             {(!isTableOrder || isChargingTable) && <div className="grid grid-cols-5 gap-1">
-              {paymentMethods.map((pm) => (
+              {(isTableOrder ? tablePaymentMethods : paymentMethods).map((pm) => (
                 <button key={pm.id} type="button" onClick={() => setPaymentMethod(pm.id)} className={cn("min-h-8 whitespace-normal break-words border px-0.5 text-[7px] font-black uppercase leading-tight", paymentMethod === pm.id ? "border-[hsl(203_88%_22%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(0_0%_100%)]")}>{pm.label}</button>
               ))}
             </div>}
@@ -1113,18 +1149,39 @@ const AdminManualOrder = () => {
             <div className="mt-1 bg-[hsl(0_0%_100%)] px-2 py-2 text-right text-3xl font-black tracking-tight text-[hsl(0_0%_8%)]">R$ {fmt(total)}</div>
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
-              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
+              <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : isTableOrder && isChargingTable ? setTableConfirmAction("finalize") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
                 {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : "Abrir mesa"}
               </button>
             </div>
             {isTableOrder && editOrderId && !isChargingTable && (
               <div className="mt-1 grid grid-cols-2 gap-1">
-              <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className={cn("min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50", hasUnsentKitchenItems && "animate-pulse ring-2 ring-[hsl(43_95%_50%)]")}>Enviar novos</button>
+                <button onClick={() => routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=mesa_conta`)} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Imprimir conta</button>
+                <button onClick={() => setTableConfirmAction("cancel")} disabled={loading} className="min-h-8 bg-[hsl(0_72%_51%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Cancelar mesa</button>
+                <button onClick={() => handleSubmit({ stay: true, printKitchen: "new" })} disabled={loading || !hasCart || !hasUnsentKitchenItems} className={cn("min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50", hasUnsentKitchenItems && "animate-pulse ring-2 ring-[hsl(43_95%_50%)]")}>Enviar novos</button>
                 <button onClick={() => handleSubmit({ stay: true, printKitchen: "all" })} disabled={loading || !hasCart} className="min-h-8 bg-[hsl(204_80%_16%)] px-1 text-[9px] font-black uppercase leading-tight text-[hsl(0_0%_100%)] disabled:opacity-50">Enviar tudo</button>
               </div>
             )}
           </div>
         </aside>
+
+        <AlertDialog open={Boolean(tableConfirmAction)} onOpenChange={(open) => !open && setTableConfirmAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{tableConfirmAction === "cancel" ? "Cancelar mesa?" : "Finalizar mesa?"}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {tableConfirmAction === "cancel"
+                  ? "A mesa será enviada diretamente para cancelados."
+                  : "A mesa será finalizada e enviada diretamente para finalizados."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>Voltar</AlertDialogCancel>
+              <AlertDialogAction onClick={(event) => { event.preventDefault(); tableConfirmAction === "cancel" ? void cancelTableOrder() : void handleSubmit(); }} disabled={loading}>
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Dialog open={Boolean(addonModalItem)} onOpenChange={(open) => !open && setAddonModalProductId(null)}>
           <DialogContent className="max-h-[86vh] max-w-[520px] overflow-y-auto border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] p-3 text-[hsl(203_88%_22%)]">

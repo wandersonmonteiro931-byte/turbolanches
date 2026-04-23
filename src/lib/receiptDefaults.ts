@@ -84,6 +84,22 @@ PAGAMENTO: [FORMAPAGTO]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_MESA_CONTA = `[CENTRO][NOMELOJA][/CENTRO]
+[CENTRO][GRANDE][TIPOCOMANDA][/GRANDE][/CENTRO]
+---
+[CENTRO][TXTGIGANTE][MESA][/TXTGIGANTE][/CENTRO]
+DATA E HORA PEDIDO: [DATAHORAPEDIDO]
+---
+[GRANDE][ITENS][/GRANDE]
+---
+SUBTOTAL: [SUBTOTAL]
+DESCONTO: [DESCONTO]
+[GRANDE][CENTRO][CAIXA]TOTAL A PAGAR: [TOTAL][/CAIXA][/CENTRO][/GRANDE]
+---
+[OBS]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
 export const DEFAULT_ETIQUETAS = `[QUADRADO]
 [CENTRO][NOMELOJA][/CENTRO]
 [CAIXA][CENTRO][TXTGIGANTE][TIPOCOMANDA][/TXTGIGANTE][/CENTRO][/CAIXA]
@@ -164,6 +180,7 @@ export const getDefaultTemplate = (type: string): string => {
     case "obrigado": return DEFAULT_OBRIGADO;
     case "mesa": return DEFAULT_MESA;
     case "mesa_cobrar": return DEFAULT_MESA_COBRAR;
+    case "mesa_conta": return DEFAULT_MESA_CONTA;
     case "etiquetas": return DEFAULT_ETIQUETAS;
     case "reposicao": return DEFAULT_REPOSICAO;
     case "entregador": return DEFAULT_ENTREGADOR;
