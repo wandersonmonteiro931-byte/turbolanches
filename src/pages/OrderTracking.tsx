@@ -262,12 +262,20 @@ const OrderTracking = () => {
         const lng = coords.longitude.toFixed(7);
         const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
         const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+        const fullAddress = [order.address_street, order.address_number, order.address_neighborhood]
+          .filter(Boolean)
+          .join(", ");
         const message = `Olá! Meu pedido é o #${String(order.order_number).padStart(5, "0")}.
 
-Segue minha localização atual precisa para agilizar a entrega:
-📍 Google Maps: ${mapsUrl}
-🚗 Waze: ${wazeUrl}
-Coordenadas: ${lat}, ${lng}`;
+Segue minha localização para agilizar a entrega:
+
+Google Maps: ${mapsUrl}
+
+Waze: ${wazeUrl}
+
+Endereço completo: ${fullAddress || "Não informado"}${order.observations ? `
+
+Observações do pedido: ${order.observations}` : ""}`;
 
         const href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
         window.location.href = href;
