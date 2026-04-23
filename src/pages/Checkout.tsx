@@ -61,7 +61,6 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [changeFor, setChangeFor] = useState("");
   const [observations, setObservations] = useState("");
-  const [locationToWhatsAppConfirmed, setLocationToWhatsAppConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
 
@@ -250,10 +249,6 @@ const Checkout = () => {
       toast.error("A loja está fechada no momento");
       return;
     }
-    if (!locationToWhatsAppConfirmed) {
-      toast.error("Confirme o envio da localização da loja no WhatsApp");
-      return;
-    }
 
     if (appliedCoupon) {
       const validation = await validateCouponForOrder({
@@ -354,7 +349,6 @@ const Checkout = () => {
     msg += `Telefone: ${profile?.phone}\n`;
     if (deliveryType === "delivery") {
       msg += `Endereço: ${profile?.street}, ${profile?.number} - Qd. ${profile?.quadra} Lt. ${profile?.lote} - ${profile?.neighborhood}\n`;
-      msg += `Localização: cliente confirmou que vai enviar a localização no WhatsApp\n`;
     } else {
       msg += `Retirada na loja\n`;
     }
@@ -567,22 +561,6 @@ const Checkout = () => {
                 rows={2}
               />
             </div>
-
-            <label className="flex items-start gap-3 rounded-xl bg-card p-4 text-left">
-              <input
-                type="checkbox"
-                checked={locationToWhatsAppConfirmed}
-                onChange={(e) => setLocationToWhatsAppConfirmed(e.target.checked)}
-                className="mt-1 h-4 w-4 accent-primary"
-                required
-              />
-              <span className="text-sm font-bold text-foreground">
-                Enviar localização para loja no Zap <span className="text-primary">*</span>
-              </span>
-            </label>
-
-
-
 
             {/* Summary */}
             <div className="rounded-xl bg-card p-4 space-y-2">
