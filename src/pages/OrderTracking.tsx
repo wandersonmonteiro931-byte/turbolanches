@@ -105,6 +105,7 @@ const OrderTracking = () => {
   const [storeAddress, setStoreAddress] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("5562994753582");
   const [locating, setLocating] = useState(false);
+  const [locationSentConfirmed, setLocationSentConfirmed] = useState(false);
   const [scratchEligible, setScratchEligible] = useState(false);
   const [alreadyScratched, setAlreadyScratched] = useState(false);
   const [showReview, setShowReview] = useState(false);
@@ -170,6 +171,7 @@ const OrderTracking = () => {
   };
 
   useEffect(() => {
+    setLocationSentConfirmed(localStorage.getItem(`location-sent-${id}`) === "true");
     fetchOrder();
     checkReviewStatus();
 
@@ -245,6 +247,7 @@ const OrderTracking = () => {
 
   const visibleSteps = isPickup ? pickupStatusSteps : statusSteps;
   const storeWhatsAppHref = `https://wa.me/${whatsappNumber}`;
+  const canShowLocationPrompt = ["pending", "paid", "preparing", "ready"].includes(order.status);
 
   const sendCurrentLocationToWhatsApp = () => {
     if (!navigator.geolocation) {
@@ -279,6 +282,12 @@ Coordenadas: ${lat}, ${lng}`;
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     );
+  };
+
+  const confirmLocationSent = () => {
+    if (!window.confirm("Confirmar que você já enviou sua localização para a loja?")) return;
+    localStorage.setItem(`location-sent-${order.id}`, "true");
+    setLocationSentConfirmed(true);
   };
 
   return (
@@ -423,7 +432,7 @@ Coordenadas: ${lat}, ${lng}`;
           )}
         </motion.div>
 
-        {isDelivery && !isCancelled && order.status !== "delivered" && (
+        {isDelivery && !isCancelled && canShowLocationPrompt && !locationSentConfirmed && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -449,6 +458,13 @@ Coordenadas: ${lat}, ${lng}`;
             >
               <MessageCircle size={20} />
               {locating ? "Pegando localização..." : "Enviar localização pelo WhatsApp"}
+            </button>
+            <button
+              type="button"
+              onClick={confirmLocationSent}
+              className="mt-3 w-full rounded-xl border border-primary/30 bg-background px-4 py-3 text-sm font-bold text-primary transition-all active:scale-[0.98]"
+            >
+              Já enviei a localização
             </button>
           </motion.div>
         )}
