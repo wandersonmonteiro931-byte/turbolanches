@@ -203,7 +203,8 @@ const AdminPrint = () => {
     const addressLine3 = complemento || "";
     const addressLine4 = order.address_neighborhood || "";
     const isTableOrder = order.delivery_type === "mesa";
-    const tableCode = order.table_code || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "MESA");
+    const rawTableCode = order.table_code || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
+    const tableCode = rawTableCode.startsWith("#") ? rawTableCode.toUpperCase() : `#${rawTableCode.toUpperCase()}`;
     const address = isTableOrder ? tableCode : ([addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local");
 
     const deliveryLabel = isTableOrder ? "MESA" : order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
@@ -266,7 +267,7 @@ const AdminPrint = () => {
       : "Nenhum";
 
     const varMap: Record<string, string> = {
-      "[NUMEROPEDIDO]": `#${String(order.order_number).padStart(5, "0")}`,
+      "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
       "[MESA]": tableCode,
       "[NOMECLIENTE]": displayName || "Não informado",
       "[CODIGOCLIENTE]": customerCode,
