@@ -12,6 +12,7 @@ interface KitchenOrder {
   preparing_at: string | null;
   observations: string | null;
   delivery_type: string;
+  table_code: string | null;
   created_at: string;
   priority: boolean;
   updated_at: string;
@@ -43,13 +44,21 @@ const Kitchen = () => {
   const [editedOrderIds, setEditedOrderIds] = useState<Set<string>>(new Set());
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
+  const getDisplayCode = (order: KitchenOrder) => {
+    if (order.delivery_type !== "mesa") return `#${String(order.order_number).padStart(5, "0")}`;
+    const fromColumn = order.table_code?.trim();
+    if (fromColumn) return fromColumn;
+    const fromObs = order.observations?.match(/#?MESA\d+/i)?.[0];
+    return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "#MESA--";
+  };
+
 
 
   const fetchOrders = useCallback(async () => {
     // Fetch preparing orders for display (filtered by Turbo Lanches store)
     let query = supabase
       .from("orders")
-      .select("id, order_number, status, preparing_at, observations, delivery_type, created_at, priority, updated_at")
+      .select("id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at")
       .eq("status", "preparing")
       .order("preparing_at", { ascending: true });
     if (storeId) query = query.eq("store_id", storeId);
