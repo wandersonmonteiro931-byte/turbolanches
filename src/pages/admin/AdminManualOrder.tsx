@@ -345,6 +345,8 @@ const AdminManualOrder = () => {
       setEditOriginalOrderNumber(order.order_number);
       setEditOriginalCreatedAt(order.created_at);
       setEditOriginalUserId(order.user_id);
+      setSelectedTableId((order as any).restaurant_table_id || null);
+      setTableStage((order as any).table_stage || "none");
 
       // Set order fields
       setDeliveryType(order.delivery_type || "mesa");
@@ -420,6 +422,7 @@ const AdminManualOrder = () => {
           customPrice: Number(item.unit_price),
           isCombo: Boolean(product?.is_combo),
           addons,
+          sentToKitchen: Boolean(item.sent_to_kitchen),
         };
       });
 
