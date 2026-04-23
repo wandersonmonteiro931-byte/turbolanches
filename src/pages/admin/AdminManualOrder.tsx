@@ -100,6 +100,13 @@ const paymentMethods = [
   { id: "fiado", label: "Fiado", icon: "📝" },
 ];
 
+const tablePaymentMethods = [
+  { id: "dinheiro", label: "Dinheiro Pago", icon: "💵" },
+  { id: "cartao", label: "Cartão Pago", icon: "💳" },
+  { id: "pix_pago", label: "PIX Pago", icon: "✅" },
+  { id: "fiado", label: "Fiado", icon: "📝" },
+];
+
 const changeMethods = [
   { id: "dinheiro", label: "Dinheiro" },
   { id: "pix", label: "Pix" },
@@ -248,6 +255,7 @@ const AdminManualOrder = () => {
   const [addonModalProductId, setAddonModalProductId] = useState<string | null>(null);
   const [showProducts, setShowProducts] = useState(true);
   const [dataRefreshKey, setDataRefreshKey] = useState(0);
+  const [tableConfirmAction, setTableConfirmAction] = useState<"finalize" | "cancel" | null>(null);
   const comboSelectionInitializedRef = useRef(false);
   const editLoadedRef = useRef(false);
 
