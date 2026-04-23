@@ -400,8 +400,8 @@ const Kitchen = () => {
               <div className="kds-cancelled-banner">❌ CANCELADO ❌</div>
               <div className="kds-card-head">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="kds-order-num" style={{ color: "#dc3545" }}>
-                    #{String(alert.order.order_number).padStart(5, "0")}
+                    <span className="kds-order-num" style={{ color: "#dc3545" }}>
+                    {getDisplayCode(alert.order)}
                   </span>
                   <span className="kds-badge" style={{ background: "#fee2e2", color: "#991b1b" }}>
                     {alert.order.delivery_type === "delivery" ? "DELIVERY" : "RETIRADA"}
@@ -435,7 +435,7 @@ const Kitchen = () => {
                 )}
                 <div className="kds-card-head">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="kds-order-num">#{String(order.order_number).padStart(5, "0")}</span>
+                    <span className="kds-order-num">{getDisplayCode(order)}</span>
                     <span className="kds-badge">
                       {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type.toUpperCase()}
                     </span>
