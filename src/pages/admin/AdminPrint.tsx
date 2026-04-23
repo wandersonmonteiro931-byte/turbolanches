@@ -301,7 +301,7 @@ const AdminPrint = () => {
       let rows = "";
       items.forEach((item) => {
         const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
-        const codePrefix = formatCode(item.product_code);
+        const codePrefix = formatCode();
         rows += `<tr><td class="items-qty">${item.quantity}x</td><td class="items-name">${escapeHtml(codePrefix + item.product_name)}</td><td class="items-price">${fmt2(lineTotal)}</td></tr>`;
         const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
         addons.forEach((addon: any) => {
