@@ -763,6 +763,41 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     }
   };
 
+  const discardReopen = async () => {
+    if (!storeId || !user || !register || register.status !== "open" || register.reopen_count <= 0) return;
+    const { data: lastReopen, error: eventError } = await supabase
+      .from("cash_register_events")
+      .select("snapshot")
+      .eq("cash_register_id", register.id)
+      .eq("event_type", "reopen")
+      .order("event_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const snapshot = lastReopen?.snapshot as Partial<CashRegister> | null;
+    if (eventError || !snapshot || snapshot.status !== "closed") {
+      toast({ title: "Não foi possível descartar", description: "Snapshot do último fechamento não encontrado.", variant: "destructive" });
+      return;
+    }
+
+    const restorePayload = { ...snapshot, reopen_count: Math.max((register.reopen_count || 1) - 1, 0), last_reopened_at: null };
+    delete (restorePayload as any).id;
+    const { error } = await supabase.from("cash_registers").update(restorePayload as any).eq("id", register.id);
+    if (error) {
+      toast({ title: "Erro ao descartar reabertura", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("cash_register_events").insert({
+      cash_register_id: register.id,
+      store_id: storeId,
+      event_type: "discard_reopen",
+      performed_by: user.id,
+      snapshot: restorePayload,
+    });
+    toast({ title: "↩️ Reabertura descartada" });
+    await fetchRegister();
+  };
+
   /** Fetch history of all registers */
   const fetchHistory = useCallback(async () => {
     if (!storeId) return;
