@@ -612,6 +612,7 @@ const AdminManualOrder = () => {
   const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : "#MESA--";
   const isChargingTable = isTableOrder && tableStage === "charging";
   const shouldShowTablePicker = isTableOrder && !editOrderId && !selectedTable;
+  const hasUnsentKitchenItems = cart.some((item) => !item.sentToKitchen);
 
   const handleDeliveryTypeChange = (type: string) => {
     setDeliveryType(type);
@@ -766,6 +767,7 @@ const AdminManualOrder = () => {
         const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
         toast.success(`Pedido #${orderNum} atualizado!`);
         if (options.printKitchen) routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
+        if (options.printKitchen) setCart((prev) => prev.map((item) => ({ ...item, sentToKitchen: true })));
         clearDraft();
         if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "pedido" : "pedido"}`);
         if (options.stay) await loadLatestData(); else navigate("/admin");
