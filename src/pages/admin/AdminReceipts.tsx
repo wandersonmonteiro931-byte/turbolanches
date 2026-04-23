@@ -15,6 +15,7 @@ import { toast } from "sonner";
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
   { type: "mesa", label: "Comanda Mesa", icon: Armchair },
+  { type: "mesa_conta", label: "Conta Mesa", icon: Printer },
   { type: "mesa_cobrar", label: "Cobrar Mesa", icon: Printer },
   { type: "obrigado", label: "Comanda Obrigado", icon: Heart },
   { type: "entregador", label: "Fechamento de Rota", icon: Truck },
@@ -27,6 +28,7 @@ const tabConfig = [
 const DEFAULT_LABELS: Record<string, string> = {
   pedido: "PEDIDO",
   mesa: "MESA",
+  mesa_conta: "CONTA MESA",
   mesa_cobrar: "COBRAR MESA",
   obrigado: "OBRIGADO!",
   entregador: "FECHAMENTO DE ROTA",

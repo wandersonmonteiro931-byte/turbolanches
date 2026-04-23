@@ -216,7 +216,8 @@ const AdminPrint = () => {
     const isPix = order.payment_method === "pix";
     const isPixPago = isPix && order.payment_confirmed;
     const isPixEntrega = isPix && !order.payment_confirmed;
-    const isPaidOnline = !isFiado && (isPixPago || (!isPix && order.payment_confirmed));
+    const isMesaConta = resolveType(tipo) === "mesa_conta";
+    const isPaidOnline = !isFiado && !isMesaConta && (isPixPago || (!isPix && order.payment_confirmed));
     const totalReceber = isPaidOnline ? 0 : total;
     const totalPago = isPaidOnline ? total : 0;
     const changeFor = order.change_for ? Number(order.change_for) : 0;
@@ -247,6 +248,7 @@ const AdminPrint = () => {
     const defaultLabels: Record<string, string> = {
       pedido: "PEDIDO",
       mesa: "MESA",
+      mesa_conta: "CONTA MESA",
       mesa_cobrar: "COBRAR MESA",
       obrigado: "OBRIGADO!",
       entregador: "FECHAMENTO DE ROTA",
