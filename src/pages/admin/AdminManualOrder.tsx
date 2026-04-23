@@ -961,15 +961,22 @@ const AdminManualOrder = () => {
           <div className="grid grid-cols-2 border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] text-[hsl(0_0%_100%)]">
             <label className="border-r border-[hsl(199_76%_36%)] px-2 py-1 text-[10px] font-black uppercase">
               Código
-              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">#{displayedOrderNumber ? String(displayedOrderNumber).padStart(5, "0") : "XXXXX"}</div>
+              <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{isTableOrder ? mesaCode : `#${displayedOrderNumber ? String(displayedOrderNumber).padStart(5, "0") : "XXXXX"}`}</div>
             </label>
-            <label className="px-2 py-1 text-[10px] font-black uppercase">
-              Cliente
-              <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Cliente" className="mt-1 h-6 w-full bg-[hsl(197_58%_91%)] px-1 text-[11px] font-black text-[hsl(203_88%_22%)] outline-none" />
-            </label>
+            {!isTableOrder ? (
+              <label className="px-2 py-1 text-[10px] font-black uppercase">
+                Cliente
+                <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Cliente" className="mt-1 h-6 w-full bg-[hsl(197_58%_91%)] px-1 text-[11px] font-black text-[hsl(203_88%_22%)] outline-none" />
+              </label>
+            ) : (
+              <div className="px-2 py-1 text-[10px] font-black uppercase">
+                Status
+                <div className="mt-1 h-6 bg-[hsl(197_58%_91%)] px-1 leading-6 text-[hsl(203_88%_22%)]">{isChargingTable ? "Aguard. pagamento" : editOrderId ? "Aberta" : selectedTable ? "Livre" : "Selecione"}</div>
+              </div>
+            )}
           </div>
 
-          <div className="border-b border-[hsl(199_78%_18%)] p-1">
+          {!isTableOrder && <div className="border-b border-[hsl(199_78%_18%)] p-1">
             <CustomerSearch
               onSelect={(profile) => {
                 setCustomerName(profile.full_name);
@@ -985,7 +992,22 @@ const AdminManualOrder = () => {
               }}
               onClear={() => { setSelectedCustomerId(null); setSelectedCustomerCode(""); }}
             />
-          </div>
+          </div>}
+
+          {isTableOrder && !editOrderId && (
+            <div className="border-b border-[hsl(199_78%_18%)] p-1">
+              <div className="grid max-h-32 grid-cols-3 gap-1 overflow-y-auto">
+                {restaurantTables.map((table) => {
+                  const openOrder = openTableOrders.find((order) => order.restaurant_table_id === table.id);
+                  const occupied = Boolean(openOrder);
+                  const charging = openOrder?.table_stage === "charging";
+                  return (
+                    <button key={table.id} type="button" onClick={() => occupied ? toast.error("Mesa já está em uso") : setSelectedTableId(table.id)} className={cn("min-h-10 border px-1 text-[9px] font-black uppercase leading-tight", selectedTableId === table.id ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)]" : occupied ? "border-[hsl(0_72%_51%)] bg-[hsl(0_72%_92%)]" : "border-[hsl(142_70%_35%)] bg-[hsl(142_70%_92%)]")}>{table.name || `Mesa ${String(table.table_number).padStart(2, "0")}`}<br />{occupied ? (charging ? "Cobrar" : "Ocupada") : "Livre"}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto border-t border-[hsl(199_78%_18%)] bg-[hsl(197_58%_91%)] p-1">
             <div className="grid grid-cols-5 gap-1">
