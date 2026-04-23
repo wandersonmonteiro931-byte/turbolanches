@@ -640,6 +640,22 @@ const AdminManualOrder = () => {
     setTableStage("none");
   };
 
+  const cancelTableOrder = async () => {
+    if (!editOrderId || !isTableOrder) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("orders").update({ status: "cancelled", cancellation_reason: "Mesa cancelada", table_stage: "cancelled" }).eq("id", editOrderId);
+      if (error) throw error;
+      toast.success(`${mesaCode} cancelada!`);
+      navigate("/admin");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao cancelar mesa");
+    } finally {
+      setLoading(false);
+      setTableConfirmAction(null);
+    }
+  };
+
   const handleSubmit = async (options: { stay?: boolean; printKitchen?: "all" | "new" } = {}) => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
     if (!user) { toast.error("Você precisa estar logado"); return; }
