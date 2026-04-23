@@ -4,7 +4,7 @@ import { useStore } from "@/contexts/StoreContext";
 import type { Product, ProductAddon, Category } from "@/data/menu";
 import { sanitizeCustomerDescription } from "@/lib/menuSanitizer";
 
-const MENU_CACHE_VERSION = "2026-04-20-product-codes";
+const MENU_CACHE_VERSION = "2026-04-23-store-only-products";
 
 const categoriesCache = new Map<string, Category[]>();
 const productsCache = new Map<string, Product[]>();
@@ -68,6 +68,7 @@ export function useProducts() {
     let productsQuery = supabase
       .from("products")
       .select("id, name, description, price, original_price, image_url, category_id, popular, active, sort_order, is_combo, combo_item_count, product_code")
+      .eq("store_only", false)
       .order("sort_order")
       .order("name");
 
