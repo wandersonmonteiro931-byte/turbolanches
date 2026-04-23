@@ -45,6 +45,7 @@ interface CartItem {
   customPrice: number;
   isCombo: boolean;
   addons: CartItemAddon[];
+  sentToKitchen?: boolean;
 }
 
 interface AvailableAddon {
@@ -66,6 +67,21 @@ interface DeliveryConfig {
   free_delivery_min_order: number;
   free_delivery_max_km: number;
   temp_free_delivery_all: boolean;
+}
+
+interface RestaurantTable {
+  id: string;
+  table_number: number;
+  name: string;
+  active: boolean;
+}
+
+interface OpenTableOrder {
+  id: string;
+  restaurant_table_id: string | null;
+  table_code: string | null;
+  table_stage: string | null;
+  status: string;
 }
 
 const deliveryTypes = [
@@ -217,6 +233,10 @@ const AdminManualOrder = () => {
   const [discount, setDiscount] = useState<string>(editOrderId ? "0" : (draft.discount ?? ""));
   const [availableAddons, setAvailableAddons] = useState<AvailableAddon[]>([]);
   const [addonProductLinks, setAddonProductLinks] = useState<{ addon_id: string; product_id: string }[]>([]);
+  const [restaurantTables, setRestaurantTables] = useState<RestaurantTable[]>([]);
+  const [openTableOrders, setOpenTableOrders] = useState<OpenTableOrder[]>([]);
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [tableStage, setTableStage] = useState<string>("none");
   const [selectedCartItemIds, setSelectedCartItemIds] = useState<string[]>([]);
   const [addonModalProductId, setAddonModalProductId] = useState<string | null>(null);
   const [showProducts, setShowProducts] = useState(true);
