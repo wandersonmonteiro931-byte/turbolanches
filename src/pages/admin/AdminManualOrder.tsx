@@ -604,6 +604,25 @@ const AdminManualOrder = () => {
   const currentTableOrder = selectedTableId ? openTableOrders.find((order) => order.restaurant_table_id === selectedTableId && order.id !== editOrderId) : null;
   const mesaCode = selectedTable ? `#MESA${String(selectedTable.table_number).padStart(2, "0")}` : "#MESA--";
   const isChargingTable = isTableOrder && tableStage === "charging";
+  const shouldShowTablePicker = isTableOrder && !editOrderId && !selectedTable;
+
+  const handleDeliveryTypeChange = (type: string) => {
+    setDeliveryType(type);
+    if (type !== "mesa") return;
+    if (!editOrderId) {
+      setSelectedTableId(null);
+      setTableStage("none");
+    }
+  };
+
+  const handleSelectTable = (table: RestaurantTable, openOrder?: OpenTableOrder) => {
+    if (openOrder) {
+      navigate(`/admin/novo-pedido?edit=${openOrder.id}`);
+      return;
+    }
+    setSelectedTableId(table.id);
+    setTableStage("none");
+  };
 
   const handleSubmit = async (options: { stay?: boolean; printKitchen?: "all" | "new" } = {}) => {
     if (cart.length === 0) { toast.error("Adicione pelo menos um item"); return; }
@@ -849,7 +868,7 @@ const AdminManualOrder = () => {
               {deliveryTypes.map((dt) => (
                 <button
                   key={dt.id}
-                  onClick={() => setDeliveryType(dt.id)}
+                  onClick={() => handleDeliveryTypeChange(dt.id)}
                   className={cn(
                     "h-8 border text-[9px] font-black uppercase leading-none",
                     deliveryType === dt.id
@@ -869,6 +888,7 @@ const AdminManualOrder = () => {
                 inputMode="numeric"
                 onKeyDown={(e) => {
                   if (e.key !== "Enter") return;
+                  if (shouldShowTablePicker) { toast.error("Selecione uma mesa primeiro"); return; }
                   const val = (e.target as HTMLInputElement).value.trim();
                   const codeNum = parseInt(val);
                   const exact = products.find((p) => p.product_code === codeNum);
@@ -880,7 +900,32 @@ const AdminManualOrder = () => {
             </div>
           </div>
 
-          <div className="grid min-h-0 flex-1 grid-cols-[76px_1fr] gap-1 overflow-hidden p-1 max-sm:min-h-[520px]">
+          {shouldShowTablePicker ? (
+            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+              <div className="mb-2 flex items-center justify-between gap-2 bg-[hsl(197_58%_91%)] px-3 py-2 text-[hsl(203_88%_22%)]">
+                <div>
+                  <p className="text-[10px] font-black uppercase">Selecione uma mesa</p>
+                  <p className="text-[9px] font-bold">Mesas livres abrem comanda. Mesas ocupadas abrem a mesa atual.</p>
+                </div>
+                <button type="button" onClick={() => void loadLatestData()} className="h-7 bg-[hsl(203_88%_22%)] px-3 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">Atualizar</button>
+              </div>
+              <div className="grid auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {restaurantTables.map((table) => {
+                  const openOrder = openTableOrders.find((order) => order.restaurant_table_id === table.id);
+                  const occupied = Boolean(openOrder);
+                  const charging = openOrder?.table_stage === "charging";
+                  return (
+                    <button key={table.id} type="button" onClick={() => handleSelectTable(table, openOrder)} className={cn("min-h-24 border-2 p-3 text-left font-black uppercase shadow-sm", occupied ? "border-[hsl(0_72%_51%)] bg-[hsl(0_72%_92%)] text-[hsl(203_88%_22%)]" : "border-[hsl(142_70%_35%)] bg-[hsl(142_70%_92%)] text-[hsl(203_88%_22%)]")}>
+                      <span className="block text-lg leading-none">{table.name || `Mesa ${String(table.table_number).padStart(2, "0")}`}</span>
+                      <span className="mt-2 block text-[10px]">{occupied ? (charging ? "Aguardando pagamento" : "Ocupada") : "Livre"}</span>
+                      <span className="mt-3 block bg-[hsl(203_88%_22%)] px-2 py-1 text-center text-[9px] text-[hsl(0_0%_100%)]">{occupied ? "Ver mesa" : "Selecionar"}</span>
+                    </button>
+                  );
+                })}
+                {restaurantTables.length === 0 && <div className="col-span-full bg-[hsl(197_58%_91%)] p-4 text-center text-[11px] font-black uppercase text-[hsl(203_88%_22%)]">Nenhuma mesa cadastrada</div>}
+              </div>
+            </div>
+          ) : <div className="grid min-h-0 flex-1 grid-cols-[76px_1fr] gap-1 overflow-hidden p-1 max-sm:min-h-[520px]">
             <div className="space-y-1 overflow-y-auto pr-0.5">
               <button onClick={() => setSelectedCategory(null)} className={cn("h-9 w-full border text-[9px] font-black uppercase", !selectedCategory ? "border-[hsl(0_0%_100%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]" : "border-[hsl(199_76%_36%)] bg-[hsl(197_58%_91%)] text-[hsl(203_88%_22%)]")}>Todos</button>
               {categories.map((cat) => (
@@ -924,7 +969,7 @@ const AdminManualOrder = () => {
                 })}
               </div>
             </div>
-          </div>
+          </div>}
 
           <div className="shrink-0 border-t border-[hsl(199_78%_18%)] bg-[hsl(0_0%_100%)] text-[hsl(203_88%_22%)]">
             <div className="grid h-7 grid-cols-[34px_minmax(0,1fr)_86px_54px_24px] items-center border-b border-[hsl(199_78%_18%)] bg-[hsl(203_88%_22%)] px-1 text-[9px] font-black uppercase text-[hsl(0_0%_100%)]">
