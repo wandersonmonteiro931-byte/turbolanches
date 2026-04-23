@@ -482,6 +482,7 @@ const AdminDashboard = () => {
   const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
+    const order = orders.find(o => o.id === orderId);
     // Block accepting and finalization if cash register is closed
     if ((newStatus === "preparing" || newStatus === "delivered") && !cashRegisterOpen) {
       toast({
@@ -501,8 +502,8 @@ const AdminDashboard = () => {
       return;
     }
 
-    // If moving to delivered, require route closure confirmation
-    if (newStatus === "delivered") {
+    // Delivery orders require route closure; mesa/retirada finalize directly from Aguardando.
+    if (newStatus === "delivered" && order?.delivery_type === "delivery") {
       setShowRouteClosureModal(orderId);
       return;
     }
@@ -515,13 +516,14 @@ const AdminDashboard = () => {
       updateData.delivering_at = nowISO;
       if (courierId) updateData.courier_id = courierId;
     }
+    if (newStatus === "delivered") updateData.delivered_at = nowISO;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
     if (error) {
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
-    toast({ title: `Pedido atualizado!` });
+    toast({ title: newStatus === "delivered" ? "✅ Pedido finalizado!" : `Pedido atualizado!` });
     await fetchOrders();
 
     // Mark coupon as used when order is accepted (preparing)
@@ -593,7 +595,7 @@ const AdminDashboard = () => {
   };
 
   const markAsFiado = async (orderId: string) => {
-    await supabase.from("orders").update({ payment_confirmed: true, payment_method: "fiado" }).eq("id", orderId);
+    await supabase.from("orders").update({ payment_confirmed: false, payment_method: "fiado" }).eq("id", orderId);
     toast({ title: "📝 Pedido marcado como fiado!" });
     fetchOrders();
   };
