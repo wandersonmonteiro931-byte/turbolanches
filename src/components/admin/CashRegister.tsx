@@ -1059,18 +1059,25 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
               <Unlock size={16} className="mr-1" /> Abrir Caixa
             </Button>
           ) : isOpenToday ? (
-            <Button
-              onClick={() => setShowClose(true)}
-              className={cn(
-                "text-white",
-                remindClose
-                  ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
-                  : "bg-amber-600 hover:bg-amber-700",
+            <>
+              {register.reopen_count > 0 && register.closed_at && (
+                <Button variant="outline" onClick={discardReopen}>
+                  <RefreshCw size={16} className="mr-1" /> Descartar Reabertura
+                </Button>
               )}
-            >
-              <Lock size={16} className="mr-1" />
-              {remindClose ? "FECHAR CAIXA AGORA" : "Fechar Caixa"}
-            </Button>
+              <Button
+                onClick={() => setShowClose(true)}
+                className={cn(
+                  "text-white",
+                  remindClose
+                    ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
+                    : "bg-amber-600 hover:bg-amber-700",
+                )}
+              >
+                <Lock size={16} className="mr-1" />
+                {remindClose ? "FECHAR CAIXA AGORA" : "Fechar Caixa"}
+              </Button>
+            </>
           ) : canReopen ? (
             <Button
               onClick={() => setShowOpen(true)}
@@ -1602,30 +1609,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                       setEditingRegBackup(register);
                       setEditingRegId(r.id);
                       setRegister(r);
-                      setCloseForm({
-                        ...defaultCloseForm,
-                        expense_employees: String(r.expense_employees ?? 0),
-                        expense_couriers: String(r.expense_couriers ?? 0),
-                        expense_purchases: String(r.expense_purchases ?? 0),
-                        expense_gasoline: String(r.expense_gasoline ?? 0),
-                        expense_ads: String(r.expense_ads ?? 0),
-                        expense_ads_external: String(r.expense_ads_external ?? 0),
-                        expense_other: String(r.expense_other ?? 0),
-                        expense_employees_method: (r.expense_employees_method as PayMethod) || "cash",
-                        expense_couriers_method: (r.expense_couriers_method as PayMethod) || "cash",
-                        expense_purchases_method: (r.expense_purchases_method as PayMethod) || "cash",
-                        expense_gasoline_method: (r.expense_gasoline_method as PayMethod) || "cash",
-                        expense_ads_method: (r.expense_ads_method as PayMethod) || "cash",
-                        expense_other_method: (r.expense_other_method as PayMethod) || "cash",
-                        closing_pix: String(r.closing_pix ?? 0),
-                        closing_card: String(r.closing_card ?? 0),
-                        closing_cash: String(r.closing_cash ?? 0),
-                        closing_account: ((Number(r.closing_pix) || 0) + (Number(r.closing_card) || 0)).toFixed(2),
-                        declared_gross_cash: String((r as any).declared_gross_cash ?? (r as any).gross_cash ?? 0),
-                        declared_gross_pix: String((r as any).declared_gross_pix ?? (r as any).gross_pix ?? 0),
-                        declared_gross_card: String((r as any).declared_gross_card ?? (r as any).gross_card ?? 0),
-                        responsible_name: cM ? cM[1].trim() : "",
-                      });
+                      setCloseForm(closeFormFromRegister(r, cM ? cM[1].trim() : ""));
                       setShowHistory(false);
                       setShowClose(true);
                     }}>
