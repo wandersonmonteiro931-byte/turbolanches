@@ -104,6 +104,7 @@ const OrderTracking = () => {
   const [loading, setLoading] = useState(true);
   const [storeAddress, setStoreAddress] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("5562994753582");
+  const [locating, setLocating] = useState(false);
   const [scratchEligible, setScratchEligible] = useState(false);
   const [alreadyScratched, setAlreadyScratched] = useState(false);
   const [showReview, setShowReview] = useState(false);
@@ -243,15 +244,42 @@ const OrderTracking = () => {
   const msg = pickupReadyMsg || statusMessages[order.status] || statusMessages.pending;
 
   const visibleSteps = isPickup ? pickupStatusSteps : statusSteps;
-  const customerLocationAddress = [order.address_street, order.address_number, order.address_neighborhood]
-    .filter(Boolean)
-    .join(", ");
-  const customerLocationUrl = customerLocationAddress
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customerLocationAddress)}`
-    : "";
-  const locationWhatsAppMessage = `Olá! Meu pedido é o #${String(order.order_number).padStart(5, "0")}. Segue minha localização fixa para agilizar a entrega: ${customerLocationUrl}`;
-  const locationWhatsAppHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(locationWhatsAppMessage)}`;
   const storeWhatsAppHref = `https://wa.me/${whatsappNumber}`;
+
+  const sendCurrentLocationToWhatsApp = () => {
+    if (!navigator.geolocation) {
+      toast.error("Seu aparelho não permite capturar a localização atual.");
+      return;
+    }
+
+    setLocating(true);
+    const whatsappWindow = window.open("about:blank", "_blank");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const lat = coords.latitude.toFixed(7);
+        const lng = coords.longitude.toFixed(7);
+        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        const wazeUrl = `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+        const message = `Olá! Meu pedido é o #${String(order.order_number).padStart(5, "0")}.
+
+Segue minha localização atual precisa para agilizar a entrega:
+📍 Google Maps: ${mapsUrl}
+🚗 Waze: ${wazeUrl}
+Coordenadas: ${lat}, ${lng}`;
+
+        const href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+        if (whatsappWindow) whatsappWindow.location.href = href;
+        else window.open(href, "_blank");
+        setLocating(false);
+      },
+      () => {
+        whatsappWindow?.close();
+        setLocating(false);
+        toast.error("Não foi possível pegar sua localização. Ative o GPS e tente novamente.");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-8">
