@@ -423,7 +423,7 @@ Coordenadas: ${lat}, ${lng}`;
           )}
         </motion.div>
 
-        {isDelivery && !isCancelled && order.status !== "delivered" && customerLocationUrl && (
+        {isDelivery && !isCancelled && order.status !== "delivered" && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -441,15 +441,15 @@ Coordenadas: ${lat}, ${lng}`;
                 </p>
               </div>
             </div>
-            <a
-              href={locationWhatsAppHref}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={sendCurrentLocationToWhatsApp}
+              disabled={locating}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-4 text-center text-sm font-extrabold text-primary-foreground shadow-sm transition-all active:scale-[0.98]"
             >
               <MessageCircle size={20} />
-              Enviar localização pelo WhatsApp
-            </a>
+              {locating ? "Pegando localização..." : "Enviar localização pelo WhatsApp"}
+            </button>
           </motion.div>
         )}
 
