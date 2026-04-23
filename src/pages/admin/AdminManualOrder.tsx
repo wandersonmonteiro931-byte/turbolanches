@@ -281,7 +281,13 @@ const AdminManualOrder = () => {
   }, [cart]);
 
   const loadLatestData = useCallback(async () => {
-    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes] = await Promise.all([
+    const tableQuery = storeId
+      ? supabase.from("restaurant_tables" as any).select("id, table_number, name, active").eq("active", true).eq("store_id", storeId).order("sort_order").order("table_number")
+      : supabase.from("restaurant_tables" as any).select("id, table_number, name, active").eq("active", true).order("sort_order").order("table_number");
+    const openTablesQuery = storeId
+      ? supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)").eq("store_id", storeId)
+      : supabase.from("orders" as any).select("id, restaurant_table_id, table_code, table_stage, status").eq("delivery_type", "mesa").not("restaurant_table_id", "is", null).is("trashed_at", null).not("status", "in", "(delivered,cancelled)");
+    const [prodRes, catRes, zonesRes, addonsRes, linksRes, settingsRes, latestOrderRes, tablesRes, openTablesRes] = await Promise.all([
       supabase.from("products").select("id, name, price, category_id, image_url, is_combo, combo_item_count, product_code").eq("active", true).order("sort_order").order("name"),
       supabase.from("categories").select("id, name, sort_order").eq("active", true).order("sort_order"),
       supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery"),
@@ -289,6 +295,8 @@ const AdminManualOrder = () => {
       supabase.from("addon_product_links").select("addon_id, product_id"),
       supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all").limit(1).single(),
       supabase.from("orders").select("order_number").order("order_number", { ascending: false }).limit(1).maybeSingle(),
+      tableQuery,
+      openTablesQuery,
     ]);
 
     if (prodRes.data) setProducts(prodRes.data);
@@ -296,6 +304,8 @@ const AdminManualOrder = () => {
     if (zonesRes.data) setDeliveryZones(zonesRes.data as DeliveryZone[]);
     if (addonsRes.data) setAvailableAddons(addonsRes.data);
     if (linksRes.data) setAddonProductLinks(linksRes.data);
+    if (tablesRes.data) setRestaurantTables(tablesRes.data as RestaurantTable[]);
+    if (openTablesRes.data) setOpenTableOrders(openTablesRes.data as OpenTableOrder[]);
     if (settingsRes.data) {
       const config = settingsRes.data as DeliveryConfig;
       setDeliveryConfig({
@@ -306,7 +316,7 @@ const AdminManualOrder = () => {
     }
     setNextOrderNumber((Number(latestOrderRes.data?.order_number) || 0) + 1);
     setDataRefreshKey((k) => k + 1);
-  }, []);
+  }, [storeId]);
 
   useEffect(() => { void loadLatestData(); }, [loadLatestData]);
 
