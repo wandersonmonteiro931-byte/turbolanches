@@ -760,7 +760,7 @@ const AdminManualOrder = () => {
         toast.success(`Pedido #${orderNum} atualizado!`);
         if (options.printKitchen) routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
         clearDraft();
-        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "mesa_cliente" : "pedido"}`);
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "pedido" : "pedido"}`);
         if (options.stay) await loadLatestData(); else navigate("/admin");
       } else {
         // CREATE new order
@@ -818,7 +818,7 @@ const AdminManualOrder = () => {
 
         toast.success(isTableOrder ? `${mesaCode} aberta!` : `Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
         clearDraft();
-        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=pedido`);
+        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=${isTableOrder ? "mesa" : "pedido"}`);
         if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
         if (options.stay) navigate(`/admin/novo-pedido?edit=${order.id}`); else navigate("/admin");
       }
