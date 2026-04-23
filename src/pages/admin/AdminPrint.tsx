@@ -247,6 +247,7 @@ const AdminPrint = () => {
     const defaultLabels: Record<string, string> = {
       pedido: "PEDIDO",
       mesa: "MESA",
+      mesa_cobrar: "COBRAR MESA",
       obrigado: "OBRIGADO!",
       entregador: "FECHAMENTO DE ROTA",
       etiquetas: "ETIQUETA",
