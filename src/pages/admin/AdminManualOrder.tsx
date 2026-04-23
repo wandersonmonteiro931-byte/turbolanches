@@ -108,6 +108,13 @@ const changeMethods = [
 
 const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
 
+const cleanManualOrderObservation = (value: string) =>
+  value
+    .split("|")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
+    .join(" | ");
+
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -354,7 +361,7 @@ const AdminManualOrder = () => {
       setAddressNumber(order.address_number || "");
       setAddressNeighborhood(order.address_neighborhood || "");
       setAddressComplement(order.address_complement || "");
-      setObservations(order.observations || "");
+      setObservations(cleanManualOrderObservation(order.observations || ""));
       setDiscount(String(order.discount || 0));
       setCustomDeliveryFee(String(order.delivery_fee || 0));
       setDeliveryFeeOverridden(true);
