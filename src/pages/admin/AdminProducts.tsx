@@ -167,6 +167,7 @@ const AdminProducts = () => {
       active: p.active,
       popular: p.popular,
       is_combo: p.is_combo,
+      store_only: p.store_only,
       combo_item_count: p.combo_item_count,
       sort_order: (p.sort_order ?? 0) + 1,
     };
@@ -387,6 +388,10 @@ const AdminProducts = () => {
                   <input type="checkbox" checked={form.is_combo} onChange={(e) => setForm({ ...form, is_combo: e.target.checked })} />
                   Combo
                 </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={form.store_only} onChange={(e) => setForm({ ...form, store_only: e.target.checked })} />
+                  Produto de loja
+                </label>
               </div>
               {form.is_combo && (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
@@ -459,6 +464,11 @@ const AdminProducts = () => {
                           {p.is_combo && (
                             <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-accent-foreground">
                               COMBO ({p.combo_item_count}x)
+                            </span>
+                          )}
+                          {p.store_only && (
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                              LOJA
                             </span>
                           )}
                         </div>
