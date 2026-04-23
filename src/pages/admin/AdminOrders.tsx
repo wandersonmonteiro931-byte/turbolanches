@@ -771,14 +771,11 @@ const AdminOrders = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-base font-extrabold text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
+                            <span className="text-base font-extrabold text-foreground">{tableCode || `#${String(order.order_number).padStart(5, "0")}`}</span>
                             {customerCode && (
                               <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{customerCode}</span>
                             )}
                             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>{status.label}</span>
-                            {tableCode && (
-                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{tableCode}</span>
-                            )}
                             {order.priority && (
                               <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">⚡</span>
                             )}
