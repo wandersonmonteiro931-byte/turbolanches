@@ -25,6 +25,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminAiControl from "./pages/admin/AdminAiControl";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminFiados from "./pages/admin/AdminFiados";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPrint from "./pages/admin/AdminPrint";
@@ -111,6 +112,7 @@ const AppInner = () => {
           <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
             <Route path="pedidos" element={<AdminOrders />} />
+            <Route path="fiados" element={<AdminFiados />} />
             <Route path="produtos" element={<AdminProducts />} />
             <Route path="cadastros" element={<AdminCatalogRegistrations />} />
             <Route path="categorias" element={<AdminCategories />} />
