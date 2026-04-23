@@ -695,6 +695,10 @@ const AdminManualOrder = () => {
             discount: discountValue,
             total,
             delivery_type: deliveryType,
+            restaurant_table_id: isTableOrder ? selectedTable.id : null,
+            table_code: isTableOrder ? mesaCode : null,
+            table_stage: isTableOrder ? tableStage : "none",
+            charged_at: isChargingTable ? new Date().toISOString() : null,
             payment_method: actualPaymentMethod,
             payment_confirmed: actualPaid,
             address_street: deliveryType === "delivery" ? addressStreet : null,
@@ -726,6 +730,8 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+          sent_to_kitchen: options.printKitchen === "all" ? true : Boolean(item.sentToKitchen),
+          sent_to_kitchen_at: options.printKitchen === "all" || item.sentToKitchen ? new Date().toISOString() : null,
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
@@ -733,9 +739,10 @@ const AdminManualOrder = () => {
 
         const orderNum = editOriginalOrderNumber ? String(editOriginalOrderNumber).padStart(5, "0") : "?";
         toast.success(`Pedido #${orderNum} atualizado!`);
+        if (options.printKitchen) routePopupToPrint(openPrintPopup(), `/admin/imprimir/${editOrderId}?tipo=pedido&kitchen=${options.printKitchen}`);
         clearDraft();
-        routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=pedido`);
-        navigate("/admin");
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${editOrderId}?tipo=${isTableOrder ? "mesa_cliente" : "pedido"}`);
+        if (options.stay) await loadLatestData(); else navigate("/admin");
       } else {
         // CREATE new order
         const { data: order, error: orderError } = await supabase
@@ -750,6 +757,10 @@ const AdminManualOrder = () => {
             status: "preparing",
             preparing_at: new Date().toISOString(),
             delivery_type: deliveryType,
+            restaurant_table_id: isTableOrder ? selectedTable.id : null,
+            table_code: isTableOrder ? mesaCode : null,
+            table_stage: isTableOrder ? "open" : "none",
+            charged_at: null,
             payment_method: actualPaymentMethod,
             payment_confirmed: actualPaid,
             address_street: deliveryType === "delivery" ? addressStreet : null,
@@ -779,15 +790,18 @@ const AdminManualOrder = () => {
           unit_price: item.customPrice,
           observations: item.observations || null,
           addons_json: item.addons.length > 0 ? JSON.parse(JSON.stringify(item.addons)) : null,
+          sent_to_kitchen: true,
+          sent_to_kitchen_at: new Date().toISOString(),
         }));
 
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) throw itemsError;
 
-        toast.success(`Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
+        toast.success(isTableOrder ? `${mesaCode} aberta!` : `Pedido #${String(order.order_number).padStart(5, "0")} criado!`);
         clearDraft();
-        routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
-        navigate("/admin");
+        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=pedido`);
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
+        if (options.stay) navigate(`/admin/novo-pedido?edit=${order.id}`); else navigate("/admin");
       }
     } catch (error: any) {
       try { printPopup?.close(); } catch { /* noop */ }
