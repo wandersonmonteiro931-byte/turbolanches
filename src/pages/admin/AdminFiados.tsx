@@ -152,8 +152,7 @@ const AdminFiados = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-black text-foreground">#{String(order.order_number).padStart(5, "0")}</span>
-                      {tableCode && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{tableCode}</span>}
+                      <span className="text-base font-black text-foreground">{tableCode || `#${String(order.order_number).padStart(5, "0")}`}</span>
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{order.delivery_type === "mesa" ? "MESA" : order.delivery_type.toUpperCase()}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{formatDateTimeBR(order.created_at)}</p>
