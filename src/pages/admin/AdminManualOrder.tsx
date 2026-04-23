@@ -1041,16 +1041,7 @@ const AdminManualOrder = () => {
 
           {isTableOrder && !editOrderId && (
             <div className="border-b border-[hsl(199_78%_18%)] p-1">
-              <div className="grid max-h-32 grid-cols-3 gap-1 overflow-y-auto">
-                {restaurantTables.map((table) => {
-                  const openOrder = openTableOrders.find((order) => order.restaurant_table_id === table.id);
-                  const occupied = Boolean(openOrder);
-                  const charging = openOrder?.table_stage === "charging";
-                  return (
-                    <button key={table.id} type="button" onClick={() => occupied ? toast.error("Mesa já está em uso") : setSelectedTableId(table.id)} className={cn("min-h-10 border px-1 text-[9px] font-black uppercase leading-tight", selectedTableId === table.id ? "border-[hsl(43_95%_50%)] bg-[hsl(43_95%_50%)]" : occupied ? "border-[hsl(0_72%_51%)] bg-[hsl(0_72%_92%)]" : "border-[hsl(142_70%_35%)] bg-[hsl(142_70%_92%)]")}>{table.name || `Mesa ${String(table.table_number).padStart(2, "0")}`}<br />{occupied ? (charging ? "Cobrar" : "Ocupada") : "Livre"}</button>
-                  );
-                })}
-              </div>
+              <button type="button" onClick={() => { setSelectedTableId(null); setCart([]); }} className="h-8 w-full bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Ver mesas</button>
             </div>
           )}
 
