@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 const VARIABLES = [
   { key: "[NUMEROPEDIDO]", desc: "Número do pedido (ex: #00001)" },
+  { key: "[MESA]", desc: "Código da mesa (ex: #MESA01)" },
   { key: "[NOMECLIENTE]", desc: "Nome do cliente" },
   { key: "[CODIGOCLIENTE]", desc: "Código do cliente (ex: T00001)" },
   { key: "[TELEFONECLIENTE]", desc: "Telefone do cliente" },
@@ -34,7 +35,7 @@ const VARIABLES = [
   { key: "[QUANTIDADEPROD]", desc: "Quantidade do produto (dentro da linha com [ITENS])" },
   { key: "[OBSITEM]", desc: "Observação do item (dentro da linha com [ITENS] ou [ITEM])" },
   { key: "[CÓDIGOPROD]", desc: "Código numérico do produto (ex.: 101). Use dentro da linha com [ITENS] ou [ITEM]" },
-  { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA" },
+  { key: "[DELIVERYRETIRADAVIAGEM]", desc: "Tipo: DELIVERY / RETIRADA / MESA" },
   { key: "[RODAPÉ]", desc: "Mensagem de rodapé (campo editável)" },
   { key: "[DIVULGAÇÃO]", desc: "Mensagem promocional (campo editável)" },
   { key: "[PRODUTO]", desc: "Nome do produto/ingrediente da etiqueta" },

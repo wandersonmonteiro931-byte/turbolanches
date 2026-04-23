@@ -133,6 +133,7 @@ const AdminPrint = () => {
   const resolveType = (t: string) => {
     if (t === "cozinha" || t === "entrega") return "pedido";
     if (t === "cliente") return "obrigado";
+    if (t === "mesa_cliente") return "mesa";
     return t;
   };
 
@@ -144,7 +145,7 @@ const AdminPrint = () => {
       if (orderErr || !orderData) { setError("Pedido não encontrado"); return; }
       setOrder(orderData);
 
-      const tplType = resolveType(tipo);
+      const tplType = orderData.delivery_type === "mesa" && resolveType(tipo) === "pedido" ? "mesa" : resolveType(tipo);
       const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
         supabase.from("profiles").select("full_name, phone, complement, quadra, lote, street, neighborhood, customer_code").eq("user_id", orderData.user_id).single(),
@@ -192,9 +193,11 @@ const AdminPrint = () => {
     const addressLine2 = quadraLote || "";
     const addressLine3 = complemento || "";
     const addressLine4 = order.address_neighborhood || "";
-    const address = [addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local";
+    const isTableOrder = order.delivery_type === "mesa";
+    const tableCode = order.table_code || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "MESA");
+    const address = isTableOrder ? tableCode : ([addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local");
 
-    const deliveryLabel = order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
+    const deliveryLabel = isTableOrder ? "MESA" : order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
     const subtotal = Number(order.subtotal);
     const deliveryFee = Number(order.delivery_fee);
@@ -230,9 +233,10 @@ const AdminPrint = () => {
     const customerCode = isManualOrder ? (manualCodeMatch?.[1]?.trim() || "") : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
 
     const storeName = tpl?.store_name || "TURBO LANCHES";
-    const resolvedType = resolveType(tipo);
+    const resolvedType = isTableOrder && resolveType(tipo) === "pedido" ? "mesa" : resolveType(tipo);
     const defaultLabels: Record<string, string> = {
       pedido: "PEDIDO",
+      mesa: "MESA",
       obrigado: "OBRIGADO!",
       entregador: "FECHAMENTO DE ROTA",
       etiquetas: "ETIQUETA",
@@ -250,6 +254,7 @@ const AdminPrint = () => {
 
     const varMap: Record<string, string> = {
       "[NUMEROPEDIDO]": `#${String(order.order_number).padStart(5, "0")}`,
+      "[MESA]": tableCode,
       "[NOMECLIENTE]": displayName || "Não informado",
       "[CODIGOCLIENTE]": customerCode,
       "[TELEFONECLIENTE]": displayPhone || "Não informado",
