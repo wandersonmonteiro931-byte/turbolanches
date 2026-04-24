@@ -76,8 +76,8 @@ const AdminReceipts = () => {
     e.preventDefault();
     e.stopPropagation();
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
-      if (type === "etiquetas" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
-        toast.info("Teste de impressão disponível apenas para Pedido / Mesa / Cobrar Mesa / Obrigado / Fechamento de Rota.");
+      if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
+        toast.info("Para testar etiquetas de preço, use a tela /admin/etiquetas-preco.");
       return;
     }
     setPrinting(true);
