@@ -151,11 +151,15 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 xl:grid-cols-9">
+        <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1">
           {tabConfig.map((tab) => (
-            <TabsTrigger key={tab.type} value={tab.type} className="gap-2">
-              <tab.icon size={16} className="text-primary" />
-              {tab.label}
+            <TabsTrigger
+              key={tab.type}
+              value={tab.type}
+              className="flex-grow basis-[calc(50%-0.25rem)] gap-1.5 whitespace-nowrap px-2 py-1.5 text-xs sm:basis-[calc(33.333%-0.25rem)] sm:text-sm md:basis-[calc(25%-0.25rem)] lg:basis-[calc(16.666%-0.25rem)]"
+            >
+              <tab.icon size={14} className="text-primary shrink-0" />
+              <span className="truncate">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
