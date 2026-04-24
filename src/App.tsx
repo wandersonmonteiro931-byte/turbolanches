@@ -131,6 +131,7 @@ const AppInner = () => {
             <Route path="avaliacoes" element={<AdminReviews />} />
             <Route path="precificacao" element={<AdminPricing />} />
             <Route path="etiquetas" element={<AdminLabels />} />
+            <Route path="etiquetas-preco" element={<AdminPriceLabels />} />
             <Route path="reposicao" element={<AdminRestock />} />
             <Route path="funcionarios" element={<AdminEmployees />} />
             <Route path="ia" element={<AdminAiControl />} />
