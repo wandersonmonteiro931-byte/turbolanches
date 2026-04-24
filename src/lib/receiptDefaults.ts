@@ -195,6 +195,7 @@ export const getDefaultTemplate = (type: string): string => {
     case "mesa_cobrar": return DEFAULT_MESA_COBRAR;
     case "mesa_conta": return DEFAULT_MESA_CONTA;
     case "etiquetas": return DEFAULT_ETIQUETAS;
+    case "etiqueta_preco": return DEFAULT_ETIQUETA_PRECO;
     case "reposicao": return DEFAULT_REPOSICAO;
     case "entregador": return DEFAULT_ENTREGADOR;
     case "relatorio_entregas": return DEFAULT_RELATORIO_ENTREGAS;
