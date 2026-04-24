@@ -36,6 +36,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   relatorio_entregas: "RELATÓRIO DE ENTREGAS",
   relatorio_periodo: "RELATÓRIO DE PERÍODO",
   etiquetas: "ETIQUETA",
+  etiqueta_preco: "PREÇO",
   reposicao: "LISTA DE COMPRAS",
 };
 
