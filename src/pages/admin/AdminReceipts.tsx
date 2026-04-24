@@ -22,6 +22,7 @@ const tabConfig = [
   { type: "relatorio_entregas", label: "Relatório Entregador", icon: Truck },
   { type: "relatorio_periodo", label: "Relatório Período", icon: ClipboardList },
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
+  { type: "etiqueta_preco", label: "Etiqueta de Preço", icon: DollarSign },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
 
