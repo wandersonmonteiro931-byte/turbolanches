@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer, Armchair } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer, Armchair, DollarSign } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { openPrintUrl } from "@/lib/printPopup";
