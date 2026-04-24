@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer, Armchair } from "lucide-react";
+import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer, Armchair, DollarSign } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { openPrintUrl } from "@/lib/printPopup";
@@ -22,6 +22,7 @@ const tabConfig = [
   { type: "relatorio_entregas", label: "Relatório Entregador", icon: Truck },
   { type: "relatorio_periodo", label: "Relatório Período", icon: ClipboardList },
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
+  { type: "etiqueta_preco", label: "Etiqueta de Preço", icon: DollarSign },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
 ];
 
@@ -35,6 +36,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   relatorio_entregas: "RELATÓRIO DE ENTREGAS",
   relatorio_periodo: "RELATÓRIO DE PERÍODO",
   etiquetas: "ETIQUETA",
+  etiqueta_preco: "PREÇO",
   reposicao: "LISTA DE COMPRAS",
 };
 
@@ -74,8 +76,8 @@ const AdminReceipts = () => {
     e.preventDefault();
     e.stopPropagation();
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
-      if (type === "etiquetas" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
-        toast.info("Teste de impressão disponível apenas para Pedido / Mesa / Cobrar Mesa / Obrigado / Fechamento de Rota.");
+      if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
+        toast.info("Para testar etiquetas de preço, use a tela /admin/etiquetas-preco.");
       return;
     }
     setPrinting(true);

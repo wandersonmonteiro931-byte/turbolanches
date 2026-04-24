@@ -23,6 +23,7 @@ const navItems = [
   { path: "/admin/cupons", icon: Ticket, label: "Cupons" },
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
   { path: "/admin/etiquetas", icon: Tag, label: "Etiquetas" },
+  { path: "/admin/etiquetas-preco", icon: DollarSign, label: "Etiq. Preço" },
   { path: "/admin/administradores", icon: Shield, label: "Admins" },
   { path: "/admin/raspadinha", icon: Sparkles, label: "Raspadinha" },
   { path: "/admin/avaliacoes", icon: Star, label: "Avaliações" },

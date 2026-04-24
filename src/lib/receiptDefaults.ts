@@ -160,6 +160,19 @@ TAXA FIXA: [TAXAFIXA]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_ETIQUETA_PRECO = `[QUADRADO]
+[CENTRO][NOMELOJA][/CENTRO]
+---
+[CENTRO][TXTGIGANTE][NOMEPRODUTO][/TXTGIGANTE][/CENTRO]
+[CENTRO]Cód: [CÓDIGOPROD][/CENTRO]
+---
+[CENTRO][TXTGIGANTE][CAIXA][PREÇOPROD][/CAIXA][/TXTGIGANTE][/CENTRO]
+---
+[CENTRO][TXTPEQUENO][DESCRICAO][/TXTPEQUENO][/CENTRO]
+[CENTRO][RODAPÉ][/CENTRO]
+[QUADRADO]
+---`;
+
 export const DEFAULT_RELATORIO_PERIODO = `[CENTRO][NOMELOJA][/CENTRO]
 [GRANDE][TIPOCOMANDA][/GRANDE]
 [CENTRO][PERIODO][/CENTRO]
@@ -182,6 +195,7 @@ export const getDefaultTemplate = (type: string): string => {
     case "mesa_cobrar": return DEFAULT_MESA_COBRAR;
     case "mesa_conta": return DEFAULT_MESA_CONTA;
     case "etiquetas": return DEFAULT_ETIQUETAS;
+    case "etiqueta_preco": return DEFAULT_ETIQUETA_PRECO;
     case "reposicao": return DEFAULT_REPOSICAO;
     case "entregador": return DEFAULT_ENTREGADOR;
     case "relatorio_entregas": return DEFAULT_RELATORIO_ENTREGAS;
