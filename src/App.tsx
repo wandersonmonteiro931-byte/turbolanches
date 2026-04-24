@@ -46,6 +46,7 @@ import AdminReviews from "./pages/admin/AdminReviews";
 import AdminPricing from "./pages/admin/AdminPricing";
 import AdminRestock from "./pages/admin/AdminRestock";
 import AdminLabels from "./pages/admin/AdminLabels";
+import AdminPriceLabels from "./pages/admin/AdminPriceLabels";
 import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
 import Kitchen from "./pages/Kitchen";
 import MenuExport from "./pages/admin/MenuExport";
