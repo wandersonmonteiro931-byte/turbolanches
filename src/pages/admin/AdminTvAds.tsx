@@ -83,8 +83,15 @@ const AdminTvAds = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Remover este anúncio?")) return;
-    await supabase.from("tv_ads").delete().eq("id", id);
+    const ok = typeof window !== "undefined" && typeof window.confirm === "function"
+      ? window.confirm("Remover este anúncio?")
+      : true;
+    if (!ok) return;
+    const { error } = await supabase.from("tv_ads").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao remover", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Anúncio removido!" });
     fetchData();
   };
