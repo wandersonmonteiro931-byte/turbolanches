@@ -1,4 +1,5 @@
 const DEFAULT_PRINT_FEATURES = "width=320,height=640";
+const MULTI_COPY_INTERVAL_MS = 5200;
 
 const buildStampedPrintUrl = (url: string) => {
   const separator = url.includes("?") ? "&" : "?";
@@ -75,6 +76,62 @@ const schedulePopupActivation = (popup: Window | null) => {
   pollUntilReady();
 };
 
+const toSingleCopySequenceUrl = (url: string, jobId: string, copyIndex: number) => {
+  const parsedUrl = new URL(url, window.location.origin);
+  parsedUrl.searchParams.set("copies", "1");
+  parsedUrl.searchParams.set("keep_open", "1");
+  parsedUrl.searchParams.set("print_job", jobId);
+  parsedUrl.searchParams.set("print_copy", String(copyIndex));
+  parsedUrl.searchParams.set("kiosk_sequence", "1");
+  return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+};
+
+const getCopyCountFromUrl = (url: string) => {
+  try {
+    const parsedUrl = new URL(url, window.location.origin);
+    const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
+    return copies;
+  } catch {
+    return 1;
+  }
+};
+
+const openKioskCopySequence = (stampedUrl: string, namePrefix: string, features: string, copies: number) => {
+  const jobId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  let popup = window.open("", `_${namePrefix}_${Date.now()}`, features);
+  if (!popup || popup.closed) return null;
+
+  try {
+    popup.document.open();
+    popup.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8" /><title>Preparando impressão...</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center;min-height:100vh;background:#fff;color:#000;font-weight:700}div{padding:16px;text-align:center}</style></head><body><div>Preparando sequência de impressão...</div></body></html>`);
+    popup.document.close();
+  } catch {}
+
+  const routeCopy = (copyIndex: number) => {
+    if (!popup || popup.closed) return;
+
+    try {
+      popup.location.replace(toSingleCopySequenceUrl(stampedUrl, jobId, copyIndex));
+      popup.focus();
+      schedulePopupActivation(popup);
+    } catch {}
+  };
+
+  routeCopy(1);
+
+  for (let copyIndex = 2; copyIndex <= copies; copyIndex += 1) {
+    window.setTimeout(() => routeCopy(copyIndex), MULTI_COPY_INTERVAL_MS * (copyIndex - 1));
+  }
+
+  window.setTimeout(() => {
+    try {
+      if (popup && !popup.closed) popup.close();
+    } catch {}
+  }, MULTI_COPY_INTERVAL_MS * copies + 1800);
+
+  return popup;
+};
+
 export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
   const popup = window.open("", `_print_prepare_${Date.now()}`, features);
   if (!popup || popup.closed) return null;
@@ -111,6 +168,12 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 
 export const openPrintUrl = (url: string, namePrefix = "print", features = DEFAULT_PRINT_FEATURES) => {
   const stampedUrl = buildStampedPrintUrl(url);
+  const copies = getCopyCountFromUrl(stampedUrl);
+
+  if (copies > 1) {
+    return openKioskCopySequence(stampedUrl, namePrefix, features, copies);
+  }
+
   const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, features);
   schedulePopupActivation(popup);
   return popup;
