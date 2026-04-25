@@ -98,38 +98,21 @@ const getCopyCountFromUrl = (url: string) => {
 
 const openKioskCopySequence = (stampedUrl: string, namePrefix: string, features: string, copies: number) => {
   const jobId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  let popup = window.open("", `_${namePrefix}_${Date.now()}`, features);
-  if (!popup || popup.closed) return null;
 
-  try {
-    popup.document.open();
-    popup.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8" /><title>Preparando impressão...</title><style>body{margin:0;font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center;min-height:100vh;background:#fff;color:#000;font-weight:700}div{padding:16px;text-align:center}</style></head><body><div>Preparando sequência de impressão...</div></body></html>`);
-    popup.document.close();
-  } catch {}
-
-  const routeCopy = (copyIndex: number) => {
-    if (!popup || popup.closed) return;
-
-    try {
-      popup.location.replace(toSingleCopySequenceUrl(stampedUrl, jobId, copyIndex));
-      popup.focus();
-      schedulePopupActivation(popup);
-    } catch {}
+  const openCopy = (copyIndex: number) => {
+    const url = toSingleCopySequenceUrl(stampedUrl, jobId, copyIndex);
+    const copyPopup = window.open(url, `_${namePrefix}_${jobId}_${copyIndex}`, features);
+    schedulePopupActivation(copyPopup);
+    return copyPopup;
   };
 
-  routeCopy(1);
+  const firstPopup = openCopy(1);
 
   for (let copyIndex = 2; copyIndex <= copies; copyIndex += 1) {
-    window.setTimeout(() => routeCopy(copyIndex), MULTI_COPY_INTERVAL_MS * (copyIndex - 1));
+    window.setTimeout(() => openCopy(copyIndex), MULTI_COPY_INTERVAL_MS * (copyIndex - 1));
   }
 
-  window.setTimeout(() => {
-    try {
-      if (popup && !popup.closed) popup.close();
-    } catch {}
-  }, MULTI_COPY_INTERVAL_MS * copies + 1800);
-
-  return popup;
+  return firstPopup;
 };
 
 export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
