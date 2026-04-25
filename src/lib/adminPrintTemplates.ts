@@ -462,11 +462,17 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   var copiesDone = 0;
   var awaitingAfterPrint = false;
   var lastFireAt = 0;
+  var kioskTimerMode = false;
+  var printGapMs = 900;
 
   try {
     var attr = document.body && document.body.getAttribute("data-print-copies");
     var n = parseInt(attr || "1", 10);
     if (!isNaN(n) && n > 0) totalCopies = Math.min(20, n);
+    var params = new URLSearchParams(window.location.search || "");
+    kioskTimerMode = params.get("kiosk_timer") === "1";
+    var gap = parseInt(params.get("print_gap_ms") || "900", 10);
+    if (!isNaN(gap)) printGapMs = Math.max(350, Math.min(5000, gap));
   } catch (error) {}
 
   function clearRetryTimers() {
@@ -496,6 +502,11 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     try {
       if (document.execCommand) { document.execCommand("print", false); }
     } catch (error) {}
+    if (kioskTimerMode) {
+      setTimeout(function () {
+        if (awaitingAfterPrint) onCopyDone();
+      }, printGapMs);
+    }
   }
 
   function runPrint() {
@@ -518,8 +529,8 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       scheduleClose(400);
       return;
     }
-    // Small delay between separate print jobs so thermal printer cuts/feeds.
-    setTimeout(runPrint, 350);
+    // In kiosk mode, afterprint can be unreliable; timer mode drives each copy.
+    setTimeout(runPrint, kioskTimerMode ? printGapMs : 350);
   }
 
   function queuePrint(delay) {

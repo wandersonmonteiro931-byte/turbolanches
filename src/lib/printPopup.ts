@@ -1,9 +1,19 @@
 const DEFAULT_PRINT_FEATURES = "width=320,height=640";
-const MULTI_COPY_INTERVAL_MS = 5200;
-
 const buildStampedPrintUrl = (url: string) => {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}t=${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const addKioskPrintParams = (url: string) => {
+  const parsedUrl = new URL(url, window.location.origin);
+  const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
+
+  if (copies > 1) {
+    parsedUrl.searchParams.set("kiosk_timer", "1");
+    parsedUrl.searchParams.set("print_gap_ms", parsedUrl.searchParams.get("print_gap_ms") || "900");
+  }
+
+  return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
 };
 
 const schedulePopupActivation = (popup: Window | null) => {
@@ -76,45 +86,6 @@ const schedulePopupActivation = (popup: Window | null) => {
   pollUntilReady();
 };
 
-const toSingleCopySequenceUrl = (url: string, jobId: string, copyIndex: number) => {
-  const parsedUrl = new URL(url, window.location.origin);
-  parsedUrl.searchParams.set("copies", "1");
-  parsedUrl.searchParams.set("keep_open", "1");
-  parsedUrl.searchParams.set("print_job", jobId);
-  parsedUrl.searchParams.set("print_copy", String(copyIndex));
-  parsedUrl.searchParams.set("kiosk_sequence", "1");
-  return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
-};
-
-const getCopyCountFromUrl = (url: string) => {
-  try {
-    const parsedUrl = new URL(url, window.location.origin);
-    const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
-    return copies;
-  } catch {
-    return 1;
-  }
-};
-
-const openKioskCopySequence = (stampedUrl: string, namePrefix: string, features: string, copies: number) => {
-  const jobId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-  const openCopy = (copyIndex: number) => {
-    const url = toSingleCopySequenceUrl(stampedUrl, jobId, copyIndex);
-    const copyPopup = window.open(url, `_${namePrefix}_${jobId}_${copyIndex}`, features);
-    schedulePopupActivation(copyPopup);
-    return copyPopup;
-  };
-
-  const firstPopup = openCopy(1);
-
-  for (let copyIndex = 2; copyIndex <= copies; copyIndex += 1) {
-    window.setTimeout(() => openCopy(copyIndex), MULTI_COPY_INTERVAL_MS * (copyIndex - 1));
-  }
-
-  return firstPopup;
-};
-
 export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
   const popup = window.open("", `_print_prepare_${Date.now()}`, features);
   if (!popup || popup.closed) return null;
@@ -129,7 +100,7 @@ export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
 };
 
 export const routePreparedPrintPopup = (popup: Window | null, url: string, features = DEFAULT_PRINT_FEATURES) => {
-  const stampedUrl = buildStampedPrintUrl(url);
+  const stampedUrl = buildStampedPrintUrl(addKioskPrintParams(url));
 
   if (!popup || popup.closed) {
     const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, features);
@@ -150,13 +121,7 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 };
 
 export const openPrintUrl = (url: string, namePrefix = "print", features = DEFAULT_PRINT_FEATURES) => {
-  const stampedUrl = buildStampedPrintUrl(url);
-  const copies = getCopyCountFromUrl(stampedUrl);
-
-  if (copies > 1) {
-    return openKioskCopySequence(stampedUrl, namePrefix, features, copies);
-  }
-
+  const stampedUrl = buildStampedPrintUrl(addKioskPrintParams(url));
   const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, features);
   schedulePopupActivation(popup);
   return popup;
