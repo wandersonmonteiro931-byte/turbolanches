@@ -17,7 +17,7 @@ const getSafeRedirect = (redirect: string | null) => {
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
   const redirectTo = getSafeRedirect(searchParams.get("redirect"));
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
@@ -57,9 +57,9 @@ const Auth = () => {
         const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Login realizado com sucesso!");
-        const dest = signInData.user
-          ? await resolveDestination(signInData.user.id)
-          : redirectTo;
+        const currentSession = await refreshSession();
+        const signedUser = signInData.user ?? currentSession?.user ?? null;
+        const dest = signedUser ? await resolveDestination(signedUser.id) : "/admin";
         window.location.replace(dest);
         return;
       } else {
