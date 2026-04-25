@@ -458,6 +458,16 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   var maxAttempts = 12;
   var retryTimers = [];
   var closeTimer = null;
+  var totalCopies = 1;
+  var copiesDone = 0;
+  var awaitingAfterPrint = false;
+  var lastFireAt = 0;
+
+  try {
+    var attr = document.body && document.body.getAttribute("data-print-copies");
+    var n = parseInt(attr || "1", 10);
+    if (!isNaN(n) && n > 0) totalCopies = Math.min(20, n);
+  } catch (error) {}
 
   function clearRetryTimers() {
     while (retryTimers.length) {
@@ -477,31 +487,46 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     }, delay);
   }
 
-  function runPrint() {
-    if (printFinished || attempts >= maxAttempts) return;
-    attempts += 1;
-
+  function fireSinglePrint() {
+    awaitingAfterPrint = true;
+    lastFireAt = Date.now();
     try { window.focus(); } catch (error) {}
     try { document.body && document.body.offsetHeight; } catch (error) {}
-
+    try { window.print(); } catch (error) {}
     try {
-      window.print();
-      scheduleClose(2200);
-    } catch (error) {
-      // Keep retrying: kiosk/thermal Chromium can ignore the first call while
-      // the generated document is still being painted.
-    }
-
-    try {
-      if (document.execCommand) {
-        document.execCommand("print", false);
-      }
+      if (document.execCommand) { document.execCommand("print", false); }
     } catch (error) {}
+  }
+
+  function runPrint() {
+    if (printFinished) return;
+    if (copiesDone >= totalCopies) {
+      markFinished();
+      scheduleClose(400);
+      return;
+    }
+    attempts += 1;
+    fireSinglePrint();
+  }
+
+  function onCopyDone() {
+    if (!awaitingAfterPrint) return;
+    awaitingAfterPrint = false;
+    copiesDone += 1;
+    if (copiesDone >= totalCopies) {
+      markFinished();
+      scheduleClose(400);
+      return;
+    }
+    // Small delay between separate print jobs so thermal printer cuts/feeds.
+    setTimeout(runPrint, 350);
   }
 
   function queuePrint(delay) {
     retryTimers.push(setTimeout(function () {
       if (printFinished) return;
+      if (awaitingAfterPrint) return;
+      if (copiesDone > 0) return; // initial-retry safety net only
       try {
         requestAnimationFrame(function () {
           requestAnimationFrame(runPrint);
@@ -516,14 +541,11 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var run = function () {
       if (printFinished) return;
       runPrint();
-      [40, 120, 260, 480, 800, 1200, 1800, 2600, 3600].forEach(queuePrint);
+      // Initial safety retries only if first print never fired
+      [800, 1800, 3200].forEach(queuePrint);
     };
 
-    if (started) {
-      run();
-      return;
-    }
-
+    if (started) { run(); return; }
     started = true;
 
     if (document.fonts && document.fonts.ready) {
@@ -533,7 +555,6 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         fontsReadyResolved = true;
         run();
       };
-
       document.fonts.ready.then(runWhenReady).catch(runWhenReady);
       setTimeout(runWhenReady, 220);
       return;
@@ -553,43 +574,20 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     }, { once: true });
   }
 
-  window.addEventListener("pageshow", function () {
-    setTimeout(firePrint, 20);
-  });
-
-  window.addEventListener("focus", function () {
-    setTimeout(firePrint, 10);
-  });
-
-  document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") {
-      setTimeout(firePrint, 10);
-    }
-  });
-
-  window.addEventListener("message", function (event) {
-    try {
-      if (event.origin !== window.location.origin) return;
-      if (!event.data || event.data.type !== "turbo-print-now") return;
-      setTimeout(firePrint, 10);
-    } catch (error) {}
-  });
-
   window.addEventListener("beforeprint", function () {
-    markFinished();
-    scheduleClose(900);
+    // ignore
   });
 
   window.addEventListener("afterprint", function () {
-    markFinished();
-    scheduleClose(120);
+    onCopyDone();
   });
 
-  retryTimers.push(setTimeout(function () {
-    if (!printFinished) {
-      firePrint();
+  // Fallback: if afterprint never fires (some kiosk Chromiums), advance after timeout
+  setInterval(function () {
+    if (awaitingAfterPrint && Date.now() - lastFireAt > 4000) {
+      onCopyDone();
     }
-  }, 5000));
+  }, 1000);
 
 })();
 </script>`;
@@ -750,20 +748,19 @@ export const buildAdminPrintDocument = ({
     extraCss,
     labelGapMm,
   });
-  const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
-    const content = templateSections
-      .map(({ content: sectionTemplate, wrapperClass }) => {
-        const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
-        if (!markup) return "";
+  const copies = Math.max(1, Math.min(20, repeatCount));
+  const singleContent = templateSections
+    .map(({ content: sectionTemplate, wrapperClass }) => {
+      const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
+      if (!markup) return "";
 
-        const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
-        return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
-      })
-      .filter(Boolean)
-      .join("");
+      const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
+      return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
+    })
+    .filter(Boolean)
+    .join("");
 
-    return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
-  }).join("");
+  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}</article>`;
 
   return `<!DOCTYPE html>
   <html lang="pt-BR">
@@ -775,7 +772,7 @@ export const buildAdminPrintDocument = ({
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready">
+    <body data-print-document="ready" data-print-copies="${copies}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
