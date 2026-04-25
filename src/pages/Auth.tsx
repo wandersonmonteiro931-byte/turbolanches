@@ -26,10 +26,26 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const resolveDestination = async (userId: string) => {
+    // If a redirect param was provided (and is not "/"), respect it
+    if (redirectTo && redirectTo !== "/") return redirectTo;
+    // Otherwise, send admins to /admin and customers to /
+    try {
+      const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      if (data === true) return "/admin";
+    } catch {
+      // ignore
+    }
+    return "/";
+  };
+
   useEffect(() => {
     if (!authLoading && user && isLogin) {
-      window.location.replace(redirectTo);
+      void resolveDestination(user.id).then((dest) => {
+        window.location.replace(dest);
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, isLogin, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,10 +54,13 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Login realizado com sucesso!");
-        window.location.replace(redirectTo);
+        const dest = signInData.user
+          ? await resolveDestination(signInData.user.id)
+          : redirectTo;
+        window.location.replace(dest);
         return;
       } else {
         const { error } = await supabase.auth.signUp({
