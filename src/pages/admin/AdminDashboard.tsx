@@ -869,9 +869,16 @@ const AdminDashboard = () => {
     const { data } = await supabase.from("receipt_templates" as any).select("*").eq("template_type", templateType).maybeSingle();
     const template = data as any;
     const label = template?.label || (templateType === "relatorio_entregas" ? "RELATÓRIO DE ENTREGAS" : "RELATÓRIO DE PERÍODO");
+    const rawTemplate = template?.body_template || getDefaultTemplate(templateType);
+    // Garantir título compacto no relatório de entregas (remove [GRANDE]/[TXTGIGANTE] em volta de [TIPOCOMANDA])
+    const normalizedTemplate = templateType === "relatorio_entregas"
+      ? rawTemplate
+          .replace(/\[GRANDE\]\s*\[TIPOCOMANDA\]\s*\[\/GRANDE\]/g, "[TIPOCOMANDA]")
+          .replace(/\[TXTGIGANTE\]\s*\[TIPOCOMANDA\]\s*\[\/TXTGIGANTE\]/g, "[TIPOCOMANDA]")
+      : rawTemplate;
     const html = buildAdminPrintDocument({
       title: label,
-      template: template?.body_template || getDefaultTemplate(templateType),
+      template: normalizedTemplate,
       variables: {
         "[NOMELOJA]": template?.store_name || "TURBO LANCHES",
         "[TIPOCOMANDA]": label,
@@ -884,7 +891,7 @@ const AdminDashboard = () => {
       pageMarginMm: 0,
       bodyFontFamily: "Arial, Helvetica, sans-serif",
       bodyFontSizePx: template?.body_font_size ?? 10,
-      labelFontSizePx: template?.label_font_size ?? 18,
+      labelFontSizePx: template?.label_font_size ?? (templateType === "relatorio_entregas" ? 12 : 18),
       sectionPaddingMm: 0,
       extraCss: ".report-row{display:flex;justify-content:space-between;gap:4px;font-weight:900;font-size:9px;padding:1px 0}.report-row span{white-space:normal;overflow-wrap:anywhere}.report-row span:last-child{white-space:nowrap}",
     });
