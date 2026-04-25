@@ -574,6 +574,15 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     }, { once: true });
   }
 
+  window.addEventListener("message", function (event) {
+    try {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.type !== "turbo-print-now") return;
+      if (started) return; // never restart the loop mid-flight
+      setTimeout(firePrint, 10);
+    } catch (error) {}
+  });
+
   window.addEventListener("beforeprint", function () {
     // ignore
   });

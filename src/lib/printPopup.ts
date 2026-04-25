@@ -25,12 +25,13 @@ const schedulePopupActivation = (popup: Window | null) => {
         popup.focus();
       } catch {}
 
+      // Notify the popup it can start printing. The popup's internal
+      // bootstrap script is responsible for calling window.print() the
+      // correct number of times. Do NOT call popup.print() from here:
+      // doing so adds an extra job and triggers an early afterprint that
+      // makes the popup close after the first copy.
       try {
         popup.postMessage({ type: "turbo-print-now" }, window.location.origin);
-      } catch {}
-
-      try {
-        popup.print();
       } catch {}
 
       return true;
