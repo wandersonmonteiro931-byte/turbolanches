@@ -60,8 +60,6 @@ const TvDisplay = () => {
   }, [ads, index]);
 
   return (
-
-  return (
     <div className="fixed inset-0 overflow-hidden bg-black">
       {loading ? (
         <div className="flex h-full w-full items-center justify-center text-white/60">
