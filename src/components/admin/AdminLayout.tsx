@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff, HelpCircle, UserCog, WalletCards } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff, HelpCircle, UserCog, WalletCards, Tv } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
@@ -31,6 +31,7 @@ const navItems = [
   { path: "/admin/reposicao", icon: Package, label: "Reposição" },
   { path: "/admin/funcionarios", icon: UserCog, label: "Funcionários" },
   { path: "/admin/ia", icon: Bot, label: "IA do Sistema" },
+  { path: "/admin/tv-publicidade", icon: Tv, label: "TV / Publicidade" },
   { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 

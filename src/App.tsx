@@ -48,6 +48,8 @@ import AdminRestock from "./pages/admin/AdminRestock";
 import AdminLabels from "./pages/admin/AdminLabels";
 import AdminPriceLabels from "./pages/admin/AdminPriceLabels";
 import AdminCatalogRegistrations from "./pages/admin/AdminCatalogRegistrations";
+import AdminTvAds from "./pages/admin/AdminTvAds";
+import TvDisplay from "./pages/TvDisplay";
 import Kitchen from "./pages/Kitchen";
 import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
@@ -135,8 +137,10 @@ const AppInner = () => {
             <Route path="reposicao" element={<AdminRestock />} />
             <Route path="funcionarios" element={<AdminEmployees />} />
             <Route path="ia" element={<AdminAiControl />} />
+            <Route path="tv-publicidade" element={<AdminTvAds />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
           </Route>
+          <Route path="/tv" element={<TvDisplay />} />
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
           <Route path="/cozinha" element={<Kitchen />} />
