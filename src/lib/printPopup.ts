@@ -5,7 +5,6 @@ const buildStampedPrintUrl = (url: string) => {
 };
 
 const addKioskPrintParams = (url: string) => {
-  const isAbsolute = /^https?:\/\//i.test(url);
   const parsedUrl = new URL(url, window.location.origin);
   const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
 
@@ -14,11 +13,9 @@ const addKioskPrintParams = (url: string) => {
     parsedUrl.searchParams.set("print_gap_ms", parsedUrl.searchParams.get("print_gap_ms") || "900");
   }
 
-  if (isAbsolute) {
-    return parsedUrl.toString();
-  }
-
-  return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+  // Always return an absolute URL so kiosk browsers don't resolve the path
+  // against an unexpected base (which could redirect the popup to the root /).
+  return parsedUrl.toString();
 };
 
 const schedulePopupActivation = (popup: Window | null) => {
