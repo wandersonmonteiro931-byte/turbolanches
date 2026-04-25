@@ -2775,6 +2775,42 @@ export type Database = {
           },
         ]
       }
+      tv_ads: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_seconds: number
+          id: string
+          image_url: string
+          sort_order: number
+          store_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          image_url?: string
+          sort_order?: number
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          image_url?: string
+          sort_order?: number
+          store_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
