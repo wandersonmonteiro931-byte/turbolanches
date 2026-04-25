@@ -1155,7 +1155,7 @@ const AdminManualOrder = () => {
             <div className="mt-2 grid grid-cols-2 gap-1">
               <button onClick={() => navigate("/admin")} className="h-8 bg-[hsl(204_80%_16%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)]">Cancelar</button>
               <button onClick={() => isTableOrder && editOrderId && !isChargingTable ? setTableStage("charging") : isTableOrder && isChargingTable ? setTableConfirmAction("finalize") : handleSubmit()} disabled={loading || !hasCart || (isTableOrder && !selectedTable)} className="h-8 bg-[hsl(203_88%_22%)] text-[10px] font-black uppercase text-[hsl(0_0%_100%)] disabled:opacity-50">
-                {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : "Abrir mesa"}
+                {loading ? "Salvando..." : isTableOrder && editOrderId && !isChargingTable ? "Cobrar" : editOrderId ? "Finalizar" : isTableOrder ? "Abrir mesa" : "Criar pedido"}
               </button>
             </div>
             {isTableOrder && editOrderId && (
