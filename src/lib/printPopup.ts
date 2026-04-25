@@ -5,12 +5,17 @@ const buildStampedPrintUrl = (url: string) => {
 };
 
 const addKioskPrintParams = (url: string) => {
+  const isAbsolute = /^https?:\/\//i.test(url);
   const parsedUrl = new URL(url, window.location.origin);
   const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
 
   if (copies > 1) {
     parsedUrl.searchParams.set("kiosk_timer", "1");
     parsedUrl.searchParams.set("print_gap_ms", parsedUrl.searchParams.get("print_gap_ms") || "900");
+  }
+
+  if (isAbsolute) {
+    return parsedUrl.toString();
   }
 
   return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
