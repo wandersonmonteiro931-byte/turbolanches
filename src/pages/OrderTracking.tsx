@@ -175,6 +175,7 @@ const OrderTracking = () => {
     fetchOrder();
     checkReviewStatus();
 
+    let lastStatus: string | null = null;
     const channel = supabase
       .channel(`order-${id}`)
       .on("postgres_changes", {
@@ -182,18 +183,31 @@ const OrderTracking = () => {
         schema: "public",
         table: "orders",
         filter: `id=eq.${id}`,
-      }, (payload) => {
-        setOrder((prev) => prev ? { ...prev, ...payload.new } : null);
-        const newStatus = (payload.new as any).status;
-        if (newStatus === "preparing") toast.info("✅ Pedido aceito! Estão preparando...");
-        if (newStatus === "ready") toast.info("📦 Seu pedido está pronto!");
-        if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
-        if (newStatus === "delivered") {
-          toast.success("🎉 Pedido entregue! Bom apetite!");
-          // Auto-open review after 2s
-          setTimeout(() => setShowReview(true), 2000);
+      }, async (payload) => {
+        // Always re-fetch the full row to guarantee latest timestamps and status
+        const { data: fresh } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+        if (fresh) {
+          setOrder(fresh as any);
+          const newStatus = (fresh as any).status as string;
+          if (newStatus !== lastStatus) {
+            lastStatus = newStatus;
+            if (newStatus === "preparing") toast.info("✅ Pedido aceito! Estão preparando...");
+            if (newStatus === "ready") toast.info("📦 Seu pedido está pronto!");
+            if (newStatus === "delivering") toast.info("🏍️ Seu pedido saiu para entrega!");
+            if (newStatus === "delivered") {
+              toast.success("🎉 Pedido entregue! Bom apetite!");
+              setTimeout(() => setShowReview(true), 2000);
+            }
+            if (newStatus === "cancelled") toast.error("😔 Pedido recusado pela loja.");
+          }
+        } else {
+          // Fallback to spreading payload if refetch failed
+          setOrder((prev) => prev ? { ...prev, ...(payload.new as any) } : null);
         }
-        if (newStatus === "cancelled") toast.error("😔 Pedido recusado pela loja.");
       })
       .subscribe();
 
