@@ -748,20 +748,19 @@ export const buildAdminPrintDocument = ({
     extraCss,
     labelGapMm,
   });
-  const documents = Array.from({ length: Math.max(1, repeatCount) }, () => {
-    const content = templateSections
-      .map(({ content: sectionTemplate, wrapperClass }) => {
-        const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
-        if (!markup) return "";
+  const copies = Math.max(1, Math.min(20, repeatCount));
+  const singleContent = templateSections
+    .map(({ content: sectionTemplate, wrapperClass }) => {
+      const markup = renderAdminTemplateMarkup(sectionTemplate, variables, blocks);
+      if (!markup) return "";
 
-        const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
-        return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
-      })
-      .filter(Boolean)
-      .join("");
+      const sectionClasses = ["print-section", wrapperClass].filter(Boolean).join(" ");
+      return `<section class="${sectionClasses}" style="${minHeightStyle}padding:${sectionPaddingMm}mm;border:${sectionBorder};">${markup}</section>`;
+    })
+    .filter(Boolean)
+    .join("");
 
-    return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
-  }).join("");
+  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}</article>`;
 
   return `<!DOCTYPE html>
   <html lang="pt-BR">
@@ -773,7 +772,7 @@ export const buildAdminPrintDocument = ({
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready">
+    <body data-print-document="ready" data-print-copies="${copies}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
