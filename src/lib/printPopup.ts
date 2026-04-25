@@ -13,7 +13,9 @@ const addKioskPrintParams = (url: string) => {
     parsedUrl.searchParams.set("print_gap_ms", parsedUrl.searchParams.get("print_gap_ms") || "900");
   }
 
-  return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+  // Always return an absolute URL so kiosk browsers don't resolve the path
+  // against an unexpected base (which could redirect the popup to the root /).
+  return parsedUrl.toString();
 };
 
 const schedulePopupActivation = (popup: Window | null) => {
