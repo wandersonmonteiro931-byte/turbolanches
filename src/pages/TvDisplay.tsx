@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Maximize2 } from "lucide-react";
 
 interface TvAd {
   id: string;
@@ -60,11 +59,6 @@ const TvDisplay = () => {
     if (ads.length > 0 && index >= ads.length) setIndex(0);
   }, [ads, index]);
 
-  const goFullscreen = () => {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
-  };
-
   const current = ads[index % Math.max(1, ads.length)];
 
   return (
@@ -85,26 +79,13 @@ const TvDisplay = () => {
               key={ad.id}
               src={ad.image_url}
               alt={ad.title}
-              className="absolute inset-0 h-full w-full object-contain transition-opacity duration-700"
+              className="absolute inset-0 h-full w-full object-fill transition-opacity duration-700"
               style={{ opacity: i === index % ads.length ? 1 : 0 }}
               draggable={false}
             />
           ))}
-          {current && (
-            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-xs text-white/70">
-              {(index % ads.length) + 1} / {ads.length}
-            </div>
-          )}
         </>
       )}
-
-      <button
-        onClick={goFullscreen}
-        title="Tela cheia"
-        className="absolute right-3 top-3 rounded-full bg-black/40 p-2 text-white/70 hover:bg-black/60 hover:text-white"
-      >
-        <Maximize2 size={18} />
-      </button>
     </div>
   );
 };
