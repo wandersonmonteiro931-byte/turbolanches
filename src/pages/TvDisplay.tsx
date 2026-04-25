@@ -59,7 +59,7 @@ const TvDisplay = () => {
     if (ads.length > 0 && index >= ads.length) setIndex(0);
   }, [ads, index]);
 
-  const current = ads[index % Math.max(1, ads.length)];
+  return (
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
