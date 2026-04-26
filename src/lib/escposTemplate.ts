@@ -353,31 +353,56 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
   return null;
 };
 
-const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  // Dentro de um bloco (QUADRADO/QUADRADONEGRITO/RETANGULO) NÃO desenhamos bordas
-  // com caracteres "| ... |" / "+---+". O bloco é apenas um agrupamento visual:
-  // imprimimos o conteúdo normalmente respeitando o estilo configurado.
+const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number, frame: LineStyle["frame"] = "thin") => {
+  // Conteúdo dentro de um bloco aberto ([QUADRADO]/[QUADRADONEGRITO]).
+  // Para [RETANGULO] não desenhamos laterais (apenas topo+base).
+  if (frame === "rect") {
+    if (!text.replace(/\s/g, "")) { b.newline(); return; }
+    const fittedStyle = fitStyleToSingleLine(style, [text], cols);
+    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
+    const eff = effectiveColumns(cols, fittedStyle);
+    const trimmed = text.trim();
+    if (fittedStyle.align === "center" && trimmed.length < eff) {
+      const total = eff - trimmed.length;
+      const left = Math.floor(total / 2);
+      b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
+    } else {
+      b.rawText(text);
+    }
+    resetStyle(b);
+    return;
+  }
+
+  const inner = Math.max(1, cols - 4);
   if (!text.replace(/\s/g, "")) {
-    b.newline();
+    // linha vazia dentro do quadro: "|        |"
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+    b.rawText(`| ${" ".repeat(inner)} |`);
+    resetStyle(b);
     return;
   }
   const fittedStyle = fitStyleToSingleLine(style, [text], cols);
   applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
-  const lines = fittedStyle.address ? wrapAddressLines(text, effectiveColumns(cols, fittedStyle)) : [text];
-  for (const line of lines) {
-    if (fittedStyle.align === "center") {
-      const eff = effectiveColumns(cols, fittedStyle);
-      const trimmed = line.trim();
-      if (trimmed.length < eff) {
-        const total = eff - trimmed.length;
-        const left = Math.floor(total / 2);
-        b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
-      } else {
-        b.rawText(trimmed);
-      }
-    } else {
-      b.rawText(line);
+  const trimmed = text.trim();
+  // Quebra por palavras se exceder inner
+  const chunks: string[] = [];
+  if (trimmed.length <= inner) chunks.push(trimmed);
+  else {
+    const words = trimmed.split(/\s+/);
+    let cur = "";
+    for (const w of words) {
+      if (!cur) { cur = w; continue; }
+      if (cur.length + 1 + w.length <= inner) cur += ` ${w}`;
+      else { chunks.push(cur); cur = w; }
     }
+    if (cur) chunks.push(cur);
+  }
+  for (const chunk of chunks) {
+    const remaining = inner - chunk.length;
+    const left = fittedStyle.align === "center" ? Math.floor(remaining / 2)
+               : fittedStyle.align === "right" ? remaining : 0;
+    const right = remaining - left;
+    b.rawText(`| ${" ".repeat(left)}${chunk}${" ".repeat(right)} |`);
   }
   resetStyle(b);
 };
