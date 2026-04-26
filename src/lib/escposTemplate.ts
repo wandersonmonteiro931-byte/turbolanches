@@ -181,37 +181,46 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
 
-  const width = effectiveColumns(cols, style);
-  if (style.invertFull) {
+  // [TZTBORDA] / [TXTBORDA] / [FUNDPRETO] / [TXTBORDATXT]:
+  // Fundo preto cobrindo a linha inteira (ponta a ponta) formando um retângulo.
+  // Conforme regra do usuário, o fundo preto deve ser sempre um QUADRADO/RETÂNGULO
+  // ao redor do texto e nunca apenas atrás das letras.
+  if (style.invertFull || style.invert) {
     const trimmedTxt = finalText.trim();
-    const padded = trimmedTxt.length >= width
+    const padded = trimmedTxt.length >= cols
       ? trimmedTxt
       : (() => {
-          const total = width - trimmedTxt.length;
+          const total = cols - trimmedTxt.length;
           const left = Math.floor(total / 2);
           return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
         })();
-    applyStyleToBuilder(b, style);
+    const blank = " ".repeat(cols);
+    applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, big: false, giant: false, medium: false });
+    b.rawText(blank);
     b.rawText(padded);
+    b.rawText(blank);
     resetStyle(b);
     return;
   }
 
   if (style.box || style.frame !== "none") {
-    const border = frameChar(style.box ? "strong" : style.frame).repeat(cols);
+    const useStrong = style.box || style.frame === "strong";
+    const ch = useStrong ? "=" : "-";
+    const border = ch.repeat(cols);
     resetStyle(b);
-    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    b.bold(useStrong).line(border).bold(false);
     applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-    if (finalText.length <= width) b.rawText(finalText);
-    else b.wrap(finalText, width);
+    // Nunca quebrar: imprime literal mesmo se passar do tamanho.
+    b.rawText(finalText);
     resetStyle(b);
-    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    b.bold(useStrong).line(border).bold(false);
     return;
   }
 
   applyStyleToBuilder(b, style);
-  if (finalText.length <= width) b.rawText(finalText);
-  else b.wrap(finalText, width);
+  // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
+  // Mantém exatamente como foi configurado.
+  b.rawText(finalText);
   resetStyle(b);
 };
 
@@ -226,26 +235,13 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const width = Math.max(4, effectiveColumns(cols, style) - 4);
+  const inner = Math.max(4, cols - 4);
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-  const chunks = text.length <= width ? [text] : (() => {
-    const tokens = text.match(/\s+|\S+/g) || [];
-    const out: string[] = [];
-    let line = "";
-    const flush = () => { out.push(line.replace(/\s+$/u, "")); line = ""; };
-    for (const tk of tokens) {
-      if (/^\s+$/.test(tk)) { if (line && line.length < width) line += tk.slice(0, width - line.length); continue; }
-      if (!line) line = tk;
-      else if (line.length + tk.length <= width) line += tk;
-      else { flush(); line = tk; }
-    }
-    if (line) flush();
-    return out;
-  })();
-  for (const chunk of chunks) {
-    const padded = chunk.length >= width ? chunk : chunk + " ".repeat(width - chunk.length);
-    b.rawText(`| ${padded} |`);
-  }
+  // Não quebrar: imprime a linha como veio, apenas preenche com espaços
+  // para fechar a borda direita quando couber.
+  const truncated = text.length > inner ? text.slice(0, inner) : text;
+  const padded = truncated + " ".repeat(Math.max(0, inner - truncated.length));
+  b.rawText(`| ${padded} |`);
   resetStyle(b);
 };
 
@@ -268,7 +264,34 @@ export const renderTemplateToEscPos = (
     resolved = expandItemsLines(resolved, input.items);
   }
 
-  // 3. Renderiza linha a linha
+  // 3. Limpeza pós-substituição:
+  //   - Remove linhas que ficaram vazias por causa de variáveis sem valor
+  //     (ex: [OBS], [CUPOM], [NOMEENTREGADOR] vazios), MAS preserva linhas
+  //     em branco intencionais que existiam no template original.
+  //   - Colapsa separadores '---' duplicados/consecutivos para um único.
+  const originalLines = input.template.split("\n");
+  const resolvedLines = resolved.split("\n");
+  const cleaned: string[] = [];
+  for (let i = 0; i < resolvedLines.length; i += 1) {
+    const cur = resolvedLines[i];
+    const trimmedCur = cur.trim();
+    const original = (originalLines[i] ?? "").trim();
+    // Se a linha original tinha conteúdo (ex: variável) e agora ficou vazia,
+    // pulamos — evita "---\n\n---" virando 3 separadores grudados.
+    if (!trimmedCur && original && !/^\s*$/.test(original)) continue;
+    cleaned.push(cur);
+  }
+  // Colapsa separadores consecutivos
+  const finalLines: string[] = [];
+  for (const ln of cleaned) {
+    const t = ln.trim();
+    const prev = finalLines.length > 0 ? finalLines[finalLines.length - 1].trim() : null;
+    if (t === "---" && prev === "---") continue;
+    finalLines.push(ln);
+  }
+  resolved = finalLines.join("\n");
+
+  // 4. Renderiza linha a linha
   const lines = resolved.split("\n");
   let activeBlockFrame: LineStyle["frame"] = "none";
 
