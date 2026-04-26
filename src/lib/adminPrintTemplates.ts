@@ -550,21 +550,51 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var body = document.body;
     if (!body) return;
 
-    var docs = Array.prototype.slice.call(document.querySelectorAll(".print-document"));
-    var targets = docs.length ? docs : [document.querySelector(".print-root") || body];
-    var heightPx = 0;
+    // Measure the bottom of the LAST visible content element relative to the
+    // document top. This avoids counting any trailing whitespace/padding from
+    // wrapper containers (which caused the white border at the end of receipts).
+    var root = document.querySelector(".print-root") || body;
+    var lastDoc = null;
+    var docs = root.querySelectorAll(".print-document");
+    if (docs.length) lastDoc = docs[docs.length - 1];
 
-    targets.forEach(function (target) {
-      if (!target) return;
-      var rectHeight = 0;
-      try { rectHeight = target.getBoundingClientRect().height || 0; } catch (error) {}
-      heightPx = Math.max(heightPx, rectHeight, target.scrollHeight || 0, target.offsetHeight || 0);
-    });
+    var bottomPx = 0;
+    function measureBottom(el) {
+      if (!el) return 0;
+      try {
+        var r = el.getBoundingClientRect();
+        return r.bottom + (window.scrollY || window.pageYOffset || 0);
+      } catch (e) { return 0; }
+    }
 
+    if (lastDoc) {
+      // Walk last leaves to find the true content bottom (ignoring trailing empty nodes)
+      var leaves = lastDoc.querySelectorAll("*");
+      for (var i = leaves.length - 1; i >= 0; i--) {
+        var el = leaves[i];
+        if (!el || !el.getBoundingClientRect) continue;
+        var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
+        var hasBg = false;
+        try {
+          var cs = window.getComputedStyle(el);
+          hasBg = cs && (cs.borderBottomWidth !== "0px" || cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent");
+        } catch (e) {}
+        if (txt || hasBg) {
+          bottomPx = Math.max(bottomPx, measureBottom(el));
+          break;
+        }
+      }
+      if (!bottomPx) bottomPx = measureBottom(lastDoc);
+    } else {
+      bottomPx = measureBottom(root);
+    }
+
+    var heightPx = bottomPx;
     if (!heightPx || heightPx < 1) return;
 
     var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
-    var pageHeightMm = Math.max(8, Math.ceil((heightPx * 25.4 / 96) + 1));
+    // No extra buffer — cut exactly at the content bottom.
+    var pageHeightMm = Math.max(8, Math.ceil(heightPx * 25.4 / 96));
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");
