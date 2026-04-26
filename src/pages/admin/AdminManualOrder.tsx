@@ -12,6 +12,7 @@ import CustomerSearch from "@/components/admin/CustomerSearch";
 import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
+import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -215,6 +216,26 @@ const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {
 const openPrintPopup = () => openPreparedPrintPopup("width=300,height=600");
 
 const routePopupToPrint = (popup: Window | null, url: string) => {
+  // Tenta QZ Tray primeiro; se sucesso, fecha o popup já aberto.
+  const match = url.match(/\/admin\/imprimir\/([^?]+)(?:\?(.*))?/);
+  if (match) {
+    const orderId = match[1];
+    const params = new URLSearchParams(match[2] || "");
+    const tipo = params.get("tipo") || "pedido";
+    const copies = Number(params.get("copies") || 1);
+    if (tipo === "pedido" || tipo === "obrigado" || tipo === "mesa") {
+      tryPrintOrderViaQz(orderId, { tipo, copies }).then((sent) => {
+        if (sent) {
+          try { popup?.close(); } catch { /* noop */ }
+        } else {
+          routePreparedPrintPopup(popup, url, "width=300,height=600");
+        }
+      }).catch(() => {
+        routePreparedPrintPopup(popup, url, "width=300,height=600");
+      });
+      return;
+    }
+  }
   routePreparedPrintPopup(popup, url, "width=300,height=600");
 };
 
