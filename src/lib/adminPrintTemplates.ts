@@ -105,7 +105,8 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
       }
       auto.style.cssText = "display:block!important;width:0!important;height:0!important;line-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;break-after:auto!important;page-break-after:auto!important;";
       document.body.appendChild(auto);
-      var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true']"));
+      var userCandidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-user-cut='true']"));
+      var candidates = userCandidates.length ? userCandidates : Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true']"));
       var last = candidates[candidates.length - 1] || auto;
       last.setAttribute("data-thermal-cut", "true");
       last.className = ((last.className || "") + " thermal-cut-marker").trim();
@@ -132,8 +133,9 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
         body.style.height = "auto";
         body.style.overflow = "visible";
       } catch (error) {}
-      var marker = document.querySelector("[data-thermal-cut='true']");
-      var markers = document.querySelectorAll("[data-thermal-cut='true']");
+      var marker = document.querySelector("[data-thermal-user-cut='true']") || document.querySelector("[data-thermal-cut='true']");
+      var userMarkers = document.querySelectorAll("[data-thermal-user-cut='true']");
+      var markers = userMarkers.length ? userMarkers : document.querySelectorAll("[data-thermal-cut='true']");
       if (markers.length) marker = markers[markers.length - 1];
       function measureBottom(el){ try { var r = el.getBoundingClientRect(); return r.bottom + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
       function measureTop(el){ try { var r = el.getBoundingClientRect(); return r.top + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
@@ -504,7 +506,7 @@ export const renderAdminTemplateMarkup = (
 
       // Preserve empty lines as spacing
       if (!trimmed) return '<div class="info">&nbsp;</div>';
-      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true"></div>';
+      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
