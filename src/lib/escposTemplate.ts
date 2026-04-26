@@ -268,20 +268,31 @@ export const renderTemplateToEscPos = (
 
   // 3. Renderiza linha a linha
   const lines = resolved.split("\n");
+  let activeBlockFrame: LineStyle["frame"] = "none";
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
 
+    const blockTag = getBlockFrameTag(trimmed);
+    if (blockTag) {
+      resetStyle(b);
+      b.bold(blockTag.frame === "strong").line(frameChar(blockTag.frame).repeat(cols)).bold(false);
+      activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
+      continue;
+    }
+
     // Linha vazia
     if (!trimmed) {
-      b.newline();
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols);
+      else b.newline();
       continue;
     }
 
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      b.line("-".repeat(cols));
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(4, cols - 4)), cols);
+      else b.line("-".repeat(cols));
       continue;
     }
 
@@ -295,7 +306,11 @@ export const renderTemplateToEscPos = (
     }
 
     const { style, text } = parseLineStyle(rawLine);
-    renderStyledText(b, style, text, cols);
+    if (activeBlockFrame !== "none" && style.frame === "none" && !style.box && !style.invertFull) {
+      renderBlockContentLine(b, style, text, cols);
+    } else {
+      renderStyledText(b, style, text, cols);
+    }
   }
 
   // Feed + corte exato
