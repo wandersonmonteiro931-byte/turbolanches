@@ -167,12 +167,24 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
           window.__TURBO_THERMAL_HEIGHT_PX__ = heightPx;
         } catch(e) {}
       }
+      function resizePopupToReceipt(heightPx){
+        try {
+          var widthPx = Math.ceil(pageWidthMm * 96 / 25.4);
+          var chromeW = Math.max(0, Math.min(100, (window.outerWidth || widthPx) - (window.innerWidth || widthPx)));
+          var chromeH = Math.max(0, Math.min(180, (window.outerHeight || heightPx) - (window.innerHeight || heightPx)));
+          var targetW = Math.ceil(widthPx + chromeW + 4);
+          var targetH = Math.ceil(heightPx + chromeH + 4);
+          var maxH = (window.screen && window.screen.availHeight) || targetH;
+          window.resizeTo(targetW, Math.min(maxH, targetH));
+        } catch(e) {}
+      }
       var leaves = body.querySelectorAll("*");
       for (var i = 0; i < leaves.length; i++) { if (hasInk(leaves[i])) { break; } }
       var bottomPx = marker ? measureBottom(marker) : measureBottom(body);
       if (!bottomPx || bottomPx <= 0) return;
       var heightMm = Math.max(8, Math.round((bottomPx * 25.4 / 96) * 100) / 100);
       lockExactPrintHeight(bottomPx, heightMm);
+      resizePopupToReceipt(bottomPx);
       var style = document.getElementById("tight-thermal-page-size");
       if (!style) { style = document.createElement("style"); style.id = "tight-thermal-page-size"; document.head.appendChild(style); }
       style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body{position:relative!important;top:0!important;left:0!important;}body>*:not(script):not(style){max-height:" + heightMm + "mm!important;overflow:hidden!important;}[data-thermal-cut='true']{margin-bottom:0!important;padding-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
@@ -747,6 +759,17 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         window.__TURBO_THERMAL_HEIGHT_PX__ = heightPx;
       } catch (e) {}
     }
+    function resizePopupToReceipt(heightPx, pageWidthMm) {
+      try {
+        var widthPx = Math.ceil(pageWidthMm * 96 / 25.4);
+        var chromeW = Math.max(0, Math.min(100, (window.outerWidth || widthPx) - (window.innerWidth || widthPx)));
+        var chromeH = Math.max(0, Math.min(180, (window.outerHeight || heightPx) - (window.innerHeight || heightPx)));
+        var targetW = Math.ceil(widthPx + chromeW + 4);
+        var targetH = Math.ceil(heightPx + chromeH + 4);
+        var maxH = (window.screen && window.screen.availHeight) || targetH;
+        window.resizeTo(targetW, Math.min(maxH, targetH));
+      } catch (e) {}
+    }
 
     if (lastDoc) {
       var firstDoc = docs[0] || lastDoc;
@@ -785,6 +808,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     // No integer-mm rounding: keep the page at the exact measured content height.
     var pageHeightMm = Math.max(8, Math.round((heightPx * 25.4 / 96) * 100) / 100);
     lockExactPrintHeight(heightPx, pageHeightMm);
+    resizePopupToReceipt(heightPx, pageWidthMm);
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");

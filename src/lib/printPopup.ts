@@ -1,4 +1,4 @@
-const DEFAULT_PRINT_FEATURES = "popup=yes,width=300,height=420,left=0,top=0,scrollbars=no,resizable=yes";
+const DEFAULT_PRINT_FEATURES = "popup=yes,width=280,height=120,left=0,top=0,scrollbars=no,resizable=yes";
 const buildStampedPrintUrl = (url: string) => {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}t=${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
