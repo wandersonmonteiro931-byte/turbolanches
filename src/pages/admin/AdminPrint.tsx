@@ -394,7 +394,11 @@ const AdminPrint = () => {
       labelFontSizePx: tpl?.label_font_size ?? 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,
-      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
+      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n${
+        thermalCutOffsetMm >= 0
+          ? `.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`
+          : `@media print{html,body{margin-bottom:${thermalCutOffsetMm}mm !important;}.print-root,.print-document{margin-bottom:${thermalCutOffsetMm}mm !important;}.print-document>*:last-child,.print-section:last-child{margin-bottom:${thermalCutOffsetMm}mm !important;padding-bottom:0 !important;}}`
+      }`,
     });
   }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
 
