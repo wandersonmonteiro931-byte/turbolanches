@@ -1,3 +1,5 @@
+import { buildThermalPrintFeatures, getThermalPrintSettings } from "./thermalPrintSettings";
+
 const DEFAULT_PRINT_FEATURES = "popup=yes,width=280,height=120,left=0,top=0,scrollbars=no,resizable=yes";
 const buildStampedPrintUrl = (url: string) => {
   const separator = url.includes("?") ? "&" : "?";
@@ -28,6 +30,7 @@ const normalizePrintFeatures = (features = DEFAULT_PRINT_FEATURES) => {
 
 const addKioskPrintParams = (url: string) => {
   const parsedUrl = new URL(url, window.location.origin);
+  const settings = getThermalPrintSettings();
 
   if (!parsedUrl.searchParams.get("copies")) {
     parsedUrl.searchParams.set("copies", String(DEFAULT_COPIES));
@@ -38,9 +41,10 @@ const addKioskPrintParams = (url: string) => {
 
   // Always force timer mode in kiosk: afterprint is unreliable with --kiosk-printing
   parsedUrl.searchParams.set("kiosk_timer", "1");
-  if (!parsedUrl.searchParams.get("print_gap_ms")) {
-    parsedUrl.searchParams.set("print_gap_ms", String(DEFAULT_PRINT_GAP_MS));
-  }
+  if (!parsedUrl.searchParams.get("print_gap_ms")) parsedUrl.searchParams.set("print_gap_ms", String(settings.printGapMs || DEFAULT_PRINT_GAP_MS));
+  if (!parsedUrl.searchParams.get("thermal_width_mm")) parsedUrl.searchParams.set("thermal_width_mm", String(settings.paperWidthMm));
+  if (!parsedUrl.searchParams.get("thermal_height_mm")) parsedUrl.searchParams.set("thermal_height_mm", String(settings.fixedHeightMm));
+  if (!parsedUrl.searchParams.get("thermal_cut_offset_mm")) parsedUrl.searchParams.set("thermal_cut_offset_mm", String(settings.cutOffsetMm));
 
   return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
 };
@@ -151,7 +155,8 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 
 export const openPrintUrl = (url: string, namePrefix = "print", features = DEFAULT_PRINT_FEATURES) => {
   const stampedUrl = buildStampedPrintUrl(addKioskPrintParams(url));
-  const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, normalizePrintFeatures(features));
+  const resolvedFeatures = features === DEFAULT_PRINT_FEATURES ? buildThermalPrintFeatures() : features;
+  const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, normalizePrintFeatures(resolvedFeatures));
   schedulePopupActivation(popup);
   return popup;
 };
