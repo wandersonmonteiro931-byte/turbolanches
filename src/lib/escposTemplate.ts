@@ -129,7 +129,7 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
   if (/\[TXTGIGANTE\]/i.test(rawLine)) style.giant = true;
   if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
-  if (/\[TXTMEDIO\]/i.test(rawLine) && !style.big) style.medium = true;
+  if (/\[TXTMEDIO\]|\[NEGRITO\]/i.test(rawLine) && !style.big && !style.giant) style.medium = true;
   if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
   if (/\[CAIXA\]/i.test(rawLine)) {
     style.box = true;
