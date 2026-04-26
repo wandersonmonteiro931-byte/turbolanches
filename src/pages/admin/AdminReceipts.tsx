@@ -11,6 +11,12 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { openPrintUrl } from "@/lib/printPopup";
 import { toast } from "sonner";
+import {
+  DEFAULT_THERMAL_PRINT_SETTINGS,
+  ThermalPrintSettings,
+  getThermalPrintSettings,
+  saveThermalPrintSettings,
+} from "@/lib/thermalPrintSettings";
 
 const tabConfig = [
   { type: "pedido", label: "Comanda Pedido", icon: ClipboardList },
@@ -71,6 +77,18 @@ const AdminReceipts = () => {
   const [editData, setEditData] = useState<Record<string, Partial<ReceiptTemplate>>>({});
   const [printQty, setPrintQty] = useState<Record<string, number>>({});
   const [printing, setPrinting] = useState(false);
+  const [thermalSettings, setThermalSettings] = useState<ThermalPrintSettings>(() => getThermalPrintSettings());
+
+  const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number) => {
+    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value });
+    setThermalSettings(next);
+  };
+
+  const resetThermalSettings = () => {
+    const next = saveThermalPrintSettings(DEFAULT_THERMAL_PRINT_SETTINGS);
+    setThermalSettings(next);
+    toast.success("Padrão deste computador restaurado.");
+  };
 
   const handlePrintTest = async (e: React.MouseEvent, type: string) => {
     e.preventDefault();
