@@ -1007,6 +1007,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   }
 
   const isOpenToday = register?.status === "open" && register?.business_day === todayBusinessDay;
+  // Caixa de dia anterior ainda em aberto: apenas EXIBE aviso — não bloqueia mais
+  // a abertura de um novo caixa (o anterior pode ser encerrado pelo Histórico).
   const previousDayBlocking = register && register.status === "open" && register.business_day !== todayBusinessDay;
   // Reminder: store closed but cash still open → blink to remind admin to close it
   const remindClose = isOpenToday && !storeIsOpen;
