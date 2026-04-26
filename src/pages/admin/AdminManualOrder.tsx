@@ -12,6 +12,7 @@ import CustomerSearch from "@/components/admin/CustomerSearch";
 import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
+import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,

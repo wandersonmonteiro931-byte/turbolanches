@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { openPrintUrl } from "@/lib/printPopup";
+import { tryPrintOrderViaQz } from "@/lib/printRouter";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -503,7 +504,12 @@ const AdminOrders = () => {
     }
   };
 
-  const printReceipt = (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
+  const printReceipt = async (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
+    // Tenta QZ Tray (ESC/POS) primeiro — corte exato, sem sobra
+    if (tipo === "pedido" || tipo === "obrigado") {
+      const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
+      if (sentViaQz) return;
+    }
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };

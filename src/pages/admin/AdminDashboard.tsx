@@ -15,6 +15,7 @@ import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { openPrintUrl } from "@/lib/printPopup";
+import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
@@ -601,7 +602,11 @@ const AdminDashboard = () => {
     fetchOrders();
   };
 
-  const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
+  const printReceipt = async (orderId: string, tipo: string, delayMs?: number) => {
+    // Tenta QZ Tray (ESC/POS) primeiro — corte exato, sem sobra
+    const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
+    if (sentViaQz) return;
+
     const params = new URLSearchParams({ tipo });
     if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
     // copies/kiosk_timer/print_gap_ms are injected by openPrintUrl → addKioskPrintParams
