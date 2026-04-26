@@ -601,11 +601,11 @@ const AdminDashboard = () => {
   };
 
   const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
-    const params = new URLSearchParams({ tipo, copies: "10", print_gap_ms: "1200" });
+    const params = new URLSearchParams({ tipo });
     if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
+    // copies/kiosk_timer/print_gap_ms are injected by openPrintUrl → addKioskPrintParams
     const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=300,height=600");
     if (!w) return;
-    // AdminPrint.tsx already calls window.print() + window.close() on load
   };
   const acceptAllPending = async () => {
     if (!cashRegisterOpen) {
