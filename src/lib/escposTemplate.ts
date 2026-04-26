@@ -29,13 +29,15 @@ const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.split(k).join(v ?? "");
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.split(k).join(v ?? "");
+    }
   }
   return out;
 };
 
-const ITEM_TOKENS = ["[ITENS]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]"];
+const ITEM_TOKENS = ["[ITENS]", "[ITEM]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]", "[CÓDIGOPROD]", "[CODIGOPROD]"];
 
 const lineHasItemToken = (line: string) => ITEM_TOKENS.some((t) => line.includes(t));
 
@@ -47,7 +49,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (items.length === 0) return [];
 
       // Caso 1: linha é só [ITENS] → expande em formato padrão
-      if (rawLine.trim() === "[ITENS]") {
+      if (/^\s*\[(ITENS|ITEM)\]\s*$/i.test(rawLine)) {
         const out: string[] = [];
         for (const it of items) {
           const lineTotal = it.unitPrice * it.quantity
@@ -77,6 +79,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[PREÇOPROD]": fmt(it.unitPrice),
           "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
           "[ADICIONAIS]": addonsText,
+          "[CÓDIGOPROD]": "",
+          "[CODIGOPROD]": "",
         };
         return [replaceTokens(rawLine, itemVars)];
       });
