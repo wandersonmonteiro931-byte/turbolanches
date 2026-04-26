@@ -218,18 +218,25 @@ export const renderTemplateToEscPos = (
     }
 
     const { style, text } = parseLineStyle(rawLine);
-
-    // Caso especial: linha com [TROCO]/[FUNDPRETO] vazio resolve em "R$ 0,00" sem conteúdo útil
     const finalText = style.upper ? text.toLocaleUpperCase("pt-BR") : text;
 
-    if (!finalText.trim()) {
-      // Linha que sobrou só com tags vazias — pula
+    if (!finalText.replace(/\s/g, "")) {
+      // Linha que sobrou só com tags vazias e/ou espaços — pula
       continue;
     }
 
+    // Largura efetiva: texto duplo ocupa 2x cada caractere → metade das colunas.
+    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
+
     applyStyleToBuilder(b, style);
-    // Quebra texto longo respeitando largura
-    b.wrap(finalText);
+
+    // Se a linha JÁ CABE na largura efetiva, imprime literal preservando todos
+    // os espaços (espaçamento manual do usuário). Senão, faz wrap por palavra.
+    if (finalText.length <= effectiveCols) {
+      b.rawText(finalText);
+    } else {
+      b.wrap(finalText, effectiveCols);
+    }
     resetStyle(b);
   }
 
