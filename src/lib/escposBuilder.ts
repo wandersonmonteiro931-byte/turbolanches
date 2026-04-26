@@ -108,6 +108,12 @@ export class EscPosBuilder {
     return this;
   }
 
+  /** ESC M n — fonte A/B. Em muitas térmicas, B é menor/condensada. */
+  font(mode: "A" | "B"): this {
+    this.push(ESC, 0x4d, mode === "B" ? 1 : 0);
+    return this;
+  }
+
   text(value: string): this {
     for (const b of encodeCp1252(value)) this.bytes.push(b);
     return this;
@@ -168,12 +174,10 @@ export class EscPosBuilder {
       }
       if (tk.length > cols) {
         if (line) flush();
-        let rest = tk;
-        while (rest.length > cols) {
-          this.line(rest.slice(0, cols));
-          rest = rest.slice(cols);
-        }
-        line = rest;
+        // Regra da comanda: nunca cortar palavra ao meio. Se uma palavra for
+        // maior que a largura, enviamos a palavra inteira numa linha e deixamos
+        // a impressora lidar fisicamente com ela, sem fragmentar no software.
+        this.line(tk);
         continue;
       }
       if (line.length === 0) {
