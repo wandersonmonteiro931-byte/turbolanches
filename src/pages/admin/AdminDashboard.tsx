@@ -1126,7 +1126,10 @@ const AdminDashboard = () => {
       </body></html>
     `, 72));
     w.document.close();
-    setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
+    setTimeout(() => {
+      try { (w as any).prepareTightThermalPrintPage?.(); } catch {}
+      setTimeout(() => { w.print(); setTimeout(() => w.close(), 1400); }, 200);
+    }, 500);
   };
 
   // ── Delivery Report ──
