@@ -438,15 +438,26 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      // [QUADRADONEGRITO] isolado em uma linha = faixa preta sólida ponta-a-ponta
-      // (comportamento legado: serve como separador visual grosso/banner).
-      // [QUADRADO]/[RETANGULO] continuam apenas como marcadores de agrupamento.
-      if (blockTag.frame === "strong") {
-        applyStyleToBuilder(b, { ...DEFAULT_STYLE, invert: true, invertFull: true, bold: true });
-        b.rawText(" ".repeat(cols));
-        resetStyle(b);
+      // Bloco com borda real (replicando border solid do PDF antigo):
+      // [QUADRADONEGRITO] = borda grossa "="
+      // [QUADRADO]        = borda fina   "-"
+      // [RETANGULO]       = linha topo+base "-"
+      const ch = blockTag.frame === "strong" ? "=" : "-";
+      if (blockTag.kind === "open") {
+        if (blockTag.frame === "rect") {
+          b.line("-".repeat(cols));
+        } else {
+          b.rawText(`+${ch.repeat(Math.max(0, cols - 2))}+`);
+        }
+        activeBlockFrame = blockTag.frame;
+      } else {
+        if (activeBlockFrame === "rect") {
+          b.line("-".repeat(cols));
+        } else {
+          b.rawText(`+${ch.repeat(Math.max(0, cols - 2))}+`);
+        }
+        activeBlockFrame = "none";
       }
-      activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
 
