@@ -202,25 +202,52 @@ const effectiveColumns = (cols: number, style: LineStyle) => {
   return cols;
 };
 
+const wrapAddressLines = (text: string, cols: number) => {
+  const width = Math.max(1, cols);
+  const words = text.trim().match(/\S+/g) || [];
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    if (!line) {
+      line = word;
+      continue;
+    }
+
+    if (line.length + 1 + word.length <= width) {
+      line += ` ${word}`;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines.length ? lines : [text];
+};
+
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
+  const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
 
   // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
   // transparentes cortando a caixa, mantendo o tamanho configurado.
   if (style.invertFull || style.invert) {
-    const trimmedTxt = finalText.trim();
     const effectiveCols = effectiveColumns(cols, style);
-    let padded: string;
-    if (trimmedTxt.length >= effectiveCols) {
-      padded = trimmedTxt;
-    } else {
-      const total = effectiveCols - trimmedTxt.length;
-      const left = Math.floor(total / 2);
-      padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
-    }
     applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, frame: "none", box: false });
-    b.rawText(padded);
+    for (const line of outputLines) {
+      const trimmedTxt = line.trim();
+      let padded: string;
+      if (trimmedTxt.length >= effectiveCols) {
+        padded = trimmedTxt;
+      } else {
+        const total = effectiveCols - trimmedTxt.length;
+        const left = Math.floor(total / 2);
+        padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
+      }
+      b.rawText(padded);
+    }
     resetStyle(b);
     return;
   }
@@ -232,7 +259,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
     applyStyleToBuilder(b, { ...style, frame: "none", box: false, big: false, giant: false, medium: false, small: false });
-    b.rawText(boxedLine(finalText, cols, style.align));
+    for (const line of outputLines) b.rawText(boxedLine(line, cols, style.align));
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
     return;
@@ -240,8 +267,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   applyStyleToBuilder(b, style);
   // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
-  // Mantém exatamente como foi configurado.
-  b.rawText(finalText);
+  // Exceção do endereço: quebra somente em espaços para a impressora não cortar palavras.
+  for (const line of outputLines) b.rawText(line);
   resetStyle(b);
 };
 
