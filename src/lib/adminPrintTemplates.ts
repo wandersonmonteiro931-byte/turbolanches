@@ -133,7 +133,7 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
       var heightMm = Math.max(8, Math.round(((bottomPx - topPx) * 25.4 / 96) * 100) / 100);
       var style = document.getElementById("tight-thermal-page-size");
       if (!style) { style = document.createElement("style"); style.id = "tight-thermal-page-size"; document.head.appendChild(style); }
-      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
+      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;}@page :left{margin:0!important;}@page :right{margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFinalCut, { once: true });
     else markFinalCut();
