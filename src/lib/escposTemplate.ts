@@ -181,37 +181,46 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
 
-  const width = effectiveColumns(cols, style);
-  if (style.invertFull) {
+  // [TZTBORDA] / [TXTBORDA] / [FUNDPRETO] / [TXTBORDATXT]:
+  // Fundo preto cobrindo a linha inteira (ponta a ponta) formando um retângulo.
+  // Conforme regra do usuário, o fundo preto deve ser sempre um QUADRADO/RETÂNGULO
+  // ao redor do texto e nunca apenas atrás das letras.
+  if (style.invertFull || style.invert) {
     const trimmedTxt = finalText.trim();
-    const padded = trimmedTxt.length >= width
+    const padded = trimmedTxt.length >= cols
       ? trimmedTxt
       : (() => {
-          const total = width - trimmedTxt.length;
+          const total = cols - trimmedTxt.length;
           const left = Math.floor(total / 2);
           return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
         })();
-    applyStyleToBuilder(b, style);
+    const blank = " ".repeat(cols);
+    applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, big: false, giant: false, medium: false });
+    b.rawText(blank);
     b.rawText(padded);
+    b.rawText(blank);
     resetStyle(b);
     return;
   }
 
   if (style.box || style.frame !== "none") {
-    const border = frameChar(style.box ? "strong" : style.frame).repeat(cols);
+    const useStrong = style.box || style.frame === "strong";
+    const ch = useStrong ? "=" : "-";
+    const border = ch.repeat(cols);
     resetStyle(b);
-    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    b.bold(useStrong).line(border).bold(false);
     applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-    if (finalText.length <= width) b.rawText(finalText);
-    else b.wrap(finalText, width);
+    // Nunca quebrar: imprime literal mesmo se passar do tamanho.
+    b.rawText(finalText);
     resetStyle(b);
-    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    b.bold(useStrong).line(border).bold(false);
     return;
   }
 
   applyStyleToBuilder(b, style);
-  if (finalText.length <= width) b.rawText(finalText);
-  else b.wrap(finalText, width);
+  // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
+  // Mantém exatamente como foi configurado.
+  b.rawText(finalText);
   resetStyle(b);
 };
 
