@@ -388,7 +388,7 @@ export const renderAdminTemplateMarkup = (
 
       // Preserve empty lines as spacing
       if (!trimmed) return '<div class="info">&nbsp;</div>';
-      if (trimmed === "---") return '<div class="separator"></div>';
+      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
@@ -564,9 +564,8 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       body.style.overflow = "visible";
     } catch (error) {}
 
-    // Measure the bottom of the LAST visible content element relative to the
-    // document top. This avoids counting any trailing whitespace/padding from
-    // wrapper containers (which caused the white border at the end of receipts).
+    // Measure the exact receipt area. If the template ends with "---", that
+    // separator is the mandatory thermal cut point and nothing after it counts.
     var root = document.querySelector(".print-root") || body;
     var lastDoc = null;
     var docs = root.querySelectorAll(".print-document");
@@ -583,6 +582,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
 
     var bottomPx = 0;
     var topPx = 0;
+    var cutMarker = null;
     function measureBottom(el) {
       if (!el) return 0;
       try {
@@ -618,7 +618,11 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         }
       }
 
-      // Walk last leaves to find the true content bottom (ignoring trailing empty nodes)
+      var markers = lastDoc.querySelectorAll("[data-thermal-cut='true']");
+      if (markers.length) cutMarker = markers[markers.length - 1];
+
+      // Walk last leaves to find the true content bottom (ignoring trailing empty nodes),
+      // unless a final cut marker exists; then the marker is the receipt bottom.
       var leaves = lastDoc.querySelectorAll("*");
       for (var i = leaves.length - 1; i >= 0; i--) {
         var el = leaves[i];
@@ -627,6 +631,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
           break;
         }
       }
+      if (cutMarker) bottomPx = measureBottom(cutMarker);
       if (!bottomPx) bottomPx = measureBottom(lastDoc);
     } else {
       bottomPx = measureBottom(root);
@@ -783,6 +788,7 @@ const getSharedPrintStyles = ({
         ${frameCss}
         .center { display: block; width: 100%; text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
+        .print-section:last-child > .thermal-cut-marker:last-child { margin-bottom: 0 !important; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
         .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
         .txt-grande { font-size: ${largeTextPx}px !important; font-weight: 900; line-height: 1.18; }
