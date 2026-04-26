@@ -27,11 +27,19 @@ export interface ItemForTemplate {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+const ADDRESS_OPEN = "\uE000ADDR\uE000";
+const ADDRESS_CLOSE = "\uE000/ADDR\uE000";
+
+const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
+const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
+
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
   for (let pass = 0; pass < 2; pass += 1) {
     for (const [k, v] of Object.entries(vars)) {
-      out = out.split(k).join(v ?? "");
+      const value = v ?? "";
+      const replacement = isAddressToken(k) ? `${ADDRESS_OPEN}${formatAddressValue(value)}${ADDRESS_CLOSE}` : value;
+      out = out.split(k).join(replacement);
     }
   }
   return out;
@@ -104,6 +112,7 @@ interface LineStyle {
   invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
   invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
   frame: "none" | "thin" | "strong" | "rect";
+  address: boolean;
 }
 
 const DEFAULT_STYLE: LineStyle = {
@@ -118,12 +127,14 @@ const DEFAULT_STYLE: LineStyle = {
   invert: false,
   invertFull: false,
   frame: "none",
+  address: false,
 };
 
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
+  if (rawLine.includes(ADDRESS_OPEN)) style.address = true;
 
   if (/\[CENTRO\]/i.test(rawLine)) style.align = "center";
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
@@ -148,7 +159,7 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
 
-  const text = rawLine.replace(ALL_TAGS_RE, "");
+  const text = rawLine.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
   return { style, text };
 };
 
@@ -191,25 +202,52 @@ const effectiveColumns = (cols: number, style: LineStyle) => {
   return cols;
 };
 
+const wrapAddressLines = (text: string, cols: number) => {
+  const width = Math.max(1, cols);
+  const words = text.trim().match(/\S+/g) || [];
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    if (!line) {
+      line = word;
+      continue;
+    }
+
+    if (line.length + 1 + word.length <= width) {
+      line += ` ${word}`;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+
+  if (line) lines.push(line);
+  return lines.length ? lines : [text];
+};
+
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
+  const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
 
   // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
   // transparentes cortando a caixa, mantendo o tamanho configurado.
   if (style.invertFull || style.invert) {
-    const trimmedTxt = finalText.trim();
     const effectiveCols = effectiveColumns(cols, style);
-    let padded: string;
-    if (trimmedTxt.length >= effectiveCols) {
-      padded = trimmedTxt;
-    } else {
-      const total = effectiveCols - trimmedTxt.length;
-      const left = Math.floor(total / 2);
-      padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
-    }
     applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, frame: "none", box: false });
-    b.rawText(padded);
+    for (const line of outputLines) {
+      const trimmedTxt = line.trim();
+      let padded: string;
+      if (trimmedTxt.length >= effectiveCols) {
+        padded = trimmedTxt;
+      } else {
+        const total = effectiveCols - trimmedTxt.length;
+        const left = Math.floor(total / 2);
+        padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
+      }
+      b.rawText(padded);
+    }
     resetStyle(b);
     return;
   }
@@ -221,7 +259,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
     applyStyleToBuilder(b, { ...style, frame: "none", box: false, big: false, giant: false, medium: false, small: false });
-    b.rawText(boxedLine(finalText, cols, style.align));
+    for (const line of outputLines) b.rawText(boxedLine(line, cols, style.align));
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
     return;
@@ -229,8 +267,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   applyStyleToBuilder(b, style);
   // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
-  // Mantém exatamente como foi configurado.
-  b.rawText(finalText);
+  // Exceção do endereço: quebra somente em espaços para a impressora não cortar palavras.
+  for (const line of outputLines) b.rawText(line);
   resetStyle(b);
 };
 
@@ -248,7 +286,8 @@ const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
   // Não corta texto/número: se passar da largura, imprime inteiro e deixa
   // a impressora lidar fisicamente, sem quebrar no software.
-  b.rawText(boxedLine(text, cols, style.align));
+  const lines = style.address ? wrapAddressLines(text, effectiveColumns(cols, style)) : [text];
+  for (const line of lines) b.rawText(boxedLine(line, cols, style.align));
   resetStyle(b);
 };
 

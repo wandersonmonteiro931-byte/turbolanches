@@ -35,6 +35,8 @@ const DEFAULT_LABELS: Record<string, string> = {
   entregador: "FECHAMENTO DE ROTA",
 };
 
+const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
+
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
 [CENTRO][TIPOCOMANDA][/CENTRO]
@@ -125,7 +127,7 @@ export const tryPrintOrderViaQz = async (
     ].filter(Boolean);
     const address = isTableOrder
       ? tableCode
-      : (addressParts.join(" | ") || "Retirada no local");
+      : formatPrintAddress(addressParts.join(" | ") || "Retirada no local");
 
     const subtotal = Number(order.subtotal) || 0;
     const deliveryFee = Number(order.delivery_fee) || 0;

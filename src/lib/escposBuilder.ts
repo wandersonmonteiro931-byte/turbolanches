@@ -280,7 +280,7 @@ export const buildOrderEscPos = (
     if (order.customerPhone) b.line(`Tel: ${order.customerPhone}`);
     if (order.address) {
       b.line("Endereço:");
-      b.wrap(order.address);
+        b.wrap(order.address.toLocaleUpperCase("pt-BR"));
     }
     b.separator("-");
   }
