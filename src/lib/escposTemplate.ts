@@ -223,12 +223,10 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
   return null;
 };
 
-const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number, frame: LineStyle["frame"]) => {
+const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const width = Math.max(4, effectiveColumns(cols, style) - 4);
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
   const chunks = text.length <= width ? [text] : (() => {
-    const tmp = new EscPosBuilder({ columns: width, feedLines: 0 });
-    void tmp;
     const tokens = text.match(/\s+|\S+/g) || [];
     const out: string[] = [];
     let line = "";
