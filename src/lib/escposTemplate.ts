@@ -69,6 +69,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
         const addonsText = (it.addons || []).map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(" | ");
         const itemVars = {
           "[ITENS]": "",
+          "[ITEM]": "",
           "[PRODUTO]": it.productName,
           "[PRODUTOS]": it.productName,
           "[QNTITENS]": String(it.quantity),
@@ -77,6 +78,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[PREÇOPROD]": fmt(it.unitPrice),
           "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
           "[ADICIONAIS]": addonsText,
+          "[CÓDIGOPROD]": "",
+          "[CODIGOPROD]": "",
         };
         return [replaceTokens(rawLine, itemVars)];
       });
