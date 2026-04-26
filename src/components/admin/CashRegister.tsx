@@ -1781,7 +1781,7 @@ ${(() => {
 <hr/>
 <div><strong>SALDO FINAL (valores informados)</strong></div>
 <div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
-<div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div><hr/>`, 80);
+<div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div><hr/>`;
 })()}
 <script>
 (function(){
@@ -1796,7 +1796,7 @@ ${(() => {
   window.onload = function(){ setTimeout(fire, 300); };
 })();
 </script>
-</body></html>`;
+</body></html>`, 80);
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
   if (!w) return;
   w.document.open();
