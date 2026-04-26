@@ -82,9 +82,12 @@ const AdminReceipts = () => {
   const [printQty, setPrintQty] = useState<Record<string, number>>({});
   const [printing, setPrinting] = useState(false);
   const [thermalSettings, setThermalSettings] = useState<ThermalPrintSettings>(() => getThermalPrintSettings());
+  const [qzPrinters, setQzPrinters] = useState<string[]>([]);
+  const [qzStatus, setQzStatus] = useState<"unknown" | "online" | "offline">("unknown");
+  const [qzBusy, setQzBusy] = useState(false);
 
-  const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number) => {
-    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value });
+  const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
+    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
     setThermalSettings(next);
   };
 
@@ -92,6 +95,59 @@ const AdminReceipts = () => {
     const next = saveThermalPrintSettings(DEFAULT_THERMAL_PRINT_SETTINGS);
     setThermalSettings(next);
     toast.success("Padrão deste computador restaurado.");
+  };
+
+  const detectQz = async () => {
+    setQzBusy(true);
+    try {
+      const ok = await isQzAvailable();
+      setQzStatus(ok ? "online" : "offline");
+      if (ok) {
+        const [printers, def] = await Promise.all([listQzPrinters(), getQzDefaultPrinter()]);
+        setQzPrinters(printers);
+        if (!thermalSettings.qzPrinterName && def) {
+          updateThermalSetting("qzPrinterName", def);
+        }
+        toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
+      } else {
+        toast.error("QZ Tray não está rodando neste computador. Instale e abra o QZ Tray.");
+      }
+    } catch (err) {
+      console.error(err);
+      setQzStatus("offline");
+      toast.error("Falha ao conectar com QZ Tray.");
+    } finally {
+      setQzBusy(false);
+    }
+  };
+
+  const handleQzTest = async () => {
+    if (!thermalSettings.qzPrinterName) {
+      toast.error("Selecione uma impressora primeiro.");
+      return;
+    }
+    setQzBusy(true);
+    try {
+      const b = new EscPosBuilder({
+        columns: thermalSettings.qzColumns,
+        codepage: thermalSettings.qzCodepage,
+        feedLines: thermalSettings.qzFeedLines,
+      });
+      b.align("center").bold(true).size(1, 1).line("TURBO LANCHES").size(0, 0).bold(false);
+      b.separator("=");
+      b.align("center").line("TESTE DE IMPRESSÃO").line("QZ Tray + ESC/POS");
+      b.separator("-");
+      b.align("left").line("Acentuação: ção, área, façanha");
+      b.line(new Date().toLocaleString("pt-BR"));
+      b.feed().cut();
+      await printRawEscPos(thermalSettings.qzPrinterName, b.build(), 1);
+      toast.success("Teste enviado! O corte deve sair exatamente após o texto.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Falha no teste: ${err?.message || "verifique o QZ Tray"}`);
+    } finally {
+      setQzBusy(false);
+    }
   };
 
   const handlePrintTest = async (e: React.MouseEvent, type: string) => {
