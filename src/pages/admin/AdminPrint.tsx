@@ -185,7 +185,7 @@ const AdminPrint = () => {
   const keepOpen = searchParams.get("keep_open") === "1";
   const thermalWidthMm = Math.max(40, Math.min(110, Number(searchParams.get("thermal_width_mm") || "72") || 72));
   const thermalHeightMm = Math.max(0, Math.min(500, Number(searchParams.get("thermal_height_mm") || "0") || 0));
-  const thermalCutOffsetMm = Math.max(-80, Math.min(80, Number(searchParams.get("thermal_cut_offset_mm") || "0") || 0));
+  const thermalCutOffsetMm = Math.max(0, Math.min(80, Number(searchParams.get("thermal_cut_offset_mm") || "0") || 0));
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -394,11 +394,7 @@ const AdminPrint = () => {
       labelFontSizePx: tpl?.label_font_size ?? 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,
-      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n${
-        thermalCutOffsetMm >= 0
-          ? `.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`
-          : `@media print{html,body{margin-bottom:${thermalCutOffsetMm}mm !important;}.print-root,.print-document{margin-bottom:${thermalCutOffsetMm}mm !important;}.print-document>*:last-child,.print-section:last-child{margin-bottom:${thermalCutOffsetMm}mm !important;padding-bottom:0 !important;}}`
-      }`,
+      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
     });
   }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
 
