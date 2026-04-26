@@ -88,13 +88,25 @@ const ensureFinalThermalCutMarker = (template: string) => {
 
 export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
   const markerScript = `<script>(function(){
+    if (window.__TURBO_TIGHT_THERMAL_INSTALLED__) return;
+    window.__TURBO_TIGHT_THERMAL_INSTALLED__ = true;
     var pageWidthMm = ${pageWidthMm};
+    var nativePrint = window.print ? window.print.bind(window) : null;
     function markFinalCut(){
-      var candidates = Array.prototype.slice.call(document.querySelectorAll("hr,.separator,[data-thermal-cut='true']"));
+      var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true'],hr,.separator,.sep"));
+      if (!candidates.length && document.body) {
+        var forced = document.createElement("div");
+        forced.className = "separator thermal-cut-marker";
+        forced.setAttribute("data-thermal-cut", "true");
+        forced.style.cssText = "border-top:1px dashed #000!important;height:0!important;line-height:0!important;margin:0!important;padding:0!important;";
+        document.body.appendChild(forced);
+        candidates = [forced];
+      }
       if (!candidates.length) return;
       var last = candidates[candidates.length - 1];
       last.setAttribute("data-thermal-cut", "true");
       last.className = ((last.className || "") + " thermal-cut-marker").trim();
+      try { last.style.marginBottom = "0"; last.style.paddingBottom = "0"; last.style.breakAfter = "auto"; last.style.pageBreakAfter = "auto"; } catch(e) {}
       document.body && document.body.setAttribute("data-page-width-mm", String(pageWidthMm));
     }
     function prepareTightLegacyPage(){
@@ -105,11 +117,14 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
         document.documentElement.style.margin = "0";
         document.documentElement.style.padding = "0";
         document.documentElement.style.border = "0";
+        document.documentElement.style.width = pageWidthMm + "mm";
         document.documentElement.style.minHeight = "0";
         document.documentElement.style.height = "auto";
+        document.documentElement.style.overflow = "hidden";
         body.style.margin = "0";
         body.style.padding = "0";
         body.style.border = "0";
+        body.style.width = pageWidthMm + "mm";
         body.style.minHeight = "0";
         body.style.height = "auto";
         body.style.overflow = "visible";
@@ -133,7 +148,13 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
       var heightMm = Math.max(8, Math.round(((bottomPx - topPx) * 25.4 / 96) * 100) / 100);
       var style = document.getElementById("tight-thermal-page-size");
       if (!style) { style = document.createElement("style"); style.id = "tight-thermal-page-size"; document.head.appendChild(style); }
-      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;}@page :left{margin:0!important;}@page :right{margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
+      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:0!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body{position:absolute!important;top:0!important;left:0!important;margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:0!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}[data-thermal-cut='true']{margin-bottom:0!important;padding-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
+    }
+    if (nativePrint) {
+      window.print = function(){
+        try { prepareTightLegacyPage(); } catch (error) {}
+        return nativePrint();
+      };
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFinalCut, { once: true });
     else markFinalCut();
