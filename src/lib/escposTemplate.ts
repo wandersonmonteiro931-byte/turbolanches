@@ -142,6 +142,8 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
   if (/\[TXTMEDIO\]|\[NEGRITO\]/i.test(rawLine) && !style.big && !style.giant) style.medium = true;
   if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
+  // [CAIXA] = quadro com BORDA preta ao redor (não fundo preto).
+  // No HTML antigo: border: 2.5px solid #000.
   if (/\[CAIXA\]/i.test(rawLine)) {
     style.box = true;
     style.bold = true;
@@ -154,11 +156,11 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
   if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
+  // [QUADRADONEGRITO] inline = quadro com BORDA grossa (border: 3px solid).
+  // Não é fundo preto — é uma moldura. Quando aparece sozinho em uma linha,
+  // o renderer trata como abertura/fechamento de bloco com borda grossa.
   if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    // Inline com conteúdo na mesma linha: faixa preta sólida ponta-a-ponta
-    // (equivalente a [TZTBORDA]). Quando aparece sozinho em uma linha,
-    // o renderer principal trata como banner separador antes de chegar aqui.
-    style.invertFull = true;
+    style.frame = "strong";
     style.bold = true;
   }
 
@@ -270,8 +272,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
   const fittedStyle = fitStyleToSingleLine(style, outputLines, cols);
 
-  // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
-  // transparentes cortando a caixa, mantendo o tamanho configurado.
+  // Fundo preto sólido ponta-a-ponta (apenas [TZTBORDA]/[TXTBORDA]/[FUNDPRETO]).
   if (fittedStyle.invertFull || fittedStyle.invert) {
     const effectiveCols = effectiveColumns(cols, fittedStyle);
     applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: true, frame: "none", box: false });
@@ -291,10 +292,46 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
+  // [CAIXA] / [QUADRADO] / [QUADRADONEGRITO] / [RETANGULO] = MOLDURA com bordas
+  // de caracteres (replicando border:Xpx solid #000 do PDF antigo).
+  // Não invertemos o fundo — só desenhamos as bordas + texto dentro.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
-    resetStyle(b);
-    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false, invert: true, invertFull: true });
-    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
+    const frame: LineStyle["frame"] = fittedStyle.frame !== "none" ? fittedStyle.frame : "thin";
+    const ch = frame === "strong" ? "=" : "-";
+    const eff = effectiveColumns(cols, fittedStyle);
+    const inner = Math.max(1, eff - 4); // "| " + texto + " |"
+
+    // Topo
+    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
+    b.rawText(`+${ch.repeat(Math.max(0, eff - 2))}+`);
+
+    for (const line of outputLines) {
+      const trimmedTxt = line.trim();
+      // Quebra texto se exceder o inner
+      const chunks: string[] = [];
+      if (trimmedTxt.length <= inner) chunks.push(trimmedTxt);
+      else {
+        // wrap por palavras
+        const words = trimmedTxt.split(/\s+/);
+        let cur = "";
+        for (const w of words) {
+          if (!cur) { cur = w; continue; }
+          if (cur.length + 1 + w.length <= inner) cur += ` ${w}`;
+          else { chunks.push(cur); cur = w; }
+        }
+        if (cur) chunks.push(cur);
+      }
+      for (const chunk of chunks) {
+        const remaining = inner - chunk.length;
+        const left = fittedStyle.align === "center" ? Math.floor(remaining / 2)
+                   : fittedStyle.align === "right" ? remaining : 0;
+        const right = remaining - left;
+        b.rawText(`| ${" ".repeat(left)}${chunk}${" ".repeat(right)} |`);
+      }
+    }
+
+    // Fundo
+    b.rawText(`+${ch.repeat(Math.max(0, eff - 2))}+`);
     resetStyle(b);
     return;
   }
@@ -316,31 +353,56 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
   return null;
 };
 
-const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  // Dentro de um bloco (QUADRADO/QUADRADONEGRITO/RETANGULO) NÃO desenhamos bordas
-  // com caracteres "| ... |" / "+---+". O bloco é apenas um agrupamento visual:
-  // imprimimos o conteúdo normalmente respeitando o estilo configurado.
+const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number, frame: LineStyle["frame"] = "thin") => {
+  // Conteúdo dentro de um bloco aberto ([QUADRADO]/[QUADRADONEGRITO]).
+  // Para [RETANGULO] não desenhamos laterais (apenas topo+base).
+  if (frame === "rect") {
+    if (!text.replace(/\s/g, "")) { b.newline(); return; }
+    const fittedStyle = fitStyleToSingleLine(style, [text], cols);
+    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
+    const eff = effectiveColumns(cols, fittedStyle);
+    const trimmed = text.trim();
+    if (fittedStyle.align === "center" && trimmed.length < eff) {
+      const total = eff - trimmed.length;
+      const left = Math.floor(total / 2);
+      b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
+    } else {
+      b.rawText(text);
+    }
+    resetStyle(b);
+    return;
+  }
+
+  const inner = Math.max(1, cols - 4);
   if (!text.replace(/\s/g, "")) {
-    b.newline();
+    // linha vazia dentro do quadro: "|        |"
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+    b.rawText(`| ${" ".repeat(inner)} |`);
+    resetStyle(b);
     return;
   }
   const fittedStyle = fitStyleToSingleLine(style, [text], cols);
   applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
-  const lines = fittedStyle.address ? wrapAddressLines(text, effectiveColumns(cols, fittedStyle)) : [text];
-  for (const line of lines) {
-    if (fittedStyle.align === "center") {
-      const eff = effectiveColumns(cols, fittedStyle);
-      const trimmed = line.trim();
-      if (trimmed.length < eff) {
-        const total = eff - trimmed.length;
-        const left = Math.floor(total / 2);
-        b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
-      } else {
-        b.rawText(trimmed);
-      }
-    } else {
-      b.rawText(line);
+  const trimmed = text.trim();
+  // Quebra por palavras se exceder inner
+  const chunks: string[] = [];
+  if (trimmed.length <= inner) chunks.push(trimmed);
+  else {
+    const words = trimmed.split(/\s+/);
+    let cur = "";
+    for (const w of words) {
+      if (!cur) { cur = w; continue; }
+      if (cur.length + 1 + w.length <= inner) cur += ` ${w}`;
+      else { chunks.push(cur); cur = w; }
     }
+    if (cur) chunks.push(cur);
+  }
+  for (const chunk of chunks) {
+    const remaining = inner - chunk.length;
+    const left = fittedStyle.align === "center" ? Math.floor(remaining / 2)
+               : fittedStyle.align === "right" ? remaining : 0;
+    const right = remaining - left;
+    b.rawText(`| ${" ".repeat(left)}${chunk}${" ".repeat(right)} |`);
   }
   resetStyle(b);
 };
@@ -401,21 +463,32 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      // [QUADRADONEGRITO] isolado em uma linha = faixa preta sólida ponta-a-ponta
-      // (comportamento legado: serve como separador visual grosso/banner).
-      // [QUADRADO]/[RETANGULO] continuam apenas como marcadores de agrupamento.
-      if (blockTag.frame === "strong") {
-        applyStyleToBuilder(b, { ...DEFAULT_STYLE, invert: true, invertFull: true, bold: true });
-        b.rawText(" ".repeat(cols));
-        resetStyle(b);
+      // Bloco com borda real (replicando border solid do PDF antigo):
+      // [QUADRADONEGRITO] = borda grossa "="
+      // [QUADRADO]        = borda fina   "-"
+      // [RETANGULO]       = linha topo+base "-"
+      const ch = blockTag.frame === "strong" ? "=" : "-";
+      if (blockTag.kind === "open") {
+        if (blockTag.frame === "rect") {
+          b.line("-".repeat(cols));
+        } else {
+          b.rawText(`+${ch.repeat(Math.max(0, cols - 2))}+`);
+        }
+        activeBlockFrame = blockTag.frame;
+      } else {
+        if (activeBlockFrame === "rect") {
+          b.line("-".repeat(cols));
+        } else {
+          b.rawText(`+${ch.repeat(Math.max(0, cols - 2))}+`);
+        }
+        activeBlockFrame = "none";
       }
-      activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
 
     // Linha vazia
     if (!trimmed) {
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols);
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols, activeBlockFrame);
       else b.newline();
       continue;
     }
@@ -423,7 +496,7 @@ export const renderTemplateToEscPos = (
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols, activeBlockFrame);
       else b.line("-".repeat(cols));
       continue;
     }
@@ -439,7 +512,7 @@ export const renderTemplateToEscPos = (
 
     const { style, text } = parseLineStyle(rawLine);
     if (activeBlockFrame !== "none" && style.frame === "none" && !style.box && !style.invertFull) {
-      renderBlockContentLine(b, style, text, cols);
+      renderBlockContentLine(b, style, text, cols, activeBlockFrame);
     } else {
       renderStyledText(b, style, text, cols);
     }
