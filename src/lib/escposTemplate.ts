@@ -272,8 +272,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
   const fittedStyle = fitStyleToSingleLine(style, outputLines, cols);
 
-  // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
-  // transparentes cortando a caixa, mantendo o tamanho configurado.
+  // Fundo preto sólido ponta-a-ponta (apenas [TZTBORDA]/[TXTBORDA]/[FUNDPRETO]).
   if (fittedStyle.invertFull || fittedStyle.invert) {
     const effectiveCols = effectiveColumns(cols, fittedStyle);
     applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: true, frame: "none", box: false });
@@ -293,10 +292,46 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
+  // [CAIXA] / [QUADRADO] / [QUADRADONEGRITO] / [RETANGULO] = MOLDURA com bordas
+  // de caracteres (replicando border:Xpx solid #000 do PDF antigo).
+  // Não invertemos o fundo — só desenhamos as bordas + texto dentro.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
-    resetStyle(b);
-    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false, invert: true, invertFull: true });
-    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
+    const frame: LineStyle["frame"] = fittedStyle.frame !== "none" ? fittedStyle.frame : "thin";
+    const ch = frame === "strong" ? "=" : "-";
+    const eff = effectiveColumns(cols, fittedStyle);
+    const inner = Math.max(1, eff - 4); // "| " + texto + " |"
+
+    // Topo
+    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
+    b.rawText(`+${ch.repeat(Math.max(0, eff - 2))}+`);
+
+    for (const line of outputLines) {
+      const trimmedTxt = line.trim();
+      // Quebra texto se exceder o inner
+      const chunks: string[] = [];
+      if (trimmedTxt.length <= inner) chunks.push(trimmedTxt);
+      else {
+        // wrap por palavras
+        const words = trimmedTxt.split(/\s+/);
+        let cur = "";
+        for (const w of words) {
+          if (!cur) { cur = w; continue; }
+          if (cur.length + 1 + w.length <= inner) cur += ` ${w}`;
+          else { chunks.push(cur); cur = w; }
+        }
+        if (cur) chunks.push(cur);
+      }
+      for (const chunk of chunks) {
+        const remaining = inner - chunk.length;
+        const left = fittedStyle.align === "center" ? Math.floor(remaining / 2)
+                   : fittedStyle.align === "right" ? remaining : 0;
+        const right = remaining - left;
+        b.rawText(`| ${" ".repeat(left)}${chunk}${" ".repeat(right)} |`);
+      }
+    }
+
+    // Fundo
+    b.rawText(`+${ch.repeat(Math.max(0, eff - 2))}+`);
     resetStyle(b);
     return;
   }
