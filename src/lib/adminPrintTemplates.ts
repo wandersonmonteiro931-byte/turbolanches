@@ -747,32 +747,35 @@ const getSharedPrintStyles = ({
   const smallTextPx = Math.max(bodyFontSizePx - 3, 7);
 
   return `
-        @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
+        @page { size: ${pageSize} portrait; margin: 0 !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
+          html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
-          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+          * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .print-root { position: absolute !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
+          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }
+          .print-section { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; height: auto !important; }
+          .print-document:first-child, .print-section:first-child, .print-section:first-child > *:first-child { padding-top: 0 !important; margin-top: 0 !important; }
           .print-document:last-child { page-break-after: auto; break-after: auto; padding-bottom: 0 !important; margin-bottom: 0 !important; }
           .print-document > *:last-child, .print-section:last-child { padding-bottom: 0 !important; margin-bottom: 0 !important; }
-          .print-root { padding-bottom: 0 !important; margin-bottom: 0 !important; }
+          .print-section:last-child > *:last-child { padding-bottom: 0 !important; margin-bottom: 0 !important; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #ffffff; color: #000000; min-height: 0; height: auto; overflow: visible; }
+        html, body { background: #ffffff; color: #000000; margin: 0; padding: 0; border: 0; min-height: 0; height: auto; overflow: visible; }
         body {
           font-family: ${bodyFontFamily};
           font-size: ${bodyFontSizePx}px;
           font-weight: 900;
           width: ${pageWidthMm}mm;
-          padding: ${bodyPaddingMm}mm;
+          padding: 0;
           padding-bottom: 0;
           line-height: 1.3;
           letter-spacing: 0;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; padding: 0; margin: 0; border: 0; padding-bottom: 0; margin-bottom: 0; }
         .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; }
         .print-document + .print-document { margin-top: 0; border-top: 0; padding-top: 0; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
