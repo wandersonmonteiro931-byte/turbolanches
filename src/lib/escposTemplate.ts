@@ -168,6 +168,51 @@ const resetStyle = (b: EscPosBuilder) => {
   b.align("left").font("A").bold(false).size(0, 0).underline(0).invert(false);
 };
 
+const frameChar = (frame: LineStyle["frame"]) => (frame === "strong" ? "=" : "-");
+
+const effectiveColumns = (cols: number, style: LineStyle) => {
+  if (style.giant) return Math.max(8, Math.floor(cols / 3));
+  if (style.big || style.medium) return Math.max(8, Math.floor(cols / 2));
+  if (style.small) return Math.max(cols, Math.floor(cols * 1.25));
+  return cols;
+};
+
+const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const finalText = text;
+  if (!finalText.replace(/\s/g, "")) return;
+
+  const width = effectiveColumns(cols, style);
+  if (style.invertFull) {
+    const trimmedTxt = finalText.trim();
+    const padded = trimmedTxt.length >= width
+      ? trimmedTxt
+      : (() => {
+          const total = width - trimmedTxt.length;
+          const left = Math.floor(total / 2);
+          return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
+        })();
+    applyStyleToBuilder(b, style);
+    b.rawText(padded);
+    resetStyle(b);
+    return;
+  }
+
+  if (style.box || style.frame !== "none") {
+    const border = frameChar(style.box ? "strong" : style.frame).repeat(cols);
+    resetStyle(b);
+    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+    finalText.length <= width ? b.rawText(finalText) : b.wrap(finalText, width);
+    resetStyle(b);
+    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    return;
+  }
+
+  applyStyleToBuilder(b, style);
+  finalText.length <= width ? b.rawText(finalText) : b.wrap(finalText, width);
+  resetStyle(b);
+};
+
 // =============================================================================
 // Renderização
 // =============================================================================
