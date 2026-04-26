@@ -68,7 +68,10 @@ const AdminLayout = () => {
     }
 
     if (!isAdmin) {
-      navigate("/", { replace: true });
+      // Sign out the non-admin session so the kiosk can log in with an admin account
+      void supabase.auth.signOut().finally(() => {
+        navigate(`/auth?redirect=${encodeURIComponent(redirectTarget)}`, { replace: true });
+      });
     }
   }, [isAdmin, loading, navigate, redirectTarget, user]);
 
