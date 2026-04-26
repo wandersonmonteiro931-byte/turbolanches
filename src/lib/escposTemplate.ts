@@ -398,8 +398,14 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      // Apenas marca o início/fim do bloco. Sem desenhar faixa preta vazia
-      // (era isso que fazia "QUADRADONEGRITO" virar uma barra preta sem conteúdo).
+      // [QUADRADONEGRITO] isolado em uma linha = faixa preta sólida ponta-a-ponta
+      // (comportamento legado: serve como separador visual grosso/banner).
+      // [QUADRADO]/[RETANGULO] continuam apenas como marcadores de agrupamento.
+      if (blockTag.frame === "strong") {
+        applyStyleToBuilder(b, { ...DEFAULT_STYLE, invert: true, invertFull: true, bold: true });
+        b.rawText(" ".repeat(cols));
+        resetStyle(b);
+      }
       activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
