@@ -593,15 +593,15 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     if (!heightPx || heightPx < 1) return;
 
     var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
-    // No extra buffer — cut exactly at the content bottom.
-    var pageHeightMm = Math.max(8, Math.ceil(heightPx * 25.4 / 96));
+    // No integer-mm rounding: keep the page at the exact measured content height.
+    var pageHeightMm = Math.max(8, Math.round((heightPx * 25.4 / 96) * 100) / 100);
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");
       style.id = "tight-thermal-page-size";
       document.head.appendChild(style);
     }
-    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm;margin:0!important;}@media print{html,body,.print-root,.print-document{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}";
+    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm;margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:0!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-root,.print-document,.print-section{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-bottom:0!important;margin-bottom:0!important;}.print-document:last-child,.print-section:last-child,.print-section:last-child>*:last-child{padding-bottom:0!important;margin-bottom:0!important;}}";
 
     try {
       document.documentElement.style.minHeight = "0";
@@ -657,7 +657,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
   });
 
   window.addEventListener("beforeprint", function () {
-    // ignore
+    try { prepareTightPrintPage(); } catch (error) {}
   });
 
   window.addEventListener("afterprint", function () {
