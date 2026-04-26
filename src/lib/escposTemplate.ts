@@ -488,7 +488,7 @@ export const renderTemplateToEscPos = (
 
     // Linha vazia
     if (!trimmed) {
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols);
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols, activeBlockFrame);
       else b.newline();
       continue;
     }
@@ -496,7 +496,7 @@ export const renderTemplateToEscPos = (
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols, activeBlockFrame);
       else b.line("-".repeat(cols));
       continue;
     }
@@ -512,7 +512,7 @@ export const renderTemplateToEscPos = (
 
     const { style, text } = parseLineStyle(rawLine);
     if (activeBlockFrame !== "none" && style.frame === "none" && !style.box && !style.invertFull) {
-      renderBlockContentLine(b, style, text, cols);
+      renderBlockContentLine(b, style, text, cols, activeBlockFrame);
     } else {
       renderStyledText(b, style, text, cols);
     }
