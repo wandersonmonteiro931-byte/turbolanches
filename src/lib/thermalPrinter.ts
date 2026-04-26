@@ -1,6 +1,8 @@
 /* Thermal-style printing using window.print() */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { makeTightThermalPrintHtml } from "./adminPrintTemplates";
+
 export interface PrintOrderData {
   orderId: string;
   customerName: string;
@@ -36,7 +38,7 @@ function buildReceiptHTML(order: PrintOrderData): string {
     return html;
   }).join("");
 
-  return `<!DOCTYPE html>
+  return makeTightThermalPrintHtml(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -51,7 +53,7 @@ function buildReceiptHTML(order: PrintOrderData): string {
     font-family: 'Courier New', monospace;
     font-size: 12px;
     width: 72mm;
-    padding: 4mm;
+    padding: 0;
     color: #000;
   }
   .center { text-align: center; }
@@ -98,10 +100,11 @@ function buildReceiptHTML(order: PrintOrderData): string {
 
   <div class="separator"></div>
   <div class="footer">Obrigado pela preferencia!</div>
+  <div class="separator thermal-cut-marker" data-thermal-cut="true"></div>
 
   <script>window.onload = function() { window.print(); }</script>
 </body>
-</html>`;
+</html>`, 72);
 }
 
 export function printOrder(order: PrintOrderData): boolean {
