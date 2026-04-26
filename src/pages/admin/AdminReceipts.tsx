@@ -191,12 +191,12 @@ const AdminReceipts = () => {
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Altura fixa da página (mm)</Label>
             <Input type="number" min={0} max={500} value={thermalSettings.fixedHeightMm} onChange={(e) => updateThermalSetting("fixedHeightMm", Number(e.target.value))} />
-            <p className="text-[11px] text-muted-foreground">0 = automática. Use um valor para forçar o corte no kiosk.</p>
+            <p className="text-[11px] text-muted-foreground">0 = automática. Se houver sobra, ajuste o tamanho do papel/driver no computador.</p>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs font-semibold">Ajuste do corte (mm)</Label>
-            <Input type="number" min={-80} max={80} value={thermalSettings.cutOffsetMm} onChange={(e) => updateThermalSetting("cutOffsetMm", Number(e.target.value))} />
-            <p className="text-[11px] text-muted-foreground">Negativo corta antes; positivo deixa sobra.</p>
+            <Label className="text-xs font-semibold">Folga após o texto (mm)</Label>
+            <Input type="number" min={0} max={80} value={thermalSettings.cutOffsetMm} onChange={(e) => updateThermalSetting("cutOffsetMm", Number(e.target.value))} />
+            <p className="text-[11px] text-muted-foreground">0 = sem folga extra. Não corta texto; só adiciona espaço quando necessário.</p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Largura da janela (px)</Label>
