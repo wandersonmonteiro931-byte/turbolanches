@@ -9,6 +9,7 @@ import {
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR } from "@/lib/brasiliaTime";
 import { BrasiliaClock } from "@/components/admin/BrasiliaClock";
+import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
