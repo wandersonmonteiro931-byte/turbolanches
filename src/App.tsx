@@ -93,6 +93,17 @@ const AdminKioskRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const CaseInsensitiveRedirect = () => {
+  const location = useLocation();
+  const normalizedPath = location.pathname.toLowerCase();
+
+  if (normalizedPath !== location.pathname) {
+    return <Navigate to={`${normalizedPath}${location.search}${location.hash}`} replace />;
+  }
+
+  return <NotFound />;
+};
+
 // Router-scoped effects (hooks that depend on Router context)
 const RouterEffects = ({ userId }: { userId?: string }) => {
   usePushNotifications(userId);
@@ -165,7 +176,7 @@ const AppInner = () => {
           <Route path="/admin/cardapio-png" element={<MenuExport />} />
           <Route path="/entregador" element={<CourierPortal />} />
           <Route path="/funcionario" element={<EmployeePortal />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<CaseInsensitiveRedirect />} />
         </Routes>
       </BrowserRouter>
     </CartProvider>
