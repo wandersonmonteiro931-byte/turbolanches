@@ -143,14 +143,37 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
         try { var cs = window.getComputedStyle(el); ink = !!(cs && (cs.borderTopWidth !== "0px" || cs.borderBottomWidth !== "0px" || cs.borderLeftWidth !== "0px" || cs.borderRightWidth !== "0px" || (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent"))); } catch(e) {}
         return !!(txt || ink);
       }
+      function lockExactPrintHeight(heightPx, heightMm){
+        var h = heightMm + "mm";
+        try {
+          document.documentElement.style.height = h;
+          document.documentElement.style.minHeight = h;
+          document.documentElement.style.maxHeight = h;
+          document.documentElement.style.overflow = "hidden";
+          body.style.height = h;
+          body.style.minHeight = h;
+          body.style.maxHeight = h;
+          body.style.overflow = "hidden";
+          var content = document.querySelector(".print-root") || body.firstElementChild;
+          if (content && content.style) {
+            content.style.height = h;
+            content.style.minHeight = "0";
+            content.style.maxHeight = h;
+            content.style.overflow = "hidden";
+          }
+          window.__TURBO_THERMAL_HEIGHT_MM__ = heightMm;
+          window.__TURBO_THERMAL_HEIGHT_PX__ = heightPx;
+        } catch(e) {}
+      }
       var leaves = body.querySelectorAll("*");
       for (var i = 0; i < leaves.length; i++) { if (hasInk(leaves[i])) { break; } }
       var bottomPx = marker ? measureBottom(marker) : measureBottom(body);
       if (!bottomPx || bottomPx <= 0) return;
       var heightMm = Math.max(8, Math.round((bottomPx * 25.4 / 96) * 100) / 100);
+      lockExactPrintHeight(bottomPx, heightMm);
       var style = document.getElementById("tight-thermal-page-size");
       if (!style) { style = document.createElement("style"); style.id = "tight-thermal-page-size"; document.head.appendChild(style); }
-      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:0!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body{position:absolute!important;top:0!important;left:0!important;margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:0!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}[data-thermal-cut='true']{margin-bottom:0!important;padding-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
+      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;min-height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body{position:relative!important;top:0!important;left:0!important;}body>*:not(script):not(style){max-height:" + heightMm + "mm!important;overflow:hidden!important;}[data-thermal-cut='true']{margin-bottom:0!important;padding-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
     }
     if (nativePrint) {
       window.print = function(){
@@ -703,6 +726,25 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       } catch (e) {}
       return !!(txt || hasInk);
     }
+    function lockExactPrintHeight(heightPx, heightMm) {
+      var h = heightMm + "mm";
+      try {
+        document.documentElement.style.height = h;
+        document.documentElement.style.minHeight = h;
+        document.documentElement.style.maxHeight = h;
+        document.documentElement.style.overflow = "hidden";
+        body.style.height = h;
+        body.style.minHeight = h;
+        body.style.maxHeight = h;
+        body.style.overflow = "hidden";
+        root.style.height = h;
+        root.style.minHeight = "0";
+        root.style.maxHeight = h;
+        root.style.overflow = "hidden";
+        window.__TURBO_THERMAL_HEIGHT_MM__ = heightMm;
+        window.__TURBO_THERMAL_HEIGHT_PX__ = heightPx;
+      } catch (e) {}
+    }
 
     if (lastDoc) {
       var firstDoc = docs[0] || lastDoc;
@@ -739,13 +781,14 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
     // No integer-mm rounding: keep the page at the exact measured content height.
     var pageHeightMm = Math.max(8, Math.round((heightPx * 25.4 / 96) * 100) / 100);
+    lockExactPrintHeight(heightPx, pageHeightMm);
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");
       style.id = "tight-thermal-page-size";
       document.head.appendChild(style);
     }
-    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:0!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-root{position:absolute!important;top:0!important;left:0!important;margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}.print-document,.print-section{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;}.print-document:first-child,.print-section:first-child,.print-section:first-child>*:first-child{padding-top:0!important;margin-top:0!important;}.print-document:last-child,.print-section:last-child,.print-section:last-child>*:last-child,[data-thermal-cut='true']{padding-bottom:0!important;margin-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}}";
+    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm!important;margin:0!important;padding:0!important;marks:none!important;}@page :first{margin:0!important;padding:0!important;}@page :left{margin:0!important;padding:0!important;}@page :right{margin:0!important;padding:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:" + pageHeightMm + "mm!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-root{position:relative!important;top:0!important;left:0!important;margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:0!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-document,.print-section{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;}.print-document:first-child,.print-section:first-child,.print-section:first-child>*:first-child{padding-top:0!important;margin-top:0!important;}.print-document:last-child,.print-section:last-child,.print-section:last-child>*:last-child,[data-thermal-cut='true']{padding-bottom:0!important;margin-bottom:0!important;break-after:auto!important;page-break-after:auto!important;}}";
 
     try {
       document.documentElement.style.minHeight = "0";
@@ -853,11 +896,11 @@ const getSharedPrintStyles = ({
         @page :left { margin: 0 !important; padding: 0 !important; }
         @page :right { margin: 0 !important; padding: 0 !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
+          html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-root { position: absolute !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
+          .print-root { position: relative !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
           .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }
           .print-section { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; height: auto !important; }
           .print-document:first-child, .print-section:first-child, .print-section:first-child > *:first-child { padding-top: 0 !important; margin-top: 0 !important; }
