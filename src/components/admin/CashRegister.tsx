@@ -1606,7 +1606,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   }}>
                     <Pencil size={14} className="mr-1" /> Editar Abertura
                   </Button>
-                  {r.closed_at && (
+                  {r.closed_at ? (
                     <Button size="sm" variant="outline" onClick={() => {
                       // 🔧 Abrir o MODAL REAL de Fechamento, pré-preenchido, em modo edição
                       const cM = (r.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
@@ -1618,6 +1618,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                       setShowClose(true);
                     }}>
                       <Pencil size={14} className="mr-1" /> Editar Fechamento
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => {
+                        // Fechar um caixa que ainda está aberto (ex.: do dia anterior)
+                        setEditingRegBackup(register);
+                        setEditingRegId(r.id);
+                        setRegister(r);
+                        setCloseForm(closeFormFromRegister(r, ""));
+                        setShowHistory(false);
+                        setShowClose(true);
+                      }}
+                    >
+                      <Lock size={14} className="mr-1" /> Fechar Caixa
                     </Button>
                   )}
                 </div>
