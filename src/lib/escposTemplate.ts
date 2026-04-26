@@ -155,7 +155,10 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
   if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    style.frame = "strong";
+    // Inline com conteúdo na mesma linha: faixa preta sólida ponta-a-ponta
+    // (equivalente a [TZTBORDA]). Quando aparece sozinho em uma linha,
+    // o renderer principal trata como banner separador antes de chegar aqui.
+    style.invertFull = true;
     style.bold = true;
   }
 
