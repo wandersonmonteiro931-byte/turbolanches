@@ -550,6 +550,20 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var body = document.body;
     if (!body) return;
 
+    try {
+      document.documentElement.style.margin = "0";
+      document.documentElement.style.padding = "0";
+      document.documentElement.style.border = "0";
+      document.documentElement.style.minHeight = "0";
+      document.documentElement.style.height = "auto";
+      body.style.margin = "0";
+      body.style.padding = "0";
+      body.style.border = "0";
+      body.style.minHeight = "0";
+      body.style.height = "auto";
+      body.style.overflow = "visible";
+    } catch (error) {}
+
     // Measure the bottom of the LAST visible content element relative to the
     // document top. This avoids counting any trailing whitespace/padding from
     // wrapper containers (which caused the white border at the end of receipts).
@@ -558,7 +572,17 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var docs = root.querySelectorAll(".print-document");
     if (docs.length) lastDoc = docs[docs.length - 1];
 
+    try {
+      root.style.margin = "0";
+      root.style.padding = "0";
+      root.style.border = "0";
+      root.style.minHeight = "0";
+      root.style.height = "auto";
+      root.style.overflow = "visible";
+    } catch (error) {}
+
     var bottomPx = 0;
+    var topPx = 0;
     function measureBottom(el) {
       if (!el) return 0;
       try {
@@ -566,20 +590,39 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         return r.bottom + (window.scrollY || window.pageYOffset || 0);
       } catch (e) { return 0; }
     }
+    function measureTop(el) {
+      if (!el) return 0;
+      try {
+        var r = el.getBoundingClientRect();
+        return r.top + (window.scrollY || window.pageYOffset || 0);
+      } catch (e) { return 0; }
+    }
+    function hasPrintableContent(el) {
+      if (!el || !el.getBoundingClientRect) return false;
+      var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
+      var hasInk = false;
+      try {
+        var cs = window.getComputedStyle(el);
+        hasInk = !!(cs && (cs.borderTopWidth !== "0px" || cs.borderBottomWidth !== "0px" || cs.borderLeftWidth !== "0px" || cs.borderRightWidth !== "0px" || (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent")));
+      } catch (e) {}
+      return !!(txt || hasInk);
+    }
 
     if (lastDoc) {
+      var firstDoc = docs[0] || lastDoc;
+      var firstLeaves = firstDoc.querySelectorAll("*");
+      for (var t = 0; t < firstLeaves.length; t++) {
+        if (hasPrintableContent(firstLeaves[t])) {
+          topPx = Math.max(0, measureTop(firstLeaves[t]));
+          break;
+        }
+      }
+
       // Walk last leaves to find the true content bottom (ignoring trailing empty nodes)
       var leaves = lastDoc.querySelectorAll("*");
       for (var i = leaves.length - 1; i >= 0; i--) {
         var el = leaves[i];
-        if (!el || !el.getBoundingClientRect) continue;
-        var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
-        var hasBg = false;
-        try {
-          var cs = window.getComputedStyle(el);
-          hasBg = cs && (cs.borderBottomWidth !== "0px" || cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent");
-        } catch (e) {}
-        if (txt || hasBg) {
+        if (hasPrintableContent(el)) {
           bottomPx = Math.max(bottomPx, measureBottom(el));
           break;
         }
@@ -589,7 +632,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       bottomPx = measureBottom(root);
     }
 
-    var heightPx = bottomPx;
+    var heightPx = Math.max(1, bottomPx - topPx);
     if (!heightPx || heightPx < 1) return;
 
     var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
@@ -601,12 +644,12 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
       style.id = "tight-thermal-page-size";
       document.head.appendChild(style);
     }
-    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm;margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:0!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-root,.print-document,.print-section{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-bottom:0!important;margin-bottom:0!important;}.print-document:last-child,.print-section:last-child,.print-section:last-child>*:last-child{padding-bottom:0!important;margin-bottom:0!important;}}";
+    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm!important;margin:0!important;}@page :first{margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + pageHeightMm + "mm!important;min-height:0!important;max-height:" + pageHeightMm + "mm!important;overflow:hidden!important;}.print-root{position:absolute!important;top:0!important;left:0!important;margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}.print-document,.print-section{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding-top:0!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important;}.print-document:first-child,.print-section:first-child,.print-section:first-child>*:first-child{padding-top:0!important;margin-top:0!important;}.print-document:last-child,.print-section:last-child,.print-section:last-child>*:last-child{padding-bottom:0!important;margin-bottom:0!important;}}";
 
     try {
       document.documentElement.style.minHeight = "0";
       body.style.minHeight = "0";
-      window.resizeTo(Math.ceil(pageWidthMm * 96 / 25.4) + 32, Math.min(screen.availHeight || 900, Math.ceil(heightPx) + 90));
+      window.resizeTo(Math.ceil(pageWidthMm * 96 / 25.4), Math.min(screen.availHeight || 900, Math.ceil(heightPx)));
     } catch (error) {}
   }
 
