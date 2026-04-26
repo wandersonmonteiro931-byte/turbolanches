@@ -170,11 +170,18 @@ const AdminReceipts = () => {
         toast.error("Nenhum pedido encontrado para teste de impressão.");
         return;
       }
+      // Tenta QZ Tray (ESC/POS) primeiro — sem sobra de papel.
+      const sentViaQz = await tryPrintOrderViaQz(lastOrder.id, { tipo: type, copies: qty });
+      if (sentViaQz) {
+        toast.success(`${qty} cópia${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} via QZ Tray (ESC/POS).`);
+        return;
+      }
+
       const win = openPrintUrl(`/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100`, `print_${type}`, "width=280,height=120");
       if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
       } else {
-        toast.success(`${qty} página${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} para impressão.`);
+        toast.success(`${qty} página${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} para impressão (HTML).`);
       }
     } finally {
       setPrinting(false);
