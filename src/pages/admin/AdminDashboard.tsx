@@ -7,6 +7,7 @@ import {
   Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
+import { formatDateBR } from "@/lib/brasiliaTime";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
