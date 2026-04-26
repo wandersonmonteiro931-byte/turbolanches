@@ -105,7 +105,8 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
       }
       auto.style.cssText = "display:block!important;width:0!important;height:0!important;line-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;break-after:auto!important;page-break-after:auto!important;";
       document.body.appendChild(auto);
-      var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true']"));
+      var userCandidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-user-cut='true']"));
+      var candidates = userCandidates.length ? userCandidates : Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true']"));
       var last = candidates[candidates.length - 1] || auto;
       last.setAttribute("data-thermal-cut", "true");
       last.className = ((last.className || "") + " thermal-cut-marker").trim();
@@ -132,8 +133,9 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
         body.style.height = "auto";
         body.style.overflow = "visible";
       } catch (error) {}
-      var marker = document.querySelector("[data-thermal-cut='true']");
-      var markers = document.querySelectorAll("[data-thermal-cut='true']");
+      var marker = document.querySelector("[data-thermal-user-cut='true']") || document.querySelector("[data-thermal-cut='true']");
+      var userMarkers = document.querySelectorAll("[data-thermal-user-cut='true']");
+      var markers = userMarkers.length ? userMarkers : document.querySelectorAll("[data-thermal-cut='true']");
       if (markers.length) marker = markers[markers.length - 1];
       function measureBottom(el){ try { var r = el.getBoundingClientRect(); return r.bottom + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
       function measureTop(el){ try { var r = el.getBoundingClientRect(); return r.top + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
@@ -193,7 +195,7 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
     window.prepareTightThermalPrintPage = prepareTightLegacyPage;
   })();</script>`;
 
-  return html.includes("prepareTightThermalPrintPage") ? html : html.replace("</body>", `${markerScript}</body>`);
+  return html.includes("__TURBO_TIGHT_THERMAL_INSTALLED__") ? html : html.replace("</body>", `${markerScript}</body>`);
 };
 
 const findNextInlineTag = (input: string, startIndex: number) => {
@@ -504,7 +506,7 @@ export const renderAdminTemplateMarkup = (
 
       // Preserve empty lines as spacing
       if (!trimmed) return '<div class="info">&nbsp;</div>';
-      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true"></div>';
+      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
@@ -756,7 +758,8 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         }
       }
 
-      var markers = lastDoc.querySelectorAll("[data-thermal-cut='true']");
+      var userMarkers = lastDoc.querySelectorAll("[data-thermal-user-cut='true']");
+      var markers = userMarkers.length ? userMarkers : lastDoc.querySelectorAll("[data-thermal-cut='true']");
       if (markers.length) cutMarker = markers[markers.length - 1];
 
       // Walk last leaves to find the true content bottom (ignoring trailing empty nodes),
@@ -901,7 +904,7 @@ const getSharedPrintStyles = ({
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .print-root { position: relative !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
-          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }
+          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: auto; break-after: auto; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }
           .print-section { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; height: auto !important; }
           .print-document:first-child, .print-section:first-child, .print-section:first-child > *:first-child { padding-top: 0 !important; margin-top: 0 !important; }
           .print-document:last-child { page-break-after: auto; break-after: auto; padding-bottom: 0 !important; margin-bottom: 0 !important; }
@@ -923,7 +926,7 @@ const getSharedPrintStyles = ({
           text-rendering: geometricPrecision;
         }
         .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; padding: 0; margin: 0; border: 0; padding-bottom: 0; margin-bottom: 0; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; page-break-after: auto; break-after: auto; }
         .print-document + .print-document { margin-top: 0; border-top: 0; padding-top: 0; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; max-width: 100%; }

@@ -100,7 +100,7 @@ function buildReceiptHTML(order: PrintOrderData): string {
 
   <div class="separator"></div>
   <div class="footer">Obrigado pela preferencia!</div>
-  <div class="separator thermal-cut-marker" data-thermal-cut="true"></div>
+  <div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true"></div>
 
   <script>window.onload = function() { window.print(); }</script>
 </body>

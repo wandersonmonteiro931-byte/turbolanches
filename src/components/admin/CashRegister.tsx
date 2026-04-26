@@ -1783,7 +1783,7 @@ ${(() => {
 <div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
 <div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div><hr/>`;
 })()}
-<div class="separator thermal-cut-marker" data-thermal-cut="true" style="border-top:1px dashed #000;margin:0;padding:0;"></div>
+<div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true" style="border-top:1px dashed #000;margin:0;padding:0;"></div>
 <script>
 (function(){
   var copies = 10, done = 0, gap = 1200;
