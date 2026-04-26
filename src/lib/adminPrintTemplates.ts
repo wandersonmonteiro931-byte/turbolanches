@@ -816,7 +816,10 @@ const getSharedPrintStyles = ({
   const smallTextPx = Math.max(bodyFontSizePx - 3, 7);
 
   return `
-        @page { size: ${pageSize} portrait; margin: 0 !important; }
+        @page { size: ${pageSize} portrait; margin: 0 !important; padding: 0 !important; marks: none !important; }
+        @page :first { margin: 0 !important; padding: 0 !important; }
+        @page :left { margin: 0 !important; padding: 0 !important; }
+        @page :right { margin: 0 !important; padding: 0 !important; }
         @media print {
           html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
