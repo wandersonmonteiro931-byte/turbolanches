@@ -158,7 +158,7 @@ const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   b.bold(style.bold);
   if (style.giant) b.size(2, 2);
   else if (style.big) b.size(1, 1);
-  else if (style.medium) b.size(1, 0);
+  else if (style.medium) b.size(1, 1);
   else b.size(0, 0);
   b.underline(style.underline);
   b.invert(style.invert || style.invertFull);
