@@ -35,7 +35,7 @@ const replaceTokens = (text: string, vars: Record<string, string>): string => {
   return out;
 };
 
-const ITEM_TOKENS = ["[ITENS]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]"];
+const ITEM_TOKENS = ["[ITENS]", "[ITEM]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]", "[CÓDIGOPROD]", "[CODIGOPROD]"];
 
 const lineHasItemToken = (line: string) => ITEM_TOKENS.some((t) => line.includes(t));
 
@@ -46,8 +46,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (!lineHasItemToken(rawLine)) return [rawLine];
       if (items.length === 0) return [];
 
-      // Caso 1: linha é só [ITENS] → expande em formato padrão
-      if (rawLine.trim() === "[ITENS]") {
+      // Caso 1: linha é só [ITENS] ou [ITEM] → expande em formato padrão tabela
+      if (rawLine.trim() === "[ITENS]" || rawLine.trim() === "[ITEM]") {
         const out: string[] = [];
         for (const it of items) {
           const lineTotal = it.unitPrice * it.quantity
@@ -69,6 +69,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
         const addonsText = (it.addons || []).map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(" | ");
         const itemVars = {
           "[ITENS]": "",
+          "[ITEM]": "",
           "[PRODUTO]": it.productName,
           "[PRODUTOS]": it.productName,
           "[QNTITENS]": String(it.quantity),
@@ -77,6 +78,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[PREÇOPROD]": fmt(it.unitPrice),
           "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
           "[ADICIONAIS]": addonsText,
+          "[CÓDIGOPROD]": "",
+          "[CODIGOPROD]": "",
         };
         return [replaceTokens(rawLine, itemVars)];
       });
@@ -215,18 +218,25 @@ export const renderTemplateToEscPos = (
     }
 
     const { style, text } = parseLineStyle(rawLine);
-
-    // Caso especial: linha com [TROCO]/[FUNDPRETO] vazio resolve em "R$ 0,00" sem conteúdo útil
     const finalText = style.upper ? text.toLocaleUpperCase("pt-BR") : text;
 
-    if (!finalText.trim()) {
-      // Linha que sobrou só com tags vazias — pula
+    if (!finalText.replace(/\s/g, "")) {
+      // Linha que sobrou só com tags vazias e/ou espaços — pula
       continue;
     }
 
+    // Largura efetiva: texto duplo ocupa 2x cada caractere → metade das colunas.
+    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
+
     applyStyleToBuilder(b, style);
-    // Quebra texto longo respeitando largura
-    b.wrap(finalText);
+
+    // Se a linha JÁ CABE na largura efetiva, imprime literal preservando todos
+    // os espaços (espaçamento manual do usuário). Senão, faz wrap por palavra.
+    if (finalText.length <= effectiveCols) {
+      b.rawText(finalText);
+    } else {
+      b.wrap(finalText, effectiveCols);
+    }
     resetStyle(b);
   }
 

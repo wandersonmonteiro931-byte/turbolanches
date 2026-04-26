@@ -136,28 +136,56 @@ export class EscPosBuilder {
     return this.line(`${lTrim}${" ".repeat(spaces)}${rTrim}`);
   }
 
-  /** Quebra texto longo em múltiplas linhas respeitando largura. */
-  wrap(value: string): this {
-    const cols = this.opts.columns;
-    const words = value.split(/\s+/);
+  /**
+   * Quebra texto longo em múltiplas linhas respeitando largura.
+   * - Preserva espaços literais (múltiplos espaços continuam múltiplos).
+   * - NUNCA corta palavra no meio: palavra maior que `cols` SÓ é quebrada
+   *   como último recurso, sozinha em sua própria linha.
+   * - Aceita largura efetiva customizada (ex: 24 colunas para texto duplo).
+   */
+  wrap(value: string, effectiveCols?: number): this {
+    const cols = effectiveCols && effectiveCols > 0 ? effectiveCols : this.opts.columns;
+    const tokens = value.match(/\s+|\S+/g) || [];
     let line = "";
-    for (const w of words) {
-      if (!line) {
-        line = w;
-      } else if (line.length + 1 + w.length <= cols) {
-        line += " " + w;
-      } else {
-        this.line(line);
-        line = w;
+    const flush = () => {
+      this.line(line.replace(/\s+$/u, ""));
+      line = "";
+    };
+    for (const tk of tokens) {
+      const isSpace = /^\s+$/.test(tk);
+      if (isSpace) {
+        if (line.length > 0 && line.length < cols) {
+          const room = cols - line.length;
+          line += tk.slice(0, room);
+        }
+        continue;
       }
-      // palavra única maior que cols
-      while (line.length > cols) {
-        this.line(line.slice(0, cols));
-        line = line.slice(cols);
+      if (tk.length > cols) {
+        if (line) flush();
+        let rest = tk;
+        while (rest.length > cols) {
+          this.line(rest.slice(0, cols));
+          rest = rest.slice(cols);
+        }
+        line = rest;
+        continue;
+      }
+      if (line.length === 0) {
+        line = tk;
+      } else if (line.length + tk.length <= cols) {
+        line += tk;
+      } else {
+        flush();
+        line = tk;
       }
     }
-    if (line) this.line(line);
+    if (line.length > 0) this.line(line.replace(/\s+$/u, ""));
     return this;
+  }
+
+  /** Escreve texto literal preservando todos os espaços (sem wrap). */
+  rawText(value: string): this {
+    return this.text(value).newline();
   }
 
   feed(n = this.opts.feedLines): this {
