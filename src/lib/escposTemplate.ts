@@ -158,7 +158,7 @@ const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   b.bold(style.bold);
   if (style.giant) b.size(2, 2);
   else if (style.big) b.size(1, 1);
-  else if (style.medium) b.size(1, 0);
+  else if (style.medium) b.size(1, 1);
   else b.size(0, 0);
   b.underline(style.underline);
   b.invert(style.invert || style.invertFull);
@@ -195,18 +195,19 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
 
-  // Fundo preto em uma única faixa sólida: sem linhas extras transparentes
-  // cortando a caixa no meio, e mantendo o tamanho configurado no template.
+  // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
+  // transparentes cortando a caixa, mantendo o tamanho configurado.
   if (style.invertFull || style.invert) {
     const trimmedTxt = finalText.trim();
     const effectiveCols = effectiveColumns(cols, style);
-    const padded = trimmedTxt.length >= effectiveCols
-      ? trimmedTxt
-      : (() => {
-          const total = effectiveCols - trimmedTxt.length;
-          const left = Math.floor(total / 2);
-          return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
-        })();
+    let padded: string;
+    if (trimmedTxt.length >= effectiveCols) {
+      padded = trimmedTxt;
+    } else {
+      const total = effectiveCols - trimmedTxt.length;
+      const left = Math.floor(total / 2);
+      padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
+    }
     applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, frame: "none", box: false });
     b.rawText(padded);
     resetStyle(b);
