@@ -1783,17 +1783,21 @@ ${(() => {
 <div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
 <div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div><hr/>`;
 })()}
+<div class="separator thermal-cut-marker" data-thermal-cut="true" style="border-top:1px dashed #000;margin:0;padding:0;"></div>
 <script>
 (function(){
-  var copies = 10, done = 0, gap = 1200, busy = false;
+  var copies = 10, done = 0, gap = 1200;
   function fire(){
     if (done >= copies) { try { window.close(); } catch(e){} return; }
-    busy = true;
     try { window.focus(); } catch(e){}
-    try { window.print(); } catch(e){}
-    setTimeout(function(){ busy = false; done++; fire(); }, gap);
+    try { window.prepareTightThermalPrintPage && window.prepareTightThermalPrintPage(); } catch(e){}
+    setTimeout(function(){
+      try { window.prepareTightThermalPrintPage && window.prepareTightThermalPrintPage(); } catch(e){}
+      try { window.print(); } catch(e){}
+      setTimeout(function(){ done++; fire(); }, gap);
+    }, 180);
   }
-  window.onload = function(){ setTimeout(fire, 300); };
+  window.onload = function(){ setTimeout(fire, 500); };
 })();
 </script>
 </body></html>`, 80);
