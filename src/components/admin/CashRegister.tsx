@@ -1058,7 +1058,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
           {!register || register.business_day !== todayBusinessDay ? (
             <Button
               onClick={() => setShowOpen(true)}
-              disabled={!!previousDayBlocking}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Unlock size={16} className="mr-1" /> Abrir Caixa
