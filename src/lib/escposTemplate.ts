@@ -398,7 +398,8 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      b.invert(true).rawText(" ".repeat(cols)).invert(false);
+      // Apenas marca o início/fim do bloco. Sem desenhar faixa preta vazia
+      // (era isso que fazia "QUADRADONEGRITO" virar uma barra preta sem conteúdo).
       activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
