@@ -499,9 +499,6 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     try { window.focus(); } catch (error) {}
     try { document.body && document.body.offsetHeight; } catch (error) {}
     try { window.print(); } catch (error) {}
-    try {
-      if (document.execCommand) { document.execCommand("print", false); }
-    } catch (error) {}
     if (kioskTimerMode) {
       setTimeout(function () {
         if (awaitingAfterPrint) onCopyDone();
