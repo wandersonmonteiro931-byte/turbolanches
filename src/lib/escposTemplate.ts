@@ -351,7 +351,7 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      b.bold(blockTag.frame === "strong").line(frameBorder(blockTag.frame, cols)).bold(false);
+      b.invert(true).rawText(" ".repeat(cols)).invert(false);
       activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
