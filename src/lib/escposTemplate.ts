@@ -244,13 +244,10 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const inner = Math.max(4, cols - 4);
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-  // Não quebrar: imprime a linha como veio, apenas preenche com espaços
-  // para fechar a borda direita quando couber.
-  const truncated = text.length > inner ? text.slice(0, inner) : text;
-  const padded = truncated + " ".repeat(Math.max(0, inner - truncated.length));
-  b.rawText(`| ${padded} |`);
+  // Não corta texto/número: se passar da largura, imprime inteiro e deixa
+  // a impressora lidar fisicamente, sem quebrar no software.
+  b.rawText(boxedLine(text, cols, style.align));
   resetStyle(b);
 };
 
