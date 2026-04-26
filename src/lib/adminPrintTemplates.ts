@@ -141,7 +141,7 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
     window.prepareTightThermalPrintPage = prepareTightLegacyPage;
   })();</script>`;
 
-  return html.includes("data-thermal-cut") ? html : html.replace("</body>", `${markerScript}</body>`);
+  return html.includes("prepareTightThermalPrintPage") ? html : html.replace("</body>", `${markerScript}</body>`);
 };
 
 const findNextInlineTag = (input: string, startIndex: number) => {
