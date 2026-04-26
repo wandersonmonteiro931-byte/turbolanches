@@ -1277,7 +1277,9 @@ const AdminDashboard = () => {
 
   const getElapsed = (preparingAt: string | null) => {
     if (!preparingAt) return null;
-    const diff = now - new Date(preparingAt).getTime();
+    const startedAt = new Date(preparingAt).getTime();
+    if (!Number.isFinite(startedAt)) return { min: 0, sec: 0 };
+    const diff = Math.max(0, now - startedAt);
     const min = Math.floor(diff / 60000);
     const sec = Math.floor((diff % 60000) / 1000);
     return { min, sec };
