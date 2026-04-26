@@ -550,21 +550,51 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     var body = document.body;
     if (!body) return;
 
-    var docs = Array.prototype.slice.call(document.querySelectorAll(".print-document"));
-    var targets = docs.length ? docs : [document.querySelector(".print-root") || body];
-    var heightPx = 0;
+    // Measure the bottom of the LAST visible content element relative to the
+    // document top. This avoids counting any trailing whitespace/padding from
+    // wrapper containers (which caused the white border at the end of receipts).
+    var root = document.querySelector(".print-root") || body;
+    var lastDoc = null;
+    var docs = root.querySelectorAll(".print-document");
+    if (docs.length) lastDoc = docs[docs.length - 1];
 
-    targets.forEach(function (target) {
-      if (!target) return;
-      var rectHeight = 0;
-      try { rectHeight = target.getBoundingClientRect().height || 0; } catch (error) {}
-      heightPx = Math.max(heightPx, rectHeight, target.scrollHeight || 0, target.offsetHeight || 0);
-    });
+    var bottomPx = 0;
+    function measureBottom(el) {
+      if (!el) return 0;
+      try {
+        var r = el.getBoundingClientRect();
+        return r.bottom + (window.scrollY || window.pageYOffset || 0);
+      } catch (e) { return 0; }
+    }
 
+    if (lastDoc) {
+      // Walk last leaves to find the true content bottom (ignoring trailing empty nodes)
+      var leaves = lastDoc.querySelectorAll("*");
+      for (var i = leaves.length - 1; i >= 0; i--) {
+        var el = leaves[i];
+        if (!el || !el.getBoundingClientRect) continue;
+        var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
+        var hasBg = false;
+        try {
+          var cs = window.getComputedStyle(el);
+          hasBg = cs && (cs.borderBottomWidth !== "0px" || cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent");
+        } catch (e) {}
+        if (txt || hasBg) {
+          bottomPx = Math.max(bottomPx, measureBottom(el));
+          break;
+        }
+      }
+      if (!bottomPx) bottomPx = measureBottom(lastDoc);
+    } else {
+      bottomPx = measureBottom(root);
+    }
+
+    var heightPx = bottomPx;
     if (!heightPx || heightPx < 1) return;
 
     var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
-    var pageHeightMm = Math.max(8, Math.ceil((heightPx * 25.4 / 96) + 1));
+    // No extra buffer — cut exactly at the content bottom.
+    var pageHeightMm = Math.max(8, Math.ceil(heightPx * 25.4 / 96));
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");
@@ -680,8 +710,10 @@ const getSharedPrintStyles = ({
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; }
-          .print-document:last-child { page-break-after: auto; break-after: auto; }
+          .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+          .print-document:last-child { page-break-after: auto; break-after: auto; padding-bottom: 0 !important; margin-bottom: 0 !important; }
+          .print-document > *:last-child, .print-section:last-child { padding-bottom: 0 !important; margin-bottom: 0 !important; }
+          .print-root { padding-bottom: 0 !important; margin-bottom: 0 !important; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #ffffff; color: #000000; min-height: 0; height: auto; overflow: visible; }
@@ -691,13 +723,14 @@ const getSharedPrintStyles = ({
           font-weight: 900;
           width: ${pageWidthMm}mm;
           padding: ${bodyPaddingMm}mm;
+          padding-bottom: 0;
           line-height: 1.3;
           letter-spacing: 0;
           -webkit-font-smoothing: none;
           text-rendering: geometricPrecision;
         }
-        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; }
-        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; }
+        .print-root { display: flex; flex-direction: column; gap: 0; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; }
+        .print-document { display: block; background: #ffffff; width: ${pageWidthMm}mm; padding-bottom: 0; margin-bottom: 0; }
         .print-document + .print-document { margin-top: 0; border-top: 0; padding-top: 0; }
         .print-document:last-child { page-break-after: auto; break-after: auto; }
         .print-section { display: block; width: 100%; max-width: 100%; }
