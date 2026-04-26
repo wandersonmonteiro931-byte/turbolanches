@@ -307,7 +307,7 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      b.bold(blockTag.frame === "strong").line(frameChar(blockTag.frame).repeat(cols)).bold(false);
+      b.bold(blockTag.frame === "strong").line(frameBorder(blockTag.frame, cols)).bold(false);
       activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
@@ -322,7 +322,7 @@ export const renderTemplateToEscPos = (
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(4, cols - 4)), cols);
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
       else b.line("-".repeat(cols));
       continue;
     }
