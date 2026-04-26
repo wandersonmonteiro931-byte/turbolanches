@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { openPrintUrl } from "@/lib/printPopup";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
+import { getPrintMode, setPrintMode, PRINT_MODE_LABEL, type PrintMode } from "@/lib/printModePreference";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { lazy, Suspense } from "react";
@@ -604,13 +605,28 @@ const AdminDashboard = () => {
   };
 
   const printReceipt = async (orderId: string, tipo: string, delayMs?: number) => {
-    // Tenta QZ Tray (ESC/POS) primeiro — corte exato, sem sobra
-    const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
-    if (sentViaQz) return;
+    // Aplica preferência de modo SOMENTE para comandas: pedido, entregador, obrigado.
+    const isComanda = tipo === "pedido" || tipo === "entregador" || tipo === "obrigado";
+    const mode: PrintMode = isComanda ? getPrintMode() : "auto";
 
+    if (mode !== "pdf") {
+      // "auto" ou "qz": tenta QZ Tray (ESC/POS) primeiro
+      const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
+      if (sentViaQz) return;
+      // Se modo for "qz" forçado e QZ falhar, avisa e sai (não cai no PDF antigo)
+      if (mode === "qz") {
+        toast({
+          title: "QZ Tray indisponível",
+          description: "Verifique se o QZ Tray está rodando e a impressora configurada.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Modo "pdf" (antigo) ou fallback "auto": popup HTML
     const params = new URLSearchParams({ tipo });
     if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
-    // copies/kiosk_timer/print_gap_ms are injected by openPrintUrl → addKioskPrintParams
     const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=280,height=120");
     if (!w) return;
   };
