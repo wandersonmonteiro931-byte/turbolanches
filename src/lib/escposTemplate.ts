@@ -314,11 +314,31 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-  // Não corta texto/número: se passar da largura, imprime inteiro e deixa
-  // a impressora lidar fisicamente, sem quebrar no software.
-  const lines = style.address ? wrapAddressLines(text, effectiveColumns(cols, style)) : [text];
-  for (const line of lines) b.rawText(boxedLine(line, cols, style.align));
+  // Dentro de um bloco (QUADRADO/QUADRADONEGRITO/RETANGULO) NÃO desenhamos bordas
+  // com caracteres "| ... |" / "+---+". O bloco é apenas um agrupamento visual:
+  // imprimimos o conteúdo normalmente respeitando o estilo configurado.
+  if (!text.replace(/\s/g, "")) {
+    b.newline();
+    return;
+  }
+  const fittedStyle = fitStyleToSingleLine(style, [text], cols);
+  applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
+  const lines = fittedStyle.address ? wrapAddressLines(text, effectiveColumns(cols, fittedStyle)) : [text];
+  for (const line of lines) {
+    if (fittedStyle.align === "center") {
+      const eff = effectiveColumns(cols, fittedStyle);
+      const trimmed = line.trim();
+      if (trimmed.length < eff) {
+        const total = eff - trimmed.length;
+        const left = Math.floor(total / 2);
+        b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
+      } else {
+        b.rawText(trimmed);
+      }
+    } else {
+      b.rawText(line);
+    }
+  }
   resetStyle(b);
 };
 
