@@ -676,7 +676,7 @@ const getSharedPrintStyles = ({
   return `
         @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: visible !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -684,7 +684,7 @@ const getSharedPrintStyles = ({
           .print-document:last-child { page-break-after: auto; break-after: auto; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #ffffff; color: #000000; }
+        html, body { background: #ffffff; color: #000000; min-height: 0; height: auto; overflow: visible; }
         body {
           font-family: ${bodyFontFamily};
           font-size: ${bodyFontSizePx}px;
@@ -824,7 +824,7 @@ export const buildAdminPrintDocument = ({
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready" data-print-copies="${copies}">
+    <body data-print-document="ready" data-print-copies="${copies}" data-page-width-mm="${pageWidthMm}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
@@ -897,7 +897,7 @@ export const buildBatchPrintDocument = (
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready">
+    <body data-print-document="ready" data-page-width-mm="${pageWidthMm}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
