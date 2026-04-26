@@ -7,6 +7,7 @@ import {
   Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
+import { formatDateBR } from "@/lib/brasiliaTime";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
@@ -1213,10 +1214,15 @@ const AdminDashboard = () => {
     const totalEntregador = totalFixedFees + totalTaxas;
 
     const dateLabel = isPeriod && deliveryPeriodFrom && deliveryPeriodTo
-      ? `${format(deliveryPeriodFrom, "dd/MM/yyyy")} a ${format(deliveryPeriodTo, "dd/MM/yyyy")}`
-      : format(selectedDate, "dd/MM/yyyy");
+      ? `${formatDateBR(deliveryPeriodFrom)} a ${formatDateBR(deliveryPeriodTo)}`
+      : formatDateBR(selectedDate);
 
+    // Ordena pela sequência real do pedido (order_number) para evitar inconsistências
+    // causadas por relógio errado do notebook. Fallback: timestamps do servidor.
     allDeliveryOrders.sort((a, b) => {
+      const nA = Number(a.order_number) || 0;
+      const nB = Number(b.order_number) || 0;
+      if (nA !== nB) return nA - nB;
       const tA = a.delivering_at || a.created_at;
       const tB = b.delivering_at || b.created_at;
       return new Date(tA).getTime() - new Date(tB).getTime();
