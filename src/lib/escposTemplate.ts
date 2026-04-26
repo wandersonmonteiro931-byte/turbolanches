@@ -202,14 +202,16 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     resetStyle(b);
     b.bold(style.box || style.frame === "strong").line(border).bold(false);
     applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-    finalText.length <= width ? b.rawText(finalText) : b.wrap(finalText, width);
+    if (finalText.length <= width) b.rawText(finalText);
+    else b.wrap(finalText, width);
     resetStyle(b);
     b.bold(style.box || style.frame === "strong").line(border).bold(false);
     return;
   }
 
   applyStyleToBuilder(b, style);
-  finalText.length <= width ? b.rawText(finalText) : b.wrap(finalText, width);
+  if (finalText.length <= width) b.rawText(finalText);
+  else b.wrap(finalText, width);
   resetStyle(b);
 };
 
