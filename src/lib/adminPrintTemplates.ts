@@ -388,7 +388,7 @@ export const renderAdminTemplateMarkup = (
 
       // Preserve empty lines as spacing
       if (!trimmed) return '<div class="info">&nbsp;</div>';
-      if (trimmed === "---") return '<div class="separator"></div>';
+      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
