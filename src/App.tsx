@@ -10,6 +10,7 @@ import NotificationBanner from "@/components/NotificationBanner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useOrderStatusNotifier } from "@/hooks/useOrderStatusNotifier";
 import { useAdminAlarm } from "@/hooks/useAdminAlarm";
+import { useAdmin } from "@/hooks/useAdmin";
 import Index from "./pages/Index";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
@@ -75,6 +76,23 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Admin/kiosk safety: an admin session must never open customer home or customer orders.
+const AdminKioskRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+
+  if (user && (authLoading || adminLoading)) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+};
+
 // Router-scoped effects (hooks that depend on Router context)
 const RouterEffects = ({ userId }: { userId?: string }) => {
   usePushNotifications(userId);
@@ -96,7 +114,7 @@ const AppInner = () => {
         <RouterEffects userId={user?.id} />
         <Routes>
           {/* Public routes - accessible without login */}
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<AdminKioskRoute><Index /></AdminKioskRoute>} />
           <Route path="/produto/:id" element={<ProductDetail />} />
           <Route path="/auth" element={<Auth />} />
 
@@ -104,7 +122,7 @@ const AppInner = () => {
           <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
           <Route path="/busca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-          <Route path="/pedidos" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/pedidos" element={<ProtectedRoute><AdminKioskRoute><Orders /></AdminKioskRoute></ProtectedRoute>} />
           <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/presentes" element={<ProtectedRoute><MyScratchCards /></ProtectedRoute>} />
