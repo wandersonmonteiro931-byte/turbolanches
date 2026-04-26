@@ -1781,7 +1781,19 @@ ${(() => {
 <div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
 <div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div>`;
 })()}
-<script>window.onload=function(){setTimeout(function(){window.print();},250);};</script>
+<script>
+(function(){
+  var copies = 10, done = 0, gap = 1200, busy = false;
+  function fire(){
+    if (done >= copies) { try { window.close(); } catch(e){} return; }
+    busy = true;
+    try { window.focus(); } catch(e){}
+    try { window.print(); } catch(e){}
+    setTimeout(function(){ busy = false; done++; fire(); }, gap);
+  }
+  window.onload = function(){ setTimeout(fire, 300); };
+})();
+</script>
 </body></html>`;
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
   if (!w) return;

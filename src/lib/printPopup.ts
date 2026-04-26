@@ -4,13 +4,27 @@ const buildStampedPrintUrl = (url: string) => {
   return `${url}${separator}t=${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 };
 
+// Default policy for ALL admin print popups (kiosk mode):
+// - Always print 10 copies unless caller explicitly set ?copies=N
+// - Always engage kiosk_timer so we don't depend on flaky `afterprint` events
+// - Default 1200ms gap between copies (thermal printer friendly)
+const DEFAULT_COPIES = 10;
+const DEFAULT_PRINT_GAP_MS = 1200;
+
 const addKioskPrintParams = (url: string) => {
   const parsedUrl = new URL(url, window.location.origin);
-  const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies") || "1") || 1));
 
-  if (copies > 1) {
-    parsedUrl.searchParams.set("kiosk_timer", "1");
-    parsedUrl.searchParams.set("print_gap_ms", parsedUrl.searchParams.get("print_gap_ms") || "900");
+  if (!parsedUrl.searchParams.get("copies")) {
+    parsedUrl.searchParams.set("copies", String(DEFAULT_COPIES));
+  }
+
+  const copies = Math.max(1, Math.min(20, Number(parsedUrl.searchParams.get("copies")) || 1));
+  parsedUrl.searchParams.set("copies", String(copies));
+
+  // Always force timer mode in kiosk: afterprint is unreliable with --kiosk-printing
+  parsedUrl.searchParams.set("kiosk_timer", "1");
+  if (!parsedUrl.searchParams.get("print_gap_ms")) {
+    parsedUrl.searchParams.set("print_gap_ms", String(DEFAULT_PRINT_GAP_MS));
   }
 
   return `${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
