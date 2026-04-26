@@ -109,16 +109,19 @@ export const printRawEscPos = async (
 
   const config = qz.configs.create(printerName, {
     encoding: "RAW",
-    rasterize: false,
   });
 
-  // Converte Uint8Array → array de números (formato aceito pelo QZ).
+  // QZ Tray 2.2: formato hex é o mais confiável p/ RAW ESC/POS.
+  // Convertemos cada byte para "XX" hexadecimal (ex: 0x1B → "1B").
+  const hexString = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
+    .join("");
+
   const data = [
     {
       type: "raw",
-      format: "command",
-      flavor: "plain",
-      data: Array.from(bytes).map((b) => String.fromCharCode(b)).join(""),
+      format: "hex",
+      data: hexString,
     },
   ];
 
