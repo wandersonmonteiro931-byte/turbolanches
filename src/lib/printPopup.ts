@@ -1,4 +1,4 @@
-const DEFAULT_PRINT_FEATURES = "width=320,height=640";
+const DEFAULT_PRINT_FEATURES = "popup=yes,width=300,height=420,left=0,top=0,scrollbars=no,resizable=yes";
 const buildStampedPrintUrl = (url: string) => {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}t=${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -10,6 +10,21 @@ const buildStampedPrintUrl = (url: string) => {
 // - Default 1200ms gap between copies (thermal printer friendly)
 const DEFAULT_COPIES = 10;
 const DEFAULT_PRINT_GAP_MS = 1200;
+const normalizePrintFeatures = (features = DEFAULT_PRINT_FEATURES) => {
+  const required = ["popup=yes", "scrollbars=no", "resizable=yes", "left=0", "top=0"];
+  const featureList = features
+    .split(",")
+    .map((feature) => feature.trim())
+    .filter(Boolean);
+  const keys = new Set(featureList.map((feature) => feature.split("=")[0]?.toLowerCase()));
+
+  required.forEach((feature) => {
+    const key = feature.split("=")[0].toLowerCase();
+    if (!keys.has(key)) featureList.push(feature);
+  });
+
+  return featureList.join(",");
+};
 
 const addKioskPrintParams = (url: string) => {
   const parsedUrl = new URL(url, window.location.origin);
@@ -101,7 +116,7 @@ const schedulePopupActivation = (popup: Window | null) => {
 };
 
 export const openPreparedPrintPopup = (features = DEFAULT_PRINT_FEATURES) => {
-  const popup = window.open("", `_print_prepare_${Date.now()}`, features);
+  const popup = window.open("", `_print_prepare_${Date.now()}`, normalizePrintFeatures(features));
   if (!popup || popup.closed) return null;
 
   try {
@@ -117,7 +132,7 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
   const stampedUrl = buildStampedPrintUrl(addKioskPrintParams(url));
 
   if (!popup || popup.closed) {
-    const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, features);
+    const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, normalizePrintFeatures(features));
     schedulePopupActivation(nextPopup);
     return nextPopup;
   }
@@ -128,7 +143,7 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
     schedulePopupActivation(popup);
     return popup;
   } catch {
-    const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, features);
+    const nextPopup = window.open(stampedUrl, `_print_${Date.now()}`, normalizePrintFeatures(features));
     schedulePopupActivation(nextPopup);
     return nextPopup;
   }
@@ -136,7 +151,7 @@ export const routePreparedPrintPopup = (popup: Window | null, url: string, featu
 
 export const openPrintUrl = (url: string, namePrefix = "print", features = DEFAULT_PRINT_FEATURES) => {
   const stampedUrl = buildStampedPrintUrl(addKioskPrintParams(url));
-  const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, features);
+  const popup = window.open(stampedUrl, `_${namePrefix}_${Date.now()}`, normalizePrintFeatures(features));
   schedulePopupActivation(popup);
   return popup;
 };
