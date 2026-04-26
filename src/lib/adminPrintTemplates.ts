@@ -92,6 +92,7 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
     window.__TURBO_TIGHT_THERMAL_INSTALLED__ = true;
     var pageWidthMm = ${pageWidthMm};
     var nativePrint = window.print ? window.print.bind(window) : null;
+    var scheduledNativePrint = false;
     function markFinalCut(){
       var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true'],hr,.separator,.sep"));
       if (!candidates.length && document.body) {
@@ -151,8 +152,14 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
     }
     if (nativePrint) {
       window.print = function(){
+        if (scheduledNativePrint) return;
+        scheduledNativePrint = true;
         try { prepareTightLegacyPage(); } catch (error) {}
-        return nativePrint();
+        setTimeout(function(){
+          try { prepareTightLegacyPage(); } catch (error) {}
+          try { nativePrint(); } catch (error) {}
+          scheduledNativePrint = false;
+        }, 120);
       };
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFinalCut, { once: true });
