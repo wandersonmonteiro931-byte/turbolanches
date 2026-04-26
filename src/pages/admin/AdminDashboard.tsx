@@ -601,8 +601,9 @@ const AdminDashboard = () => {
   };
 
   const printReceipt = (orderId: string, tipo: string, delayMs?: number) => {
-    const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
-    const w = openPrintUrl(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`, `print_${tipo}`, "width=300,height=600");
+    const params = new URLSearchParams({ tipo, copies: "10", print_gap_ms: "1200" });
+    if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
+    const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=300,height=600");
     if (!w) return;
     // AdminPrint.tsx already calls window.print() + window.close() on load
   };
