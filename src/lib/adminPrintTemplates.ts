@@ -448,7 +448,7 @@ const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
   `;
 };
 
-const PRINT_BOOTSTRAP_SCRIPT = `<script>
+export const PRINT_BOOTSTRAP_SCRIPT = `<script>
 if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = false; }
 (function () {
   var keepOpen = false;
