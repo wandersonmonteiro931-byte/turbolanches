@@ -46,8 +46,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (!lineHasItemToken(rawLine)) return [rawLine];
       if (items.length === 0) return [];
 
-      // Caso 1: linha é só [ITENS] → expande em formato padrão
-      if (rawLine.trim() === "[ITENS]") {
+      // Caso 1: linha é só [ITENS] ou [ITEM] → expande em formato padrão tabela
+      if (rawLine.trim() === "[ITENS]" || rawLine.trim() === "[ITEM]") {
         const out: string[] = [];
         for (const it of items) {
           const lineTotal = it.unitPrice * it.quantity
