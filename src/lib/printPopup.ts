@@ -5,10 +5,10 @@ const buildStampedPrintUrl = (url: string) => {
 };
 
 // Default policy for ALL admin print popups (kiosk mode):
-// - Always print 10 copies unless caller explicitly set ?copies=N
+// - Print 1 copy unless caller explicitly set ?copies=N
 // - Always engage kiosk_timer so we don't depend on flaky `afterprint` events
 // - Default 1200ms gap between copies (thermal printer friendly)
-const DEFAULT_COPIES = 10;
+const DEFAULT_COPIES = 1;
 const DEFAULT_PRINT_GAP_MS = 1200;
 const normalizePrintFeatures = (features = DEFAULT_PRINT_FEATURES) => {
   const required = ["popup=yes", "scrollbars=no", "resizable=yes", "left=0", "top=0"];
