@@ -142,6 +142,8 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
   if (/\[TXTMEDIO\]|\[NEGRITO\]/i.test(rawLine) && !style.big && !style.giant) style.medium = true;
   if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
+  // [CAIXA] = quadro com BORDA preta ao redor (não fundo preto).
+  // No HTML antigo: border: 2.5px solid #000.
   if (/\[CAIXA\]/i.test(rawLine)) {
     style.box = true;
     style.bold = true;
@@ -154,11 +156,11 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
   if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
+  // [QUADRADONEGRITO] inline = quadro com BORDA grossa (border: 3px solid).
+  // Não é fundo preto — é uma moldura. Quando aparece sozinho em uma linha,
+  // o renderer trata como abertura/fechamento de bloco com borda grossa.
   if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    // Inline com conteúdo na mesma linha: faixa preta sólida ponta-a-ponta
-    // (equivalente a [TZTBORDA]). Quando aparece sozinho em uma linha,
-    // o renderer principal trata como banner separador antes de chegar aqui.
-    style.invertFull = true;
+    style.frame = "strong";
     style.bold = true;
   }
 
