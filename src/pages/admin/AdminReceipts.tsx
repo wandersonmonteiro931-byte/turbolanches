@@ -168,6 +168,51 @@ const AdminReceipts = () => {
 
       <ReceiptVariableReference />
 
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Padrão de impressão deste computador</h3>
+            <p className="text-xs text-muted-foreground">Salvo somente neste navegador/PC usado no kiosk.</p>
+          </div>
+          <button
+            type="button"
+            onClick={resetThermalSettings}
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <RotateCcw size={12} />
+            Restaurar
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Largura do papel (mm)</Label>
+            <Input type="number" min={40} max={110} value={thermalSettings.paperWidthMm} onChange={(e) => updateThermalSetting("paperWidthMm", Number(e.target.value))} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Altura fixa da página (mm)</Label>
+            <Input type="number" min={0} max={500} value={thermalSettings.fixedHeightMm} onChange={(e) => updateThermalSetting("fixedHeightMm", Number(e.target.value))} />
+            <p className="text-[11px] text-muted-foreground">0 = automática. Use um valor para forçar o corte no kiosk.</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Ajuste do corte (mm)</Label>
+            <Input type="number" min={-80} max={80} value={thermalSettings.cutOffsetMm} onChange={(e) => updateThermalSetting("cutOffsetMm", Number(e.target.value))} />
+            <p className="text-[11px] text-muted-foreground">Negativo corta antes; positivo deixa sobra.</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Largura da janela (px)</Label>
+            <Input type="number" min={180} max={800} value={thermalSettings.popupWidthPx} onChange={(e) => updateThermalSetting("popupWidthPx", Number(e.target.value))} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Altura da janela (px)</Label>
+            <Input type="number" min={80} max={1200} value={thermalSettings.popupHeightPx} onChange={(e) => updateThermalSetting("popupHeightPx", Number(e.target.value))} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Intervalo entre cópias (ms)</Label>
+            <Input type="number" min={350} max={5000} value={thermalSettings.printGapMs} onChange={(e) => updateThermalSetting("printGapMs", Number(e.target.value))} />
+          </div>
+        </div>
+      </div>
+
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1">
           {tabConfig.map((tab) => (
