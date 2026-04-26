@@ -235,26 +235,13 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const width = Math.max(4, effectiveColumns(cols, style) - 4);
+  const inner = Math.max(4, cols - 4);
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-  const chunks = text.length <= width ? [text] : (() => {
-    const tokens = text.match(/\s+|\S+/g) || [];
-    const out: string[] = [];
-    let line = "";
-    const flush = () => { out.push(line.replace(/\s+$/u, "")); line = ""; };
-    for (const tk of tokens) {
-      if (/^\s+$/.test(tk)) { if (line && line.length < width) line += tk.slice(0, width - line.length); continue; }
-      if (!line) line = tk;
-      else if (line.length + tk.length <= width) line += tk;
-      else { flush(); line = tk; }
-    }
-    if (line) flush();
-    return out;
-  })();
-  for (const chunk of chunks) {
-    const padded = chunk.length >= width ? chunk : chunk + " ".repeat(width - chunk.length);
-    b.rawText(`| ${padded} |`);
-  }
+  // Não quebrar: imprime a linha como veio, apenas preenche com espaços
+  // para fechar a borda direita quando couber.
+  const truncated = text.length > inner ? text.slice(0, inner) : text;
+  const padded = truncated + " ".repeat(Math.max(0, inner - truncated.length));
+  b.rawText(`| ${padded} |`);
   resetStyle(b);
 };
 
