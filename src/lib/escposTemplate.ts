@@ -93,10 +93,12 @@ interface LineStyle {
   bold: boolean;
   big: boolean;       // [GRANDE]/[TXTGIGANTE]
   medium: boolean;    // [TXTMEDIO]
+  small: boolean;     // [TXTPEQUENO]
   upper: boolean;     // [CAIXA]
-  underline: boolean; // [TZTBORDA]/[TXTBORDA]/[BORDA]
-  invert: boolean;    // [FUNDPRETO]
-  frameStrong: boolean; // [QUADRADONEGRITO] envolvendo a linha inteira
+  underline: boolean; // [BORDA]/[QUADRADO]/[RETANGULO] = moldura → underline
+  invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
+  invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
+  frameStrong: boolean; // [QUADRADONEGRITO]
 }
 
 const DEFAULT_STYLE: LineStyle = {
@@ -104,37 +106,16 @@ const DEFAULT_STYLE: LineStyle = {
   bold: false,
   big: false,
   medium: false,
+  small: false,
   upper: false,
   underline: false,
   invert: false,
+  invertFull: false,
   frameStrong: false,
 };
 
-const TAG_PAIRS: { open: RegExp; key: keyof LineStyle; closeRe?: RegExp }[] = [
-  { open: /\[CENTRO\]/gi, key: "align" },
-  { open: /\[NEGRITO\]/gi, key: "bold" },
-  { open: /\[GRANDE\]/gi, key: "big" },
-  { open: /\[TXTGIGANTE\]/gi, key: "big" },
-  { open: /\[TXTMEDIO\]/gi, key: "medium" },
-  { open: /\[CAIXA\]/gi, key: "upper" },
-  { open: /\[TZTBORDA\]/gi, key: "underline" },
-  { open: /\[TXTBORDA\]/gi, key: "underline" },
-  { open: /\[BORDA\]/gi, key: "underline" },
-  { open: /\[TXTBORDATXT\]/gi, key: "underline" },
-  { open: /\[FUNDPRETO\]/gi, key: "invert" },
-  { open: /\[DESTAQUE\]/gi, key: "bold" },
-  { open: /\[QUADRADONEGRITO\]/gi, key: "frameStrong" },
-  { open: /\[QUADRADO\]/gi, key: "frameStrong" },
-  { open: /\[RETANGULO\]/gi, key: "frameStrong" },
-];
-
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
-/**
- * Detecta o estilo aplicado à linha analisando tags abertas (sem rigor
- * sobre fechamento, já que muitos templates usam tags como toggles).
- * Retorna o estilo + texto limpo de tags.
- */
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
 
@@ -142,10 +123,16 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
   if (/\[GRANDE\]|\[TXTGIGANTE\]/i.test(rawLine)) style.big = true;
   if (/\[TXTMEDIO\]/i.test(rawLine) && !style.big) style.medium = true;
+  if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
   if (/\[CAIXA\]/i.test(rawLine)) style.upper = true;
-  if (/\[TZTBORDA\]|\[TXTBORDA\]|\[BORDA\]|\[TXTBORDATXT\]/i.test(rawLine)) style.underline = true;
-  if (/\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
-  if (/\[QUADRADONEGRITO\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) {
+  // Moldura fina = underline (não há borda real em térmica)
+  if (/\[BORDA\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) style.underline = true;
+  // Fundo preto, texto branco — diferenciamos os dois modos:
+  // [TZTBORDA]/[TXTBORDA] = ponta a ponta (preenche a linha inteira invertida)
+  // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
+  if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
+  if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
+  if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
     style.frameStrong = true;
     style.bold = true;
   }
@@ -160,11 +147,14 @@ const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   if (style.big) b.size(1, 1);
   else if (style.medium) b.size(1, 0);
   else b.size(0, 0);
+  // small não tem ESC/POS direto — fica no tamanho normal (térmicas raramente
+  // suportam texto menor que o padrão sem mudar a fonte)
   b.underline(style.underline ? 1 : 0);
+  b.invert(style.invert || style.invertFull);
 };
 
 const resetStyle = (b: EscPosBuilder) => {
-  b.align("left").bold(false).size(0, 0).underline(0);
+  b.align("left").bold(false).size(0, 0).underline(0).invert(false);
 };
 
 // =============================================================================
