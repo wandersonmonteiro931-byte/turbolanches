@@ -216,10 +216,25 @@ const fitStyleToSingleLine = (style: LineStyle, lines: string[], cols: number): 
   const maxLength = Math.max(...lines.map((line) => line.trim().length));
   if (maxLength <= effectiveColumns(cols, style)) return style;
 
-  const normal: LineStyle = { ...style, giant: false, big: false, medium: false, small: false };
-  if (maxLength <= effectiveColumns(cols, normal)) return normal;
+  // Degraus do maior → menor. Escolhe o MAIOR que ainda caiba (mínima redução possível,
+  // texto encostando borda a borda).
+  const ladder: LineStyle[] = [
+    { ...style, giant: true, big: false, medium: false, small: false },
+    { ...style, giant: false, big: true, medium: false, small: false },
+    { ...style, giant: false, big: false, medium: true, small: false },
+    { ...style, giant: false, big: false, medium: false, small: false },
+    { ...style, giant: false, big: false, medium: false, small: true },
+  ];
 
-  return { ...normal, small: true };
+  // Considera apenas degraus que NÃO sejam maiores que o estilo atual (nunca aumenta a fonte).
+  const currentCols = effectiveColumns(cols, style);
+  for (const candidate of ladder) {
+    const candCols = effectiveColumns(cols, candidate);
+    if (candCols < currentCols) continue;
+    if (maxLength <= candCols) return candidate;
+  }
+
+  return { ...style, giant: false, big: false, medium: false, small: true };
 };
 
 const wrapAddressLines = (text: string, cols: number) => {
