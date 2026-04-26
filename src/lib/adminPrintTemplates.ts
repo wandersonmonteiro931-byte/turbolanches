@@ -141,6 +141,7 @@ const findNextWrapperToken = (template: string, startIndex: number) => {
 };
 
 export const extractTemplateSections = (template: string): TemplateSection[] => {
+  const normalizedTemplate = ensureFinalThermalCutMarker(template);
   const sections: TemplateSection[] = [];
   let activeRule: (typeof WRAPPER_RULES)[number] | null = null;
   let cursor = 0;
@@ -167,15 +168,15 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     buffer = "";
   };
 
-  while (cursor < template.length) {
-    const nextMatch = findNextWrapperToken(template, cursor);
+  while (cursor < normalizedTemplate.length) {
+    const nextMatch = findNextWrapperToken(normalizedTemplate, cursor);
 
     if (!nextMatch) {
-      buffer += template.slice(cursor);
+      buffer += normalizedTemplate.slice(cursor);
       break;
     }
 
-    buffer += template.slice(cursor, nextMatch.index);
+    buffer += normalizedTemplate.slice(cursor, nextMatch.index);
     pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
@@ -194,7 +195,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
   pushBuffer(!!activeRule);
 
   if (sections.length === 0) {
-    return [{ content: template.trim(), wrapperClass: "" }];
+    return [{ content: normalizedTemplate.trim(), wrapperClass: "" }];
   }
 
   return sections;
