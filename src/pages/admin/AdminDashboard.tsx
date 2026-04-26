@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR } from "@/lib/brasiliaTime";
+import { BrasiliaClock } from "@/components/admin/BrasiliaClock";
 import { ptBR } from "date-fns/locale";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { supabase } from "@/integrations/supabase/client";
@@ -1315,6 +1316,9 @@ const AdminDashboard = () => {
 
       {/* Store Control Bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        {/* Official Brasília clock (server-synced, not PC) */}
+        <BrasiliaClock />
+
         {/* Status indicator - what customers see */}
         <div className={cn(
           "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
