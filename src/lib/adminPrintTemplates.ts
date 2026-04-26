@@ -896,11 +896,11 @@ const getSharedPrintStyles = ({
         @page :left { margin: 0 !important; padding: 0 !important; }
         @page :right { margin: 0 !important; padding: 0 !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
+          html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print-root { position: absolute !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
+          .print-root { position: relative !important; inset: 0 auto auto 0 !important; width: ${pageWidthMm}mm !important; padding: 0 !important; margin: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; overflow: hidden !important; }
           .print-document { page-break-inside: avoid; break-inside: avoid; page-break-after: always; break-after: page; padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; }
           .print-section { padding-top: 0 !important; padding-bottom: 0 !important; margin-top: 0 !important; margin-bottom: 0 !important; min-height: 0 !important; height: auto !important; }
           .print-document:first-child, .print-section:first-child, .print-section:first-child > *:first-child { padding-top: 0 !important; margin-top: 0 !important; }
