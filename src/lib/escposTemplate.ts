@@ -27,11 +27,19 @@ export interface ItemForTemplate {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+const ADDRESS_OPEN = "\uE000ADDR\uE000";
+const ADDRESS_CLOSE = "\uE000/ADDR\uE000";
+
+const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
+const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
+
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
   for (let pass = 0; pass < 2; pass += 1) {
     for (const [k, v] of Object.entries(vars)) {
-      out = out.split(k).join(v ?? "");
+      const value = v ?? "";
+      const replacement = isAddressToken(k) ? `${ADDRESS_OPEN}${formatAddressValue(value)}${ADDRESS_CLOSE}` : value;
+      out = out.split(k).join(replacement);
     }
   }
   return out;
@@ -104,6 +112,7 @@ interface LineStyle {
   invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
   invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
   frame: "none" | "thin" | "strong" | "rect";
+  address: boolean;
 }
 
 const DEFAULT_STYLE: LineStyle = {
@@ -118,12 +127,14 @@ const DEFAULT_STYLE: LineStyle = {
   invert: false,
   invertFull: false,
   frame: "none",
+  address: false,
 };
 
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
+  if (rawLine.includes(ADDRESS_OPEN)) style.address = true;
 
   if (/\[CENTRO\]/i.test(rawLine)) style.align = "center";
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
@@ -148,7 +159,7 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
 
-  const text = rawLine.replace(ALL_TAGS_RE, "");
+  const text = rawLine.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
   return { style, text };
 };
 
