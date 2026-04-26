@@ -17,7 +17,47 @@ let syncPromise: Promise<void> | null = null;
 
 /** Try to obtain authoritative UTC time (independent from PC clock). */
 async function fetchAuthoritativeNow(): Promise<number | null> {
-  // 1) Try worldtimeapi (returns ISO with TZ offset for São Paulo)
+  // 1) Supabase health endpoint — always available, CORS-open, returns Date header
+  try {
+    const url = (import.meta as any).env?.VITE_SUPABASE_URL;
+    if (url) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      const r = await fetch(`${url}/auth/v1/health`, {
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      const dh = r.headers.get("date");
+      if (dh) {
+        const parsed = new Date(dh).getTime();
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 2) timeapi.io (CORS-enabled, returns dateTime in requested zone)
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=America/Sao_Paulo", {
+      signal: ctrl.signal,
+      cache: "no-store",
+    });
+    clearTimeout(t);
+    if (r.ok) {
+      const j = await r.json();
+      // timeapi.io returns local datetime without TZ info — convert via offset
+      // Easier: use the Date header on the response itself
+      const dh = r.headers.get("date");
+      if (dh) {
+        const parsed = new Date(dh).getTime();
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 3) worldtimeapi.org (last resort — frequently down)
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 4000);
@@ -30,37 +70,6 @@ async function fetchAuthoritativeNow(): Promise<number | null> {
       const j = await r.json();
       if (j?.utc_datetime) return new Date(j.utc_datetime).getTime();
       if (j?.datetime) return new Date(j.datetime).getTime();
-    }
-  } catch { /* ignore */ }
-
-  // 2) Fallback: HEAD to a reliable server and parse Date header
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 4000);
-    const r = await fetch("https://www.google.com/generate_204", {
-      method: "GET",
-      mode: "no-cors",
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-    clearTimeout(t);
-    const dh = r.headers.get("date");
-    if (dh) return new Date(dh).getTime();
-  } catch { /* ignore */ }
-
-  // 3) Last resort: use Supabase project endpoint Date header
-  try {
-    const url = (import.meta as any).env?.VITE_SUPABASE_URL;
-    if (url) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 4000);
-      const r = await fetch(`${url}/auth/v1/health`, {
-        cache: "no-store",
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      const dh = r.headers.get("date");
-      if (dh) return new Date(dh).getTime();
     }
   } catch { /* ignore */ }
 
