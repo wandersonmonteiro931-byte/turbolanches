@@ -175,6 +175,9 @@ export const tryPrintOrderViaQz = async (
       day: "2-digit", month: "2-digit", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
+    const horarioSaida = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const maxEntrega = new Date(new Date(order.created_at).getTime() + 45 * 60 * 1000);
+    const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
     const cleanObs = obsText
       .split("|")
@@ -210,9 +213,12 @@ export const tryPrintOrderViaQz = async (
       "[DATAHORA]": dataAgora,
       "[DATAAGORA]": dataAgora,
       "[DATAHORAPEDIDO]": dateTime,
+      "[DATAHORAENTREGA]": horarioMax,
+      "[DATAHORASAÍDAENTREGA]": horarioSaida,
+      "[HORASAIDA]": horarioSaida,
       "[OBS]": cleanObs ? `OBS: ${cleanObs}` : "",
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
-      "[NOMEENTREGADOR]": "",
+      "[NOMEENTREGADOR]": courierName,
       "[RODAPÉ]": tpl?.footer_message || "",
       "[DIVULGAÇÃO]": tpl?.custom_message || "",
     };
