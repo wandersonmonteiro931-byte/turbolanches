@@ -1801,7 +1801,7 @@ ${(() => {
 })();
 </script>
 </body></html>`, 80);
-  const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
+  const w = window.open("", "_print_caixa_" + Date.now(), "width=320,height=120");
   if (!w) return;
   w.document.open();
   w.document.write(html);
