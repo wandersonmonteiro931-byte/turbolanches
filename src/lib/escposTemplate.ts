@@ -95,27 +95,29 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
 interface LineStyle {
   align: Align;
   bold: boolean;
-  big: boolean;       // [GRANDE]/[TXTGIGANTE]
+  big: boolean;       // [GRANDE]/[DESTAQUE]
+  giant: boolean;     // [TXTGIGANTE]
   medium: boolean;    // [TXTMEDIO]
   small: boolean;     // [TXTPEQUENO]
-  upper: boolean;     // [CAIXA]
-  underline: boolean; // [BORDA]/[QUADRADO]/[RETANGULO] = moldura → underline
+  box: boolean;       // [CAIXA]
+  underline: 0 | 1 | 2;
   invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
   invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
-  frameStrong: boolean; // [QUADRADONEGRITO]
+  frame: "none" | "thin" | "strong" | "rect";
 }
 
 const DEFAULT_STYLE: LineStyle = {
   align: "left",
   bold: false,
   big: false,
+  giant: false,
   medium: false,
   small: false,
-  upper: false,
-  underline: false,
+  box: false,
+  underline: 0,
   invert: false,
   invertFull: false,
-  frameStrong: false,
+  frame: "none",
 };
 
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
@@ -125,19 +127,24 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 
   if (/\[CENTRO\]/i.test(rawLine)) style.align = "center";
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
-  if (/\[GRANDE\]|\[TXTGIGANTE\]/i.test(rawLine)) style.big = true;
+  if (/\[TXTGIGANTE\]/i.test(rawLine)) style.giant = true;
+  if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
   if (/\[TXTMEDIO\]/i.test(rawLine) && !style.big) style.medium = true;
   if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
-  if (/\[CAIXA\]/i.test(rawLine)) style.upper = true;
-  // Moldura fina = underline (não há borda real em térmica)
-  if (/\[BORDA\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) style.underline = true;
+  if (/\[CAIXA\]/i.test(rawLine)) {
+    style.box = true;
+    style.bold = true;
+  }
+  if (/\[BORDA\]/i.test(rawLine)) style.frame = "thin";
+  if (/\[QUADRADO\]/i.test(rawLine)) style.frame = "thin";
+  if (/\[RETANGULO\]/i.test(rawLine)) style.frame = "rect";
   // Fundo preto, texto branco — diferenciamos os dois modos:
   // [TZTBORDA]/[TXTBORDA] = ponta a ponta (preenche a linha inteira invertida)
   // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
   if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
   if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    style.frameStrong = true;
+    style.frame = "strong";
     style.bold = true;
   }
 
@@ -147,18 +154,18 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 
 const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   b.align(style.align);
+  b.font(style.small ? "B" : "A");
   b.bold(style.bold);
-  if (style.big) b.size(1, 1);
+  if (style.giant) b.size(2, 2);
+  else if (style.big) b.size(1, 1);
   else if (style.medium) b.size(1, 0);
   else b.size(0, 0);
-  // small não tem ESC/POS direto — fica no tamanho normal (térmicas raramente
-  // suportam texto menor que o padrão sem mudar a fonte)
-  b.underline(style.underline ? 1 : 0);
+  b.underline(style.underline);
   b.invert(style.invert || style.invertFull);
 };
 
 const resetStyle = (b: EscPosBuilder) => {
-  b.align("left").bold(false).size(0, 0).underline(0).invert(false);
+  b.align("left").font("A").bold(false).size(0, 0).underline(0).invert(false);
 };
 
 // =============================================================================
