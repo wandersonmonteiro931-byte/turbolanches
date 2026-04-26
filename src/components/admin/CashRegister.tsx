@@ -273,7 +273,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       const today = list.find((r) => r.business_day === todayBusinessDay);
       const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
 
-      const next = previousOpen || today || null;
+      // Prioriza o caixa do dia atual; se não existir, mostra o anterior em aberto
+      // (que poderá ser fechado pelo Histórico). Isso libera "Abrir Caixa" mesmo
+      // quando o caixa do dia anterior ainda não foi encerrado.
+      const next = today || previousOpen || null;
       if (next) registerCache.set(storeId, next);
       else registerCache.delete(storeId);
       setRegister(next);
