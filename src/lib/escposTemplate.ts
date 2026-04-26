@@ -29,13 +29,15 @@ const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.split(k).join(v ?? "");
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (const [k, v] of Object.entries(vars)) {
+      out = out.split(k).join(v ?? "");
+    }
   }
   return out;
 };
 
-const ITEM_TOKENS = ["[ITENS]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]"];
+const ITEM_TOKENS = ["[ITENS]", "[ITEM]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]", "[CÓDIGOPROD]", "[CODIGOPROD]"];
 
 const lineHasItemToken = (line: string) => ITEM_TOKENS.some((t) => line.includes(t));
 
@@ -47,7 +49,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (items.length === 0) return [];
 
       // Caso 1: linha é só [ITENS] → expande em formato padrão
-      if (rawLine.trim() === "[ITENS]") {
+      if (/^\s*\[(ITENS|ITEM)\]\s*$/i.test(rawLine)) {
         const out: string[] = [];
         for (const it of items) {
           const lineTotal = it.unitPrice * it.quantity
@@ -77,6 +79,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[PREÇOPROD]": fmt(it.unitPrice),
           "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
           "[ADICIONAIS]": addonsText,
+          "[CÓDIGOPROD]": "",
+          "[CODIGOPROD]": "",
         };
         return [replaceTokens(rawLine, itemVars)];
       });
@@ -91,27 +95,29 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
 interface LineStyle {
   align: Align;
   bold: boolean;
-  big: boolean;       // [GRANDE]/[TXTGIGANTE]
+  big: boolean;       // [GRANDE]/[DESTAQUE]
+  giant: boolean;     // [TXTGIGANTE]
   medium: boolean;    // [TXTMEDIO]
   small: boolean;     // [TXTPEQUENO]
-  upper: boolean;     // [CAIXA]
-  underline: boolean; // [BORDA]/[QUADRADO]/[RETANGULO] = moldura → underline
+  box: boolean;       // [CAIXA]
+  underline: 0 | 1 | 2;
   invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
   invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
-  frameStrong: boolean; // [QUADRADONEGRITO]
+  frame: "none" | "thin" | "strong" | "rect";
 }
 
 const DEFAULT_STYLE: LineStyle = {
   align: "left",
   bold: false,
   big: false,
+  giant: false,
   medium: false,
   small: false,
-  upper: false,
-  underline: false,
+  box: false,
+  underline: 0,
   invert: false,
   invertFull: false,
-  frameStrong: false,
+  frame: "none",
 };
 
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
@@ -121,19 +127,24 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 
   if (/\[CENTRO\]/i.test(rawLine)) style.align = "center";
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
-  if (/\[GRANDE\]|\[TXTGIGANTE\]/i.test(rawLine)) style.big = true;
-  if (/\[TXTMEDIO\]/i.test(rawLine) && !style.big) style.medium = true;
+  if (/\[TXTGIGANTE\]/i.test(rawLine)) style.giant = true;
+  if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
+  if (/\[TXTMEDIO\]|\[NEGRITO\]/i.test(rawLine) && !style.big && !style.giant) style.medium = true;
   if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
-  if (/\[CAIXA\]/i.test(rawLine)) style.upper = true;
-  // Moldura fina = underline (não há borda real em térmica)
-  if (/\[BORDA\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) style.underline = true;
+  if (/\[CAIXA\]/i.test(rawLine)) {
+    style.box = true;
+    style.bold = true;
+  }
+  if (/\[BORDA\]/i.test(rawLine)) style.frame = "thin";
+  if (/\[QUADRADO\]/i.test(rawLine)) style.frame = "thin";
+  if (/\[RETANGULO\]/i.test(rawLine)) style.frame = "rect";
   // Fundo preto, texto branco — diferenciamos os dois modos:
   // [TZTBORDA]/[TXTBORDA] = ponta a ponta (preenche a linha inteira invertida)
   // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
   if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
   if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    style.frameStrong = true;
+    style.frame = "strong";
     style.bold = true;
   }
 
@@ -143,18 +154,99 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 
 const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   b.align(style.align);
+  b.font(style.small ? "B" : "A");
   b.bold(style.bold);
-  if (style.big) b.size(1, 1);
+  if (style.giant) b.size(2, 2);
+  else if (style.big) b.size(1, 1);
   else if (style.medium) b.size(1, 0);
   else b.size(0, 0);
-  // small não tem ESC/POS direto — fica no tamanho normal (térmicas raramente
-  // suportam texto menor que o padrão sem mudar a fonte)
-  b.underline(style.underline ? 1 : 0);
+  b.underline(style.underline);
   b.invert(style.invert || style.invertFull);
 };
 
 const resetStyle = (b: EscPosBuilder) => {
-  b.align("left").bold(false).size(0, 0).underline(0).invert(false);
+  b.align("left").font("A").bold(false).size(0, 0).underline(0).invert(false);
+};
+
+const frameChar = (frame: LineStyle["frame"]) => (frame === "strong" ? "=" : "-");
+
+const effectiveColumns = (cols: number, style: LineStyle) => {
+  if (style.giant) return Math.max(8, Math.floor(cols / 3));
+  if (style.big || style.medium) return Math.max(8, Math.floor(cols / 2));
+  if (style.small) return Math.max(cols, Math.floor(cols * 1.25));
+  return cols;
+};
+
+const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const finalText = text;
+  if (!finalText.replace(/\s/g, "")) return;
+
+  const width = effectiveColumns(cols, style);
+  if (style.invertFull) {
+    const trimmedTxt = finalText.trim();
+    const padded = trimmedTxt.length >= width
+      ? trimmedTxt
+      : (() => {
+          const total = width - trimmedTxt.length;
+          const left = Math.floor(total / 2);
+          return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
+        })();
+    applyStyleToBuilder(b, style);
+    b.rawText(padded);
+    resetStyle(b);
+    return;
+  }
+
+  if (style.box || style.frame !== "none") {
+    const border = frameChar(style.box ? "strong" : style.frame).repeat(cols);
+    resetStyle(b);
+    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+    if (finalText.length <= width) b.rawText(finalText);
+    else b.wrap(finalText, width);
+    resetStyle(b);
+    b.bold(style.box || style.frame === "strong").line(border).bold(false);
+    return;
+  }
+
+  applyStyleToBuilder(b, style);
+  if (finalText.length <= width) b.rawText(finalText);
+  else b.wrap(finalText, width);
+  resetStyle(b);
+};
+
+const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame: LineStyle["frame"] } | null => {
+  if (/^\[QUADRADONEGRITO\]$/i.test(trimmedLine)) return { kind: "open", frame: "strong" };
+  if (/^\[\/QUADRADONEGRITO\]$/i.test(trimmedLine)) return { kind: "close", frame: "strong" };
+  if (/^\[QUADRADO\]$/i.test(trimmedLine)) return { kind: "open", frame: "thin" };
+  if (/^\[\/QUADRADO\]$/i.test(trimmedLine)) return { kind: "close", frame: "thin" };
+  if (/^\[RETANGULO\]$/i.test(trimmedLine)) return { kind: "open", frame: "rect" };
+  if (/^\[\/RETANGULO\]$/i.test(trimmedLine)) return { kind: "close", frame: "rect" };
+  return null;
+};
+
+const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const width = Math.max(4, effectiveColumns(cols, style) - 4);
+  applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+  const chunks = text.length <= width ? [text] : (() => {
+    const tokens = text.match(/\s+|\S+/g) || [];
+    const out: string[] = [];
+    let line = "";
+    const flush = () => { out.push(line.replace(/\s+$/u, "")); line = ""; };
+    for (const tk of tokens) {
+      if (/^\s+$/.test(tk)) { if (line && line.length < width) line += tk.slice(0, width - line.length); continue; }
+      if (!line) line = tk;
+      else if (line.length + tk.length <= width) line += tk;
+      else { flush(); line = tk; }
+    }
+    if (line) flush();
+    return out;
+  })();
+  for (const chunk of chunks) {
+    const padded = chunk.length >= width ? chunk : chunk + " ".repeat(width - chunk.length);
+    b.rawText(`| ${padded} |`);
+  }
+  resetStyle(b);
 };
 
 // =============================================================================
@@ -178,20 +270,31 @@ export const renderTemplateToEscPos = (
 
   // 3. Renderiza linha a linha
   const lines = resolved.split("\n");
+  let activeBlockFrame: LineStyle["frame"] = "none";
 
   for (const rawLine of lines) {
     const trimmed = rawLine.trim();
 
+    const blockTag = getBlockFrameTag(trimmed);
+    if (blockTag) {
+      resetStyle(b);
+      b.bold(blockTag.frame === "strong").line(frameChar(blockTag.frame).repeat(cols)).bold(false);
+      activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
+      continue;
+    }
+
     // Linha vazia
     if (!trimmed) {
-      b.newline();
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "", cols);
+      else b.newline();
       continue;
     }
 
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      b.line("-".repeat(cols));
+      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(4, cols - 4)), cols);
+      else b.line("-".repeat(cols));
       continue;
     }
 
@@ -205,38 +308,11 @@ export const renderTemplateToEscPos = (
     }
 
     const { style, text } = parseLineStyle(rawLine);
-    const finalText = style.upper ? text.toLocaleUpperCase("pt-BR") : text;
-
-    if (!finalText.replace(/\s/g, "")) continue;
-
-    // Largura efetiva: texto duplo ocupa 2x → metade das colunas.
-    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
-
-    // [TZTBORDA]/[TXTBORDA] = barra preta ponta-a-ponta com texto branco.
-    // Preenchemos com espaços invertidos para a barra atravessar todo o papel.
-    if (style.invertFull) {
-      const trimmedTxt = finalText.trim();
-      const padded = trimmedTxt.length >= effectiveCols
-        ? trimmedTxt.slice(0, effectiveCols)
-        : (() => {
-            const total = effectiveCols - trimmedTxt.length;
-            const left = Math.floor(total / 2);
-            const right = total - left;
-            return " ".repeat(left) + trimmedTxt + " ".repeat(right);
-          })();
-      applyStyleToBuilder(b, style);
-      b.rawText(padded);
-      resetStyle(b);
-      continue;
-    }
-
-    applyStyleToBuilder(b, style);
-    if (finalText.length <= effectiveCols) {
-      b.rawText(finalText);
+    if (activeBlockFrame !== "none" && style.frame === "none" && !style.box && !style.invertFull) {
+      renderBlockContentLine(b, style, text, cols);
     } else {
-      b.wrap(finalText, effectiveCols);
+      renderStyledText(b, style, text, cols);
     }
-    resetStyle(b);
   }
 
   // Feed + corte exato

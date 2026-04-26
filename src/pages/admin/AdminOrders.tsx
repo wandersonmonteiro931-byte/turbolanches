@@ -506,10 +506,8 @@ const AdminOrders = () => {
 
   const printReceipt = async (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
     // Tenta QZ Tray (ESC/POS) primeiro — corte exato, sem sobra
-    if (tipo === "pedido" || tipo === "obrigado") {
-      const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
-      if (sentViaQz) return;
-    }
+    const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
+    if (sentViaQz) return;
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
     safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };

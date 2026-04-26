@@ -997,7 +997,7 @@ const getSharedPrintStyles = ({
         .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
         .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
         .items-table .items-qty { white-space: nowrap; width: 1%; padding-right: 4px; }
-        .items-table .items-name { word-break: break-word; }
+        .items-table .items-name { word-break: normal; overflow-wrap: normal; white-space: normal; }
         .items-table .items-price { white-space: nowrap; width: 1%; text-align: right; padding-left: 4px; }
         .items-table .items-obs-td,
         .items-table .items-addon-td { padding: 0.8mm 1.5mm; background: #000; color: #fff; font-size: ${Math.max(bodyFontSizePx - 1, 7)}px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1014,7 +1014,11 @@ const getSharedPrintStyles = ({
         .tipo-label,
         .pedido-destaque,
         .box-highlight,
-        .list-name { overflow-wrap: break-word; white-space: normal; }
+        .inline-border,
+        .txt-borda-preta,
+        .txt-borda-inline,
+        .black-highlight,
+        .list-name { overflow-wrap: normal; word-break: normal; white-space: pre-wrap; }
         ${extraCss}
       `;
 };
