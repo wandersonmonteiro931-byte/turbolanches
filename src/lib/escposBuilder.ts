@@ -102,6 +102,12 @@ export class EscPosBuilder {
     return this;
   }
 
+  /** GS B n — modo invertido (branco no preto). 0 off, 1 on. */
+  invert(on: boolean): this {
+    this.push(GS, 0x42, on ? 1 : 0);
+    return this;
+  }
+
   text(value: string): this {
     for (const b of encodeCp1252(value)) this.bytes.push(b);
     return this;
