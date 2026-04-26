@@ -273,7 +273,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       const today = list.find((r) => r.business_day === todayBusinessDay);
       const previousOpen = list.find((r) => r.business_day !== todayBusinessDay && r.status === "open");
 
-      const next = previousOpen || today || null;
+      // Prioriza o caixa do dia atual; se não existir, mostra o anterior em aberto
+      // (que poderá ser fechado pelo Histórico). Isso libera "Abrir Caixa" mesmo
+      // quando o caixa do dia anterior ainda não foi encerrado.
+      const next = today || previousOpen || null;
       if (next) registerCache.set(storeId, next);
       else registerCache.delete(storeId);
       setRegister(next);
@@ -1004,6 +1007,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   }
 
   const isOpenToday = register?.status === "open" && register?.business_day === todayBusinessDay;
+  // Caixa de dia anterior ainda em aberto: apenas EXIBE aviso — não bloqueia mais
+  // a abertura de um novo caixa (o anterior pode ser encerrado pelo Histórico).
   const previousDayBlocking = register && register.status === "open" && register.business_day !== todayBusinessDay;
   // Reminder: store closed but cash still open → blink to remind admin to close it
   const remindClose = isOpenToday && !storeIsOpen;
@@ -1053,7 +1058,6 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
           {!register || register.business_day !== todayBusinessDay ? (
             <Button
               onClick={() => setShowOpen(true)}
-              disabled={!!previousDayBlocking}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Unlock size={16} className="mr-1" /> Abrir Caixa
@@ -1602,7 +1606,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   }}>
                     <Pencil size={14} className="mr-1" /> Editar Abertura
                   </Button>
-                  {r.closed_at && (
+                  {r.closed_at ? (
                     <Button size="sm" variant="outline" onClick={() => {
                       // 🔧 Abrir o MODAL REAL de Fechamento, pré-preenchido, em modo edição
                       const cM = (r.notes || "").match(/\[Fechado por:\s*([^\]]+)\]/);
@@ -1614,6 +1618,22 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                       setShowClose(true);
                     }}>
                       <Pencil size={14} className="mr-1" /> Editar Fechamento
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                      onClick={() => {
+                        // Fechar um caixa que ainda está aberto (ex.: do dia anterior)
+                        setEditingRegBackup(register);
+                        setEditingRegId(r.id);
+                        setRegister(r);
+                        setCloseForm(closeFormFromRegister(r, ""));
+                        setShowHistory(false);
+                        setShowClose(true);
+                      }}
+                    >
+                      <Lock size={14} className="mr-1" /> Fechar Caixa
                     </Button>
                   )}
                 </div>
