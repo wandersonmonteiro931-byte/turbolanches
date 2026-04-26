@@ -81,10 +81,10 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 
 const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
-const ensureFinalThermalCutMarker = (template: string) => {
-  const compact = template.trimEnd();
-  return compact.endsWith("---") ? compact : `${compact}\n---`;
-};
+const useUserTemplateAsConfigured = (template: string) => template;
+
+const INVISIBLE_THERMAL_CUT_MARKER =
+  '<span id="thermal-auto-cut-marker" class="thermal-cut-marker thermal-auto-cut-marker" data-thermal-cut="true" aria-hidden="true" style="display:block;width:0;height:0;line-height:0;margin:0;padding:0;border:0;overflow:hidden;break-after:auto;page-break-after:auto;"></span>';
 
 export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
   const markerScript = `<script>(function(){
@@ -94,17 +94,19 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
     var nativePrint = window.print ? window.print.bind(window) : null;
     var scheduledNativePrint = false;
     function markFinalCut(){
-      var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true'],hr,.separator,.sep"));
-      if (!candidates.length && document.body) {
-        var forced = document.createElement("div");
-        forced.className = "separator thermal-cut-marker";
-        forced.setAttribute("data-thermal-cut", "true");
-        forced.style.cssText = "border-top:1px dashed #000!important;height:0!important;line-height:0!important;margin:0!important;padding:0!important;";
-        document.body.appendChild(forced);
-        candidates = [forced];
+      if (!document.body) return;
+      var auto = document.getElementById("thermal-auto-cut-marker");
+      if (!auto) {
+        auto = document.createElement("span");
+        auto.id = "thermal-auto-cut-marker";
+        auto.className = "thermal-cut-marker thermal-auto-cut-marker";
+        auto.setAttribute("data-thermal-cut", "true");
+        auto.setAttribute("aria-hidden", "true");
       }
-      if (!candidates.length) return;
-      var last = candidates[candidates.length - 1];
+      auto.style.cssText = "display:block!important;width:0!important;height:0!important;line-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;break-after:auto!important;page-break-after:auto!important;";
+      document.body.appendChild(auto);
+      var candidates = Array.prototype.slice.call(document.querySelectorAll("[data-thermal-cut='true']"));
+      var last = candidates[candidates.length - 1] || auto;
       last.setAttribute("data-thermal-cut", "true");
       last.className = ((last.className || "") + " thermal-cut-marker").trim();
       try { last.style.marginBottom = "0"; last.style.paddingBottom = "0"; last.style.breakAfter = "auto"; last.style.pageBreakAfter = "auto"; } catch(e) {}
@@ -226,7 +228,7 @@ const findNextWrapperToken = (template: string, startIndex: number) => {
 };
 
 export const extractTemplateSections = (template: string): TemplateSection[] => {
-  const normalizedTemplate = ensureFinalThermalCutMarker(template);
+  const normalizedTemplate = useUserTemplateAsConfigured(template);
   const sections: TemplateSection[] = [];
   let activeRule: (typeof WRAPPER_RULES)[number] | null = null;
   let cursor = 0;
@@ -994,7 +996,7 @@ export const buildAdminPrintDocument = ({
     .filter(Boolean)
     .join("");
 
-  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}</article>`;
+  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
 
   return `<!DOCTYPE html>
   <html lang="pt-BR">
@@ -1065,7 +1067,7 @@ export const buildBatchPrintDocument = (
         .filter(Boolean)
         .join("");
 
-      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
+      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
     })
     .join("");
 
