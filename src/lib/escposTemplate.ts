@@ -195,6 +195,15 @@ const boxedLine = (text: string, cols: number, align: Align = "left") => {
   return `| ${" ".repeat(left)}${text}${" ".repeat(right)} |`;
 };
 
+const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
+  const value = text.trim();
+  if (value.length >= cols) return value;
+  const remaining = cols - value.length;
+  const left = align === "center" ? Math.floor(remaining / 2) : align === "right" ? remaining : 0;
+  const right = remaining - left;
+  return `${" ".repeat(left)}${value}${" ".repeat(right)}`;
+};
+
 const effectiveColumns = (cols: number, style: LineStyle) => {
   if (style.giant) return Math.max(8, Math.floor(cols / 3));
   if (style.big || style.medium) return Math.max(8, Math.floor(cols / 2));
@@ -253,15 +262,10 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   }
 
   if (style.box || style.frame !== "none") {
-    const frame = style.box ? "strong" : style.frame;
-    const useStrong = frame === "strong";
-    const border = frameBorder(frame, cols);
     resetStyle(b);
-    b.bold(useStrong).line(border).bold(false);
-    applyStyleToBuilder(b, { ...style, frame: "none", box: false, big: false, giant: false, medium: false, small: false });
-    for (const line of outputLines) b.rawText(boxedLine(line, cols, style.align));
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false, invert: true, invertFull: true });
+    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, style), style.align));
     resetStyle(b);
-    b.bold(useStrong).line(border).bold(false);
     return;
   }
 
