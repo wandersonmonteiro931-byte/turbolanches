@@ -759,6 +759,17 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         window.__TURBO_THERMAL_HEIGHT_PX__ = heightPx;
       } catch (e) {}
     }
+    function resizePopupToReceipt(heightPx, pageWidthMm) {
+      try {
+        var widthPx = Math.ceil(pageWidthMm * 96 / 25.4);
+        var chromeW = Math.max(0, Math.min(100, (window.outerWidth || widthPx) - (window.innerWidth || widthPx)));
+        var chromeH = Math.max(0, Math.min(180, (window.outerHeight || heightPx) - (window.innerHeight || heightPx)));
+        var targetW = Math.ceil(widthPx + chromeW + 4);
+        var targetH = Math.ceil(heightPx + chromeH + 4);
+        var maxH = (window.screen && window.screen.availHeight) || targetH;
+        window.resizeTo(targetW, Math.min(maxH, targetH));
+      } catch (e) {}
+    }
 
     if (lastDoc) {
       var firstDoc = docs[0] || lastDoc;
@@ -797,6 +808,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     // No integer-mm rounding: keep the page at the exact measured content height.
     var pageHeightMm = Math.max(8, Math.round((heightPx * 25.4 / 96) * 100) / 100);
     lockExactPrintHeight(heightPx, pageHeightMm);
+    resizePopupToReceipt(heightPx, pageWidthMm);
     var style = document.getElementById("tight-thermal-page-size");
     if (!style) {
       style = document.createElement("style");
