@@ -81,6 +81,69 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 
 const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
+const ensureFinalThermalCutMarker = (template: string) => {
+  const compact = template.trimEnd();
+  return compact.endsWith("---") ? compact : `${compact}\n---`;
+};
+
+export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
+  const markerScript = `<script>(function(){
+    var pageWidthMm = ${pageWidthMm};
+    function markFinalCut(){
+      var candidates = Array.prototype.slice.call(document.querySelectorAll("hr,.separator,[data-thermal-cut='true']"));
+      if (!candidates.length) return;
+      var last = candidates[candidates.length - 1];
+      last.setAttribute("data-thermal-cut", "true");
+      last.className = ((last.className || "") + " thermal-cut-marker").trim();
+      document.body && document.body.setAttribute("data-page-width-mm", String(pageWidthMm));
+    }
+    function prepareTightLegacyPage(){
+      markFinalCut();
+      var body = document.body;
+      if (!body) return;
+      try {
+        document.documentElement.style.margin = "0";
+        document.documentElement.style.padding = "0";
+        document.documentElement.style.border = "0";
+        document.documentElement.style.minHeight = "0";
+        document.documentElement.style.height = "auto";
+        body.style.margin = "0";
+        body.style.padding = "0";
+        body.style.border = "0";
+        body.style.minHeight = "0";
+        body.style.height = "auto";
+        body.style.overflow = "visible";
+      } catch (error) {}
+      var marker = document.querySelector("[data-thermal-cut='true']");
+      var markers = document.querySelectorAll("[data-thermal-cut='true']");
+      if (markers.length) marker = markers[markers.length - 1];
+      function measureBottom(el){ try { var r = el.getBoundingClientRect(); return r.bottom + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
+      function measureTop(el){ try { var r = el.getBoundingClientRect(); return r.top + (window.scrollY || window.pageYOffset || 0); } catch(e){ return 0; } }
+      function hasInk(el){
+        var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
+        var ink = false;
+        try { var cs = window.getComputedStyle(el); ink = !!(cs && (cs.borderTopWidth !== "0px" || cs.borderBottomWidth !== "0px" || cs.borderLeftWidth !== "0px" || cs.borderRightWidth !== "0px" || (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent"))); } catch(e) {}
+        return !!(txt || ink);
+      }
+      var topPx = 0;
+      var leaves = body.querySelectorAll("*");
+      for (var i = 0; i < leaves.length; i++) { if (hasInk(leaves[i])) { topPx = Math.max(0, measureTop(leaves[i])); break; } }
+      var bottomPx = marker ? measureBottom(marker) : measureBottom(body);
+      if (!bottomPx || bottomPx <= topPx) return;
+      var heightMm = Math.max(8, Math.round(((bottomPx - topPx) * 25.4 / 96) * 100) / 100);
+      var style = document.getElementById("tight-thermal-page-size");
+      if (!style) { style = document.createElement("style"); style.id = "tight-thermal-page-size"; document.head.appendChild(style); }
+      style.textContent = "@page{size:" + pageWidthMm + "mm " + heightMm + "mm!important;margin:0!important;}@media print{html,body{margin:0!important;padding:0!important;border:0!important;width:" + pageWidthMm + "mm!important;min-width:" + pageWidthMm + "mm!important;max-width:" + pageWidthMm + "mm!important;height:" + heightMm + "mm!important;max-height:" + heightMm + "mm!important;overflow:hidden!important;}body>*:last-child{margin-bottom:0!important;padding-bottom:0!important;}}";
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFinalCut, { once: true });
+    else markFinalCut();
+    window.addEventListener("beforeprint", prepareTightLegacyPage);
+    window.prepareTightThermalPrintPage = prepareTightLegacyPage;
+  })();</script>`;
+
+  return html.includes("prepareTightThermalPrintPage") ? html : html.replace("</body>", `${markerScript}</body>`);
+};
+
 const findNextInlineTag = (input: string, startIndex: number) => {
   let nextMatch:
     | {
@@ -136,6 +199,7 @@ const findNextWrapperToken = (template: string, startIndex: number) => {
 };
 
 export const extractTemplateSections = (template: string): TemplateSection[] => {
+  const normalizedTemplate = ensureFinalThermalCutMarker(template);
   const sections: TemplateSection[] = [];
   let activeRule: (typeof WRAPPER_RULES)[number] | null = null;
   let cursor = 0;
@@ -162,15 +226,15 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     buffer = "";
   };
 
-  while (cursor < template.length) {
-    const nextMatch = findNextWrapperToken(template, cursor);
+  while (cursor < normalizedTemplate.length) {
+    const nextMatch = findNextWrapperToken(normalizedTemplate, cursor);
 
     if (!nextMatch) {
-      buffer += template.slice(cursor);
+      buffer += normalizedTemplate.slice(cursor);
       break;
     }
 
-    buffer += template.slice(cursor, nextMatch.index);
+    buffer += normalizedTemplate.slice(cursor, nextMatch.index);
     pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
@@ -189,7 +253,7 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
   pushBuffer(!!activeRule);
 
   if (sections.length === 0) {
-    return [{ content: template.trim(), wrapperClass: "" }];
+    return [{ content: normalizedTemplate.trim(), wrapperClass: "" }];
   }
 
   return sections;
@@ -425,7 +489,7 @@ const getFrameCss = (sectionPaddingMm: number, pageWidthMm: number) => {
   `;
 };
 
-const PRINT_BOOTSTRAP_SCRIPT = `<script>
+export const PRINT_BOOTSTRAP_SCRIPT = `<script>
 if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = false; }
 (function () {
   var keepOpen = false;

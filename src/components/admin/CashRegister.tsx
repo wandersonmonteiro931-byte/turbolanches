@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatBusinessDate, getBusinessDayRange, getTodayBusinessDay } from "@/lib/businessDay";
 import { formatDateTimeBR, nowBrasilia } from "@/lib/brasiliaTime";
+import { makeTightThermalPrintHtml } from "@/lib/adminPrintTemplates";
 import { cn } from "@/lib/utils";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -1704,12 +1705,13 @@ function printRegisterReport(
     .replace(/\[Aberto por:[^\]]*\]/g, "")
     .replace(/\[Fechado por:[^\]]*\]/g, "")
     .trim();
-  const html = `<!doctype html><html><head><meta charset="utf-8"/>
+  const html = makeTightThermalPrintHtml(`<!doctype html><html><head><meta charset="utf-8"/>
 <title>Relatorio Caixa ${reg.business_day}</title>
 <style>
-@page { size: 80mm auto; margin: 0; }
-* { box-sizing: border-box; }
-body { font-family: Arial, sans-serif; font-weight: 900; margin: 0; padding: 6px 8px; color: #000; font-size: 12px; }
+@page { size: 80mm auto; margin: 0 !important; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { margin: 0 !important; padding: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important; }
+body { font-family: Arial, sans-serif; font-weight: 900; color: #000; font-size: 12px; width: 80mm; overflow: visible; }
 h1 { font-size: 14px; text-align: center; margin: 4px 0; }
 .row { display: flex; justify-content: space-between; }
 hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
@@ -1779,7 +1781,7 @@ ${(() => {
 <hr/>
 <div><strong>SALDO FINAL (valores informados)</strong></div>
 <div class="row big"><span>💰 Gaveta:</span><strong>${finalCash}</strong></div>
-<div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div>`;
+<div class="row big"><span>🏦 Conta:</span><strong>${finalAccount}</strong></div><hr/>`;
 })()}
 <script>
 (function(){
@@ -1794,7 +1796,7 @@ ${(() => {
   window.onload = function(){ setTimeout(fire, 300); };
 })();
 </script>
-</body></html>`;
+</body></html>`, 80);
   const w = window.open("", "_print_caixa_" + Date.now(), "width=380,height=700");
   if (!w) return;
   w.document.open();
