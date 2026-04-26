@@ -83,6 +83,9 @@ const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
 const useUserTemplateAsConfigured = (template: string) => template;
 
+const INVISIBLE_THERMAL_CUT_MARKER =
+  '<span id="thermal-auto-cut-marker" class="thermal-cut-marker thermal-auto-cut-marker" data-thermal-cut="true" aria-hidden="true" style="display:block;width:0;height:0;line-height:0;margin:0;padding:0;border:0;overflow:hidden;break-after:auto;page-break-after:auto;"></span>';
+
 export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
   const markerScript = `<script>(function(){
     if (window.__TURBO_TIGHT_THERMAL_INSTALLED__) return;
@@ -993,7 +996,7 @@ export const buildAdminPrintDocument = ({
     .filter(Boolean)
     .join("");
 
-  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}</article>`;
+  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
 
   return `<!DOCTYPE html>
   <html lang="pt-BR">
@@ -1064,7 +1067,7 @@ export const buildBatchPrintDocument = (
         .filter(Boolean)
         .join("");
 
-      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}</article>`;
+      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
     })
     .join("");
 
