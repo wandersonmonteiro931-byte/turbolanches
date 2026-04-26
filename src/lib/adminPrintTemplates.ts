@@ -788,6 +788,7 @@ const getSharedPrintStyles = ({
         ${frameCss}
         .center { display: block; width: 100%; text-align: center; }
         .separator { border-top: 1.5px dashed #000; margin: 1.5px 0; }
+        .print-section:last-child > .thermal-cut-marker:last-child { margin-bottom: 0 !important; }
         .info { font-size: ${bodyFontSizePx}px; margin: 1.5px 0; font-weight: 900; line-height: 1.35; }
         .grand-total { font-size: ${bodyFontSizePx + 1}px; font-weight: 900; margin: 1.5px 0; line-height: 1.35; }
         .txt-grande { font-size: ${largeTextPx}px !important; font-weight: 900; line-height: 1.18; }
