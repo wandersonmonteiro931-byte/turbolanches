@@ -87,15 +87,19 @@ export const tryPrintOrderViaQz = async (
       ? "mesa"
       : resolveType(tipoIn);
 
-    const [itemsRes, profileRes, tplRes] = await Promise.all([
+    const [itemsRes, profileRes, tplRes, courierRes] = await Promise.all([
       supabase.from("order_items").select("*").eq("order_id", orderId),
       supabase.from("profiles").select("full_name, phone, customer_code, quadra, lote").eq("user_id", order.user_id).maybeSingle(),
       supabase.from("receipt_templates" as any).select("*").eq("template_type", resolvedType).maybeSingle(),
+      order.courier_id
+        ? supabase.from("couriers").select("name").eq("id", order.courier_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
     ]);
 
     const items = itemsRes.data || [];
     const profile: any = profileRes.data;
     const tpl: any = tplRes.data;
+    const courierName: string = (courierRes as any)?.data?.name || "";
 
     const rawTableCode = (order.table_code as string)
       || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
