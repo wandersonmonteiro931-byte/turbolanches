@@ -286,7 +286,8 @@ const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string
   applyStyleToBuilder(b, { ...style, frame: "none", box: false });
   // Não corta texto/número: se passar da largura, imprime inteiro e deixa
   // a impressora lidar fisicamente, sem quebrar no software.
-  b.rawText(boxedLine(text, cols, style.align));
+  const lines = style.address ? wrapAddressLines(text, effectiveColumns(cols, style)) : [text];
+  for (const line of lines) b.rawText(boxedLine(line, cols, style.align));
   resetStyle(b);
 };
 
