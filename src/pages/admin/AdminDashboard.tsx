@@ -21,7 +21,7 @@ const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTracki
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
 import CalculatorModal from "@/components/admin/CalculatorModal";
-import { buildAdminPrintDocument, escapeHtml } from "@/lib/adminPrintTemplates";
+import { buildAdminPrintDocument, escapeHtml, makeTightThermalPrintHtml } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1090,11 +1090,12 @@ const AdminDashboard = () => {
       ? expensesList.map(e => `<div class="row"><span>${e.description}</span><span>R$ ${e.amount.toFixed(2).replace(".",",")}</span></div>`).join("")
       : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
 
-    w.document.write(`
+    w.document.write(makeTightThermalPrintHtml(`
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; width:72mm; padding:2mm; font-size:10px; }
+        html, body { margin:0 !important; padding:0 !important; border:0 !important; min-height:0 !important; height:auto !important; overflow:visible; }
+        body { font-family:'Inter',sans-serif; width:72mm; padding:0; font-size:10px; }
         .center { text-align:center; }
         .sep { border-top:1px dashed #000; margin:3px 0; }
         .row { display:flex; justify-content:space-between; padding:2px 0; font-weight:700; }
@@ -1103,7 +1104,7 @@ const AdminDashboard = () => {
         h1 { font-size:14px; font-weight:900; text-align:center; margin:4px 0; }
         h2 { font-size:11px; font-weight:900; text-align:center; margin:2px 0; }
         .sub { font-size:9px; font-weight:700; margin:4px 0 2px; color:#333; }
-        @page { size:72mm auto; margin:0; }
+        @page { size:72mm auto; margin:0 !important; padding:0 !important; }
       </style></head><body>
         <h1>TURBO LANCHES</h1>
         <h2>RELATÓRIO DIÁRIO</h2>
@@ -1120,10 +1121,10 @@ const AdminDashboard = () => {
         <div class="row"><span>Total Gastos:</span><span>R$ ${gastos.toFixed(2).replace(".",",")}</span></div>
         <div class="sep"></div>
         <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${liquido.toFixed(2).replace(".",",")}</span></div>
-        <div class="sep"></div>
-        <div class="center" style="margin-top:8px;font-size:8px;">Relatório gerado automaticamente</div>
+        <div class="center" style="font-size:8px;">Relatório gerado automaticamente</div>
+        <div class="sep thermal-cut-marker" data-thermal-cut="true" style="margin-bottom:0;padding-bottom:0;"></div>
       </body></html>
-    `);
+    `, 72));
     w.document.close();
     setTimeout(() => { w.print(); setTimeout(() => w.close(), 1000); }, 500);
   };
