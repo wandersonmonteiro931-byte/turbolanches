@@ -235,6 +235,126 @@ const AdminReceipts = () => {
 
       <ReceiptVariableReference />
 
+      {/* ============ PAINEL QZ TRAY (ESC/POS) ============ */}
+      <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Zap size={18} className="text-primary" />
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Impressão direta via QZ Tray (ESC/POS)</h3>
+              <p className="text-xs text-muted-foreground">
+                Envia comandos diretos à impressora térmica — corte exato, sem sobra de papel.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-xs font-bold ${
+                qzStatus === "online" ? "text-emerald-600" : qzStatus === "offline" ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
+              {qzStatus === "online" ? "● Online" : qzStatus === "offline" ? "● Offline" : "○ Não verificado"}
+            </span>
+            <button
+              type="button"
+              onClick={detectQz}
+              disabled={qzBusy}
+              className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={qzBusy ? "animate-spin" : ""} />
+              Detectar
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-3 flex items-center gap-3 rounded-md bg-card/60 p-2.5">
+          <Switch
+            checked={thermalSettings.qzEnabled}
+            onCheckedChange={(v) => updateThermalSetting("qzEnabled", v)}
+          />
+          <div className="flex-1">
+            <p className="text-xs font-semibold">Usar QZ Tray para imprimir comandas de pedido</p>
+            <p className="text-[11px] text-muted-foreground">
+              Quando ativo, o sistema envia bytes ESC/POS direto pra impressora. Se falhar, cai automaticamente no modo HTML.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs font-semibold">Impressora</Label>
+            {qzPrinters.length > 0 ? (
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={thermalSettings.qzPrinterName}
+                onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
+              >
+                <option value="">— Selecione —</option>
+                {qzPrinters.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                value={thermalSettings.qzPrinterName}
+                onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
+                placeholder='Ex: "EPSON TM-T20", "POS-58"'
+              />
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Clique em "Detectar" pra carregar a lista de impressoras do sistema.
+            </p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Colunas (largura)</Label>
+            <Input
+              type="number"
+              min={24}
+              max={64}
+              value={thermalSettings.qzColumns}
+              onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
+            />
+            <p className="text-[11px] text-muted-foreground">48 = 80mm/72mm · 32 = 58mm</p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Linhas antes do corte</Label>
+            <Input
+              type="number"
+              min={0}
+              max={10}
+              value={thermalSettings.qzFeedLines}
+              onChange={(e) => updateThermalSetting("qzFeedLines", Number(e.target.value))}
+            />
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleQzTest}
+            disabled={qzBusy || !thermalSettings.qzPrinterName}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            <Printer size={14} />
+            Imprimir teste ESC/POS
+          </button>
+          <a
+            href="https://qz.io/download/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+          >
+            Baixar QZ Tray (grátis)
+          </a>
+        </div>
+
+        <div className="mt-3 rounded-md bg-amber-500/10 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
+          <strong>Como configurar:</strong> 1) Baixe e instale o QZ Tray no PC do caixa. 2) Abra o app (fica na bandeja). 3) Clique em "Detectar" acima. 4) Selecione sua impressora. 5) Ative o switch e teste. Na primeira impressão o QZ pedirá permissão — marque "sempre permitir".
+        </div>
+      </div>
+      {/* ============ /PAINEL QZ TRAY ============ */}
+
+
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
