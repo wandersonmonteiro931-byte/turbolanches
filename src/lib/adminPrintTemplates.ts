@@ -81,6 +81,11 @@ const replaceAllToken = (value: string, search: string, replacement: string) => 
 
 const trimEmptyEdges = (value: string) => value.replace(/^\n+|\n+$/g, "");
 
+const ensureFinalThermalCutMarker = (template: string) => {
+  const compact = template.trimEnd();
+  return compact.endsWith("---") ? compact : `${compact}\n---`;
+};
+
 const findNextInlineTag = (input: string, startIndex: number) => {
   let nextMatch:
     | {
