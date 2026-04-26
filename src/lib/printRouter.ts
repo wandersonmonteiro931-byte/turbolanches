@@ -2,30 +2,61 @@
  * Roteador de impressão: tenta QZ Tray (ESC/POS) primeiro; se falhar ou
  * estiver desabilitado, devolve `false` para o chamador cair no popup HTML.
  *
- * Uso típico:
- *   const ok = await tryPrintOrderViaQz(orderId, { tipo: "pedido", copies: 2 });
- *   if (!ok) openPrintUrl(`/admin/imprimir/${orderId}?...`);
+ * Renderiza o MESMO template salvo em receipt_templates (com tags
+ * [CENTRO], [GRANDE], [TXTMEDIO], [QUADRADONEGRITO], [ITENS], etc),
+ * mantendo o layout configurado pelo admin.
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { getThermalPrintSettings } from "./thermalPrintSettings";
-import { buildOrderEscPos, type EscPosOrderInput } from "./escposBuilder";
+import { renderTemplateToEscPos, type ItemForTemplate } from "./escposTemplate";
 import { isQzAvailable, printRawEscPos } from "./qzTray";
 
 interface PrintOrderViaQzOptions {
-  tipo?: string; // "pedido" | "obrigado" | "mesa" | etc — usado para escolher template
+  tipo?: string;
   copies?: number;
 }
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
-const resolveTemplateType = (tipo: string, deliveryType?: string | null): string => {
+const resolveType = (tipo: string): string => {
   if (tipo === "cozinha" || tipo === "entrega") return "pedido";
   if (tipo === "cliente") return "obrigado";
   if (tipo === "mesa_cliente") return "mesa";
-  if (deliveryType === "mesa" && tipo === "pedido") return "mesa";
   return tipo;
 };
+
+const DEFAULT_LABELS: Record<string, string> = {
+  pedido: "PEDIDO",
+  mesa: "MESA",
+  mesa_conta: "CONTA MESA",
+  mesa_cobrar: "COBRAR MESA",
+  obrigado: "OBRIGADO!",
+  entregador: "FECHAMENTO DE ROTA",
+};
+
+// Fallback minimalista — só usado se o template do banco não existir
+const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
+[CENTRO][TIPOCOMANDA][/CENTRO]
+[CENTRO][GRANDE][NUMEROPEDIDO][/GRANDE][/CENTRO]
+[DATAHORAPEDIDO]
+---
+Cliente: [NOMECLIENTE]
+Telefone: [TELEFONECLIENTE]
+[ENDEREÇO]
+---
+[ITENS]
+---
+SUBTOTAL: [SUBTOTAL]
+ENTREGA: [TAXAENTREGA]
+DESCONTO: [DESCONTO]
+TOTAL: [TOTAL]
+[FORMAPAGTO]
+[CENTRO]TOTAL A RECEBER: [TOTALRECEBER][/CENTRO]
+---
+[OBS]
+[CENTRO]*** [DELIVERYRETIRADAVIAGEM] ***[/CENTRO]
+`;
 
 export const tryPrintOrderViaQz = async (
   orderId: string,
@@ -35,14 +66,12 @@ export const tryPrintOrderViaQz = async (
   if (!settings.qzEnabled || !settings.qzPrinterName) return false;
 
   try {
-    // 1. Verifica QZ disponível
     const available = await isQzAvailable();
     if (!available) {
       console.warn("[QZ] Tray indisponível, caindo no popup HTML");
       return false;
     }
 
-    // 2. Busca pedido + itens + perfil + template
     const { data: order, error: orderErr } = await supabase
       .from("orders").select("*").eq("id", orderId).single();
     if (orderErr || !order) {
@@ -50,61 +79,80 @@ export const tryPrintOrderViaQz = async (
       return false;
     }
 
-    const tplType = resolveTemplateType(options.tipo || "pedido", order.delivery_type);
+    const tipoIn = options.tipo || "pedido";
+    const isTableOrder = order.delivery_type === "mesa";
+    const resolvedType = isTableOrder && resolveType(tipoIn) === "pedido"
+      ? "mesa"
+      : resolveType(tipoIn);
 
     const [itemsRes, profileRes, tplRes] = await Promise.all([
       supabase.from("order_items").select("*").eq("order_id", orderId),
-      supabase.from("profiles").select("full_name, phone, customer_code").eq("user_id", order.user_id).single(),
-      supabase.from("receipt_templates" as any).select("*").eq("template_type", tplType).maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, customer_code, quadra, lote").eq("user_id", order.user_id).maybeSingle(),
+      supabase.from("receipt_templates" as any).select("*").eq("template_type", resolvedType).maybeSingle(),
     ]);
 
     const items = itemsRes.data || [];
-    const profile = profileRes.data;
+    const profile: any = profileRes.data;
     const tpl: any = tplRes.data;
 
-    // 3. Monta payload genérico
-    const isTable = order.delivery_type === "mesa";
-    const orderNumber = isTable
-      ? (order.table_code || `#MESA${order.order_number}`)
-      : `#${String(order.order_number).padStart(5, "0")}`;
+    const rawTableCode = (order.table_code as string)
+      || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
+    const tableCode = rawTableCode.startsWith("#")
+      ? rawTableCode.toUpperCase()
+      : `#${rawTableCode.toUpperCase()}`;
 
-    const dateTime = new Date(order.created_at).toLocaleString("pt-BR", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
-    });
+    const obsText: string = order.observations || "";
+    const isManualOrder = obsText.includes("[PDV]");
+    const manualName = obsText.match(/Cliente:\s*([^|]+)/)?.[1]?.trim();
+    const manualPhone = obsText.match(/Tel:\s*([^|]+)/)?.[1]?.trim();
+    const manualCode = obsText.match(/Código:\s*(T\d+)/)?.[1]?.trim();
 
-    const obs = order.observations || "";
-    const isManual = obs.includes("[PDV]");
-    const manualName = obs.match(/Cliente:\s*([^|]+)/)?.[1]?.trim();
-    const manualPhone = obs.match(/Tel:\s*([^|]+)/)?.[1]?.trim();
+    const displayName = isManualOrder ? (manualName || "") : (profile?.full_name || "");
+    const displayPhone = isManualOrder ? (manualPhone || "") : (profile?.phone || "");
+    const customerCode = isManualOrder
+      ? (manualCode || "")
+      : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
 
-    const customerName = isManual ? manualName : profile?.full_name;
-    const customerPhone = isManual ? manualPhone : profile?.phone;
-    const customerCode = profile?.customer_code
-      ? `T${String(profile.customer_code).padStart(5, "0")}`
-      : undefined;
-
+    const quadraLote = [
+      profile?.quadra ? `Qd. ${profile.quadra}` : "",
+      profile?.lote ? `Lt. ${profile.lote}` : "",
+    ].filter(Boolean).join(", ");
     const addressParts = [
       order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "",
+      quadraLote,
       order.address_complement || "",
       order.address_neighborhood || "",
     ].filter(Boolean);
-    const address = isTable ? "" : addressParts.join(" - ");
+    const address = isTableOrder
+      ? tableCode
+      : (addressParts.join(" | ") || "Retirada no local");
 
+    const subtotal = Number(order.subtotal) || 0;
+    const deliveryFee = Number(order.delivery_fee) || 0;
+    const discount = Number(order.discount) || 0;
+    const total = Number(order.total) || 0;
     const isFiado = order.payment_method === "fiado";
     const isPix = order.payment_method === "pix";
-    const isPaid = !isFiado && (order.payment_confirmed === true);
+    const isPixPago = isPix && order.payment_confirmed;
+    const isPixEntrega = isPix && !order.payment_confirmed;
+    const isMesaConta = resolvedType === "mesa_conta";
+    const isPaidOnline = !isFiado && !isMesaConta && (isPixPago || (!isPix && order.payment_confirmed));
+    const totalReceber = isPaidOnline ? 0 : total;
+    const totalPago = isPaidOnline ? total : 0;
+    const changeFor = order.change_for ? Number(order.change_for) : 0;
+    const troco = !isPaidOnline && !isFiado && changeFor > total ? changeFor - total : 0;
+
     const paymentLabel = isFiado
       ? "FIADO"
-      : isPix && !order.payment_confirmed
+      : isPixEntrega
         ? "PIX ENTREGA"
-        : isPix && order.payment_confirmed
+        : isPixPago
           ? "PIX PAGO"
-          : isPaid
+          : isPaidOnline
             ? "PAGO ONLINE"
             : "PAGO NA ENTREGA";
 
-    const deliveryLabel = isTable
+    const deliveryLabel = isTableOrder
       ? "MESA"
       : order.delivery_type === "delivery"
         ? "DELIVERY"
@@ -112,47 +160,75 @@ export const tryPrintOrderViaQz = async (
           ? "RETIRADA"
           : (order.delivery_type || "DELIVERY").toUpperCase();
 
-    const cleanObs = obs
+    const dateTime = new Date(order.created_at).toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+    const agora = new Date();
+    const dataAgora = agora.toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+
+    const cleanObs = obsText
       .split("|")
       .map((p: string) => p.trim())
       .filter((p: string) => p && p !== "[PDV]" && !/^Cliente:/i.test(p) && !/^Tel:/i.test(p) && !/^Código:/i.test(p) && !/^Mesa:/i.test(p))
       .join(" | ");
 
-    const payload: EscPosOrderInput = {
-      storeName: tpl?.store_name || "TURBO LANCHES",
-      orderLabel: tpl?.label || (isTable ? "MESA" : "PEDIDO"),
-      orderNumber,
-      dateTime,
-      customerName: customerName || undefined,
-      customerPhone: customerPhone || undefined,
-      customerCode,
-      address: address || undefined,
-      deliveryLabel,
-      items: items.map((it: any) => ({
-        name: it.product_name,
-        quantity: it.quantity,
-        unitPrice: Number(it.unit_price),
-        observations: it.observations,
-        addons: Array.isArray(it.addons_json) ? it.addons_json : [],
-      })),
-      subtotal: Number(order.subtotal) || 0,
-      deliveryFee: Number(order.delivery_fee) || 0,
-      discount: Number(order.discount) || 0,
-      total: Number(order.total) || 0,
-      paymentMethod: order.payment_method || "",
-      paymentLabel,
-      changeFor: order.change_for ? Number(order.change_for) : undefined,
-      observations: cleanObs || undefined,
-      customMessage: tpl?.custom_message || undefined,
-      footerMessage: tpl?.footer_message || undefined,
+    const storeName = tpl?.store_name || "TURBO LANCHES";
+    const tipoLabel = tpl?.label || DEFAULT_LABELS[resolvedType] || "PEDIDO";
+    const couponInfo = order.coupon_code
+      ? `${order.coupon_code} (-${fmt(discount)})`
+      : "Nenhum";
+
+    const variables: Record<string, string> = {
+      "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
+      "[MESA]": tableCode,
+      "[NOMECLIENTE]": displayName || "Não informado",
+      "[CODIGOCLIENTE]": customerCode,
+      "[TELEFONECLIENTE]": displayPhone || "Não informado",
+      "[ENDEREÇO]": address,
+      "[ENDERECO]": address,
+      "[FORMAPAGTO]": `${(order.payment_method || "").toUpperCase()} - ${paymentLabel}`,
+      "[TOTALRECEBER]": fmt(totalReceber),
+      "[TOTALPAGO]": fmt(totalPago),
+      "[SUBTOTAL]": fmt(subtotal),
+      "[TOTAL]": fmt(total),
+      "[TAXAENTREGA]": fmt(deliveryFee),
+      "[DESCONTO]": fmt(discount),
+      "[CUPOM]": couponInfo,
+      "[TROCO]": troco > 0 ? `DEVOLVER: ${fmt(troco)}` : "R$ 0,00",
+      "[NOMELOJA]": storeName,
+      "[TIPOCOMANDA]": tipoLabel,
+      "[DATAHORA]": dataAgora,
+      "[DATAAGORA]": dataAgora,
+      "[DATAHORAPEDIDO]": dateTime,
+      "[OBS]": cleanObs ? `OBS: ${cleanObs}` : "",
+      "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
+      "[NOMEENTREGADOR]": "",
+      "[RODAPÉ]": tpl?.footer_message || "",
+      "[DIVULGAÇÃO]": tpl?.custom_message || "",
     };
 
-    // 4. Gera bytes ESC/POS e envia
-    const bytes = buildOrderEscPos(payload, {
-      columns: settings.qzColumns,
-      codepage: settings.qzCodepage,
-      feedLines: settings.qzFeedLines,
-    });
+    const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
+      productName: it.product_name,
+      quantity: it.quantity,
+      unitPrice: Number(it.unit_price),
+      observations: it.observations,
+      addons: Array.isArray(it.addons_json) ? it.addons_json : [],
+    }));
+
+    const template: string = (tpl?.body_template as string) || FALLBACK_TEMPLATE;
+
+    const bytes = renderTemplateToEscPos(
+      { template, variables, items: itemsForTpl },
+      {
+        columns: settings.qzColumns,
+        codepage: settings.qzCodepage,
+        feedLines: settings.qzFeedLines,
+      },
+    );
 
     await printRawEscPos(settings.qzPrinterName, bytes, options.copies || 1);
     return true;
@@ -161,5 +237,3 @@ export const tryPrintOrderViaQz = async (
     return false;
   }
 };
-
-export const __unused = (_: unknown) => fmt(0);
