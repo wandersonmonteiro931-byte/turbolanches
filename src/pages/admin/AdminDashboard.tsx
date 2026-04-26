@@ -1335,6 +1335,10 @@ const AdminDashboard = () => {
         {/* Official Brasília clock (server-synced, not PC) */}
         <BrasiliaClock />
 
+        {/* Modo de impressão das comandas (Pedido / Fechamento de Rota / Obrigado) */}
+        <PrintModeSelector />
+
+
         {/* Status indicator - what customers see */}
         <div className={cn(
           "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
