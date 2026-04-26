@@ -107,9 +107,10 @@ export const printRawEscPos = async (
   const qz = await loadQzScript();
   await ensureConnected(qz);
 
-  const config = qz.configs.create(printerName, {
-    encoding: "RAW",
-  });
+  // Não configure `encoding: "RAW"`: o QZ interpreta isso como charset Java
+  // e falha com a mensagem curta "RAW". Para ESC/POS bruto, o raw fica no
+  // objeto de dados abaixo.
+  const config = qz.configs.create(printerName);
 
   // QZ Tray 2.2: formato hex é o mais confiável p/ RAW ESC/POS.
   // Convertemos cada byte para "XX" hexadecimal (ex: 0x1B → "1B").
@@ -120,7 +121,8 @@ export const printRawEscPos = async (
   const data = [
     {
       type: "raw",
-      format: "hex",
+      format: "command",
+      flavor: "hex",
       data: hexString,
     },
   ];
