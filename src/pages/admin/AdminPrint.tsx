@@ -183,6 +183,9 @@ const AdminPrint = () => {
   const printDelayMs = Math.max(0, Number(searchParams.get("delay_ms") || "100") || 100);
   const repeatCount = Math.max(1, Math.min(20, Number(searchParams.get("copies") || "1") || 1));
   const keepOpen = searchParams.get("keep_open") === "1";
+  const thermalWidthMm = Math.max(40, Math.min(110, Number(searchParams.get("thermal_width_mm") || "72") || 72));
+  const thermalHeightMm = Math.max(0, Math.min(500, Number(searchParams.get("thermal_height_mm") || "0") || 0));
+  const thermalCutOffsetMm = Math.max(-80, Math.min(80, Number(searchParams.get("thermal_cut_offset_mm") || "0") || 0));
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -382,8 +385,8 @@ const AdminPrint = () => {
       template: expandedTemplate,
       variables: varMap,
       blocks: blocksMap,
-      pageWidthMm: 72,
-      pageHeightMm: "auto",
+      pageWidthMm: thermalWidthMm,
+      pageHeightMm: thermalHeightMm > 0 ? thermalHeightMm : "auto",
       pageMarginMm: 0,
       repeatCount,
       bodyFontFamily: "Arial, Helvetica, sans-serif",
@@ -391,9 +394,9 @@ const AdminPrint = () => {
       labelFontSizePx: tpl?.label_font_size ?? 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,
-      extraCss: LEGACY_RECEIPT_PRINT_CSS,
+      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
     });
-  }, [items, order, profile, ready, repeatCount, tipo, tpl]);
+  }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
 
   useEffect(() => {
     if (!printableDocument || !ready) return;
