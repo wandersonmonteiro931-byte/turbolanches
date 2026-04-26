@@ -12,7 +12,7 @@ export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
 export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   paperWidthMm: 72,
   fixedHeightMm: 0,
-  cutOffsetMm: 0,
+  cutOffsetMm: -40,
   popupWidthPx: 280,
   popupHeightPx: 120,
   printGapMs: 1200,
