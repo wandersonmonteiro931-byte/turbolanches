@@ -45,6 +45,8 @@ const cleanSystemObservation = (value: string) =>
     .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
     .join(" | ");
 
+const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
+
 const getTemplateForItemsLine = (rawLine: string) => {
   let lineWithoutItems = rawLine;
 
@@ -208,7 +210,7 @@ const AdminPrint = () => {
     const isTableOrder = order.delivery_type === "mesa";
     const rawTableCode = order.table_code || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
     const tableCode = rawTableCode.startsWith("#") ? rawTableCode.toUpperCase() : `#${rawTableCode.toUpperCase()}`;
-    const address = isTableOrder ? tableCode : ([addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local");
+    const address = isTableOrder ? tableCode : formatPrintAddress([addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local");
 
     const deliveryLabel = isTableOrder ? "MESA" : order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
 
@@ -276,6 +278,7 @@ const AdminPrint = () => {
       "[CODIGOCLIENTE]": customerCode,
       "[TELEFONECLIENTE]": displayPhone || "Não informado",
       "[ENDEREÇO]": address,
+      "[ENDERECO]": address,
       "[FORMAPAGTO]": `${order.payment_method?.toUpperCase()} - ${paymentLabel}`,
       "[TOTALRECEBER]": fmt(totalReceber),
       "[TOTALPAGO]": fmt(totalPago),
