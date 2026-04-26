@@ -170,6 +170,20 @@ const resetStyle = (b: EscPosBuilder) => {
 
 const frameChar = (frame: LineStyle["frame"]) => (frame === "strong" ? "=" : "-");
 
+const frameBorder = (frame: LineStyle["frame"], cols: number) => {
+  const ch = frameChar(frame);
+  return `+${ch.repeat(Math.max(0, cols - 2))}+`;
+};
+
+const boxedLine = (text: string, cols: number, align: Align = "left") => {
+  const inner = Math.max(1, cols - 4);
+  if (text.length >= inner) return `| ${text} |`;
+  const remaining = inner - text.length;
+  const left = align === "center" ? Math.floor(remaining / 2) : align === "right" ? remaining : 0;
+  const right = remaining - left;
+  return `| ${" ".repeat(left)}${text}${" ".repeat(right)} |`;
+};
+
 const effectiveColumns = (cols: number, style: LineStyle) => {
   if (style.giant) return Math.max(8, Math.floor(cols / 3));
   if (style.big || style.medium) return Math.max(8, Math.floor(cols / 2));
@@ -181,37 +195,32 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
 
-  // [TZTBORDA] / [TXTBORDA] / [FUNDPRETO] / [TXTBORDATXT]:
-  // Fundo preto cobrindo a linha inteira (ponta a ponta) formando um retângulo.
-  // Conforme regra do usuário, o fundo preto deve ser sempre um QUADRADO/RETÂNGULO
-  // ao redor do texto e nunca apenas atrás das letras.
+  // Fundo preto em uma única faixa sólida: sem linhas extras transparentes
+  // cortando a caixa no meio, e mantendo o tamanho configurado no template.
   if (style.invertFull || style.invert) {
     const trimmedTxt = finalText.trim();
-    const padded = trimmedTxt.length >= cols
+    const effectiveCols = effectiveColumns(cols, style);
+    const padded = trimmedTxt.length >= effectiveCols
       ? trimmedTxt
       : (() => {
-          const total = cols - trimmedTxt.length;
+          const total = effectiveCols - trimmedTxt.length;
           const left = Math.floor(total / 2);
           return " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
         })();
-    const blank = " ".repeat(cols);
-    applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, big: false, giant: false, medium: false });
-    b.rawText(blank);
+    applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, frame: "none", box: false });
     b.rawText(padded);
-    b.rawText(blank);
     resetStyle(b);
     return;
   }
 
   if (style.box || style.frame !== "none") {
-    const useStrong = style.box || style.frame === "strong";
-    const ch = useStrong ? "=" : "-";
-    const border = ch.repeat(cols);
+    const frame = style.box ? "strong" : style.frame;
+    const useStrong = frame === "strong";
+    const border = frameBorder(frame, cols);
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
-    applyStyleToBuilder(b, { ...style, frame: "none", box: false });
-    // Nunca quebrar: imprime literal mesmo se passar do tamanho.
-    b.rawText(finalText);
+    applyStyleToBuilder(b, { ...style, frame: "none", box: false, big: false, giant: false, medium: false, small: false });
+    b.rawText(boxedLine(finalText, cols, style.align));
     resetStyle(b);
     b.bold(useStrong).line(border).bold(false);
     return;
