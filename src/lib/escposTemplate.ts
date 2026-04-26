@@ -268,7 +268,34 @@ export const renderTemplateToEscPos = (
     resolved = expandItemsLines(resolved, input.items);
   }
 
-  // 3. Renderiza linha a linha
+  // 3. Limpeza pós-substituição:
+  //   - Remove linhas que ficaram vazias por causa de variáveis sem valor
+  //     (ex: [OBS], [CUPOM], [NOMEENTREGADOR] vazios), MAS preserva linhas
+  //     em branco intencionais que existiam no template original.
+  //   - Colapsa separadores '---' duplicados/consecutivos para um único.
+  const originalLines = input.template.split("\n");
+  const resolvedLines = resolved.split("\n");
+  const cleaned: string[] = [];
+  for (let i = 0; i < resolvedLines.length; i += 1) {
+    const cur = resolvedLines[i];
+    const trimmedCur = cur.trim();
+    const original = (originalLines[i] ?? "").trim();
+    // Se a linha original tinha conteúdo (ex: variável) e agora ficou vazia,
+    // pulamos — evita "---\n\n---" virando 3 separadores grudados.
+    if (!trimmedCur && original && !/^\s*$/.test(original)) continue;
+    cleaned.push(cur);
+  }
+  // Colapsa separadores consecutivos
+  const finalLines: string[] = [];
+  for (const ln of cleaned) {
+    const t = ln.trim();
+    const prev = finalLines.length > 0 ? finalLines[finalLines.length - 1].trim() : null;
+    if (t === "---" && prev === "---") continue;
+    finalLines.push(ln);
+  }
+  resolved = finalLines.join("\n");
+
+  // 4. Renderiza linha a linha
   const lines = resolved.split("\n");
   let activeBlockFrame: LineStyle["frame"] = "none";
 
