@@ -497,6 +497,7 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     awaitingAfterPrint = true;
     lastFireAt = Date.now();
     try { window.focus(); } catch (error) {}
+    try { prepareTightPrintPage(); } catch (error) {}
     try { document.body && document.body.offsetHeight; } catch (error) {}
     try { window.print(); } catch (error) {}
     if (kioskTimerMode) {
@@ -543,6 +544,40 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
         runPrint();
       }
     }, delay));
+  }
+
+  function prepareTightPrintPage() {
+    var body = document.body;
+    if (!body) return;
+
+    var docs = Array.prototype.slice.call(document.querySelectorAll(".print-document"));
+    var targets = docs.length ? docs : [document.querySelector(".print-root") || body];
+    var heightPx = 0;
+
+    targets.forEach(function (target) {
+      if (!target) return;
+      var rectHeight = 0;
+      try { rectHeight = target.getBoundingClientRect().height || 0; } catch (error) {}
+      heightPx = Math.max(heightPx, rectHeight, target.scrollHeight || 0, target.offsetHeight || 0);
+    });
+
+    if (!heightPx || heightPx < 1) return;
+
+    var pageWidthMm = parseFloat(body.getAttribute("data-page-width-mm") || "72") || 72;
+    var pageHeightMm = Math.max(8, Math.ceil((heightPx * 25.4 / 96) + 1));
+    var style = document.getElementById("tight-thermal-page-size");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "tight-thermal-page-size";
+      document.head.appendChild(style);
+    }
+    style.textContent = "@page{size:" + pageWidthMm + "mm " + pageHeightMm + "mm;margin:0!important;}@media print{html,body,.print-root,.print-document{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;}}";
+
+    try {
+      document.documentElement.style.minHeight = "0";
+      body.style.minHeight = "0";
+      window.resizeTo(Math.ceil(pageWidthMm * 96 / 25.4) + 32, Math.min(screen.availHeight || 900, Math.ceil(heightPx) + 90));
+    } catch (error) {}
   }
 
   function firePrint() {
@@ -641,7 +676,7 @@ const getSharedPrintStyles = ({
   return `
         @page { size: ${pageSize} portrait; margin: ${pageMarginMm}mm !important; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; height: auto !important; overflow: visible !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${pageWidthMm}mm !important; min-width: ${pageWidthMm}mm !important; max-width: ${pageWidthMm}mm !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
           iframe, [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display: none !important; visibility: hidden !important; }
           body > *:not(.print-root):not(script):not(style) { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -649,7 +684,7 @@ const getSharedPrintStyles = ({
           .print-document:last-child { page-break-after: auto; break-after: auto; }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: #ffffff; color: #000000; }
+        html, body { background: #ffffff; color: #000000; min-height: 0; height: auto; overflow: visible; }
         body {
           font-family: ${bodyFontFamily};
           font-size: ${bodyFontSizePx}px;
@@ -789,7 +824,7 @@ export const buildAdminPrintDocument = ({
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready" data-print-copies="${copies}">
+    <body data-print-document="ready" data-print-copies="${copies}" data-page-width-mm="${pageWidthMm}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
@@ -862,7 +897,7 @@ export const buildBatchPrintDocument = (
         ${sharedStyles}
       </style>
     </head>
-    <body data-print-document="ready">
+    <body data-print-document="ready" data-page-width-mm="${pageWidthMm}">
       <main class="print-root">${documents}</main>
       ${PRINT_BOOTSTRAP_SCRIPT}
     </body>
