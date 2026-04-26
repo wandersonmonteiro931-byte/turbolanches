@@ -102,6 +102,12 @@ export class EscPosBuilder {
     return this;
   }
 
+  /** GS B n — modo invertido (branco no preto). 0 off, 1 on. */
+  invert(on: boolean): this {
+    this.push(GS, 0x42, on ? 1 : 0);
+    return this;
+  }
+
   text(value: string): this {
     for (const b of encodeCp1252(value)) this.bytes.push(b);
     return this;
@@ -139,9 +145,9 @@ export class EscPosBuilder {
   /**
    * Quebra texto longo em múltiplas linhas respeitando largura.
    * - Preserva espaços literais (múltiplos espaços continuam múltiplos).
-   * - NUNCA corta palavra no meio: palavra maior que `cols` SÓ é quebrada
-   *   como último recurso, sozinha em sua própria linha.
-   * - Aceita largura efetiva customizada (ex: 24 colunas para texto duplo).
+   * - NUNCA corta palavra ao meio: palavra > cols só é fragmentada como último
+   *   recurso, sozinha em sua linha.
+   * - Aceita largura efetiva customizada (ex: 24 para texto duplo).
    */
   wrap(value: string, effectiveCols?: number): this {
     const cols = effectiveCols && effectiveCols > 0 ? effectiveCols : this.opts.columns;

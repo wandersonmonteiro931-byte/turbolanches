@@ -35,7 +35,7 @@ const replaceTokens = (text: string, vars: Record<string, string>): string => {
   return out;
 };
 
-const ITEM_TOKENS = ["[ITENS]", "[ITEM]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]", "[CÓDIGOPROD]", "[CODIGOPROD]"];
+const ITEM_TOKENS = ["[ITENS]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]"];
 
 const lineHasItemToken = (line: string) => ITEM_TOKENS.some((t) => line.includes(t));
 
@@ -46,8 +46,8 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (!lineHasItemToken(rawLine)) return [rawLine];
       if (items.length === 0) return [];
 
-      // Caso 1: linha é só [ITENS] ou [ITEM] → expande em formato padrão tabela
-      if (rawLine.trim() === "[ITENS]" || rawLine.trim() === "[ITEM]") {
+      // Caso 1: linha é só [ITENS] → expande em formato padrão
+      if (rawLine.trim() === "[ITENS]") {
         const out: string[] = [];
         for (const it of items) {
           const lineTotal = it.unitPrice * it.quantity
@@ -69,7 +69,6 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
         const addonsText = (it.addons || []).map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(" | ");
         const itemVars = {
           "[ITENS]": "",
-          "[ITEM]": "",
           "[PRODUTO]": it.productName,
           "[PRODUTOS]": it.productName,
           "[QNTITENS]": String(it.quantity),
@@ -78,8 +77,6 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[PREÇOPROD]": fmt(it.unitPrice),
           "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
           "[ADICIONAIS]": addonsText,
-          "[CÓDIGOPROD]": "",
-          "[CODIGOPROD]": "",
         };
         return [replaceTokens(rawLine, itemVars)];
       });
@@ -96,10 +93,12 @@ interface LineStyle {
   bold: boolean;
   big: boolean;       // [GRANDE]/[TXTGIGANTE]
   medium: boolean;    // [TXTMEDIO]
+  small: boolean;     // [TXTPEQUENO]
   upper: boolean;     // [CAIXA]
-  underline: boolean; // [TZTBORDA]/[TXTBORDA]/[BORDA]
-  invert: boolean;    // [FUNDPRETO]
-  frameStrong: boolean; // [QUADRADONEGRITO] envolvendo a linha inteira
+  underline: boolean; // [BORDA]/[QUADRADO]/[RETANGULO] = moldura → underline
+  invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
+  invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
+  frameStrong: boolean; // [QUADRADONEGRITO]
 }
 
 const DEFAULT_STYLE: LineStyle = {
@@ -107,37 +106,16 @@ const DEFAULT_STYLE: LineStyle = {
   bold: false,
   big: false,
   medium: false,
+  small: false,
   upper: false,
   underline: false,
   invert: false,
+  invertFull: false,
   frameStrong: false,
 };
 
-const TAG_PAIRS: { open: RegExp; key: keyof LineStyle; closeRe?: RegExp }[] = [
-  { open: /\[CENTRO\]/gi, key: "align" },
-  { open: /\[NEGRITO\]/gi, key: "bold" },
-  { open: /\[GRANDE\]/gi, key: "big" },
-  { open: /\[TXTGIGANTE\]/gi, key: "big" },
-  { open: /\[TXTMEDIO\]/gi, key: "medium" },
-  { open: /\[CAIXA\]/gi, key: "upper" },
-  { open: /\[TZTBORDA\]/gi, key: "underline" },
-  { open: /\[TXTBORDA\]/gi, key: "underline" },
-  { open: /\[BORDA\]/gi, key: "underline" },
-  { open: /\[TXTBORDATXT\]/gi, key: "underline" },
-  { open: /\[FUNDPRETO\]/gi, key: "invert" },
-  { open: /\[DESTAQUE\]/gi, key: "bold" },
-  { open: /\[QUADRADONEGRITO\]/gi, key: "frameStrong" },
-  { open: /\[QUADRADO\]/gi, key: "frameStrong" },
-  { open: /\[RETANGULO\]/gi, key: "frameStrong" },
-];
-
 const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
-/**
- * Detecta o estilo aplicado à linha analisando tags abertas (sem rigor
- * sobre fechamento, já que muitos templates usam tags como toggles).
- * Retorna o estilo + texto limpo de tags.
- */
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
 
@@ -145,10 +123,16 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
   if (/\[GRANDE\]|\[TXTGIGANTE\]/i.test(rawLine)) style.big = true;
   if (/\[TXTMEDIO\]/i.test(rawLine) && !style.big) style.medium = true;
+  if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
   if (/\[CAIXA\]/i.test(rawLine)) style.upper = true;
-  if (/\[TZTBORDA\]|\[TXTBORDA\]|\[BORDA\]|\[TXTBORDATXT\]/i.test(rawLine)) style.underline = true;
-  if (/\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
-  if (/\[QUADRADONEGRITO\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) {
+  // Moldura fina = underline (não há borda real em térmica)
+  if (/\[BORDA\]|\[QUADRADO\]|\[RETANGULO\]/i.test(rawLine)) style.underline = true;
+  // Fundo preto, texto branco — diferenciamos os dois modos:
+  // [TZTBORDA]/[TXTBORDA] = ponta a ponta (preenche a linha inteira invertida)
+  // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
+  if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
+  if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
+  if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
     style.frameStrong = true;
     style.bold = true;
   }
@@ -163,11 +147,14 @@ const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   if (style.big) b.size(1, 1);
   else if (style.medium) b.size(1, 0);
   else b.size(0, 0);
+  // small não tem ESC/POS direto — fica no tamanho normal (térmicas raramente
+  // suportam texto menor que o padrão sem mudar a fonte)
   b.underline(style.underline ? 1 : 0);
+  b.invert(style.invert || style.invertFull);
 };
 
 const resetStyle = (b: EscPosBuilder) => {
-  b.align("left").bold(false).size(0, 0).underline(0);
+  b.align("left").bold(false).size(0, 0).underline(0).invert(false);
 };
 
 // =============================================================================
@@ -220,18 +207,30 @@ export const renderTemplateToEscPos = (
     const { style, text } = parseLineStyle(rawLine);
     const finalText = style.upper ? text.toLocaleUpperCase("pt-BR") : text;
 
-    if (!finalText.replace(/\s/g, "")) {
-      // Linha que sobrou só com tags vazias e/ou espaços — pula
+    if (!finalText.replace(/\s/g, "")) continue;
+
+    // Largura efetiva: texto duplo ocupa 2x → metade das colunas.
+    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
+
+    // [TZTBORDA]/[TXTBORDA] = barra preta ponta-a-ponta com texto branco.
+    // Preenchemos com espaços invertidos para a barra atravessar todo o papel.
+    if (style.invertFull) {
+      const trimmedTxt = finalText.trim();
+      const padded = trimmedTxt.length >= effectiveCols
+        ? trimmedTxt.slice(0, effectiveCols)
+        : (() => {
+            const total = effectiveCols - trimmedTxt.length;
+            const left = Math.floor(total / 2);
+            const right = total - left;
+            return " ".repeat(left) + trimmedTxt + " ".repeat(right);
+          })();
+      applyStyleToBuilder(b, style);
+      b.rawText(padded);
+      resetStyle(b);
       continue;
     }
 
-    // Largura efetiva: texto duplo ocupa 2x cada caractere → metade das colunas.
-    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
-
     applyStyleToBuilder(b, style);
-
-    // Se a linha JÁ CABE na largura efetiva, imprime literal preservando todos
-    // os espaços (espaçamento manual do usuário). Senão, faz wrap por palavra.
     if (finalText.length <= effectiveCols) {
       b.rawText(finalText);
     } else {

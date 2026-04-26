@@ -204,28 +204,11 @@ export const tryPrintOrderViaQz = async (
       "[DATAHORA]": dataAgora,
       "[DATAAGORA]": dataAgora,
       "[DATAHORAPEDIDO]": dateTime,
-      "[DATAHORAENTREGA]": "",
-      "[DATAHORASAÍDAENTREGA]": "",
-      "[HORASAIDA]": "",
       "[OBS]": cleanObs ? `OBS: ${cleanObs}` : "",
       "[DELIVERYRETIRADAVIAGEM]": deliveryLabel,
       "[NOMEENTREGADOR]": "",
       "[RODAPÉ]": tpl?.footer_message || "",
       "[DIVULGAÇÃO]": tpl?.custom_message || "",
-      // Variáveis de etiqueta/reposição — vazias para pedido (evita vazar literal)
-      "[PRODUTO]": "",
-      "[MARCA]": "",
-      "[DATAFABRICACAO]": "",
-      "[VALIDADE]": "",
-      "[RESPONSAVEL]": "",
-      "[TITULO]": "",
-      "[TOTALITENS]": String(items.length),
-      "[LISTA]": "",
-      "[RESFRIADO]": "",
-      "[CONGELADO]": "",
-      "[ARMAZENAR]": "",
-      "[GRAUS]": "",
-      "[FRASEARMAZ]": "",
     };
 
     const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
