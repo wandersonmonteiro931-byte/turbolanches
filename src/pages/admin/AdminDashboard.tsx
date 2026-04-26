@@ -605,7 +605,7 @@ const AdminDashboard = () => {
     const params = new URLSearchParams({ tipo });
     if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
     // copies/kiosk_timer/print_gap_ms are injected by openPrintUrl → addKioskPrintParams
-    const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=300,height=600");
+    const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=280,height=120");
     if (!w) return;
   };
   const acceptAllPending = async () => {
