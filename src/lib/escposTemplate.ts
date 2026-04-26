@@ -205,18 +205,37 @@ export const renderTemplateToEscPos = (
     }
 
     const { style, text } = parseLineStyle(rawLine);
-
-    // Caso especial: linha com [TROCO]/[FUNDPRETO] vazio resolve em "R$ 0,00" sem conteúdo útil
     const finalText = style.upper ? text.toLocaleUpperCase("pt-BR") : text;
 
-    if (!finalText.trim()) {
-      // Linha que sobrou só com tags vazias — pula
+    if (!finalText.replace(/\s/g, "")) continue;
+
+    // Largura efetiva: texto duplo ocupa 2x → metade das colunas.
+    const effectiveCols = style.big || style.medium ? Math.floor(cols / 2) : cols;
+
+    // [TZTBORDA]/[TXTBORDA] = barra preta ponta-a-ponta com texto branco.
+    // Preenchemos com espaços invertidos para a barra atravessar todo o papel.
+    if (style.invertFull) {
+      const trimmedTxt = finalText.trim();
+      const padded = trimmedTxt.length >= effectiveCols
+        ? trimmedTxt.slice(0, effectiveCols)
+        : (() => {
+            const total = effectiveCols - trimmedTxt.length;
+            const left = Math.floor(total / 2);
+            const right = total - left;
+            return " ".repeat(left) + trimmedTxt + " ".repeat(right);
+          })();
+      applyStyleToBuilder(b, style);
+      b.rawText(padded);
+      resetStyle(b);
       continue;
     }
 
     applyStyleToBuilder(b, style);
-    // Quebra texto longo respeitando largura
-    b.wrap(finalText);
+    if (finalText.length <= effectiveCols) {
+      b.rawText(finalText);
+    } else {
+      b.wrap(finalText, effectiveCols);
+    }
     resetStyle(b);
   }
 
