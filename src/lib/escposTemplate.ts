@@ -213,6 +213,42 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   resetStyle(b);
 };
 
+const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame: LineStyle["frame"] } | null => {
+  if (/^\[QUADRADONEGRITO\]$/i.test(trimmedLine)) return { kind: "open", frame: "strong" };
+  if (/^\[\/QUADRADONEGRITO\]$/i.test(trimmedLine)) return { kind: "close", frame: "strong" };
+  if (/^\[QUADRADO\]$/i.test(trimmedLine)) return { kind: "open", frame: "thin" };
+  if (/^\[\/QUADRADO\]$/i.test(trimmedLine)) return { kind: "close", frame: "thin" };
+  if (/^\[RETANGULO\]$/i.test(trimmedLine)) return { kind: "open", frame: "rect" };
+  if (/^\[\/RETANGULO\]$/i.test(trimmedLine)) return { kind: "close", frame: "rect" };
+  return null;
+};
+
+const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number, frame: LineStyle["frame"]) => {
+  const width = Math.max(4, effectiveColumns(cols, style) - 4);
+  applyStyleToBuilder(b, { ...style, frame: "none", box: false });
+  const chunks = text.length <= width ? [text] : (() => {
+    const tmp = new EscPosBuilder({ columns: width, feedLines: 0 });
+    void tmp;
+    const tokens = text.match(/\s+|\S+/g) || [];
+    const out: string[] = [];
+    let line = "";
+    const flush = () => { out.push(line.replace(/\s+$/u, "")); line = ""; };
+    for (const tk of tokens) {
+      if (/^\s+$/.test(tk)) { if (line && line.length < width) line += tk.slice(0, width - line.length); continue; }
+      if (!line) line = tk;
+      else if (line.length + tk.length <= width) line += tk;
+      else { flush(); line = tk; }
+    }
+    if (line) flush();
+    return out;
+  })();
+  for (const chunk of chunks) {
+    const padded = chunk.length >= width ? chunk : chunk + " ".repeat(width - chunk.length);
+    b.rawText(`| ${padded} |`);
+  }
+  resetStyle(b);
+};
+
 // =============================================================================
 // Renderização
 // =============================================================================
