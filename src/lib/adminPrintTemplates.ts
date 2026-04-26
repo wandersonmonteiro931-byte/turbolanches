@@ -86,6 +86,23 @@ const ensureFinalThermalCutMarker = (template: string) => {
   return compact.endsWith("---") ? compact : `${compact}\n---`;
 };
 
+export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
+  const markerScript = `<script>(function(){
+    function markFinalCut(){
+      var candidates = Array.prototype.slice.call(document.querySelectorAll("hr,.separator,[data-thermal-cut='true']"));
+      if (!candidates.length) return;
+      var last = candidates[candidates.length - 1];
+      last.setAttribute("data-thermal-cut", "true");
+      last.className = ((last.className || "") + " thermal-cut-marker").trim();
+      document.body && document.body.setAttribute("data-page-width-mm", "${pageWidthMm}");
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", markFinalCut, { once: true });
+    else markFinalCut();
+  })();</script>`;
+
+  return html.includes("data-thermal-cut") ? html : html.replace("</body>", `${markerScript}</body>`);
+};
+
 const findNextInlineTag = (input: string, startIndex: number) => {
   let nextMatch:
     | {
