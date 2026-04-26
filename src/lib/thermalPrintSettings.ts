@@ -5,6 +5,16 @@ export interface ThermalPrintSettings {
   popupWidthPx: number;
   popupHeightPx: number;
   printGapMs: number;
+  /** Quando true, o sistema tenta imprimir via QZ Tray (ESC/POS) antes de cair no popup HTML. */
+  qzEnabled: boolean;
+  /** Nome exato da impressora térmica registrada no Windows/macOS para envio raw. */
+  qzPrinterName: string;
+  /** Largura útil em colunas (caracteres) — 32 para 58mm, 48 para 80mm/72mm. */
+  qzColumns: number;
+  /** Quantidade de linhas em branco antes do corte (alimentação). */
+  qzFeedLines: number;
+  /** Codepage ESC/POS (16 = WPC1252, 17 = PC852, etc). */
+  qzCodepage: number;
 }
 
 export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
@@ -16,6 +26,11 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   popupWidthPx: 280,
   popupHeightPx: 120,
   printGapMs: 1200,
+  qzEnabled: false,
+  qzPrinterName: "",
+  qzColumns: 48,
+  qzFeedLines: 3,
+  qzCodepage: 16,
 };
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
@@ -31,6 +46,11 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   popupWidthPx: clampNumber(value?.popupWidthPx, DEFAULT_THERMAL_PRINT_SETTINGS.popupWidthPx, 180, 800),
   popupHeightPx: clampNumber(value?.popupHeightPx, DEFAULT_THERMAL_PRINT_SETTINGS.popupHeightPx, 80, 1200),
   printGapMs: clampNumber(value?.printGapMs, DEFAULT_THERMAL_PRINT_SETTINGS.printGapMs, 350, 5000),
+  qzEnabled: Boolean(value?.qzEnabled ?? DEFAULT_THERMAL_PRINT_SETTINGS.qzEnabled),
+  qzPrinterName: typeof value?.qzPrinterName === "string" ? value!.qzPrinterName : DEFAULT_THERMAL_PRINT_SETTINGS.qzPrinterName,
+  qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 64),
+  qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
+  qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
 });
 
 export const getThermalPrintSettings = (): ThermalPrintSettings => {
