@@ -211,6 +211,17 @@ const effectiveColumns = (cols: number, style: LineStyle) => {
   return cols;
 };
 
+const fitStyleToSingleLine = (style: LineStyle, lines: string[], cols: number): LineStyle => {
+  if (style.address) return style;
+  const maxLength = Math.max(...lines.map((line) => line.trim().length));
+  if (maxLength <= effectiveColumns(cols, style)) return style;
+
+  const normal: LineStyle = { ...style, giant: false, big: false, medium: false, small: false };
+  if (maxLength <= effectiveColumns(cols, normal)) return normal;
+
+  return { ...normal, small: true };
+};
+
 const wrapAddressLines = (text: string, cols: number) => {
   const width = Math.max(1, cols);
   const words = text.trim().match(/\S+/g) || [];
@@ -239,12 +250,13 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
   const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
+  const fittedStyle = fitStyleToSingleLine(style, outputLines, cols);
 
   // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
   // transparentes cortando a caixa, mantendo o tamanho configurado.
-  if (style.invertFull || style.invert) {
-    const effectiveCols = effectiveColumns(cols, style);
-    applyStyleToBuilder(b, { ...style, invert: true, invertFull: true, frame: "none", box: false });
+  if (fittedStyle.invertFull || fittedStyle.invert) {
+    const effectiveCols = effectiveColumns(cols, fittedStyle);
+    applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: true, frame: "none", box: false });
     for (const line of outputLines) {
       const trimmedTxt = line.trim();
       let padded: string;
@@ -261,15 +273,15 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
-  if (style.box || style.frame !== "none") {
+  if (fittedStyle.box || fittedStyle.frame !== "none") {
     resetStyle(b);
-    applyStyleToBuilder(b, { ...style, frame: "none", box: false, invert: true, invertFull: true });
-    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, style), style.align));
+    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false, invert: true, invertFull: true });
+    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
     resetStyle(b);
     return;
   }
 
-  applyStyleToBuilder(b, style);
+  applyStyleToBuilder(b, fittedStyle);
   // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
   // Exceção do endereço: quebra somente em espaços para a impressora não cortar palavras.
   for (const line of outputLines) b.rawText(line);
