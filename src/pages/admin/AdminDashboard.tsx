@@ -21,6 +21,7 @@ import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { getPrintMode, setPrintMode, PRINT_MODE_LABEL, type PrintMode } from "@/lib/printModePreference";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
 import ExpenseManager from "@/components/admin/ExpenseManager";
