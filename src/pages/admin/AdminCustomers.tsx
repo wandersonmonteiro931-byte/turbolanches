@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Search, ChevronDown, ChevronUp, Save, Plus, X, History } from "lucide-react";
 import CustomerSearch from "@/components/admin/CustomerSearch";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 
 interface Profile {
   user_id: string;
@@ -69,6 +70,12 @@ const AdminCustomers = () => {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [orders, setOrders] = useState<Record<string, OrderSummary[]>>({});
   const [addresses, setAddresses] = useState<Record<string, Address[]>>({});
@@ -299,6 +306,7 @@ const AdminCustomers = () => {
       <div className="flex items-center gap-2 rounded-xl bg-card border border-border px-3 py-2.5">
         <Search size={16} className="text-muted-foreground" />
         <input
+          ref={searchInputRef}
           placeholder="Buscar por código, nome, telefone ou endereço..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}

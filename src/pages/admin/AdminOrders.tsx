@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBusinessDayRange } from "@/lib/businessDay";
 import { formatDateTimeBR, formatTimeBR } from "@/lib/brasiliaTime";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 
 interface Order {
   id: string;
@@ -140,6 +141,12 @@ const AdminOrders = () => {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterPayment, setFilterPayment] = useState<string[]>([]);
@@ -534,6 +541,7 @@ const AdminOrders = () => {
         <div className="flex flex-1 items-center gap-2 rounded-xl bg-card border border-border px-3 py-2.5">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
+            ref={searchInputRef}
             placeholder="Buscar por nº pedido, código cliente, nome, telefone ou endereço..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

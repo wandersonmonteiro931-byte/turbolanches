@@ -13,6 +13,7 @@ import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -251,6 +252,12 @@ const AdminManualOrder = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>(editOrderId ? [] : (draft.cart ?? []));
   const [search, setSearch] = useState("");
+  const productSearchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(productSearchInputRef, (text) => {
+    if (text === "") setSearch("");
+    else if (text === "\b") setSearch((s) => s.slice(0, -1));
+    else setSearch((s) => s + text);
+  });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
   const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
@@ -1032,6 +1039,7 @@ const AdminManualOrder = () => {
               <div className="flex h-8 items-center gap-2 bg-[hsl(197_58%_91%)] px-2 text-[hsl(203_88%_22%)]">
                 <Search size={14} />
                 <input
+                  ref={productSearchInputRef}
                   placeholder="Buscar produtos"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

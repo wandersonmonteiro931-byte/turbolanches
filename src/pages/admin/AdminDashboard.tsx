@@ -21,6 +21,7 @@ import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { getPrintMode, setPrintMode, PRINT_MODE_LABEL, type PrintMode } from "@/lib/printModePreference";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { lazy, Suspense } from "react";
 const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTrackingModal"));
 import ExpenseManager from "@/components/admin/ExpenseManager";
@@ -159,6 +160,12 @@ const AdminDashboard = () => {
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(getTodayBusinessDay());
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
   const [editItems, setEditItems] = useState<OrderItem[]>([]);
@@ -1448,6 +1455,7 @@ const AdminDashboard = () => {
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
