@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getBusinessDayRange } from "@/lib/businessDay";
 import { formatDateTimeBR, formatTimeBR } from "@/lib/brasiliaTime";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 
 interface Order {
   id: string;
