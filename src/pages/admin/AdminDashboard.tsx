@@ -7,7 +7,7 @@ import {
   Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
-import { formatDateBR } from "@/lib/brasiliaTime";
+import { formatDateBR, nowUtcMs } from "@/lib/brasiliaTime";
 import { BrasiliaClock } from "@/components/admin/BrasiliaClock";
 import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { ptBR } from "date-fns/locale";
@@ -155,7 +155,7 @@ const AdminDashboard = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [showCloseDay, setShowCloseDay] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => nowUtcMs());
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(getTodayBusinessDay());
   const [searchQuery, setSearchQuery] = useState("");
@@ -436,7 +436,7 @@ const AdminDashboard = () => {
   const hasPreparingVisible = activeTab === "preparing" && orders.some(o => o.status === "preparing");
   useEffect(() => {
     if (hasPreparingVisible) {
-      nowIntervalRef.current = setInterval(() => setNow(Date.now()), 1000);
+      nowIntervalRef.current = setInterval(() => setNow(nowUtcMs()), 1000);
     } else {
       if (nowIntervalRef.current) { clearInterval(nowIntervalRef.current); nowIntervalRef.current = null; }
     }
