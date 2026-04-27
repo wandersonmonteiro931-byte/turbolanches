@@ -14,9 +14,20 @@ const DAY_LABELS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta",
 
 const getBrasiliaTime = () => {
   const now = nowBrasilia();
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  return { hhmm: `${hh}:${mm}`, dayOfWeek: now.getDay() };
+  // Format in America/Sao_Paulo timezone — getHours()/getDay() use the local PC TZ
+  // which can be wrong. Use Intl to extract HH:mm and weekday in Brasília.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+    hour12: false,
+  }).formatToParts(now);
+  const hh = parts.find(p => p.type === "hour")?.value ?? "00";
+  const mm = parts.find(p => p.type === "minute")?.value ?? "00";
+  const wk = parts.find(p => p.type === "weekday")?.value ?? "Sun";
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { hhmm: `${hh === "24" ? "00" : hh}:${mm}`, dayOfWeek: map[wk] ?? 0 };
 };
 
 const hhmmToMinutes = (hhmm: string) => {
