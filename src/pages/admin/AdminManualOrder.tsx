@@ -968,6 +968,19 @@ const AdminManualOrder = () => {
                 placeholder="Código"
                 type="number"
                 inputMode="numeric"
+                onChange={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  const val = input.value.trim();
+                  if (!val) return;
+                  if (shouldShowTablePicker) return;
+                  const codeNum = parseInt(val);
+                  if (Number.isNaN(codeNum)) return;
+                  const exact = products.find((p) => p.product_code === codeNum);
+                  if (exact) {
+                    addToCart(exact);
+                    input.value = "";
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key !== "Enter") return;
                   if (shouldShowTablePicker) { toast.error("Selecione uma mesa primeiro"); return; }
