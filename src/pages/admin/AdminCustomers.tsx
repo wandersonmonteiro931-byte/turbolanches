@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Search, ChevronDown, ChevronUp, Save, Plus, X, History } from "lucide-react";
 import CustomerSearch from "@/components/admin/CustomerSearch";
+import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 
 interface Profile {
   user_id: string;
