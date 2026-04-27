@@ -70,6 +70,12 @@ const AdminCustomers = () => {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [orders, setOrders] = useState<Record<string, OrderSummary[]>>({});
   const [addresses, setAddresses] = useState<Record<string, Address[]>>({});
