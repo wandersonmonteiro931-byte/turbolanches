@@ -306,6 +306,7 @@ const AdminCustomers = () => {
       <div className="flex items-center gap-2 rounded-xl bg-card border border-border px-3 py-2.5">
         <Search size={16} className="text-muted-foreground" />
         <input
+          ref={searchInputRef}
           placeholder="Buscar por código, nome, telefone ou endereço..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
