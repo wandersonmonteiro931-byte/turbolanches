@@ -160,6 +160,12 @@ const AdminDashboard = () => {
   const nowIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(getTodayBusinessDay());
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [editingOrder, setEditingOrder] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Order>>({});
   const [editItems, setEditItems] = useState<OrderItem[]>([]);
