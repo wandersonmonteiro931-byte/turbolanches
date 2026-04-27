@@ -310,11 +310,11 @@ async function hkdf(
   info: Uint8Array,
   len: number
 ) {
-  const key = await crypto.subtle.importKey("raw", ikm, "HKDF", false, [
+  const key = await crypto.subtle.importKey("raw", ikm as BufferSource, "HKDF", false, [
     "deriveBits",
   ]);
   const bits = await crypto.subtle.deriveBits(
-    { name: "HKDF", hash: "SHA-256", salt, info },
+    { name: "HKDF", hash: "SHA-256", salt: salt as BufferSource, info: info as BufferSource },
     key,
     len * 8
   );
