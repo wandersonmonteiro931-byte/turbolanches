@@ -141,6 +141,12 @@ const AdminOrders = () => {
 
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(searchInputRef, (text) => {
+    if (text === "") setSearchQuery("");
+    else if (text === "\b") setSearchQuery((s) => s.slice(0, -1));
+    else setSearchQuery((s) => s + text);
+  });
   const [showFilters, setShowFilters] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [filterPayment, setFilterPayment] = useState<string[]>([]);
