@@ -252,6 +252,12 @@ const AdminManualOrder = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>(editOrderId ? [] : (draft.cart ?? []));
   const [search, setSearch] = useState("");
+  const productSearchInputRef = useRef<HTMLInputElement>(null);
+  useGlobalKeyboardSearch(productSearchInputRef, (text) => {
+    if (text === "") setSearch("");
+    else if (text === "\b") setSearch((s) => s.slice(0, -1));
+    else setSearch((s) => s + text);
+  });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [deliveryType, setDeliveryType] = useState(editOrderId ? "mesa" : (draft.deliveryType ?? "mesa"));
   const [paymentMethod, setPaymentMethod] = useState(editOrderId ? "dinheiro" : (draft.paymentMethod ?? "dinheiro"));
