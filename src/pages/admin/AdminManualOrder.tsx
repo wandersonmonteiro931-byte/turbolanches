@@ -1039,6 +1039,7 @@ const AdminManualOrder = () => {
               <div className="flex h-8 items-center gap-2 bg-[hsl(197_58%_91%)] px-2 text-[hsl(203_88%_22%)]">
                 <Search size={14} />
                 <input
+                  ref={productSearchInputRef}
                   placeholder="Buscar produtos"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
