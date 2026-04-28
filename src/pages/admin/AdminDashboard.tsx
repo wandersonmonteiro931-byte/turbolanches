@@ -247,32 +247,11 @@ const AdminDashboard = () => {
       .order("created_at", { ascending: false });
     if (storeId) dayQuery = dayQuery.eq("store_id", storeId);
 
-    // Query 2: ALL active (in-flight) orders regardless of date — only when viewing today
-    // This ensures preparing/ready/delivering orders from previous days still appear in the dashboard
-    const activeQuery = isToday
-      ? (() => {
-          let q = supabase
-            .from("orders")
-            .select("*")
-            .in("status", ACTIVE_STATUSES)
-            .is("trashed_at", null)
-            .order("created_at", { ascending: false });
-          if (storeId) q = q.eq("store_id", storeId);
-          return q;
-        })()
-      : null;
-
-    const [dayRes, activeRes] = await Promise.all([
-      dayQuery,
-      activeQuery ?? Promise.resolve({ data: [] as any[] }),
-    ]);
-
-    const merged = new Map<string, Order>();
-    (dayRes.data ?? []).forEach((o: any) => merged.set(o.id, o as Order));
-    (activeRes.data ?? []).forEach((o: any) => { if (!merged.has(o.id)) merged.set(o.id, o as Order); });
-    const data = Array.from(merged.values()).sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    // STRICT: only show orders from the selected business day. Orders from previous days
+    // are NOT carried over even if still active (per requirement: "só pedidos do dia atual").
+    const dayRes = await dayQuery;
+    const data = (dayRes.data ?? []) as Order[];
+    const activeRes = { data: [] as any[] };
 
     console.log("[Dashboard] fetchOrders", {
       storeId,
