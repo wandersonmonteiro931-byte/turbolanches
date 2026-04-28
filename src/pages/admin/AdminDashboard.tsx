@@ -1281,16 +1281,11 @@ const AdminDashboard = () => {
   // regardless of payment_confirmed flag, otherwise PDV/manual orders created with payment_method='pix'
   // would disappear from the dashboard while still showing in Kitchen and /pedidos (inconsistency).
   // Trashed orders are only visible inside the Lixeira tab.
-  // Hide ONLY orders that are actively awaiting an online PIX charge (have a pix_txid generated
-  // and were never confirmed). This prevents PIX checkout orders from appearing before payment,
-  // while still showing website PIX orders (without txid, e.g. "PIX na entrega") and PDV PIX orders.
+  // Hide ONLY orders strictly awaiting an online PIX charge: status === 'awaiting_payment'.
+  // Any order with status 'pending' is a confirmed pending order (cash/card/pix-on-delivery
+  // or PIX checkout that already moved to pending) and MUST appear in the dashboard.
   const visibleOrders = useMemo(() => orders.filter(o => {
-    if (
-      o.payment_method === "pix" &&
-      !o.payment_confirmed &&
-      !!(o as any).pix_txid &&
-      (o.status === "awaiting_payment" || o.status === "pending")
-    ) return false;
+    if (o.status === "awaiting_payment" && !o.payment_confirmed) return false;
     return true;
   }), [orders]);
 
