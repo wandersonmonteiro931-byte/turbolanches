@@ -4,6 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { normalizeIngredientUnit, type IngredientMeasureUnit } from "./ingredientCalculation";
 import { getCompatibleMeasurementUnits, getDefaultMeasurementUnit } from "./measurement";
 import { formatCurrency } from "./pricingMoney";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface IngredientOption {
   id: string;
@@ -46,10 +47,10 @@ const ProductIngredientSelector = ({
   );
 
   const filteredIngredients = useMemo(() => {
-    const normalized = search.trim().toLowerCase();
+    const normalized = search.trimnormalizeSearch();
     if (!normalized) return ingredients;
 
-    return ingredients.filter((ingredient) => ingredient.name.toLowerCase().includes(normalized));
+    return ingredients.filter((ingredient) => normalizeSearch(ingredient.name).includes(normalized));
   }, [ingredients, search]);
 
   return (

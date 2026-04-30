@@ -16,6 +16,7 @@ import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+import { normalizeSearch } from "@/lib/searchNormalize";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -125,7 +126,7 @@ const changeMethods = [
   { id: "card", label: "Cartão" },
 ];
 
-const normalizeNeighborhood = (value: string) => value.trim().toLowerCase();
+const normalizeNeighborhood = (value: string) => value.trimnormalizeSearch();
 
 const cleanManualOrderObservation = (value: string) =>
   value
@@ -501,14 +502,14 @@ const AdminManualOrder = () => {
 
   const isProductCombo = (product: Product) => {
     const category = categories.find((c) => c.id === product.category_id);
-    return Boolean(product.is_combo) || category?.name?.toLowerCase().includes("combo") || product.name.toLowerCase().includes("combo");
+    return Boolean(product.is_combo) || normalizeSearch(category?.name?).includes("combo") || normalizeSearch(product.name).includes("combo");
   };
 
   const filteredProducts = products.filter((p) => {
-    const q = search.trim().toLowerCase();
+    const q = search.trimnormalizeSearch();
     const matchesSearch =
       !q ||
-      p.name.toLowerCase().includes(q) ||
+      normalizeSearch(p.name).includes(q) ||
       String(p.product_code ?? "").includes(q);
     const matchesCategory = !selectedCategory || p.category_id === selectedCategory;
     return matchesSearch && matchesCategory;

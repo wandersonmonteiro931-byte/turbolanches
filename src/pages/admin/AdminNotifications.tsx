@@ -6,6 +6,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Profile {
   id: string;
@@ -265,11 +266,11 @@ const AdminNotifications = () => {
 
   const filteredProfiles = profiles.filter((p) => {
     if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
+    const q = normalizeSearch(searchQuery);
     return (
-      p.full_name.toLowerCase().includes(q) ||
+      normalizeSearch(p.full_name).includes(q) ||
       p.phone.includes(q) ||
-      `T${String(p.customer_code).padStart(5, "0")}`.toLowerCase().includes(q)
+      `T${String(p.customer_code).padStart(5, "0")}`normalizeSearch().includes(q)
     );
   });
 

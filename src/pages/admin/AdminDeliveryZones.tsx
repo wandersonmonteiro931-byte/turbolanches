@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
 import { useStore } from "@/contexts/StoreContext";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface DeliveryZone {
   id: string;
@@ -614,7 +615,7 @@ const AdminDeliveryZones = () => {
   // ── Filtering ──
   const filteredZones = useMemo(() => {
     return zones.filter(z => {
-      if (searchTerm && !z.neighborhood.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (searchTerm && !normalizeSearch(z.neighborhood).includes(normalizeSearch(searchTerm))) return false;
       if (filterStatus === "active" && !z.active) return false;
       if (filterStatus === "inactive" && z.active) return false;
       if (filterKmMin && (z.distance_km === null || z.distance_km < Number(filterKmMin))) return false;

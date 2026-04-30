@@ -16,6 +16,7 @@ import {
   type IngredientMeasureUnit,
 } from "./ingredientCalculation";
 import { formatCurrency, formatMoneyInput, parseRoundedMoney } from "./pricingMoney";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Ingredient {
   id: string;
@@ -93,7 +94,7 @@ const IngredientsTab = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = !search.trim() || item.name.toLowerCase().includes(search.trim().toLowerCase());
+      const matchesSearch = !search.trim() || normalizeSearch(item.name).includes(search.trimnormalizeSearch());
       const matchesUnit = filterUnit === "all" || normalizeIngredientUnit(item.unit) === filterUnit;
       return matchesSearch && matchesUnit;
     });

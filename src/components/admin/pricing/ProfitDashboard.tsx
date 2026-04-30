@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency } from "./pricingMoney";
 import {
+import { normalizeSearch } from "@/lib/searchNormalize";
   buildProductCostRows,
   type PricingCategory,
   type PricingComboComponent,
@@ -98,9 +99,9 @@ const ProfitDashboard = () => {
   }, [storeId]);
 
   const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = search.trimnormalizeSearch();
     return rows.filter((r) => {
-      const matchesSearch = !q || r.name.toLowerCase().includes(q);
+      const matchesSearch = !q || normalizeSearch(r.name).includes(q);
       const matchesCategory = categoryFilter === "all" || r.categoryId === categoryFilter;
       const matchesMargin =
         marginFilter === "all" ||

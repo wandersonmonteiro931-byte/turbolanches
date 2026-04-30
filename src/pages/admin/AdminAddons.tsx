@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, X, Search, Package, Check, ChevronDown, ChevronRi
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Addon {
   id: string;
@@ -77,7 +78,7 @@ const AdminAddons = () => {
 
   // Filter products
   const filteredProducts = products.filter((p) => {
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || normalizeSearch(p.name).includes(normalizeSearch(search));
     const matchCat = !selectedCategory || p.category_id === selectedCategory;
     return matchSearch && matchCat;
   });

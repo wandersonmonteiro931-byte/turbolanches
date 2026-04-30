@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { getBusinessDayRange } from "@/lib/businessDay";
 import { formatDateTimeBR, formatTimeBR } from "@/lib/brasiliaTime";
 import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Order {
   id: string;
@@ -339,7 +340,7 @@ const AdminOrders = () => {
 
     // Search
     if (searchQuery.length >= 1) {
-      const q = searchQuery.toLowerCase();
+      const q = normalizeSearch(searchQuery);
       const codeMatch = q.match(/^#?(\d+)$/);
       const clientCodeMatch = q.match(/^t?(\d+)$/i);
 
@@ -350,13 +351,13 @@ const AdminOrders = () => {
         // Match customer code
         const profile = profiles[o.user_id];
         if (clientCodeMatch && profile && String(profile.customer_code) === clientCodeMatch[1]) return true;
-        if (profile?.full_name?.toLowerCase().includes(q)) return true;
+        if (normalizeSearch(profile?.full_name?).includes(q)) return true;
         if (profile?.phone?.includes(q)) return true;
         // Match address
-        if (o.address_street?.toLowerCase().includes(q)) return true;
-        if (o.address_neighborhood?.toLowerCase().includes(q)) return true;
+        if (normalizeSearch(o.address_street?).includes(q)) return true;
+        if (normalizeSearch(o.address_neighborhood?).includes(q)) return true;
         // Match observations
-        if (o.observations?.toLowerCase().includes(q)) return true;
+        if (normalizeSearch(o.observations?).includes(q)) return true;
         return false;
       });
     }

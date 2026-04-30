@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency, formatMoneyInput, parseLocaleNumber, parseRoundedMoney } from "./pricingMoney";
 import {
+import { normalizeSearch } from "@/lib/searchNormalize";
   computeExtraCostPreview,
   createMissingPresetPayloads,
   EXTRA_COST_PRESETS,
@@ -102,13 +103,13 @@ const ExtraCostsTab = () => {
   }, [storeId]);
 
   const filteredItems = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trimnormalizeSearch();
 
     return items.filter((item) => {
       const matchesSearch =
         !term ||
-        getExtraCostDisplayName(item).toLowerCase().includes(term) ||
-        (item.notes || "").toLowerCase().includes(term);
+        getExtraCostDisplayNamenormalizeSearch(item).includes(term) ||
+        normalizeSearch(item.notes || "").includes(term);
       const matchesType =
         filterType === "all" ||
         item.cost_type === filterType ||

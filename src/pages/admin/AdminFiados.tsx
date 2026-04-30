@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface FiadoOrder {
   id: string;
@@ -95,16 +96,16 @@ const AdminFiados = () => {
   };
 
   const filteredOrders = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = search.trimnormalizeSearch();
     return orders
       .filter((order) => showReceived ? order.payment_confirmed : !order.payment_confirmed)
       .filter((order) => {
         if (!term) return true;
         const profile = profiles[order.user_id];
-        const tableCode = getTableCode(order)?.toLowerCase() || "";
+        const tableCode = getTableCode(order)normalizeSearch(?) || "";
         return String(order.order_number).includes(term)
           || tableCode.includes(term)
-          || (profile?.full_name || "").toLowerCase().includes(term)
+          || normalizeSearch(profile?.full_name || "").includes(term)
           || (profile?.phone || "").includes(term);
       });
   }, [orders, profiles, search, showReceived]);

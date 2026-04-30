@@ -12,6 +12,7 @@ import {
 import ItemsCategoryTable from "./ItemsCategoryTable";
 import ProductRecipeEditor, { type ProductRecipeEditorChange } from "./ProductRecipeEditor";
 import {
+import { normalizeSearch } from "@/lib/searchNormalize";
   buildProductCostRows,
   type PricingCategory,
   type PricingComboComponent,
@@ -99,13 +100,13 @@ const ItemsTab = () => {
   );
 
   const filteredRows = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = search.trimnormalizeSearch();
 
     return rows.filter((row) => {
       const matchesSearch =
         !normalizedSearch ||
-        row.name.toLowerCase().includes(normalizedSearch) ||
-        row.categoryName.toLowerCase().includes(normalizedSearch);
+        normalizeSearch(row.name).includes(normalizedSearch) ||
+        normalizeSearch(row.categoryName).includes(normalizedSearch);
       const matchesCategory = categoryFilter === "all" || row.categoryId === categoryFilter;
       const matchesStatus =
         statusFilter === "all" ||
