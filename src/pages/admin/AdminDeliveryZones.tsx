@@ -791,6 +791,10 @@ const AdminDeliveryZones = () => {
                         <span className="text-[11px] text-muted-foreground">km:</span>
                         <input type="number" step="0.1" min="0" value={editData.distance_km ?? ""} onChange={e => setEditData(d => ({ ...d, distance_km: e.target.value ? Number(e.target.value) : null }))} className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
                       </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground">R$:</span>
+                        <input type="number" step="0.01" min="0" value={editData.delivery_fee} onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) || 0 }))} className="w-20 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
+                      </div>
                       <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                         <input type="checkbox" checked={editData.active} onChange={e => setEditData(d => ({ ...d, active: e.target.checked }))} /> Ativo
                       </label>
