@@ -195,6 +195,15 @@ const Checkout = () => {
   const createOrderAndItems = async () => {
     if (!user || !profile) throw new Error("Missing user/profile");
 
+    const isCash = paymentMethod === "dinheiro";
+    const isPix  = paymentMethod === "pix";
+    const isCard = ["cartao","card","debito","credito"].includes(paymentMethod);
+    const changeForNum = isCash && changeFor ? Number(changeFor) : 0;
+    // Cliente que pede troco entrega uma nota maior que o total → registra a nota como
+    // amount_paid_cash e a diferença como troco. Sem troco: amount_paid_cash = total.
+    const amountPaidCash = isCash ? (changeForNum > grandTotal ? changeForNum : grandTotal) : 0;
+    const changeGivenCash = isCash && changeForNum > grandTotal ? (changeForNum - grandTotal) : 0;
+
     const orderData: any = {
       user_id: user.id,
       subtotal: totalPrice,
@@ -206,7 +215,13 @@ const Checkout = () => {
       delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
       payment_method: paymentMethod,
       observations: observations || null,
-      change_for: paymentMethod === "dinheiro" && changeFor ? Number(changeFor) : null,
+      change_for: changeForNum || null,
+      amount_paid_cash: amountPaidCash,
+      amount_paid_pix: isPix ? grandTotal : 0,
+      amount_paid_card: isCard ? grandTotal : 0,
+      change_given_cash: changeGivenCash,
+      change_given_pix: 0,
+      change_given_card: 0,
     };
 
     if (storeId) orderData.store_id = storeId;
