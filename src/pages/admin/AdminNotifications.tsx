@@ -270,7 +270,7 @@ const AdminNotifications = () => {
     return (
       normalizeSearch(p.full_name).includes(q) ||
       p.phone.includes(q) ||
-      `T${String(p.customer_code).padStart(5, "0")}`normalizeSearch().includes(q)
+      normalizeSearch(`T${String(p.customer_code).padStart(5, "0")}`).includes(q)
     );
   });
 
