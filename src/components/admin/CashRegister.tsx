@@ -215,6 +215,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     declared_gross_cash: String((reg as any).declared_gross_cash ?? (reg as any).gross_cash ?? 0),
     declared_gross_pix: String((reg as any).declared_gross_pix ?? (reg as any).gross_pix ?? 0),
     declared_gross_card: String((reg as any).declared_gross_card ?? (reg as any).gross_card ?? 0),
+    closing_change_reserve: String(reg.opening_change_reserve ?? 0),
     responsible_name: responsibleName,
   });
 
