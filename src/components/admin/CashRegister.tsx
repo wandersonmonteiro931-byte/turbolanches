@@ -950,7 +950,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const openingCash = register?.opening_cash || 0;
     const openingPix = register?.opening_pix || 0;
     const openingCard = register?.opening_card || 0;
-    const openingChange = register?.opening_change_reserve || 0;
+    // Reserva de troco: prioriza o que o operador digitou agora no fechamento.
+    // Se vazio, usa o que foi registrado na abertura.
+    const closingChangeReserveStr = (closeForm as any).closing_change_reserve;
+    const hasClosingReserveTyped = closingChangeReserveStr !== undefined
+      && String(closingChangeReserveStr).trim() !== "";
+    const openingChange = hasClosingReserveTyped
+      ? parseMoneyInput(closingChangeReserveStr)
+      : (register?.opening_change_reserve || 0);
     const opening = openingCash + openingPix + openingCard + openingChange;
 
     // ============= ETAPA 1: BRUTO DE VENDAS (somente vendas, sem abertura) =============
