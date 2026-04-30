@@ -19,6 +19,8 @@ interface Props {
   allowInactive?: boolean;
   /** Change this value to force a data refresh */
   refreshKey?: number;
+  /** Use the kiosk/PDV color palette and typography */
+  variant?: "default" | "kiosk";
 }
 
 const NeighborhoodAutocomplete = ({
@@ -29,6 +31,7 @@ const NeighborhoodAutocomplete = ({
   dropdownClassName = "",
   allowInactive = false,
   refreshKey = 0,
+  variant = "default",
 }: Props) => {
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [query, setQuery] = useState(value);
