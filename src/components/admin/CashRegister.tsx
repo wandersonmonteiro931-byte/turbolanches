@@ -757,6 +757,37 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       performed_by: user.id,
       snapshot: payload,
     });
+
+    // ⏳ Registrar despesas marcadas como "Não pago" na tabela unpaid_expenses
+    const unpaidEntries: Array<{ key: string; label: string; category: string }> = [
+      { key: "expense_employees", label: "Funcionários", category: "funcionario" },
+      { key: "expense_couriers",  label: "Entregadores", category: "entregador" },
+      { key: "expense_purchases", label: "Compras",      category: "compras" },
+      { key: "expense_gasoline",  label: "Gasolina",     category: "gasolina" },
+      { key: "expense_ads",       label: "Anúncios",     category: "anuncios" },
+      { key: "expense_other",     label: "Outros",       category: "outros" },
+    ];
+    const toInsertUnpaid: any[] = [];
+    for (const e of unpaidEntries) {
+      const method = (closeForm as any)[`${e.key}_method`] as PayMethod;
+      const amount = parseMoneyInput((closeForm as any)[e.key]);
+      if (method === "unpaid" && amount > 0) {
+        toInsertUnpaid.push({
+          store_id: storeId,
+          category: e.category,
+          name: `${e.label} - Fechamento ${register.business_day}`,
+          amount,
+          source: "cash_register",
+          source_ref: register.id,
+          notes: closeForm.notes?.trim() || "",
+          created_by: user.id,
+        });
+      }
+    }
+    if (toInsertUnpaid.length > 0) {
+      await supabase.from("unpaid_expenses" as any).insert(toInsertUnpaid as any);
+    }
+
     toast({ title: editingRegId ? "✅ Fechamento atualizado" : "🔒 Caixa fechado!" });
     setShowClose(false);
     try { localStorage.removeItem(closeDraftKey); } catch {}
