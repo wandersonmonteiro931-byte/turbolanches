@@ -328,12 +328,11 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       }
       const t = Number(o.total) || 0;
       totals.total += t;
-      // ✅ REGRA: usa amount_paid_* − change_given_* (valor LÍQUIDO recebido por método).
-      // Fallback robusto p/ pedidos do site/legado: se o método é dinheiro e amount_paid_cash
-      // não foi preenchido, usa change_for (nota entregue pelo cliente) ou o total como base.
-      const givenCash  = Number(o.change_given_cash)  || 0;
-      const givenPix   = Number(o.change_given_pix)   || 0;
-      const givenCard  = Number(o.change_given_card)  || 0;
+      // ✅ REGRA: a NOTA inteira entregue pelo cliente entra no caixa.
+      // O troco devolvido NÃO é descontado da entrada — ele sai do troco do dia /
+      // reserva de troco / dinheiro acumulado em caixa, e isso já é refletido na
+      // gaveta física no fim do dia. Aqui contamos apenas o que ENTROU.
+      // Para PIX/Cartão não há troco em dinheiro, então é apenas o valor pago.
       const rawPaidCash = Number(o.amount_paid_cash) || 0;
       const changeFor   = Number(o.change_for) || 0;
       const isCashOrder = String(o.payment_method || "") === "dinheiro";
@@ -343,9 +342,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       );
       const paidPix    = Number(o.amount_paid_pix)    || (String(o.payment_method) === "pix" ? t : 0);
       const paidCard   = Number(o.amount_paid_card)   || (["cartao","card","debito","credito"].includes(String(o.payment_method)) ? t : 0);
-      totals.cash += (paidCash - givenCash);
-      totals.pix  += (paidPix  - givenPix);
-      totals.card += (paidCard - givenCard);
+      totals.cash += paidCash;
+      totals.pix  += paidPix;
+      totals.card += paidCard;
     });
     setPaymentTotals(totals);
     setOrderStats({ completed: ordersData.length, cancelled: cancelledCount });
