@@ -417,7 +417,7 @@ const AdminRestock = () => {
   };
 
   const filteredItems = useMemo(() => {
-    const normalizedSearch = search.trim();
+    const normalizedSearch = normalizeSearch(search);
     return [...items]
       .filter((item) => !normalizedSearch || normalizeSearch(item.ingredient_name).includes(normalizedSearch))
       .sort((left, right) => Number(right.checked) - Number(left.checked) || left.ingredient_name.localeCompare(right.ingredient_name));

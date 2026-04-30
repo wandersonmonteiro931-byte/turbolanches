@@ -67,7 +67,7 @@ const AdminProducts = () => {
   useEffect(() => { fetchData(); }, [storeId]);
 
   const filteredProducts = useMemo(() => {
-    const q = search.trim();
+    const q = normalizeSearch(search);
     return products.filter((p) => {
       const matchesSearch =
         !q ||

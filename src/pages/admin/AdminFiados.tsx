@@ -96,7 +96,7 @@ const AdminFiados = () => {
   };
 
   const filteredOrders = useMemo(() => {
-    const term = search.trim();
+    const term = normalizeSearch(search);
     return orders
       .filter((order) => showReceived ? order.payment_confirmed : !order.payment_confirmed)
       .filter((order) => {

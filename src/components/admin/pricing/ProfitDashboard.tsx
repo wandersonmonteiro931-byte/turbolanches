@@ -99,7 +99,7 @@ const ProfitDashboard = () => {
   }, [storeId]);
 
   const filteredRows = useMemo(() => {
-    const q = search.trim();
+    const q = normalizeSearch(search);
     return rows.filter((r) => {
       const matchesSearch = !q || normalizeSearch(r.name).includes(q);
       const matchesCategory = categoryFilter === "all" || r.categoryId === categoryFilter;

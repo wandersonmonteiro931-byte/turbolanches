@@ -47,7 +47,7 @@ const ProductIngredientSelector = ({
   );
 
   const filteredIngredients = useMemo(() => {
-    const normalized = search.trim();
+    const normalized = normalizeSearch(search);
     if (!normalized) return ingredients;
 
     return ingredients.filter((ingredient) => normalizeSearch(ingredient.name).includes(normalized));
