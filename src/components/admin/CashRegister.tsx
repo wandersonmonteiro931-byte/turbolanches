@@ -827,7 +827,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const { start, end } = getBusinessDayRange(new Date(reg.business_day + "T12:00:00"));
     const { data: allOrdersRaw } = await supabase
       .from("orders")
-      .select("id, payment_method, total, status, trashed_at, amount_paid_cash, amount_paid_pix, amount_paid_card, change_given_cash, change_given_pix, change_given_card")
+      .select("id, payment_method, total, status, trashed_at, amount_paid_cash, amount_paid_pix, amount_paid_card, change_given_cash, change_given_pix, change_given_card, change_for")
       .gte("created_at", start)
       .lte("created_at", end)
       .eq("store_id", reg.store_id)
