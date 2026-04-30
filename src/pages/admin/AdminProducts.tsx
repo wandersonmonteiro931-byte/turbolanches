@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import ImageUpload from "@/components/admin/ImageUpload";
 import ProductRecipeEditor from "@/components/admin/pricing/ProductRecipeEditor";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Product {
   id: string;
@@ -66,12 +67,12 @@ const AdminProducts = () => {
   useEffect(() => { fetchData(); }, [storeId]);
 
   const filteredProducts = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeSearch(search);
     return products.filter((p) => {
       const matchesSearch =
         !q ||
-        p.name.toLowerCase().includes(q) ||
-        (p.description || "").toLowerCase().includes(q) ||
+        normalizeSearch(p.name).includes(q) ||
+        normalizeSearch(p.description || "").includes(q) ||
         String(p.product_code ?? "").includes(q);
       const matchesCategory = categoryFilter === "all" || p.category_id === categoryFilter;
       const matchesStatus =

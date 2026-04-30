@@ -11,6 +11,7 @@ import { useStore } from "@/contexts/StoreContext";
 import { supabase } from "@/integrations/supabase/client";
 import AdminProducts from "./AdminProducts";
 import IngredientsTab from "@/components/admin/pricing/IngredientsTab";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface StorageConfig {
   id: string;
@@ -233,7 +234,7 @@ const BrandsTab = () => {
     await fetchBrands();
   };
 
-  const filtered = brands.filter((b) => !search.trim() || b.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const filtered = brands.filter((b) => !search.trim() || normalizeSearch(b.name).includes(normalizeSearch(search)));
 
   return (
     <div className="mt-4 space-y-4">

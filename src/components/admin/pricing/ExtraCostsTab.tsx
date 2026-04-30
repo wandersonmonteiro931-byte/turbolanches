@@ -17,6 +17,7 @@ import {
   type ExtraCostDivisionMode,
   type PricingExtraCost,
 } from "./extraCosting";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface ExtraCost extends PricingExtraCost {
   id: string;
@@ -102,13 +103,13 @@ const ExtraCostsTab = () => {
   }, [storeId]);
 
   const filteredItems = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = normalizeSearch(search);
 
     return items.filter((item) => {
       const matchesSearch =
         !term ||
-        getExtraCostDisplayName(item).toLowerCase().includes(term) ||
-        (item.notes || "").toLowerCase().includes(term);
+        normalizeSearch(getExtraCostDisplayName(item)).includes(term) ||
+        normalizeSearch(item.notes || "").includes(term);
       const matchesType =
         filterType === "all" ||
         item.cost_type === filterType ||

@@ -12,6 +12,7 @@ import {
   type PricingProduct,
   type PricingProductIngredient,
 } from "./productCosting";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface ProfitRow {
   id: string;
@@ -98,9 +99,9 @@ const ProfitDashboard = () => {
   }, [storeId]);
 
   const filteredRows = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = normalizeSearch(search);
     return rows.filter((r) => {
-      const matchesSearch = !q || r.name.toLowerCase().includes(q);
+      const matchesSearch = !q || normalizeSearch(r.name).includes(q);
       const matchesCategory = categoryFilter === "all" || r.categoryId === categoryFilter;
       const matchesMargin =
         marginFilter === "all" ||

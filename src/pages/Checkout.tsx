@@ -9,6 +9,7 @@ import { useStoreStatus } from "@/hooks/useStoreStatus";
 import { useStore } from "@/contexts/StoreContext";
 import PixPaymentModal from "@/components/PixPaymentModal";
 import { validateCouponForOrder } from "@/lib/couponValidation";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Profile {
   full_name: string;
@@ -146,7 +147,7 @@ const Checkout = () => {
   }
 
   const matchedZone = deliveryZones.find(
-    (z) => z.neighborhood.toLowerCase() === profile?.neighborhood?.toLowerCase()
+    (z) => normalizeSearch(z.neighborhood) === normalizeSearch(profile?.neighborhood)
   );
 
   const isNeighborhoodNotServed = deliveryType === "delivery" && !matchedZone;

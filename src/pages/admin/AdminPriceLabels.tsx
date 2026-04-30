@@ -11,6 +11,7 @@ import { Printer, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { buildBatchPrintDocument, type BatchSection } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface PriceProduct {
   id: string;
@@ -78,12 +79,12 @@ const AdminPriceLabels = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = normalizeSearch(search);
     return products.filter((p) => {
       if (categoryId !== "all" && p.category_id !== categoryId) return false;
       if (!term) return true;
       return (
-        p.name.toLowerCase().includes(term) ||
+        normalizeSearch(p.name).includes(term) ||
         String(p.product_code).includes(term)
       );
     });

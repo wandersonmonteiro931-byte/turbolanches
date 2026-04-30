@@ -43,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Order {
   id: string;
@@ -1276,16 +1277,16 @@ const AdminDashboard = () => {
     })
     .filter(o => {
       if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
+      const q = normalizeSearch(searchQuery);
       const profile = profiles[o.user_id];
       const code = profile?.customer_code ? `t${String(profile.customer_code).padStart(5, '0')}` : "";
       return (
         String(o.order_number).includes(q) ||
         code.includes(q) ||
-        (profile?.full_name || "").toLowerCase().includes(q) ||
+        normalizeSearch(profile?.full_name || "").includes(q) ||
         (profile?.phone || "").includes(q) ||
-        (o.address_street || "").toLowerCase().includes(q) ||
-        (o.address_neighborhood || "").toLowerCase().includes(q)
+        normalizeSearch(o.address_street || "").includes(q) ||
+        normalizeSearch(o.address_neighborhood || "").includes(q)
       );
     });
 

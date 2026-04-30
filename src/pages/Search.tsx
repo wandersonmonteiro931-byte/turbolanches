@@ -7,6 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import BottomNav from "@/components/BottomNav";
 import CartFloatingButton from "@/components/CartFloatingButton";
 import { useScrollRestoration } from "@/hooks/useScrollRestoration";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 const quickFilters = [
   { key: "popular", label: "Populares", icon: Flame },
@@ -29,11 +30,11 @@ const Search = () => {
 
     // Text search (matches name, description, or product code)
     if (query.trim().length >= 1) {
-      const q = query.toLowerCase().trim();
+      const q = normalizeSearch(query).trim();
       result = result.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
+          normalizeSearch(p.name).includes(q) ||
+          normalizeSearch(p.description).includes(q) ||
           (p.code != null && String(p.code).includes(q))
       );
     }

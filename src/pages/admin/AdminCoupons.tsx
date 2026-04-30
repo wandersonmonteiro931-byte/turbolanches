@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Ticket } from "lucide-react";
 import { nowBrasilia, formatDateBR } from "@/lib/brasiliaTime";
 import { useStore } from "@/contexts/StoreContext";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Coupon {
   id: string;
@@ -179,7 +180,7 @@ const AdminCoupons = () => {
   };
 
   const filtered = coupons.filter((c) => {
-    if (search && !c.code.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !normalizeSearch(c.code).includes(normalizeSearch(search))) return false;
     if (typeFilter !== "all" && c.type !== typeFilter) return false;
     if (statusFilter === "active" && !c.active) return false;
     if (statusFilter === "inactive" && c.active) return false;

@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { buildAdminPrintDocument, escapeHtml } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { cn } from "@/lib/utils";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface RestockList {
   id: string;
@@ -416,15 +417,15 @@ const AdminRestock = () => {
   };
 
   const filteredItems = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
+    const normalizedSearch = normalizeSearch(search);
     return [...items]
-      .filter((item) => !normalizedSearch || item.ingredient_name.toLowerCase().includes(normalizedSearch))
+      .filter((item) => !normalizedSearch || normalizeSearch(item.ingredient_name).includes(normalizedSearch))
       .sort((left, right) => Number(right.checked) - Number(left.checked) || left.ingredient_name.localeCompare(right.ingredient_name));
   }, [items, search]);
 
   const filteredIngredients = useMemo(() => {
-    const s = ingredientSearch.trim().toLowerCase();
-    return ingredients.filter((ing) => !s || ing.name.toLowerCase().includes(s));
+    const s = ingredientSearch.trim();
+    return ingredients.filter((ing) => !s || normalizeSearch(ing.name).includes(s));
   }, [ingredients, ingredientSearch]);
 
   const currentSelectedItems = useMemo(() => items.filter((item) => item.checked), [items]);

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MapPin, Search, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface DeliveryZone {
   neighborhood: string;
@@ -76,7 +77,7 @@ const NeighborhoodAutocomplete = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = zones.filter((z) => z.neighborhood.toLowerCase().includes(query.toLowerCase()));
+  const filtered = zones.filter((z) => normalizeSearch(z.neighborhood).includes(normalizeSearch(query)));
 
   const handleSelect = (zone: DeliveryZone) => {
     if (!zone.active && !allowInactive) return;
@@ -129,7 +130,7 @@ const NeighborhoodAutocomplete = ({
           {filtered.map((zone) => {
             const blocked = !zone.active && !allowInactive;
             const isPromoFree = Boolean(zone.temp_free_delivery);
-            const selected = zone.neighborhood.toLowerCase() === query.toLowerCase();
+            const selected = normalizeSearch(zone.neighborhood) === normalizeSearch(query);
 
             const itemClass = isKiosk
               ? `flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors ${k.item} ${
