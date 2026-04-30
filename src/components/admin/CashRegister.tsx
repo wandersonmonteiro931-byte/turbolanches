@@ -841,9 +841,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       orderIds.push(o.id);
       const t = Number(o.total) || 0;
       totals.total += t;
-      const givenCash = Number(o.change_given_cash) || 0;
-      const givenPix  = Number(o.change_given_pix)  || 0;
-      const givenCard = Number(o.change_given_card) || 0;
+      // A nota inteira entregue pelo cliente entra no caixa (troco não desconta).
       const rawPaidCash = Number(o.amount_paid_cash) || 0;
       const changeFor   = Number(o.change_for) || 0;
       const isCashOrder = String(o.payment_method || "") === "dinheiro";
@@ -853,9 +851,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       );
       const paidPix  = Number(o.amount_paid_pix)  || (String(o.payment_method) === "pix" ? t : 0);
       const paidCard = Number(o.amount_paid_card) || (["cartao","card","debito","credito"].includes(String(o.payment_method)) ? t : 0);
-      totals.cash += (paidCash - givenCash);
-      totals.pix  += (paidPix  - givenPix);
-      totals.card += (paidCard - givenCard);
+      totals.cash += paidCash;
+      totals.pix  += paidPix;
+      totals.card += paidCard;
     });
     const stats = { completed: ordersData.length, cancelled: cancelledCount };
     let top: { name: string; qty: number }[] = [];
