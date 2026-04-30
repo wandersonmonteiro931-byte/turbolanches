@@ -506,7 +506,7 @@ const AdminManualOrder = () => {
   };
 
   const filteredProducts = products.filter((p) => {
-    const q = search.trim();
+    const q = normalizeSearch(search);
     const matchesSearch =
       !q ||
       normalizeSearch(p.name).includes(q) ||
