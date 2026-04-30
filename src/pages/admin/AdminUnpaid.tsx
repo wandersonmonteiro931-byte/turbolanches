@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, CheckCircle2, Trash2, Clock, AlertCircle } from "lucide-react";
+import { Plus, CheckCircle2, Trash2, Clock, AlertCircle, Pencil, Check, X as XIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,36 @@ export default function AdminUnpaid() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ category: "outros", name: "", amount: "", notes: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; notes: string }>({ name: "", notes: "" });
+
+  const startEdit = (it: UnpaidExpense) => {
+    setEditingId(it.id);
+    setEditForm({ name: it.name || "", notes: it.notes || "" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ name: "", notes: "" });
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editForm.name.trim()) {
+      toast({ title: "Nome não pode ficar vazio", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("unpaid_expenses" as any)
+      .update({ name: editForm.name.trim(), notes: editForm.notes.trim() } as any)
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Atualizado!" });
+    cancelEdit();
+    fetchItems();
+  };
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -203,9 +233,49 @@ export default function AdminUnpaid() {
                       </span>
                     )}
                   </div>
-                  <p className="text-base font-bold text-foreground mt-1 break-words">{it.name}</p>
-                  {it.notes && (
-                    <p className="text-xs text-muted-foreground mt-0.5 break-words">{it.notes}</p>
+                  {editingId === it.id ? (
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                        placeholder="Nome (ex: João - Funcionário)"
+                        className="w-full rounded-lg border border-amber-400 bg-background px-2 py-1.5 text-sm font-bold text-foreground"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={editForm.notes}
+                        onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") saveEdit(it.id);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        placeholder="Observação (opcional)"
+                        className="w-full rounded-lg border border-amber-400 bg-background px-2 py-1.5 text-xs text-foreground"
+                      />
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => saveEdit(it.id)}
+                          className="rounded-lg bg-emerald-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-600 flex items-center gap-1"
+                        >
+                          <Check size={12} /> Salvar
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-bold text-foreground flex items-center gap-1"
+                        >
+                          <XIcon size={12} /> Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-base font-bold text-foreground mt-1 break-words">{it.name}</p>
+                      {it.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">{it.notes}</p>
+                      )}
+                    </>
                   )}
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Registrado: {formatDateTimeBR(it.registered_at)}
@@ -230,12 +300,23 @@ export default function AdminUnpaid() {
                       ))}
                     </div>
                   )}
-                  <button
-                    onClick={() => deleteItem(it.id)}
-                    className="rounded p-1 hover:bg-destructive/10"
-                  >
-                    <Trash2 size={14} className="text-destructive" />
-                  </button>
+                  <div className="flex gap-1">
+                    {editingId !== it.id && (
+                      <button
+                        onClick={() => startEdit(it)}
+                        className="rounded p-1 hover:bg-primary/10"
+                        title="Editar nome / observação"
+                      >
+                        <Pencil size={14} className="text-primary" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteItem(it.id)}
+                      className="rounded p-1 hover:bg-destructive/10"
+                    >
+                      <Trash2 size={14} className="text-destructive" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
