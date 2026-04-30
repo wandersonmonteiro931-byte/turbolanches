@@ -997,6 +997,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
+      // Reserva de troco aplicada no cálculo (digitada ou herdada da abertura)
+      changeReserve: openingChange,
       // Etapa 1 — bruto
       grossCash, grossPix, grossCard,
       declaredGrossCash, declaredGrossPix, declaredGrossCard,
