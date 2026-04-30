@@ -146,7 +146,7 @@ const Checkout = () => {
   }
 
   const matchedZone = deliveryZones.find(
-    (z) => z.neighborhood.toLowerCase() === profile?.neighborhood?.toLowerCase()
+    (z) => normalizeSearch(z.neighborhood) === normalizeSearch(profile?.neighborhood)
   );
 
   const isNeighborhoodNotServed = deliveryType === "delivery" && !matchedZone;
