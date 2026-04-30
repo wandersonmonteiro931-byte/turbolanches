@@ -102,7 +102,7 @@ const AdminFiados = () => {
       .filter((order) => {
         if (!term) return true;
         const profile = profiles[order.user_id];
-        const tableCode = getTableCode(order)normalizeSearch() || "";
+        const tableCode = normalizeSearch(getTableCode(order)) || "";
         return String(order.order_number).includes(term)
           || tableCode.includes(term)
           || normalizeSearch(profile?.full_name || "").includes(term)
