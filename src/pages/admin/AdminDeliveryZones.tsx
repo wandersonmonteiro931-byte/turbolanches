@@ -506,7 +506,7 @@ const AdminDeliveryZones = () => {
   const { storeId } = useStore();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null });
+  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null, delivery_fee: 0 });
   const [newZone, setNewZone] = useState({ neighborhood: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
