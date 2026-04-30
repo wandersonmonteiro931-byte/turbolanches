@@ -577,7 +577,7 @@ const AdminDeliveryZones = () => {
 
   const startEdit = (zone: DeliveryZone) => {
     setEditingId(zone.id);
-    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km });
+    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km, delivery_fee: Number(zone.delivery_fee) || 0 });
   };
 
   const saveEdit = async () => {
@@ -586,6 +586,7 @@ const AdminDeliveryZones = () => {
       neighborhood: editData.neighborhood,
       active: editData.active,
       distance_km: editData.distance_km,
+      delivery_fee: editData.delivery_fee,
     } as any).eq("id", editingId);
     toast({ title: "✅ Atualizado!" }); setEditingId(null); fetchZones();
   };
