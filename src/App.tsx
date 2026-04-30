@@ -56,6 +56,7 @@ import MenuExport from "./pages/admin/MenuExport";
 import MyScratchCards from "./pages/MyScratchCards";
 import CourierPortal from "./pages/CourierPortal";
 import AdminEmployees from "./pages/admin/AdminEmployees";
+import AdminUnpaid from "./pages/admin/AdminUnpaid";
 import EmployeePortal from "./pages/EmployeePortal";
 
 const queryClient = new QueryClient();
@@ -165,6 +166,7 @@ const AppInner = () => {
             <Route path="etiquetas-preco" element={<AdminPriceLabels />} />
             <Route path="reposicao" element={<AdminRestock />} />
             <Route path="funcionarios" element={<AdminEmployees />} />
+            <Route path="nao-pagos" element={<AdminUnpaid />} />
             <Route path="ia" element={<AdminAiControl />} />
             <Route path="tv-publicidade" element={<AdminTvAds />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />

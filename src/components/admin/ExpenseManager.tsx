@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, Trash2, X, AlertCircle } from "lucide-react";
 import { useStore } from "@/contexts/StoreContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { getTodayBusinessDay, getBusinessDayRange } from "@/lib/businessDay";
 
 interface Expense {
   id: string;
@@ -21,6 +21,13 @@ const CATEGORIES = [
   { value: "outros", label: "Outros" },
 ];
 
+const PAY_METHODS = [
+  { value: "cash", label: "💰 Dinheiro" },
+  { value: "pix", label: "📲 PIX" },
+  { value: "card", label: "💳 Cartão" },
+  { value: "unpaid", label: "⏳ Não pago" },
+];
+
 interface Props {
   selectedDate: Date;
   onClose: () => void;
@@ -28,11 +35,13 @@ interface Props {
 
 export default function ExpenseManager({ selectedDate, onClose }: Props) {
   const { storeId } = useStore();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [newCategory, setNewCategory] = useState("outros");
   const [newDescription, setNewDescription] = useState("");
   const [newAmount, setNewAmount] = useState("");
+  const [newMethod, setNewMethod] = useState<string>("cash");
 
   const dateStr = format(selectedDate, "yyyy-MM-dd");
 
@@ -61,6 +70,28 @@ export default function ExpenseManager({ selectedDate, onClose }: Props) {
       toast({ title: "Preencha descrição e valor", variant: "destructive" });
       return;
     }
+
+    if (newMethod === "unpaid") {
+      // Não pago — vai para a tabela unpaid_expenses
+      const { error } = await supabase.from("unpaid_expenses" as any).insert({
+        store_id: storeId,
+        category: newCategory,
+        name: newDescription.trim(),
+        amount,
+        source: "report_expenses",
+        notes: `Registrado em Gastos do Dia (${dateStr})`,
+        created_by: user?.id ?? null,
+      } as any);
+      if (error) {
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        return;
+      }
+      setNewDescription("");
+      setNewAmount("");
+      toast({ title: "⏳ Registrado em Não Pagos!" });
+      return;
+    }
+
     await supabase.from("report_expenses" as any).insert({
       category: newCategory,
       description: newDescription.trim(),
@@ -124,6 +155,25 @@ export default function ExpenseManager({ selectedDate, onClose }: Props) {
             onKeyDown={e => e.key === "Enter" && addExpense()}
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
           />
+          <select
+            value={newMethod}
+            onChange={e => setNewMethod(e.target.value)}
+            className={`w-full rounded-lg border px-3 py-2 text-sm font-medium ${
+              newMethod === "unpaid"
+                ? "border-amber-400 bg-amber-50 dark:bg-amber-500/10 text-amber-900 dark:text-amber-100"
+                : "border-border bg-background text-foreground"
+            }`}
+          >
+            {PAY_METHODS.map(m => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
+          {newMethod === "unpaid" && (
+            <p className="text-[11px] text-amber-700 dark:text-amber-300 flex items-center gap-1">
+              <AlertCircle size={12} />
+              Será registrado na seção <strong>Não Pagos</strong> e não entrará nos cálculos do dia.
+            </p>
+          )}
           <button
             onClick={addExpense}
             className="w-full rounded-lg bg-primary py-2 text-sm font-bold text-primary-foreground flex items-center justify-center gap-2"

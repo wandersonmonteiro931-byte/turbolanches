@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff, HelpCircle, UserCog, WalletCards, Tv } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff, HelpCircle, UserCog, WalletCards, Tv, AlertCircle } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ const navItems = [
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
   { path: "/cozinha", icon: UtensilsCrossed, label: "Cozinha" },
   { path: "/admin/fiados", icon: WalletCards, label: "Fiados" },
+  { path: "/admin/nao-pagos", icon: AlertCircle, label: "Não Pagos" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
   { path: "/admin/cadastros", icon: FolderPlus, label: "Cadastros" },
   { path: "/admin/categorias", icon: Tag, label: "Categorias" },

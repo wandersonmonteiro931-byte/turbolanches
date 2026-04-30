@@ -2811,6 +2811,60 @@ export type Database = {
         }
         Relationships: []
       }
+      unpaid_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string
+          paid: boolean
+          paid_at: string | null
+          paid_method: string | null
+          registered_at: string
+          source: string
+          source_ref: string | null
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string
+          paid?: boolean
+          paid_at?: string | null
+          paid_method?: string | null
+          registered_at?: string
+          source?: string
+          source_ref?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string
+          paid?: boolean
+          paid_at?: string | null
+          paid_method?: string | null
+          registered_at?: string
+          source?: string
+          source_ref?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
