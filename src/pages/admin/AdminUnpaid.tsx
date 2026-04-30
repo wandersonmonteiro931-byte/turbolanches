@@ -233,9 +233,49 @@ export default function AdminUnpaid() {
                       </span>
                     )}
                   </div>
-                  <p className="text-base font-bold text-foreground mt-1 break-words">{it.name}</p>
-                  {it.notes && (
-                    <p className="text-xs text-muted-foreground mt-0.5 break-words">{it.notes}</p>
+                  {editingId === it.id ? (
+                    <div className="mt-2 space-y-2">
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                        placeholder="Nome (ex: João - Funcionário)"
+                        className="w-full rounded-lg border border-amber-400 bg-background px-2 py-1.5 text-sm font-bold text-foreground"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={editForm.notes}
+                        onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") saveEdit(it.id);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        placeholder="Observação (opcional)"
+                        className="w-full rounded-lg border border-amber-400 bg-background px-2 py-1.5 text-xs text-foreground"
+                      />
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => saveEdit(it.id)}
+                          className="rounded-lg bg-emerald-500 px-2 py-1 text-[11px] font-bold text-white hover:bg-emerald-600 flex items-center gap-1"
+                        >
+                          <Check size={12} /> Salvar
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="rounded-lg border border-border bg-background px-2 py-1 text-[11px] font-bold text-foreground flex items-center gap-1"
+                        >
+                          <XIcon size={12} /> Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-base font-bold text-foreground mt-1 break-words">{it.name}</p>
+                      {it.notes && (
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">{it.notes}</p>
+                      )}
+                    </>
                   )}
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Registrado: {formatDateTimeBR(it.registered_at)}
@@ -260,12 +300,23 @@ export default function AdminUnpaid() {
                       ))}
                     </div>
                   )}
-                  <button
-                    onClick={() => deleteItem(it.id)}
-                    className="rounded p-1 hover:bg-destructive/10"
-                  >
-                    <Trash2 size={14} className="text-destructive" />
-                  </button>
+                  <div className="flex gap-1">
+                    {editingId !== it.id && (
+                      <button
+                        onClick={() => startEdit(it)}
+                        className="rounded p-1 hover:bg-primary/10"
+                        title="Editar nome / observação"
+                      >
+                        <Pencil size={14} className="text-primary" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteItem(it.id)}
+                      className="rounded p-1 hover:bg-destructive/10"
+                    >
+                      <Trash2 size={14} className="text-destructive" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
