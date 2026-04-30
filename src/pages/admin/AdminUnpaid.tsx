@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, CheckCircle2, Trash2, Clock, AlertCircle } from "lucide-react";
+import { Plus, CheckCircle2, Trash2, Clock, AlertCircle, Pencil, Check, X as XIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,36 @@ export default function AdminUnpaid() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ category: "outros", name: "", amount: "", notes: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; notes: string }>({ name: "", notes: "" });
+
+  const startEdit = (it: UnpaidExpense) => {
+    setEditingId(it.id);
+    setEditForm({ name: it.name || "", notes: it.notes || "" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditForm({ name: "", notes: "" });
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editForm.name.trim()) {
+      toast({ title: "Nome não pode ficar vazio", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase
+      .from("unpaid_expenses" as any)
+      .update({ name: editForm.name.trim(), notes: editForm.notes.trim() } as any)
+      .eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "✅ Atualizado!" });
+    cancelEdit();
+    fetchItems();
+  };
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
