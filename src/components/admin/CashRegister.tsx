@@ -18,7 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { roundMoney } from "@/components/admin/pricing/pricingMoney";
 
-type PayMethod = "cash" | "pix" | "card";
+type PayMethod = "cash" | "pix" | "card" | "unpaid";
 
 /**
  * Converte uma string monetária digitada (aceita vírgula OU ponto como
@@ -929,9 +929,12 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   // ============== Close summary calculations ==============
   const closeSummary = useMemo(() => {
     // Gastos por método de pagamento
+    // ⚠️ "unpaid" (não pago) é IGNORADO — não entra em nenhum total/cálculo do caixa.
+    // Será gravado em uma tabela separada (unpaid_expenses) ao salvar o fechamento.
     const expensesByMethod = { cash: 0, pix: 0, card: 0 };
     const addExpense = (amountStr: string, method: PayMethod) => {
       const v = Number(amountStr) || 0;
+      if (method === "unpaid") return; // não impacta caixa
       expensesByMethod[method] += v;
     };
     addExpense(closeForm.expense_employees, closeForm.expense_employees_method);
@@ -1318,6 +1321,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                             <SelectItem value="cash">💰 Dinheiro</SelectItem>
                             <SelectItem value="pix">📲 PIX</SelectItem>
                             <SelectItem value="card">💳 Cartão</SelectItem>
+                            <SelectItem value="unpaid">⏳ Não pago</SelectItem>
                           </SelectContent>
                         </Select>
                         <Input
