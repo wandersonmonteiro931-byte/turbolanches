@@ -817,8 +817,10 @@ const AdminDeliveryZones = () => {
                         <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold shrink-0">N/A</span>
                       )}
 
-                      {isFree && (
+                      {isFree ? (
                         <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[11px] font-bold shrink-0">GRÁTIS 🎁</span>
+                      ) : (
+                        <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-bold whitespace-nowrap shrink-0">R$ {Number(zone.delivery_fee).toFixed(2).replace(".", ",")}</span>
                       )}
 
                       {isBlocked && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-bold shrink-0">BLOQUEADO</span>}
