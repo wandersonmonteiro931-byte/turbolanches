@@ -1392,6 +1392,26 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   Informe quanto realmente tem na gaveta e na conta (PIX + cartão).
                 </div>
 
+                {/* Reserva de troco — dinheiro que já estava na gaveta antes da abertura */}
+                <div className="rounded-md border border-amber-400/50 bg-amber-50/60 dark:bg-amber-500/10 p-2 space-y-1">
+                  <div className="grid grid-cols-[1fr_140px] gap-2 items-center">
+                    <Label className="text-sm">🪙 Reserva de troco (já estava na gaveta)</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={(closeForm as any).closing_change_reserve ?? ""}
+                      placeholder="0,00"
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                        setCloseForm({ ...closeForm, closing_change_reserve: raw } as any);
+                      }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-amber-800 dark:text-amber-200 italic">
+                    Use quando havia dinheiro na gaveta no início do dia que não foi registrado na abertura. Soma ao Esperado em dinheiro.
+                  </div>
+                </div>
+
                 {/* Dinheiro na gaveta */}
                 <div className="grid grid-cols-[1fr_auto_140px] gap-2 items-center">
                   <Label className="text-sm">💰 Dinheiro na gaveta</Label>
