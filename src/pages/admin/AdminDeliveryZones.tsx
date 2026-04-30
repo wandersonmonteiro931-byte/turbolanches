@@ -506,7 +506,7 @@ const AdminDeliveryZones = () => {
   const { storeId } = useStore();
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null });
+  const [editData, setEditData] = useState({ neighborhood: "", active: true, distance_km: null as number | null, delivery_fee: 0 });
   const [newZone, setNewZone] = useState({ neighborhood: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -577,7 +577,7 @@ const AdminDeliveryZones = () => {
 
   const startEdit = (zone: DeliveryZone) => {
     setEditingId(zone.id);
-    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km });
+    setEditData({ neighborhood: zone.neighborhood, active: zone.active, distance_km: zone.distance_km, delivery_fee: Number(zone.delivery_fee) || 0 });
   };
 
   const saveEdit = async () => {
@@ -586,6 +586,7 @@ const AdminDeliveryZones = () => {
       neighborhood: editData.neighborhood,
       active: editData.active,
       distance_km: editData.distance_km,
+      delivery_fee: editData.delivery_fee,
     } as any).eq("id", editingId);
     toast({ title: "✅ Atualizado!" }); setEditingId(null); fetchZones();
   };
@@ -790,6 +791,10 @@ const AdminDeliveryZones = () => {
                         <span className="text-[11px] text-muted-foreground">km:</span>
                         <input type="number" step="0.1" min="0" value={editData.distance_km ?? ""} onChange={e => setEditData(d => ({ ...d, distance_km: e.target.value ? Number(e.target.value) : null }))} className="w-16 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
                       </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground">R$:</span>
+                        <input type="number" step="0.01" min="0" value={editData.delivery_fee} onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) || 0 }))} className="w-20 rounded-lg border border-border bg-background px-2 py-2 text-sm text-foreground" />
+                      </div>
                       <label className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                         <input type="checkbox" checked={editData.active} onChange={e => setEditData(d => ({ ...d, active: e.target.checked }))} /> Ativo
                       </label>
@@ -812,8 +817,10 @@ const AdminDeliveryZones = () => {
                         <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold shrink-0">N/A</span>
                       )}
 
-                      {isFree && (
+                      {isFree ? (
                         <span className="rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-[11px] font-bold shrink-0">GRÁTIS 🎁</span>
+                      ) : (
+                        <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[11px] font-bold whitespace-nowrap shrink-0">R$ {Number(zone.delivery_fee).toFixed(2).replace(".", ",")}</span>
                       )}
 
                       {isBlocked && <span className="rounded-full bg-destructive/10 text-destructive px-2 py-0.5 text-[10px] font-bold shrink-0">BLOQUEADO</span>}

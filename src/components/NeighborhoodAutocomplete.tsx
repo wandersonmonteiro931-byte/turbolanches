@@ -45,6 +45,17 @@ const NeighborhoodAutocomplete = ({
     };
 
     void fetchZones();
+
+    const channel = supabase
+      .channel("delivery_zones_autocomplete")
+      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_zones" }, () => {
+        void fetchZones();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [refreshKey]);
 
   useEffect(() => {
