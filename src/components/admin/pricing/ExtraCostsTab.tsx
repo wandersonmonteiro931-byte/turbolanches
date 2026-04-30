@@ -108,7 +108,7 @@ const ExtraCostsTab = () => {
     return items.filter((item) => {
       const matchesSearch =
         !term ||
-        getExtraCostDisplayNamenormalizeSearch(item).includes(term) ||
+        normalizeSearch(getExtraCostDisplayName(item)).includes(term) ||
         normalizeSearch(item.notes || "").includes(term);
       const matchesType =
         filterType === "all" ||
