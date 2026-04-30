@@ -12,7 +12,6 @@ import {
 import ItemsCategoryTable from "./ItemsCategoryTable";
 import ProductRecipeEditor, { type ProductRecipeEditorChange } from "./ProductRecipeEditor";
 import {
-import { normalizeSearch } from "@/lib/searchNormalize";
   buildProductCostRows,
   type PricingCategory,
   type PricingComboComponent,
@@ -22,6 +21,7 @@ import { normalizeSearch } from "@/lib/searchNormalize";
   type PricingProductIngredient,
   type ProductCostRow,
 } from "./productCosting";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 const ItemsTab = () => {
   const { storeId } = useStore();

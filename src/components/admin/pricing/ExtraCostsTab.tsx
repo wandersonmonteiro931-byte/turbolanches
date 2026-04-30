@@ -5,7 +5,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency, formatMoneyInput, parseLocaleNumber, parseRoundedMoney } from "./pricingMoney";
 import {
-import { normalizeSearch } from "@/lib/searchNormalize";
   computeExtraCostPreview,
   createMissingPresetPayloads,
   EXTRA_COST_PRESETS,
@@ -18,6 +17,7 @@ import { normalizeSearch } from "@/lib/searchNormalize";
   type ExtraCostDivisionMode,
   type PricingExtraCost,
 } from "./extraCosting";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface ExtraCost extends PricingExtraCost {
   id: string;

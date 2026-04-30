@@ -16,7 +16,6 @@ import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-import { normalizeSearch } from "@/lib/searchNormalize";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -26,6 +25,7 @@ import { normalizeSearch } from "@/lib/searchNormalize";
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Product {
   id: string;

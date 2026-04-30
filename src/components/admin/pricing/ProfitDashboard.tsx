@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { formatCurrency } from "./pricingMoney";
 import {
-import { normalizeSearch } from "@/lib/searchNormalize";
   buildProductCostRows,
   type PricingCategory,
   type PricingComboComponent,
@@ -13,6 +12,7 @@ import { normalizeSearch } from "@/lib/searchNormalize";
   type PricingProduct,
   type PricingProductIngredient,
 } from "./productCosting";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface ProfitRow {
   id: string;

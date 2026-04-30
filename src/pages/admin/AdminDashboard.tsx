@@ -34,7 +34,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import {
-import { normalizeSearch } from "@/lib/searchNormalize";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -44,6 +43,7 @@ import { normalizeSearch } from "@/lib/searchNormalize";
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { normalizeSearch } from "@/lib/searchNormalize";
 
 interface Order {
   id: string;
