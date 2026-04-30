@@ -169,6 +169,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     declared_gross_cash: "0",
     declared_gross_pix: "0",
     declared_gross_card: "0",
+    // Reserva de troco que já estava na gaveta na abertura, mas não foi
+    // registrada (somada ao Esperado em dinheiro como entrada inicial).
+    closing_change_reserve: "",
     // Valores REAIS informados pelo operador — começam vazios para
     // forçar digitação manual e nunca herdar valores de sessões antigas.
     closing_pix: "",
@@ -212,6 +215,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     declared_gross_cash: String((reg as any).declared_gross_cash ?? (reg as any).gross_cash ?? 0),
     declared_gross_pix: String((reg as any).declared_gross_pix ?? (reg as any).gross_pix ?? 0),
     declared_gross_card: String((reg as any).declared_gross_card ?? (reg as any).gross_card ?? 0),
+    closing_change_reserve: String(reg.opening_change_reserve ?? 0),
     responsible_name: responsibleName,
   });
 
@@ -709,6 +713,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       closing_pix: parseMoneyInput(closeForm.closing_pix),
       closing_card: parseMoneyInput(closeForm.closing_card),
       closing_cash: parseMoneyInput(closeForm.closing_cash),
+      // Persiste a reserva de troco final (atualiza o registro do dia)
+      opening_change_reserve: closeSummary.changeReserve,
       // Snapshot consolidado das métricas do fechamento
       expected_cash: closeSummary.expectedCash,
       expected_pix: closeSummary.expectedPix,
@@ -946,7 +952,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     const openingCash = register?.opening_cash || 0;
     const openingPix = register?.opening_pix || 0;
     const openingCard = register?.opening_card || 0;
-    const openingChange = register?.opening_change_reserve || 0;
+    // Reserva de troco: prioriza o que o operador digitou agora no fechamento.
+    // Se vazio, usa o que foi registrado na abertura.
+    const closingChangeReserveStr = (closeForm as any).closing_change_reserve;
+    const hasClosingReserveTyped = closingChangeReserveStr !== undefined
+      && String(closingChangeReserveStr).trim() !== "";
+    const openingChange = hasClosingReserveTyped
+      ? parseMoneyInput(closingChangeReserveStr)
+      : (register?.opening_change_reserve || 0);
     const opening = openingCash + openingPix + openingCard + openingChange;
 
     // ============= ETAPA 1: BRUTO DE VENDAS (somente vendas, sem abertura) =============
@@ -986,6 +999,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       opening, expensesTotal, expensesByMethod, declaredTotal, expectedTotal,
       expectedCash, expectedPix, expectedCard,
       diffCash, diffPix, diffCard, diffTotal,
+      // Reserva de troco aplicada no cálculo (digitada ou herdada da abertura)
+      changeReserve: openingChange,
       // Etapa 1 — bruto
       grossCash, grossPix, grossCard,
       declaredGrossCash, declaredGrossPix, declaredGrossCard,
@@ -1375,6 +1390,26 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                 <div className="font-bold text-sm">💰 Valores reais ao final do dia</div>
                 <div className="text-[11px] text-muted-foreground italic">
                   Informe quanto realmente tem na gaveta e na conta (PIX + cartão).
+                </div>
+
+                {/* Reserva de troco — dinheiro que já estava na gaveta antes da abertura */}
+                <div className="rounded-md border border-amber-400/50 bg-amber-50/60 dark:bg-amber-500/10 p-2 space-y-1">
+                  <div className="grid grid-cols-[1fr_140px] gap-2 items-center">
+                    <Label className="text-sm">🪙 Reserva de troco (já estava na gaveta)</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={(closeForm as any).closing_change_reserve ?? ""}
+                      placeholder="0,00"
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d.,-]/g, "");
+                        setCloseForm({ ...closeForm, closing_change_reserve: raw } as any);
+                      }}
+                    />
+                  </div>
+                  <div className="text-[11px] text-amber-800 dark:text-amber-200 italic">
+                    Use quando havia dinheiro na gaveta no início do dia que não foi registrado na abertura. Soma ao Esperado em dinheiro.
+                  </div>
                 </div>
 
                 {/* Dinheiro na gaveta */}
