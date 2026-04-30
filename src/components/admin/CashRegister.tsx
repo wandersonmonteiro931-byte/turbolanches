@@ -169,6 +169,9 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
     declared_gross_cash: "0",
     declared_gross_pix: "0",
     declared_gross_card: "0",
+    // Reserva de troco que já estava na gaveta na abertura, mas não foi
+    // registrada (somada ao Esperado em dinheiro como entrada inicial).
+    closing_change_reserve: "",
     // Valores REAIS informados pelo operador — começam vazios para
     // forçar digitação manual e nunca herdar valores de sessões antigas.
     closing_pix: "",
