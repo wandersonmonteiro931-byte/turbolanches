@@ -100,7 +100,7 @@ const ItemsTab = () => {
   );
 
   const filteredRows = useMemo(() => {
-    const normalizedSearch = search.trimnormalizeSearch();
+    const normalizedSearch = search.trim();
 
     return rows.filter((row) => {
       const matchesSearch =

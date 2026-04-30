@@ -96,13 +96,13 @@ const AdminFiados = () => {
   };
 
   const filteredOrders = useMemo(() => {
-    const term = search.trimnormalizeSearch();
+    const term = search.trim();
     return orders
       .filter((order) => showReceived ? order.payment_confirmed : !order.payment_confirmed)
       .filter((order) => {
         if (!term) return true;
         const profile = profiles[order.user_id];
-        const tableCode = getTableCode(order)normalizeSearch(?) || "";
+        const tableCode = getTableCode(order)normalizeSearch() || "";
         return String(order.order_number).includes(term)
           || tableCode.includes(term)
           || normalizeSearch(profile?.full_name || "").includes(term)

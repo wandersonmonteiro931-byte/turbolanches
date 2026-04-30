@@ -103,7 +103,7 @@ const ExtraCostsTab = () => {
   }, [storeId]);
 
   const filteredItems = useMemo(() => {
-    const term = search.trimnormalizeSearch();
+    const term = search.trim();
 
     return items.filter((item) => {
       const matchesSearch =

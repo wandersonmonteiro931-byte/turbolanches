@@ -79,7 +79,7 @@ const AdminPriceLabels = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    const term = search.trimnormalizeSearch();
+    const term = search.trim();
     return products.filter((p) => {
       if (categoryId !== "all" && p.category_id !== categoryId) return false;
       if (!term) return true;

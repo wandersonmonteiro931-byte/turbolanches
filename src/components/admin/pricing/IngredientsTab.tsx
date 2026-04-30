@@ -94,7 +94,7 @@ const IngredientsTab = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = !search.trim() || normalizeSearch(item.name).includes(search.trimnormalizeSearch());
+      const matchesSearch = !search.trim() || normalizeSearch(item.name).includes(search.trim());
       const matchesUnit = filterUnit === "all" || normalizeIngredientUnit(item.unit) === filterUnit;
       return matchesSearch && matchesUnit;
     });

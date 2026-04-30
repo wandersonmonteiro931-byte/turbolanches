@@ -126,7 +126,7 @@ const changeMethods = [
   { id: "card", label: "Cartão" },
 ];
 
-const normalizeNeighborhood = (value: string) => value.trimnormalizeSearch();
+const normalizeNeighborhood = (value: string) => value.trim();
 
 const cleanManualOrderObservation = (value: string) =>
   value
@@ -502,11 +502,11 @@ const AdminManualOrder = () => {
 
   const isProductCombo = (product: Product) => {
     const category = categories.find((c) => c.id === product.category_id);
-    return Boolean(product.is_combo) || normalizeSearch(category?.name?).includes("combo") || normalizeSearch(product.name).includes("combo");
+    return Boolean(product.is_combo) || normalizeSearch(category?.name).includes("combo") || normalizeSearch(product.name).includes("combo");
   };
 
   const filteredProducts = products.filter((p) => {
-    const q = search.trimnormalizeSearch();
+    const q = search.trim();
     const matchesSearch =
       !q ||
       normalizeSearch(p.name).includes(q) ||

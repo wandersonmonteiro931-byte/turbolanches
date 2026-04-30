@@ -417,14 +417,14 @@ const AdminRestock = () => {
   };
 
   const filteredItems = useMemo(() => {
-    const normalizedSearch = search.trimnormalizeSearch();
+    const normalizedSearch = search.trim();
     return [...items]
       .filter((item) => !normalizedSearch || normalizeSearch(item.ingredient_name).includes(normalizedSearch))
       .sort((left, right) => Number(right.checked) - Number(left.checked) || left.ingredient_name.localeCompare(right.ingredient_name));
   }, [items, search]);
 
   const filteredIngredients = useMemo(() => {
-    const s = ingredientSearch.trimnormalizeSearch();
+    const s = ingredientSearch.trim();
     return ingredients.filter((ing) => !s || normalizeSearch(ing.name).includes(s));
   }, [ingredients, ingredientSearch]);
 

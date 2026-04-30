@@ -234,7 +234,7 @@ const BrandsTab = () => {
     await fetchBrands();
   };
 
-  const filtered = brands.filter((b) => !search.trim() || normalizeSearch(b.name).includes(search.trimnormalizeSearch()));
+  const filtered = brands.filter((b) => !search.trim() || normalizeSearch(b.name).includes(search.trim()));
 
   return (
     <div className="mt-4 space-y-4">
