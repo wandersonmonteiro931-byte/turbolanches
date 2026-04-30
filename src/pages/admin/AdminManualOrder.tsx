@@ -1166,7 +1166,7 @@ const AdminManualOrder = () => {
                 <input value={addressNumber} onChange={(e) => setAddressNumber(e.target.value)} placeholder="Nº" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
                 <input value={addressComplement} onChange={(e) => setAddressComplement(e.target.value)} placeholder="Complemento" className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none" />
                 <div className="col-span-2">
-                  <NeighborhoodAutocomplete value={addressNeighborhood} onChange={(val, fee) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2)); }} placeholder="Bairro" allowInactive refreshKey={dataRefreshKey} className="rounded-none border-[hsl(199_76%_36%)] px-2 py-1" dropdownClassName="left-0 right-0 w-full" />
+                  <NeighborhoodAutocomplete variant="kiosk" value={addressNeighborhood} onChange={(val, fee) => { setAddressNeighborhood(val); setDeliveryFeeOverridden(false); if (typeof fee === "number") setCustomDeliveryFee(fee.toFixed(2)); }} placeholder="Bairro" allowInactive refreshKey={dataRefreshKey} className="rounded-none px-2 py-1" dropdownClassName="left-0 right-0 w-full" />
                 </div>
               </div>
             )}
