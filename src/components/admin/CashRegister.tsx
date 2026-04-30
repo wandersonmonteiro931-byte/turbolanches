@@ -713,6 +713,8 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       closing_pix: parseMoneyInput(closeForm.closing_pix),
       closing_card: parseMoneyInput(closeForm.closing_card),
       closing_cash: parseMoneyInput(closeForm.closing_cash),
+      // Persiste a reserva de troco final (atualiza o registro do dia)
+      opening_change_reserve: closeSummary.changeReserve,
       // Snapshot consolidado das métricas do fechamento
       expected_cash: closeSummary.expectedCash,
       expected_pix: closeSummary.expectedPix,
