@@ -408,7 +408,26 @@ const AdminManualOrder = () => {
       setAddressStreet(order.address_street || "");
       setAddressNumber(order.address_number || "");
       setAddressNeighborhood(order.address_neighborhood || "");
-      setAddressComplement(order.address_complement || "");
+
+      // For orders placed by customers via the menu (have user_id) and delivery type,
+      // the complement should always reflect the customer's profile quadra/lote
+      // (no need to repeat it manually).
+      let resolvedComplement = order.address_complement || "";
+      if (order.user_id && order.delivery_type === "delivery") {
+        const { data: customerProfile } = await supabase
+          .from("profiles")
+          .select("complement, quadra, lote")
+          .eq("user_id", order.user_id)
+          .maybeSingle();
+        if (customerProfile) {
+          resolvedComplement = [
+            customerProfile.complement,
+            customerProfile.quadra ? `Qd ${customerProfile.quadra}` : "",
+            customerProfile.lote ? `Lt ${customerProfile.lote}` : "",
+          ].filter(Boolean).join(" ");
+        }
+      }
+      setAddressComplement(resolvedComplement);
       setObservations(cleanManualOrderObservation(order.observations || ""));
       setDiscount(String(order.discount || 0));
       setCustomDeliveryFee(String(order.delivery_fee || 0));
