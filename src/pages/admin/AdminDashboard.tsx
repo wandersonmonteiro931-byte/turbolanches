@@ -1768,6 +1768,11 @@ const AdminDashboard = () => {
                           ⚠️ DEVOLVIDO
                         </span>
                       )}
+                      {isLateDelivery && (
+                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white animate-pulse">
+                          🚨 ENTREGA EM ATRASO {lateMinutes > 0 ? `+${lateMinutes}min` : ""}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
