@@ -1677,7 +1677,7 @@ const AdminDashboard = () => {
       </AlertDialog>
 
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      <div className="flex w-full flex-wrap gap-1.5 pb-1 sm:gap-2">
         {tabs.map(tab => {
           const count = stats[tab.key as keyof typeof stats] || 0;
           const isActive = activeTab === tab.key;
@@ -1686,16 +1686,16 @@ const AdminDashboard = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+              className={`flex min-w-0 flex-1 basis-0 items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm ${
                 isActive
                   ? `${tab.color} text-white`
                   : "bg-card border border-border text-foreground hover:bg-muted"
-              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-2" : ""}`}
+              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-1" : ""}`}
             >
-              <tab.icon size={16} />
-              {tab.label}
+              <tab.icon size={14} className="shrink-0" />
+              <span className="truncate">{tab.label}</span>
               {count > 0 && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold sm:text-xs ${
                   isActive ? "bg-white/20 text-white" : isPendingWithOrders ? "bg-amber-500 text-white" : "bg-muted text-foreground"
                 }`}>
                   {count}
