@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X, Search, Edit2, Save, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,12 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const refocusSearch = () => {
+    setEditingId(null);
+    setTimeout(() => searchRef.current?.focus(), 0);
+  };
 
   const fetchZones = async () => {
     let q = supabase
@@ -92,6 +98,7 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
         <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
+            ref={searchRef}
             autoFocus
             type="text"
             value={query}
@@ -110,7 +117,7 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
           {filtered.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-6">Nenhum bairro encontrado</p>
           ) : (
-            filtered.slice(0, 50).map((z) => (
+            filtered.map((z) => (
               <div
                 key={z.id}
                 className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
@@ -139,16 +146,29 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
                         type="text"
                         inputMode="decimal"
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
+                        onChange={(e) => {
+                          // Allow only digits and a single separator (, or .)
+                          let v = e.target.value.replace(/[^\d.,]/g, "");
+                          // Keep only the first separator
+                          const firstSep = v.search(/[.,]/);
+                          if (firstSep !== -1) {
+                            v = v.slice(0, firstSep + 1) + v.slice(firstSep + 1).replace(/[.,]/g, "");
+                          }
+                          setEditValue(v);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") void saveEdit(z.id);
-                          if (e.key === "Escape") setEditingId(null);
+                          if (e.key === "Escape") refocusSearch();
                         }}
+                        onBlur={() => refocusSearch()}
                         autoFocus
                         className="w-20 rounded border border-border bg-background px-2 py-1 text-sm font-bold text-foreground"
                       />
                       <button
-                        onClick={() => saveEdit(z.id)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          void saveEdit(z.id);
+                        }}
                         className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90"
                       >
                         <Save size={14} />
