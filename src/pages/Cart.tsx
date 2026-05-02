@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, Truck, Tag, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, Truck, Tag, X } from "lucide-react";
+import TurboLoader from "@/components/TurboLoader";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -227,7 +228,7 @@ const Cart = () => {
                   disabled={couponLoading || !couponCode.trim()}
                   className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50 transition-all active:scale-95"
                 >
-                  {couponLoading ? <Loader2 size={16} className="animate-spin" /> : "Aplicar"}
+                  {couponLoading ? <TurboLoader size={20} /> : "Aplicar"}
                 </button>
               </div>
               {couponError && (

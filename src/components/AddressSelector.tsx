@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin, Plus, Check, Trash2, X, Loader2, Edit2 } from "lucide-react";
+import { MapPin, Plus, Check, Trash2, X, Edit2 } from "lucide-react";
+import TurboLoader from "@/components/TurboLoader";
 import { useAddresses, CustomerAddress } from "@/hooks/useAddresses";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -187,7 +188,7 @@ const AddressSelector = ({ open, onClose, initialMode = "list", editAddress = nu
           className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground"
         />
         {loadingCep && (
-          <Loader2 size={14} className="absolute right-3 top-3 animate-spin text-primary" />
+          <div className="absolute right-2 top-1.5"><TurboLoader size={22} /></div>
         )}
       </div>
 

@@ -5,6 +5,7 @@ import { Bot, Loader2, Plus, Sparkles, Terminal, Trash2, Wrench } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -217,7 +218,7 @@ const AdminAiControl = () => {
             {isLoading && (
               <div className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md border border-border bg-background px-4 py-3 text-sm text-foreground">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 size={16} className="animate-spin text-primary" />
+                  <TurboLoader size={22} />
                   Processando comando e aplicando correções...
                 </div>
               </div>
@@ -241,7 +242,7 @@ const AdminAiControl = () => {
                 disabled={!canSend}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Terminal size={16} />}
+                {isLoading ? <TurboLoader size={20} /> : <Terminal size={16} />}
                 {isLoading ? "Executando" : "Executar comando"}
               </button>
             </div>

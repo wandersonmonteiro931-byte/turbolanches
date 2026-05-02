@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, X, Navigation, ExternalLink, RefreshCw } from "lucide-react";
+import TurboLoader from "@/components/TurboLoader";
 
 interface Props {
   courierId: string;
@@ -258,9 +259,9 @@ export default function CourierTrackingModal({ courierId, courierName, destinati
         )}
 
         {loading ? (
-          <div className="py-8 text-center">
-            <RefreshCw size={20} className="mx-auto animate-spin text-primary mb-2" />
-            <p className="text-sm text-muted-foreground">Buscando localização...</p>
+          <div className="py-8 text-center flex flex-col items-center">
+            <TurboLoader size={80} />
+            <p className="mt-2 text-sm text-muted-foreground">Buscando localização...</p>
           </div>
         ) : !location ? (
           <div className="py-8 text-center space-y-2">
