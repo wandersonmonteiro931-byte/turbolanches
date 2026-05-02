@@ -307,6 +307,8 @@ const AdminDashboard = () => {
     if (data) {
       const settings = data as StoreSettings;
       applyStoreSettings(settings);
+      const dt = (data as any).delivery_time_minutes;
+      if (typeof dt === "number" && dt > 0) setDeliveryTimeMinutes(dt);
       return settings;
     }
 
