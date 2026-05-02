@@ -242,7 +242,7 @@ const AdminAiControl = () => {
                 disabled={!canSend}
                 className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Terminal size={16} />}
+                {isLoading ? <TurboLoader size={20} /> : <Terminal size={16} />}
                 {isLoading ? "Executando" : "Executar comando"}
               </button>
             </div>
