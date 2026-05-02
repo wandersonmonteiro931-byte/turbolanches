@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Copy, CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import TurboLoader from "@/components/TurboLoader";
 
 interface PixPaymentModalProps {
   orderId: string;
