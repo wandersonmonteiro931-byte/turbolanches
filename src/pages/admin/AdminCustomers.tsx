@@ -95,24 +95,26 @@ const AdminCustomers = () => {
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const fetchProfiles = useCallback(async () => {
-    let query = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("created_at", { ascending: true });
-
-    if (searchQuery.length >= 2) {
-      const codeMatch = searchQuery.match(/^T?(\d+)$/i);
-      if (codeMatch) {
-        query = query.eq("customer_code", parseInt(codeMatch[1], 10));
-      } else {
-        const term = `%${searchQuery}%`;
-        query = query.or(`full_name.ilike.${term},phone.ilike.${term},street.ilike.${term},neighborhood.ilike.${term}`);
+    const buildQuery = () => {
+      let q = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("created_at", { ascending: true });
+      if (searchQuery.length >= 2) {
+        const codeMatch = searchQuery.match(/^T?(\d+)$/i);
+        if (codeMatch) {
+          q = q.eq("customer_code", parseInt(codeMatch[1], 10));
+        } else {
+          const term = `%${searchQuery}%`;
+          q = q.or(`full_name.ilike.${term},phone.ilike.${term},street.ilike.${term},neighborhood.ilike.${term}`);
+        }
       }
-    }
+      return q;
+    };
 
     // Fetch all matching profiles in pages of 1000 to bypass Supabase default row limit
     const pageSize = 1000;
     let from = 0;
     let all: Profile[] = [];
     while (true) {
-      const { data, error } = await query.range(from, from + pageSize - 1);
+      const { data, error } = await buildQuery().range(from, from + pageSize - 1);
       if (error) break;
       const batch = (data as Profile[]) || [];
       all = all.concat(batch);
