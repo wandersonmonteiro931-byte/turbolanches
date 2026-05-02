@@ -259,7 +259,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
       dow = new Date(brasilia.getTime() - 86400000).getDay();
     }
     const dayFee = dailyFees.find(f => f.day_of_week === dow);
-    return dayFee ? dayFee.fixed_fee : courier.fixed_fee;
+    return dayFee ? Number(dayFee.fixed_fee) : courier.fixed_fee;
   }, [dailyFees, courier.fixed_fee]);
 
   const fetchPending = useCallback(async () => {
