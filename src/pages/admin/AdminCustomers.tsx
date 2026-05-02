@@ -69,6 +69,7 @@ const AdminCustomers = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [completedCounts, setCompletedCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   useGlobalKeyboardSearch(searchInputRef, (text) => {
