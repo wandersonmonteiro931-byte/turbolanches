@@ -521,8 +521,10 @@ async function toggleStoreOpen(admin: ReturnType<typeof createClient>, storeId: 
 }
 
 async function updateStoreSettings(admin: ReturnType<typeof createClient>, storeId: string | null, args: Record<string, unknown>) {
+  // SEGURANÇA: store_display_name e store_logo_url NUNCA podem ser alterados pela IA.
+  // Só podem ser editados manualmente em Configurações da Loja.
   const allowedKeys = [
-    "store_display_name", "whatsapp_name", "whatsapp_number", "store_logo_url",
+    "whatsapp_name", "whatsapp_number",
     "prep_time_minutes", "delivery_time_minutes", "pickup_time_minutes", "use_schedule",
   ] as const;
 
