@@ -369,8 +369,11 @@ const AdminCustomers = () => {
                 <span className="text-xs font-bold text-primary">T{String(profile.customer_code).padStart(5, "0")}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-foreground">{profile.full_name || "Sem nome"}</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {completedCounts[profile.user_id] || 0} pedido{(completedCounts[profile.user_id] || 0) === 1 ? "" : "s"} concluído{(completedCounts[profile.user_id] || 0) === 1 ? "" : "s"}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {profile.phone || "Sem telefone"} · {profile.neighborhood || "Sem endereço"}
