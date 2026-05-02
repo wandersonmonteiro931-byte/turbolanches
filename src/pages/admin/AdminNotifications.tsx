@@ -300,7 +300,7 @@ const AdminNotifications = () => {
 
         {loadingTemplates ? (
           <div className="flex justify-center py-6">
-            <TurboLoader size={80} />
+            <Loader2 size={32} className="animate-spin text-muted-foreground" />
           </div>
         ) : (
           <div className="space-y-3">
@@ -502,7 +502,7 @@ const AdminNotifications = () => {
 
         {loadingHistory ? (
           <div className="flex justify-center py-8">
-            <TurboLoader size={80} />
+            <Loader2 size={32} className="animate-spin text-muted-foreground" />
           </div>
         ) : history.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -552,7 +552,7 @@ const AdminNotifications = () => {
 
         {loadingSubscribers ? (
           <div className="flex justify-center py-8">
-            <TurboLoader size={80} />
+            <Loader2 size={32} className="animate-spin text-muted-foreground" />
           </div>
         ) : subscribers.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
