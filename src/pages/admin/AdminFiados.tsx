@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle, RefreshCw, Search, WalletCards } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import TurboLoader from "@/components/TurboLoader";
+
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTimeBR } from "@/lib/brasiliaTime";
@@ -122,7 +122,7 @@ const AdminFiados = () => {
           <p className="text-xs text-muted-foreground">Controle permanente de valores a receber.</p>
         </div>
         <button onClick={fetchFiados} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-bold text-foreground hover:bg-muted">
-          {loading ? <TurboLoader size={18} /> : <RefreshCw size={16} />} Atualizar
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Atualizar
         </button>
       </div>
 
