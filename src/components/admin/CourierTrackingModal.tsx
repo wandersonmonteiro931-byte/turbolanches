@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, X, Navigation, ExternalLink, RefreshCw } from "lucide-react";
+import TurboLoader from "@/components/TurboLoader";
 
 interface Props {
   courierId: string;
