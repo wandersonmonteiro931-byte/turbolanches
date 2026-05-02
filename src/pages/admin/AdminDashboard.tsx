@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
+  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator, MapPin, ChevronDown
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR, nowUtcMs } from "@/lib/brasiliaTime";
