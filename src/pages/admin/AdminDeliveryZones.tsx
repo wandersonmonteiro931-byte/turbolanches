@@ -4,6 +4,7 @@ import {
   RefreshCw, Navigation, Filter, Gift, Truck, AlertTriangle, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
 import { useStore } from "@/contexts/StoreContext";
@@ -684,7 +685,7 @@ const AdminDeliveryZones = () => {
           }`}>
             <div className="flex items-center justify-between">
               <span>{calcState.message}</span>
-              {calcState.running && <RefreshCw size={14} className="animate-spin" />}
+              {calcState.running && <TurboLoader size={16} />}
             </div>
             {calcState.running && (calcState.processed + calcState.remaining) > 0 && (
               <div className="mt-2 w-full bg-muted rounded-full h-2.5 overflow-hidden">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 import { useStore } from "@/contexts/StoreContext";
 import {
   Dialog,
@@ -185,7 +186,7 @@ const ItemsTab = () => {
             onClick={() => void fetchData()}
             className="flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            {loading ? <TurboLoader size={18} /> : <RefreshCw size={16} />}
             Atualizar lista
           </button>
         </div>
