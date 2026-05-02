@@ -112,7 +112,7 @@ const deliveryLabels: Record<string, string> = {
 const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
   { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-primary/15 bg-primary/5 text-foreground" },
   { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border/80 bg-card text-foreground" },
-  { key: "aguardando", label: "Aguardando", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
+  { key: "aguardando", label: "Pronto", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
   { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border/80 bg-card text-foreground" },
   { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border/80 bg-card text-muted-foreground" },
   { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-destructive/15 bg-destructive/5 text-foreground" },

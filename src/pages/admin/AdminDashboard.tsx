@@ -107,7 +107,7 @@ interface StoreSettings {
 const tabs = [
   { key: "pending", label: "Pendentes", icon: Clock, color: "bg-amber-500", statuses: ["pending", "paid"] },
   { key: "preparing", label: "Em Preparo", icon: ChefHat, color: "bg-purple-500", statuses: ["preparing"] },
-  { key: "ready", label: "Aguardando", icon: Package, color: "bg-emerald-500", statuses: ["ready"] },
+  { key: "ready", label: "Pronto", icon: Package, color: "bg-emerald-500", statuses: ["ready"] },
   { key: "delivering", label: "Entregando", icon: Truck, color: "bg-cyan-500", statuses: ["delivering"] },
   { key: "delivered", label: "Finalizados", icon: Check, color: "bg-green-600", statuses: ["delivered"] },
   { key: "cancelled", label: "Recusados", icon: X, color: "bg-red-500", statuses: ["cancelled"] },
