@@ -114,7 +114,7 @@ const CustomerSearch = ({ onSelect, onClear, placeholder = "Buscar cliente (cód
           onFocus={() => results.length > 0 && setOpen(true)}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
-        {loading && <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />}
+        {loading && <TurboLoader size={20} />}
         {selected && (
           <button onClick={handleClear} className="text-muted-foreground hover:text-foreground">
             <X size={16} />
