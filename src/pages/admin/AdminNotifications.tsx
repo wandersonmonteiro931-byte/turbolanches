@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useState, useEffect } from "react";
 import { Bell, Send, Users, User, Search, Clock, CheckCircle, XCircle, Settings, Save, Plus, Trash2, Smartphone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -300,7 +301,7 @@ const AdminNotifications = () => {
 
         {loadingTemplates ? (
           <div className="flex justify-center py-6">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <TurboLoader size={80} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -502,7 +503,7 @@ const AdminNotifications = () => {
 
         {loadingHistory ? (
           <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <TurboLoader size={80} />
           </div>
         ) : history.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
@@ -552,7 +553,7 @@ const AdminNotifications = () => {
 
         {loadingSubscribers ? (
           <div className="flex justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <TurboLoader size={80} />
           </div>
         ) : subscribers.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">
