@@ -4,39 +4,48 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Returns the current store_logo_url from store_settings.
  * Subscribes to realtime changes so the logo updates everywhere instantly.
+ *
+ * IMPORTANT: After any realtime UPDATE we re-fetch from the database instead
+ * of trusting the payload, because Supabase realtime may deliver a payload
+ * where unrelated columns (or the logo itself) appear stale/null depending
+ * on RLS and replica identity. This prevents the logo from "downgrading" by
+ * itself when other columns are edited.
  */
 export function useStoreLogo(fallback?: string) {
   const [logoUrl, setLogoUrl] = useState<string>(fallback ?? "");
 
   useEffect(() => {
-    const fetch = async () => {
+    let cancelled = false;
+
+    const fetchLogo = async () => {
       const { data } = await supabase
         .from("store_settings")
         .select("store_logo_url")
         .limit(1)
         .single();
-      if (data?.store_logo_url) {
-        setLogoUrl(data.store_logo_url);
+      if (cancelled) return;
+      const url = data?.store_logo_url;
+      if (typeof url === "string" && url.length > 0) {
+        setLogoUrl(url);
       }
     };
-    fetch();
 
-    // Listen for realtime changes to store_settings
+    fetchLogo();
+
     const channel = supabase
       .channel("store-logo-changes")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "store_settings" },
-        (payload) => {
-          const newUrl = (payload.new as any)?.store_logo_url;
-          if (typeof newUrl === "string") {
-            setLogoUrl(newUrl);
-          }
+        () => {
+          // Always re-fetch fresh from DB instead of trusting payload
+          fetchLogo();
         },
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, []);

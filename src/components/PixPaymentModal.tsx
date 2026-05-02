@@ -160,7 +160,6 @@ const PixPaymentModal = ({
         {/* Timer */}
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center gap-2">
-            <Loader2 size={14} className="animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Aguardando pagamento...</span>
           </div>
           {timeLeft > 0 ? (

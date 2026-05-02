@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 let cached: string | null = null;
 const listeners = new Set<(name: string) => void>();
+let channelStarted = false;
 
 const fetchName = async () => {
   const { data } = await supabase
@@ -10,12 +11,28 @@ const fetchName = async () => {
     .select("store_display_name")
     .limit(1)
     .single();
-  const name = data?.store_display_name?.trim() || "Turbo Lanches";
+  const name = data?.store_display_name?.trim();
+  if (!name) return cached ?? "Turbo Lanches";
   cached = name;
   listeners.forEach((l) => l(name));
-  // Update document title automatically
   if (typeof document !== "undefined") document.title = name;
   return name;
+};
+
+const ensureRealtime = () => {
+  if (channelStarted) return;
+  channelStarted = true;
+  supabase
+    .channel("store_name_sync")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "store_settings" },
+      () => {
+        // Re-fetch from DB instead of trusting payload (avoids stale/null fields)
+        fetchName();
+      },
+    )
+    .subscribe();
 };
 
 /**
@@ -27,31 +44,14 @@ export const useStoreName = (): string => {
 
   useEffect(() => {
     listeners.add(setName);
+    ensureRealtime();
     if (cached === null) {
       fetchName();
     } else {
       setName(cached);
     }
-
-    const channel = supabase
-      .channel("store_name_sync")
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "store_settings" },
-        (payload) => {
-          const next = (payload.new as any)?.store_display_name?.trim();
-          if (next && next !== cached) {
-            cached = next;
-            if (typeof document !== "undefined") document.title = next;
-            listeners.forEach((l) => l(next));
-          }
-        },
-      )
-      .subscribe();
-
     return () => {
       listeners.delete(setName);
-      supabase.removeChannel(channel);
     };
   }, []);
 
