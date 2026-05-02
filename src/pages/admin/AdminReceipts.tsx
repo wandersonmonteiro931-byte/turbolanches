@@ -262,7 +262,7 @@ const AdminReceipts = () => {
               disabled={qzBusy}
               className="flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              {qzBusy ? <TurboLoader size={14} /> : <RefreshCw size={12} />}
+              <RefreshCw size={12} className={qzBusy ? "animate-spin" : ""} />
               Detectar
             </button>
           </div>

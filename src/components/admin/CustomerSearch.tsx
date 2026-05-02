@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import TurboLoader from "@/components/TurboLoader";
 
 interface Profile {
   user_id: string;
@@ -115,7 +114,7 @@ const CustomerSearch = ({ onSelect, onClear, placeholder = "Buscar cliente (cód
           onFocus={() => results.length > 0 && setOpen(true)}
           className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
         />
-        {loading && <TurboLoader size={20} />}
+        {loading && <Loader2 size={16} className="animate-spin text-muted-foreground" />}
         {selected && (
           <button onClick={handleClear} className="text-muted-foreground hover:text-foreground">
             <X size={16} />

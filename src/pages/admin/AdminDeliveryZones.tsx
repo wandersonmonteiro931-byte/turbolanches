@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import {
   Plus, Trash2, Edit2, Save, X, MapPin, Store, DollarSign, Search,
-  RefreshCw, Navigation, Filter, Gift, Truck, AlertTriangle, ToggleLeft, ToggleRight,
+  RefreshCw, Navigation, Filter, Gift, Truck, AlertTriangle, ToggleLeft, ToggleRight, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import TurboLoader from "@/components/TurboLoader";
+
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
 import { useStore } from "@/contexts/StoreContext";
@@ -685,7 +685,7 @@ const AdminDeliveryZones = () => {
           }`}>
             <div className="flex items-center justify-between">
               <span>{calcState.message}</span>
-              {calcState.running && <TurboLoader size={16} />}
+              {calcState.running && <Loader2 size={16} className="animate-spin" />}
             </div>
             {calcState.running && (calcState.processed + calcState.remaining) > 0 && (
               <div className="mt-2 w-full bg-muted rounded-full h-2.5 overflow-hidden">

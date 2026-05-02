@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Copy, CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import TurboLoader from "@/components/TurboLoader";
+
 
 interface PixPaymentModalProps {
   orderId: string;
@@ -139,7 +139,7 @@ const PixPaymentModal = ({
             />
           ) : (
             <div className="flex w-48 h-48 items-center justify-center rounded-lg bg-muted">
-              <TurboLoader size={110} />
+              <Loader2 size={32} className="animate-spin text-muted-foreground" />
             </div>
           )}
         </div>
@@ -160,7 +160,7 @@ const PixPaymentModal = ({
         {/* Timer */}
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center gap-2">
-            <TurboLoader size={20} />
+            <Loader2 size={14} className="animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Aguardando pagamento...</span>
           </div>
           {timeLeft > 0 ? (
