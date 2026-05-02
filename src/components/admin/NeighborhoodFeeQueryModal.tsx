@@ -117,7 +117,7 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
           {filtered.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-6">Nenhum bairro encontrado</p>
           ) : (
-            filtered.slice(0, 50).map((z) => (
+            filtered.map((z) => (
               <div
                 key={z.id}
                 className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
