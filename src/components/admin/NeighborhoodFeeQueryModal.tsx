@@ -98,6 +98,7 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
         <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
           <Search size={16} className="text-muted-foreground shrink-0" />
           <input
+            ref={searchRef}
             autoFocus
             type="text"
             value={query}
