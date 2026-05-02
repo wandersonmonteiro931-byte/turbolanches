@@ -217,7 +217,7 @@ const AdminAiControl = () => {
             {isLoading && (
               <div className="mr-auto max-w-[90%] rounded-2xl rounded-bl-md border border-border bg-background px-4 py-3 text-sm text-foreground">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 size={16} className="animate-spin text-primary" />
+                  <TurboLoader size={22} />
                   Processando comando e aplicando correções...
                 </div>
               </div>
