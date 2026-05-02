@@ -374,9 +374,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       let totalCouriers = 0;
       const breakdown: { name: string; fee: number }[] = [];
       (couriersRes.data || []).forEach((c: any) => {
-        const dailyFee = dailyMap.get(c.id);
-        // Diária do dia (com fallback para fixed_fee do cadastro)
-        const dailyBase = dailyFee != null && dailyFee > 0 ? dailyFee : (Number(c.fixed_fee) || 0);
+        // Diária por dia da semana TEM PRIORIDADE sobre o valor padrão.
+        // Só cai para couriers.fixed_fee se NÃO houver linha em courier_daily_fees
+        // para este dia (inclusive 0 = "não cobra nesse dia" deve ser respeitado).
+        const dailyBase = dailyMap.has(c.id) ? (dailyMap.get(c.id) as number) : (Number(c.fixed_fee) || 0);
         // Soma das taxas dos pedidos entregues por este entregador no dia
         const deliveryFees = courierDeliveryFees.get(c.id) || 0;
         const fee = roundMoney(dailyBase + deliveryFees);
