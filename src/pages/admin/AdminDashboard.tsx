@@ -1318,6 +1318,25 @@ const AdminDashboard = () => {
 
   const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
+  // Tick every 30s so late-delivery banner refreshes without waiting for new realtime events
+  const [, forceLateTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => forceLateTick(n => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const lateDeliveryOrders = useMemo(() => {
+    if (deliveryTimeMinutes <= 0) return [] as typeof visibleOrders;
+    const active = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
+    const now = Date.now();
+    return visibleOrders.filter(o =>
+      !o.trashed_at &&
+      o.delivery_type === "delivery" &&
+      active.includes(o.status) &&
+      (now - new Date(o.created_at).getTime()) / 60000 > deliveryTimeMinutes
+    );
+  }, [visibleOrders, deliveryTimeMinutes]);
+
   return (
     <div className="space-y-4">
       {/* Cash Register */}
