@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Copy, CheckCircle2, Loader2, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import TurboLoader from "@/components/TurboLoader";
 
 interface PixPaymentModalProps {
   orderId: string;
@@ -138,7 +139,7 @@ const PixPaymentModal = ({
             />
           ) : (
             <div className="flex w-48 h-48 items-center justify-center rounded-lg bg-muted">
-              <Loader2 size={32} className="animate-spin text-muted-foreground" />
+              <TurboLoader size={110} />
             </div>
           )}
         </div>

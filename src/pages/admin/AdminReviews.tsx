@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useState, useMemo } from "react";
 import { Star, Eye, EyeOff, MessageCircle, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -151,7 +152,7 @@ const AdminReviews = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }

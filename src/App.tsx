@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -69,7 +70,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }
@@ -85,7 +86,7 @@ const AdminKioskRoute = ({ children }: { children: React.ReactNode }) => {
   if (user && (authLoading || adminLoading)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }

@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
@@ -219,7 +220,7 @@ const AdminReceipts = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }

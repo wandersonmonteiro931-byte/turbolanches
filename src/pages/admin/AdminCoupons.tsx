@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -224,7 +225,7 @@ const AdminCoupons = () => {
       {/* Table */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <TurboLoader size={120} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">

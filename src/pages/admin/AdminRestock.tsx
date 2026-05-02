@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCheck, ClipboardList, History, Pencil, Plus, Printer, Search, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -505,7 +506,7 @@ const AdminRestock = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }

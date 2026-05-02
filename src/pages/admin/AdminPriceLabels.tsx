@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -203,7 +204,7 @@ const AdminPriceLabels = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }
