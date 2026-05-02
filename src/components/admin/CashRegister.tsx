@@ -487,8 +487,31 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         setCloseForm(closeFormFromRegister(register, cM ? cM[1].trim() : ""));
       }
       fetchPaymentTotals(register.business_day);
+      // Pull the day's manually-registered expenses (Gastos do Dia) so they
+      // are auto-included on closing and the operator doesn't have to retype them.
+      void (async () => {
+        let q = supabase
+          .from("report_expenses" as any)
+          .select("category, description, amount")
+          .eq("expense_date", register.business_day);
+        if (storeId) q = q.eq("store_id", storeId);
+        const { data } = await q;
+        const rows = (data as any[] | null) || [];
+        let employees = 0, gasoline = 0, other = 0;
+        const breakdown: { category: string; description: string; amount: number }[] = [];
+        rows.forEach((r) => {
+          const amt = Number(r.amount) || 0;
+          breakdown.push({ category: r.category, description: r.description || "", amount: amt });
+          if (r.category === "funcionario") employees += amt;
+          else if (r.category === "gas") gasoline += amt;
+          else other += amt;
+        });
+        setAutoExpenses({ employees, gasoline, other, breakdown });
+      })();
+    } else if (!showClose) {
+      setAutoExpenses({ employees: 0, gasoline: 0, other: 0, breakdown: [] });
     }
-  }, [showClose, register, fetchPaymentTotals]);
+  }, [showClose, register, fetchPaymentTotals, editingRegId, storeId]);
 
   // Auto-fill the declared balances with the EXPECTED totals (based on each
   // order's payment for the current business day) AND auto-fill the couriers
@@ -512,6 +535,10 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
         next.closing_card = "";
         next.closing_account = "";
         if (isZero(prev.expense_couriers) && autoCouriers.total > 0) next.expense_couriers = autoCouriers.total.toFixed(2);
+        // Auto-pull expenses registered during the business day (Gastos do Dia)
+        if (isZero(prev.expense_employees) && autoExpenses.employees > 0) next.expense_employees = autoExpenses.employees.toFixed(2);
+        if (isZero(prev.expense_gasoline) && autoExpenses.gasoline > 0) next.expense_gasoline = autoExpenses.gasoline.toFixed(2);
+        if (isZero(prev.expense_other) && autoExpenses.other > 0) next.expense_other = autoExpenses.other.toFixed(2);
         // Pré-preenche o caixa BRUTO (antes dos gastos) com o esperado bruto
         const grossCashExp = (register?.opening_cash || 0) + (register?.opening_change_reserve || 0) + paymentTotals.cash;
         const grossPixExp  = (register?.opening_pix  || 0) + paymentTotals.pix;
@@ -522,7 +549,7 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
       }
       return next;
     });
-  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, register, editingRegId]);
+  }, [showClose, paymentTotals.pix, paymentTotals.card, paymentTotals.cash, autoCouriers.total, autoExpenses.employees, autoExpenses.gasoline, autoExpenses.other, register, editingRegId]);
 
 
   const handleOpen = async () => {
