@@ -294,15 +294,13 @@ function getToolDefinitions() {
       type: "function",
       function: {
         name: "update_store_settings",
-        description: "Atualiza configurações gerais da loja, como nome, WhatsApp, logo e tempos operacionais.",
-        parameters: {
-          type: "object",
-          properties: {
-            store_display_name: { type: "string" },
-            whatsapp_name: { type: "string" },
-            whatsapp_number: { type: "string" },
-            store_logo_url: { type: "string" },
-            prep_time_minutes: { type: "number" },
+          description: "Atualiza configurações operacionais da loja (WhatsApp, tempos, agenda). NÃO altera nome nem logo da loja - estes só podem ser editados manualmente em Configurações.",
+          parameters: {
+            type: "object",
+            properties: {
+              whatsapp_name: { type: "string" },
+              whatsapp_number: { type: "string" },
+              prep_time_minutes: { type: "number" },
             delivery_time_minutes: { type: "number" },
             pickup_time_minutes: { type: "number" },
             use_schedule: { type: "boolean" },
