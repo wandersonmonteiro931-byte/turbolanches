@@ -1388,11 +1388,35 @@ const AdminDashboard = () => {
         </button>
 
         <button
+          onClick={() => setShowFeeQuery(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <MapPin size={16} />
+          Consultar Taxa
+        </button>
+
+        <button
           onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados!" }); }}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >
           <RefreshCw size={16} />
           Atualizar
+        </button>
+
+        <button
+          onClick={() => setShowExpenseManager(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Wallet size={16} />
+          Gastos
+        </button>
+
+        <button
+          onClick={() => setShowCalculator(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Calculator size={16} />
+          Calculadora
         </button>
 
         <div className="ml-auto flex items-center gap-4 text-sm">
@@ -1408,7 +1432,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Date Picker + Search + Reprint Report */}
+      {/* Date Picker + Search + Reports menu */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <Popover>
           <PopoverTrigger asChild>
@@ -1451,45 +1475,38 @@ const AdminDashboard = () => {
           />
         </div>
 
-        <button
-          onClick={() => requireReportPassword(reprintDailyReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Printer size={16} />
-          Reimprimir Relatório
-        </button>
-
-        <button
-          onClick={() => setShowPeriodReport(!showPeriodReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <FileText size={16} />
-          Relatório de Período
-        </button>
-
-        <button
-          onClick={() => setShowDeliveryReport(!showDeliveryReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Truck size={16} />
-          Relatório de Entregas
-        </button>
-
-        <button
-          onClick={() => setShowExpenseManager(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Wallet size={16} />
-          Gastos
-        </button>
-
-        <button
-          onClick={() => setShowCalculator(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Calculator size={16} />
-          Calculadora
-        </button>
+        {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
+        <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              <FileText size={16} />
+              Relatórios
+              <ChevronDown size={14} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-60 p-1">
+            <button
+              onClick={() => { setShowReportsMenu(false); requireReportPassword(reprintDailyReport); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <Printer size={15} /> Reimprimir Relatório
+            </button>
+            <button
+              onClick={() => { setShowReportsMenu(false); setShowPeriodReport(v => !v); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <FileText size={15} /> Relatório de Período
+            </button>
+            <button
+              onClick={() => { setShowReportsMenu(false); setShowDeliveryReport(v => !v); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <Truck size={15} /> Relatório de Entregas
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {showPeriodReport && (
