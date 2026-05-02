@@ -121,7 +121,7 @@ const AdminFiados = () => {
           <p className="text-xs text-muted-foreground">Controle permanente de valores a receber.</p>
         </div>
         <button onClick={fetchFiados} className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-bold text-foreground hover:bg-muted">
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Atualizar
+          {loading ? <TurboLoader size={18} /> : <RefreshCw size={16} />} Atualizar
         </button>
       </div>
 
