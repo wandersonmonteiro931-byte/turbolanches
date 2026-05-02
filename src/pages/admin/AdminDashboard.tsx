@@ -27,6 +27,7 @@ const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTracki
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
 import CalculatorModal from "@/components/admin/CalculatorModal";
+import NeighborhoodFeeQueryModal from "@/components/admin/NeighborhoodFeeQueryModal";
 import { buildAdminPrintDocument, escapeHtml, makeTightThermalPrintHtml } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
