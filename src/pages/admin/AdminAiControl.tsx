@@ -5,6 +5,7 @@ import { Bot, Loader2, Plus, Sparkles, Terminal, Trash2, Wrench } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 
 type ChatMessage = {
   role: "user" | "assistant";
