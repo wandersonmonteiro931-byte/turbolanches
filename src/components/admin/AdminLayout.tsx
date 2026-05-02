@@ -95,6 +95,12 @@ const AdminLayout = () => {
     }
   }, [location.pathname, config, pwLoading]);
 
+  // Auto-collapse sidebar whenever the route changes — only re-opens via the
+  // hamburger menu, on every screen size.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
   const handleNavClick = (path: string) => {
