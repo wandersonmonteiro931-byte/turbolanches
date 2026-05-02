@@ -1211,9 +1211,10 @@ const AdminDashboard = () => {
         .select("day_of_week, fixed_fee")
         .eq("courier_id", deliveryReportCourierId);
       const feeMap = new Map<number, number>();
-      (allDailyFees || []).forEach((f: any) => feeMap.set(f.day_of_week, Number(f.fixed_fee)));
+      (allDailyFees || []).forEach((f: any) => feeMap.set(f.day_of_week, Number(f.fixed_fee) || 0));
+      // Soma a diária por dia da semana (respeita 0 = "não cobra nesse dia")
       days.forEach(d => {
-        totalFixedFees += feeMap.get(d.getDay()) ?? (courier?.fixed_fee || 0);
+        totalFixedFees += feeMap.has(d.getDay()) ? (feeMap.get(d.getDay()) as number) : (Number(courier?.fixed_fee) || 0);
       });
     } else {
       const reportDow = selectedDate.getDay();
@@ -1223,7 +1224,8 @@ const AdminDashboard = () => {
         .eq("courier_id", deliveryReportCourierId)
         .eq("day_of_week", reportDow)
         .maybeSingle();
-      totalFixedFees = dailyFeeData ? Number(dailyFeeData.fixed_fee) : (courier?.fixed_fee || 0);
+      // Diária do dia da semana TEM PRIORIDADE (respeita 0); só cai pro padrão se NÃO houver linha
+      totalFixedFees = dailyFeeData ? (Number(dailyFeeData.fixed_fee) || 0) : (Number(courier?.fixed_fee) || 0);
     }
 
     const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
