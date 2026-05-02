@@ -165,7 +165,10 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
                         className="w-20 rounded border border-border bg-background px-2 py-1 text-sm font-bold text-foreground"
                       />
                       <button
-                        onClick={() => saveEdit(z.id)}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          void saveEdit(z.id);
+                        }}
                         className="rounded-lg bg-primary p-1.5 text-primary-foreground hover:bg-primary/90"
                       >
                         <Save size={14} />
