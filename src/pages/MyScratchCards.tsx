@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Gift, Copy, Check, Clock, Lock, Info, Sparkles, ChevronDown } from "lucide-react";
@@ -176,7 +177,7 @@ const MyScratchCards = () => {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <TurboLoader size={120} />
           </div>
         ) : !hasContent ? (
           <div className="text-center py-12">

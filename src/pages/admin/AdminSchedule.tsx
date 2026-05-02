@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useEffect, useState } from "react";
 import { Clock, Save, X, Timer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,7 +115,7 @@ const AdminSchedule = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <TurboLoader size={120} />
       </div>
     );
   }

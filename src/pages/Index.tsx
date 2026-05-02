@@ -1,3 +1,4 @@
+import TurboLoader from "@/components/TurboLoader";
 import { useRef, useEffect, useState } from "react";
 import { ChevronDown, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -307,7 +308,7 @@ const Index = () => {
           {/* Menu Sections */}
           {prodLoading ? (
             <div className="mt-7 flex justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <TurboLoader size={120} />
             </div>
           ) : (
             <div ref={menuRef} className="mt-7 space-y-7">
