@@ -2262,6 +2262,7 @@ const AdminDashboard = () => {
       )}
 
       <CalculatorModal open={showCalculator} onClose={() => setShowCalculator(false)} />
+      <NeighborhoodFeeQueryModal open={showFeeQuery} onClose={() => setShowFeeQuery(false)} />
     </div>
   );
 };
