@@ -94,7 +94,7 @@ const AdminCustomers = () => {
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const fetchProfiles = useCallback(async () => {
-    let query = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("customer_code", { ascending: true });
+    let query = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("created_at", { ascending: true });
 
     if (searchQuery.length >= 2) {
       const codeMatch = searchQuery.match(/^T?(\d+)$/i);
