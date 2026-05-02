@@ -138,7 +138,7 @@ const PixPaymentModal = ({
             />
           ) : (
             <div className="flex w-48 h-48 items-center justify-center rounded-lg bg-muted">
-              <Loader2 size={32} className="animate-spin text-muted-foreground" />
+              <TurboLoader size={110} />
             </div>
           )}
         </div>
