@@ -1354,21 +1354,27 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                   ["expense_other", "Outros"],
                 ].map(([key, label]) => {
                   const isCouriers = key === "expense_couriers";
+                  const autoMap: Record<string, number> = {
+                    expense_employees: autoExpenses.employees,
+                    expense_gasoline: autoExpenses.gasoline,
+                    expense_other: autoExpenses.other,
+                  };
+                  const autoVal = isCouriers ? autoCouriers.total : (autoMap[key as string] || 0);
                   const methodKey = `${key}_method` as keyof typeof closeForm;
                   const declared = Number((closeForm as any)[key]) || 0;
-                  const matchesAuto = isCouriers && autoCouriers.total > 0 && Math.abs(declared - autoCouriers.total) < 0.01;
+                  const matchesAuto = autoVal > 0 && Math.abs(declared - autoVal) < 0.01;
                   return (
                     <div key={key} className="space-y-1">
                       <div className="grid grid-cols-[1fr_110px_120px] gap-2 items-center">
                         <Label className="text-sm flex items-center gap-1">
                           {label}
-                          {isCouriers && autoCouriers.total > 0 && (
+                          {autoVal > 0 && (
                             <span
                               className={cn(
                                 "text-[10px] px-1.5 py-0.5 rounded font-bold",
                                 matchesAuto ? "bg-emerald-500/15 text-emerald-700" : "bg-amber-500/15 text-amber-700"
                               )}
-                              title={matchesAuto ? "Valor automático" : "Valor alterado manualmente"}
+                              title={matchesAuto ? "Valor puxado automaticamente" : "Valor alterado manualmente"}
                             >
                               {matchesAuto ? "AUTO" : "MANUAL"}
                             </span>
