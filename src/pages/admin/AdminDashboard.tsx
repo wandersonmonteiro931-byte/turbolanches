@@ -799,17 +799,18 @@ const AdminDashboard = () => {
     if (storeId) dfq = dfq.eq("store_id", storeId);
     const { data: dailyFeeData } = await dfq;
     const dailyFixedFees = new Map<string, number>();
-    (dailyFeeData as any[] ?? []).forEach((d: any) => dailyFixedFees.set(d.courier_id, Number(d.fixed_fee)));
+    (dailyFeeData as any[] ?? []).forEach((d: any) => dailyFixedFees.set(d.courier_id, Number(d.fixed_fee) || 0));
 
     // Also check couriers table default fixed_fee
     const { data: defaultFees } = await supabase.from("couriers" as any).select("id, fixed_fee").in("id", Array.from(courierIds));
     const defaultFixedFees = new Map<string, number>();
-    (defaultFees as any[] ?? []).forEach((c: any) => defaultFixedFees.set(c.id, Number(c.fixed_fee)));
+    (defaultFees as any[] ?? []).forEach((c: any) => defaultFixedFees.set(c.id, Number(c.fixed_fee) || 0));
 
     const expenses: { amount: number; category: string; description: string }[] = [];
     courierIds.forEach(cid => {
       const name = courierNames.get(cid) || "Entregador";
-      const fixedFee = dailyFixedFees.has(cid) ? dailyFixedFees.get(cid)! : (defaultFixedFees.get(cid) || 0);
+      // Diária por dia da semana TEM PRIORIDADE (respeita 0); fallback = couriers.fixed_fee
+      const fixedFee = dailyFixedFees.has(cid) ? (dailyFixedFees.get(cid) as number) : (defaultFixedFees.get(cid) || 0);
       const deliveryTotal = courierFees.get(cid) || 0;
       const total = fixedFee + deliveryTotal;
       if (total > 0) {
