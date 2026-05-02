@@ -1725,8 +1725,21 @@ const AdminDashboard = () => {
             // Auto-load items so every card shows full info without a click
             if (!items[order.id]) void fetchItems(order.id);
 
+            // Late delivery detection: delivery-type orders that aren't yet delivered/cancelled
+            // and have exceeded the configured delivery time.
+            const activeDeliveryStatuses = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
+            const isDelivery = order.delivery_type === "delivery";
+            const isLateDelivery = isDelivery
+              && activeDeliveryStatuses.includes(order.status)
+              && deliveryTimeMinutes > 0
+              && (Date.now() - new Date(order.created_at).getTime()) / 60000 > deliveryTimeMinutes;
+            const lateMinutes = isLateDelivery
+              ? Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000) - deliveryTimeMinutes
+              : 0;
+
             return (
               <div key={order.id} className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
+                isLateDelivery ? "border-red-600 border-2 animate-pulse" :
                 (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
                 (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
                 "border-border"
