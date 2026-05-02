@@ -69,6 +69,7 @@ const AdminCustomers = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [completedCounts, setCompletedCounts] = useState<Record<string, number>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   useGlobalKeyboardSearch(searchInputRef, (text) => {
@@ -94,20 +95,55 @@ const AdminCustomers = () => {
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
   const fetchProfiles = useCallback(async () => {
-    let query = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("created_at", { ascending: true });
-
-    if (searchQuery.length >= 2) {
-      const codeMatch = searchQuery.match(/^T?(\d+)$/i);
-      if (codeMatch) {
-        query = query.eq("customer_code", parseInt(codeMatch[1], 10));
-      } else {
-        const term = `%${searchQuery}%`;
-        query = query.or(`full_name.ilike.${term},phone.ilike.${term},street.ilike.${term},neighborhood.ilike.${term}`);
+    const buildQuery = () => {
+      let q = supabase.from("profiles").select("user_id, customer_code, full_name, phone, street, number, neighborhood, complement, quadra, lote, city, state, zip_code, created_at").order("created_at", { ascending: true });
+      if (searchQuery.length >= 2) {
+        const codeMatch = searchQuery.match(/^T?(\d+)$/i);
+        if (codeMatch) {
+          q = q.eq("customer_code", parseInt(codeMatch[1], 10));
+        } else {
+          const term = `%${searchQuery}%`;
+          q = q.or(`full_name.ilike.${term},phone.ilike.${term},street.ilike.${term},neighborhood.ilike.${term}`);
+        }
       }
-    }
+      return q;
+    };
 
-    const { data } = await query.limit(50);
-    setProfiles((data as Profile[]) || []);
+    // Fetch all matching profiles in pages of 1000 to bypass Supabase default row limit
+    const pageSize = 1000;
+    let from = 0;
+    let all: Profile[] = [];
+    while (true) {
+      const { data, error } = await buildQuery().range(from, from + pageSize - 1);
+      if (error) break;
+      const batch = (data as Profile[]) || [];
+      all = all.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    setProfiles(all);
+
+    // Fetch delivered order counts for these profiles
+    const ids = all.map((p) => p.user_id);
+    if (ids.length === 0) {
+      setCompletedCounts({});
+      return;
+    }
+    const counts: Record<string, number> = {};
+    const chunkSize = 300;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("user_id")
+        .eq("status", "delivered")
+        .in("user_id", chunk)
+        .limit(100000);
+      (ordersData || []).forEach((row: any) => {
+        counts[row.user_id] = (counts[row.user_id] || 0) + 1;
+      });
+    }
+    setCompletedCounts(counts);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -333,8 +369,11 @@ const AdminCustomers = () => {
                 <span className="text-xs font-bold text-primary">T{String(profile.customer_code).padStart(5, "0")}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-foreground">{profile.full_name || "Sem nome"}</span>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                    {completedCounts[profile.user_id] || 0} pedido{(completedCounts[profile.user_id] || 0) === 1 ? "" : "s"} concluído{(completedCounts[profile.user_id] || 0) === 1 ? "" : "s"}
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {profile.phone || "Sem telefone"} · {profile.neighborhood || "Sem endereço"}
