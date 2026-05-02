@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MapPin, Plus, Check, Trash2, X, Loader2, Edit2 } from "lucide-react";
+import { MapPin, Plus, Check, Trash2, X, Edit2 } from "lucide-react";
+import TurboLoader from "@/components/TurboLoader";
 import { useAddresses, CustomerAddress } from "@/hooks/useAddresses";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
