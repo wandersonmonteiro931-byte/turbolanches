@@ -25,6 +25,12 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const refocusSearch = () => {
+    setEditingId(null);
+    setTimeout(() => searchRef.current?.focus(), 0);
+  };
 
   const fetchZones = async () => {
     let q = supabase
