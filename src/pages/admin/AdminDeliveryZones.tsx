@@ -4,6 +4,7 @@ import {
   RefreshCw, Navigation, Filter, Gift, Truck, AlertTriangle, ToggleLeft, ToggleRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 import { useToast } from "@/hooks/use-toast";
 import { useDeliveryCalculation } from "@/hooks/useDeliveryCalculation";
 import { useStore } from "@/contexts/StoreContext";
