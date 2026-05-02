@@ -95,6 +95,12 @@ const AdminLayout = () => {
     }
   }, [location.pathname, config, pwLoading]);
 
+  // Auto-collapse sidebar whenever the route changes — only re-opens via the
+  // hamburger menu, on every screen size.
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
   const handleNavClick = (path: string) => {
@@ -281,12 +287,10 @@ const AdminLayout = () => {
 
   return (
     <div className="flex min-h-screen bg-background print:block print:h-auto print:bg-background">
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:block print:hidden">
-        <NavContent />
-      </aside>
-
+      {/* Sidebar overlay — collapses by default, opens via hamburger.
+          Auto-collapses on route change so it never stays expanded. */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden print:hidden">
+        <div className="fixed inset-0 z-50 print:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-card shadow-lg">
             <NavContent />
@@ -296,7 +300,7 @@ const AdminLayout = () => {
 
       <div className="flex flex-1 flex-col overflow-hidden print:block">
         <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 print:hidden">
-          <button onClick={() => setSidebarOpen(true)} className="md:hidden">
+          <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
             <Menu size={22} className="text-foreground" />
           </button>
           <h1 className="text-lg font-bold text-foreground">

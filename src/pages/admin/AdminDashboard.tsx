@@ -4,7 +4,7 @@ import {
   ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
   Truck, X, Check, Printer, Store, StoreIcon, Power,
   FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator
+  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator, MapPin, ChevronDown
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR, nowUtcMs } from "@/lib/brasiliaTime";
@@ -27,6 +27,7 @@ const CourierTrackingModal = lazy(() => import("@/components/admin/CourierTracki
 import ExpenseManager from "@/components/admin/ExpenseManager";
 import CashRegister from "@/components/admin/CashRegister";
 import CalculatorModal from "@/components/admin/CalculatorModal";
+import NeighborhoodFeeQueryModal from "@/components/admin/NeighborhoodFeeQueryModal";
 import { buildAdminPrintDocument, escapeHtml, makeTightThermalPrintHtml } from "@/lib/adminPrintTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 
@@ -200,6 +201,9 @@ const AdminDashboard = () => {
   const [trackingCourierId, setTrackingCourierId] = useState<string | null>(null);
   const [showExpenseManager, setShowExpenseManager] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showReportsMenu, setShowReportsMenu] = useState(false);
+  const [showFeeQuery, setShowFeeQuery] = useState(false);
+  const [deliveryTimeMinutes, setDeliveryTimeMinutes] = useState(45);
 
   // Alarm is now global via useAdminAlarm in App.tsx
 
@@ -291,7 +295,7 @@ const AdminDashboard = () => {
   const fetchStoreSettings = useCallback(async () => {
     let query = supabase
       .from("store_settings")
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled, entregador_receipt_enabled")
+      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled, entregador_receipt_enabled, delivery_time_minutes")
       .limit(1);
 
     if (storeId) {
@@ -303,6 +307,8 @@ const AdminDashboard = () => {
     if (data) {
       const settings = data as StoreSettings;
       applyStoreSettings(settings);
+      const dt = (data as any).delivery_time_minutes;
+      if (typeof dt === "number" && dt > 0) setDeliveryTimeMinutes(dt);
       return settings;
     }
 
@@ -1312,6 +1318,25 @@ const AdminDashboard = () => {
 
   const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
 
+  // Tick every 30s so late-delivery banner refreshes without waiting for new realtime events
+  const [, forceLateTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => forceLateTick(n => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const lateDeliveryOrders = useMemo(() => {
+    if (deliveryTimeMinutes <= 0) return [] as typeof visibleOrders;
+    const active = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
+    const now = Date.now();
+    return visibleOrders.filter(o =>
+      !o.trashed_at &&
+      o.delivery_type === "delivery" &&
+      active.includes(o.status) &&
+      (now - new Date(o.created_at).getTime()) / 60000 > deliveryTimeMinutes
+    );
+  }, [visibleOrders, deliveryTimeMinutes]);
+
   return (
     <div className="space-y-4">
       {/* Cash Register */}
@@ -1382,11 +1407,35 @@ const AdminDashboard = () => {
         </button>
 
         <button
+          onClick={() => setShowFeeQuery(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <MapPin size={16} />
+          Consultar Taxa
+        </button>
+
+        <button
           onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados!" }); }}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >
           <RefreshCw size={16} />
           Atualizar
+        </button>
+
+        <button
+          onClick={() => setShowExpenseManager(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Wallet size={16} />
+          Gastos
+        </button>
+
+        <button
+          onClick={() => setShowCalculator(true)}
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
+        >
+          <Calculator size={16} />
+          Calculadora
         </button>
 
         <div className="ml-auto flex items-center gap-4 text-sm">
@@ -1402,7 +1451,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Date Picker + Search + Reprint Report */}
+      {/* Date Picker + Search + Reports menu */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <Popover>
           <PopoverTrigger asChild>
@@ -1445,45 +1494,38 @@ const AdminDashboard = () => {
           />
         </div>
 
-        <button
-          onClick={() => requireReportPassword(reprintDailyReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Printer size={16} />
-          Reimprimir Relatório
-        </button>
-
-        <button
-          onClick={() => setShowPeriodReport(!showPeriodReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <FileText size={16} />
-          Relatório de Período
-        </button>
-
-        <button
-          onClick={() => setShowDeliveryReport(!showDeliveryReport)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Truck size={16} />
-          Relatório de Entregas
-        </button>
-
-        <button
-          onClick={() => setShowExpenseManager(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Wallet size={16} />
-          Gastos
-        </button>
-
-        <button
-          onClick={() => setShowCalculator(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Calculator size={16} />
-          Calculadora
-        </button>
+        {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
+        <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
+          <PopoverTrigger asChild>
+            <button
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              <FileText size={16} />
+              Relatórios
+              <ChevronDown size={14} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-60 p-1">
+            <button
+              onClick={() => { setShowReportsMenu(false); requireReportPassword(reprintDailyReport); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <Printer size={15} /> Reimprimir Relatório
+            </button>
+            <button
+              onClick={() => { setShowReportsMenu(false); setShowPeriodReport(v => !v); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <FileText size={15} /> Relatório de Período
+            </button>
+            <button
+              onClick={() => { setShowReportsMenu(false); setShowDeliveryReport(v => !v); }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
+            >
+              <Truck size={15} /> Relatório de Entregas
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {showPeriodReport && (
@@ -1654,7 +1696,26 @@ const AdminDashboard = () => {
       </AlertDialog>
 
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+      {lateDeliveryOrders.length > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border-2 border-red-600 bg-red-50 px-4 py-3 text-red-900 animate-pulse">
+          <AlertTriangle size={20} className="shrink-0 text-red-600" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-extrabold">🚨 {lateDeliveryOrders.length} entrega(s) em ATRASO</p>
+            <p className="text-xs font-semibold">
+              Pedidos: {lateDeliveryOrders.slice(0, 6).map(o => `#${String(o.order_number).padStart(5, "0")}`).join(", ")}
+              {lateDeliveryOrders.length > 6 ? ` +${lateDeliveryOrders.length - 6}` : ""} · prazo: {deliveryTimeMinutes}min
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab("delivering")}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700"
+          >
+            Ver
+          </button>
+        </div>
+      )}
+
+      <div className="flex w-full flex-wrap gap-1.5 pb-1 sm:gap-2">
         {tabs.map(tab => {
           const count = stats[tab.key as keyof typeof stats] || 0;
           const isActive = activeTab === tab.key;
@@ -1663,16 +1724,16 @@ const AdminDashboard = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
+              className={`flex min-w-0 flex-1 basis-0 items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm ${
                 isActive
                   ? `${tab.color} text-white`
                   : "bg-card border border-border text-foreground hover:bg-muted"
-              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-2" : ""}`}
+              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-1" : ""}`}
             >
-              <tab.icon size={16} />
-              {tab.label}
+              <tab.icon size={14} className="shrink-0" />
+              <span className="truncate">{tab.label}</span>
               {count > 0 && (
-                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold sm:text-xs ${
                   isActive ? "bg-white/20 text-white" : isPendingWithOrders ? "bg-amber-500 text-white" : "bg-muted text-foreground"
                 }`}>
                   {count}
@@ -1702,8 +1763,21 @@ const AdminDashboard = () => {
             // Auto-load items so every card shows full info without a click
             if (!items[order.id]) void fetchItems(order.id);
 
+            // Late delivery detection: delivery-type orders that aren't yet delivered/cancelled
+            // and have exceeded the configured delivery time.
+            const activeDeliveryStatuses = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
+            const isDelivery = order.delivery_type === "delivery";
+            const isLateDelivery = isDelivery
+              && activeDeliveryStatuses.includes(order.status)
+              && deliveryTimeMinutes > 0
+              && (Date.now() - new Date(order.created_at).getTime()) / 60000 > deliveryTimeMinutes;
+            const lateMinutes = isLateDelivery
+              ? Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000) - deliveryTimeMinutes
+              : 0;
+
             return (
               <div key={order.id} className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
+                isLateDelivery ? "border-red-600 border-2 animate-pulse" :
                 (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
                 (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
                 "border-border"
@@ -1730,6 +1804,11 @@ const AdminDashboard = () => {
                       {order.status === "ready" && order.courier_id && (
                         <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
                           ⚠️ DEVOLVIDO
+                        </span>
+                      )}
+                      {isLateDelivery && (
+                        <span className="rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-extrabold text-white animate-pulse">
+                          🚨 ENTREGA EM ATRASO {lateMinutes > 0 ? `+${lateMinutes}min` : ""}
                         </span>
                       )}
                     </div>
@@ -2239,6 +2318,7 @@ const AdminDashboard = () => {
       )}
 
       <CalculatorModal open={showCalculator} onClose={() => setShowCalculator(false)} />
+      <NeighborhoodFeeQueryModal open={showFeeQuery} onClose={() => setShowFeeQuery(false)} />
     </div>
   );
 };
