@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import TurboLoader from "@/components/TurboLoader";
 import { Truck, Clock, XCircle, History, LogOut, MapPin, DollarSign, Package, RefreshCw, Navigation } from "lucide-react";
 import { useStoreLogo } from "@/hooks/useStoreLogo";
 import { useToast } from "@/hooks/use-toast";
