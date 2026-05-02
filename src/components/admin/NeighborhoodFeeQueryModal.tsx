@@ -146,11 +146,21 @@ export default function NeighborhoodFeeQueryModal({ open, onClose }: Props) {
                         type="text"
                         inputMode="decimal"
                         value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
+                        onChange={(e) => {
+                          // Allow only digits and a single separator (, or .)
+                          let v = e.target.value.replace(/[^\d.,]/g, "");
+                          // Keep only the first separator
+                          const firstSep = v.search(/[.,]/);
+                          if (firstSep !== -1) {
+                            v = v.slice(0, firstSep + 1) + v.slice(firstSep + 1).replace(/[.,]/g, "");
+                          }
+                          setEditValue(v);
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") void saveEdit(z.id);
-                          if (e.key === "Escape") setEditingId(null);
+                          if (e.key === "Escape") refocusSearch();
                         }}
+                        onBlur={() => refocusSearch()}
                         autoFocus
                         className="w-20 rounded border border-border bg-background px-2 py-1 text-sm font-bold text-foreground"
                       />
