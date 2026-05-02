@@ -107,8 +107,41 @@ const AdminCustomers = () => {
       }
     }
 
-    const { data } = await query.limit(50);
-    setProfiles((data as Profile[]) || []);
+    // Fetch all matching profiles in pages of 1000 to bypass Supabase default row limit
+    const pageSize = 1000;
+    let from = 0;
+    let all: Profile[] = [];
+    while (true) {
+      const { data, error } = await query.range(from, from + pageSize - 1);
+      if (error) break;
+      const batch = (data as Profile[]) || [];
+      all = all.concat(batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    setProfiles(all);
+
+    // Fetch delivered order counts for these profiles
+    const ids = all.map((p) => p.user_id);
+    if (ids.length === 0) {
+      setCompletedCounts({});
+      return;
+    }
+    const counts: Record<string, number> = {};
+    const chunkSize = 300;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("user_id")
+        .eq("status", "delivered")
+        .in("user_id", chunk)
+        .limit(100000);
+      (ordersData || []).forEach((row: any) => {
+        counts[row.user_id] = (counts[row.user_id] || 0) + 1;
+      });
+    }
+    setCompletedCounts(counts);
   }, [searchQuery]);
 
   useEffect(() => {
