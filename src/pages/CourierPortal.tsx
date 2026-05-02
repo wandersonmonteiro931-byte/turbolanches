@@ -457,7 +457,7 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
               disabled={refreshing}
               className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted disabled:opacity-50"
             >
-              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? <TurboLoader size={18} /> : <RefreshCw size={16} />}
             </button>
             <button onClick={logout} className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted">
               <LogOut size={16} />
