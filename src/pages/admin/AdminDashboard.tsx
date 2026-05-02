@@ -1696,6 +1696,25 @@ const AdminDashboard = () => {
       </AlertDialog>
 
 
+      {lateDeliveryOrders.length > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border-2 border-red-600 bg-red-50 px-4 py-3 text-red-900 animate-pulse">
+          <AlertTriangle size={20} className="shrink-0 text-red-600" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-extrabold">🚨 {lateDeliveryOrders.length} entrega(s) em ATRASO</p>
+            <p className="text-xs font-semibold">
+              Pedidos: {lateDeliveryOrders.slice(0, 6).map(o => `#${String(o.order_number).padStart(5, "0")}`).join(", ")}
+              {lateDeliveryOrders.length > 6 ? ` +${lateDeliveryOrders.length - 6}` : ""} · prazo: {deliveryTimeMinutes}min
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab("delivering")}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700"
+          >
+            Ver
+          </button>
+        </div>
+      )}
+
       <div className="flex w-full flex-wrap gap-1.5 pb-1 sm:gap-2">
         {tabs.map(tab => {
           const count = stats[tab.key as keyof typeof stats] || 0;
