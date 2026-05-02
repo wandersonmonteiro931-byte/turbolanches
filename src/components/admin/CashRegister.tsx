@@ -1416,6 +1416,20 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
                           )}
                         </div>
                       )}
+                      {!isCouriers && autoVal > 0 && (
+                        <div className="text-[11px] text-muted-foreground pl-1">
+                          📒 Puxado de "Gastos do Dia": <strong className="text-foreground">{fmt(autoVal)}</strong>
+                          {!matchesAuto && (
+                            <button
+                              type="button"
+                              className="ml-2 underline text-primary"
+                              onClick={() => setCloseForm({ ...closeForm, [key as string]: autoVal.toFixed(2) } as any)}
+                            >
+                              usar automático
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
