@@ -146,18 +146,18 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   // GPS Tracking - send location to DB
   const sendLocation = useCallback(async (position: GeolocationPosition) => {
     const { latitude, longitude, accuracy, speed, heading } = position.coords;
-    await supabase
-      .from("courier_locations" as any)
-      .upsert({
+    await supabase.functions.invoke("courier-location-update", {
+      body: {
         courier_id: courier.id,
+        code: courier.code,
         lat: latitude,
         lng: longitude,
         accuracy: accuracy || 0,
         speed: speed || 0,
         heading: heading || 0,
-        updated_at: new Date().toISOString(),
-      } as any, { onConflict: "courier_id" });
-  }, [courier.id]);
+      },
+    });
+  }, [courier.id, courier.code]);
 
   const startTracking = useCallback(() => {
     if (!("geolocation" in navigator)) {
