@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.employee-portal]
 verify_jwt = false
+
+[functions.courier-location-update]
+verify_jwt = false
