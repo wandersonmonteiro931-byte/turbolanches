@@ -823,10 +823,22 @@ const AdminOrders = () => {
                         </div>
 
                         {/* Address */}
-                        {order.address_street && (
+                        {order.delivery_type === "delivery" && order.address_street ? (
                           <p className="text-xs text-muted-foreground break-words">
                             📍 {order.address_street}, {order.address_number || "S/N"}
                             {order.address_complement ? ` - ${order.address_complement}` : ""} - {order.address_neighborhood}
+                          </p>
+                        ) : (
+                          <p className="text-xs font-semibold text-foreground break-words">
+                            📍 {order.payment_method === "fiado"
+                              ? "FIADO"
+                              : order.delivery_type === "retirada" || order.delivery_type === "pickup"
+                                ? "RETIRADA"
+                                : order.delivery_type === "mesa"
+                                  ? "MESA"
+                                  : order.delivery_type === "viagem"
+                                    ? "VIAGEM"
+                                    : (order.delivery_type || "RETIRADA").toUpperCase()}
                           </p>
                         )}
 
