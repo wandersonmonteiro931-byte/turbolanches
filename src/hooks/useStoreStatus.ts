@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
-import { formatTimeBR, nowBrasilia } from "@/lib/brasiliaTime";
+import { nowBrasilia } from "@/lib/brasiliaTime";
 
 interface ScheduleDay {
   day_of_week: number;
@@ -14,8 +14,7 @@ const DAY_LABELS = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta",
 
 const getBrasiliaTime = () => {
   const now = nowBrasilia();
-  // Format in America/Sao_Paulo timezone — getHours()/getDay() use the local PC TZ
-  // which can be wrong. Use Intl to extract HH:mm and weekday in Brasília.
+
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
     hour: "2-digit",
@@ -23,11 +22,25 @@ const getBrasiliaTime = () => {
     weekday: "short",
     hour12: false,
   }).formatToParts(now);
-  const hh = parts.find(p => p.type === "hour")?.value ?? "00";
-  const mm = parts.find(p => p.type === "minute")?.value ?? "00";
-  const wk = parts.find(p => p.type === "weekday")?.value ?? "Sun";
-  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  return { hhmm: `${hh === "24" ? "00" : hh}:${mm}`, dayOfWeek: map[wk] ?? 0 };
+
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+  const wk = parts.find((p) => p.type === "weekday")?.value ?? "Sun";
+
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
+  return {
+    hhmm: `${hh === "24" ? "00" : hh}:${mm}`,
+    dayOfWeek: map[wk] ?? 0,
+  };
 };
 
 const hhmmToMinutes = (hhmm: string) => {
@@ -55,6 +68,7 @@ const buildNextOpeningText = (
 
     if (offset === 0) return `Abre hoje às ${openHHMM} h`;
     if (offset === 1) return `Abre amanhã às ${openHHMM} h`;
+
     return `Abre ${DAY_LABELS[dayIndex]} às ${openHHMM} h`;
   }
 
@@ -90,68 +104,47 @@ export const useStoreStatus = () => {
       const schedule = (scheduleRes.data || []) as ScheduleDay[];
 
       if (!settings) {
+        setIsOpen(false);
         setNextOpeningText(null);
         setLoading(false);
         return;
       }
 
       const { hhmm, dayOfWeek } = getBrasiliaTime();
-      const todaySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
       const nextText = buildNextOpeningText(schedule, dayOfWeek, hhmm);
 
-      const setStatus = (open: boolean) => {
-        setIsOpen(open);
-        setNextOpeningText(open ? null : nextText);
-      };
+      /*
+        CORREÇÃO PRINCIPAL
 
-      const isRecent = (ts: string | null): boolean => {
-        if (!ts) return false;
-        return Date.now() - new Date(ts).getTime() < 12 * 60 * 60 * 1000;
-      };
+        Antes:
+        - Se o horário cadastrado dizia que a loja deveria estar aberta,
+          o hook reabria a loja mesmo depois do admin fechar manualmente.
 
-      if (todaySchedule) {
-        if (todaySchedule.is_closed) {
-          const manuallyOpened = settings.is_open === true && isRecent(settings.opened_at);
-          setStatus(manuallyOpened);
-          setLoading(false);
-          return;
-        }
-
-        const openT = todaySchedule.open_time?.slice(0, 5);
-        const closeT = todaySchedule.close_time?.slice(0, 5);
-
-        let inTimeWindow = false;
-        if (openT && closeT) {
-          if (closeT <= openT) {
-            inTimeWindow = hhmm >= openT || hhmm <= closeT;
-          } else {
-            inTimeWindow = hhmm >= openT && hhmm <= closeT;
-          }
-        }
-
-        if (inTimeWindow) {
-          if (settings.is_open === false && isRecent(settings.closed_at)) {
-            const closedHHMM = formatTimeBR(settings.closed_at);
-            setStatus(!(closedHHMM && openT ? closedHHMM >= openT : false));
-          } else {
-            setStatus(true);
-          }
-        } else if (settings.is_open === true && isRecent(settings.opened_at)) {
-          const openedHHMM = formatTimeBR(settings.opened_at);
-          if (closeT && openT && hhmm >= closeT && closeT > openT) {
-            setStatus(Boolean(openedHHMM && openedHHMM >= closeT));
-          } else {
-            setStatus(true);
-          }
-        } else {
-          setStatus(false);
-        }
-      } else {
-        setStatus(settings.is_open);
+        Agora:
+        - store_settings.is_open é a fonte principal.
+        - Se o admin fechou manualmente, is_open = false e a loja fica fechada.
+        - O horário cadastrado só serve para mostrar a próxima abertura.
+      */
+      if (settings.is_open === false) {
+        setIsOpen(false);
+        setNextOpeningText(nextText);
+        setLoading(false);
+        return;
       }
 
+      if (settings.is_open === true) {
+        setIsOpen(true);
+        setNextOpeningText(null);
+        setLoading(false);
+        return;
+      }
+
+      setIsOpen(false);
+      setNextOpeningText(nextText);
       setLoading(false);
-    } catch {
+    } catch (error) {
+      console.error("[useStoreStatus] erro ao verificar status da loja", error);
+      setIsOpen(false);
       setNextOpeningText(null);
       setLoading(false);
     }
@@ -160,21 +153,19 @@ export const useStoreStatus = () => {
   useEffect(() => {
     checkStatus();
 
-    // Check every 15s so scheduled open/close transitions reflect quickly across all clients
     const interval = setInterval(checkStatus, 15_000);
 
-    // Also re-check when the tab regains focus (mobile/PWA wake)
     const onFocus = () => checkStatus();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
 
     const channel1 = supabase
-      .channel("store-status")
+      .channel(`store-status-${storeId ?? "default"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "store_settings" }, () => checkStatus())
       .subscribe();
 
     const channel2 = supabase
-      .channel("store-schedule-status")
+      .channel(`store-schedule-status-${storeId ?? "default"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "store_schedule" }, () => checkStatus())
       .subscribe();
 
