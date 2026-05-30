@@ -959,6 +959,7 @@ const AdminManualOrder = () => {
       const isPixPago = paymentMethod === "pix_pago";
       const isDeferredTableOpen = isTableOrder && !isChargingTable;
       const actualPaymentMethod = isDeferredTableOpen ? "dinheiro" : isPixEntrega || isPixPago ? "pix" : paymentMethod;
+      const paymentMethodForDatabase = actualPaymentMethod === "fiado" ? "dinheiro" : actualPaymentMethod;
       const actualPaid = isDeferredTableOpen ? false : isTableOrder ? paymentMethod !== "fiado" : isPixPago;
       const finalStatus = isTableOrder && isChargingTable ? "delivered" : undefined;
 
@@ -999,6 +1000,7 @@ const AdminManualOrder = () => {
           !isTableOrder && customerPhone ? `Tel: ${customerPhone}` : null,
           !isTableOrder && selectedCustomerCode ? `Código: ${selectedCustomerCode}` : null,
           isTableOrder ? `Mesa: ${mesaCode}` : tableNumber ? `Mesa: ${tableNumber}` : null,
+          actualPaymentMethod === "fiado" ? "[FIADO]" : null,
           observations || null,
         ]
           .filter(Boolean)
