@@ -1,10 +1,36 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ShoppingBag, DollarSign, Clock, CheckCircle, ChefHat, Package,
-  Truck, X, Check, Printer, Store, StoreIcon, Power,
-  FileText, AlertTriangle, Plus, Search, CalendarIcon, Edit2, Save, RefreshCw,
-  Eye, EyeOff, Wallet, Trash2, PlusCircle, RotateCcw, Calculator, MapPin, ChevronDown
+  ShoppingBag,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  ChefHat,
+  Package,
+  Truck,
+  X,
+  Check,
+  Printer,
+  Store,
+  StoreIcon,
+  Power,
+  FileText,
+  AlertTriangle,
+  Plus,
+  Search,
+  CalendarIcon,
+  Edit2,
+  Save,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Wallet,
+  Trash2,
+  PlusCircle,
+  RotateCcw,
+  Calculator,
+  MapPin,
+  ChevronDown,
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR, nowUtcMs } from "@/lib/brasiliaTime";
@@ -138,7 +164,8 @@ const cleanOrderObservation = (value: string | null) =>
     .join(" | ");
 
 const getNextStatusForOrder = (order: Pick<Order, "status" | "delivery_type">) => {
-  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada")) return "delivered";
+  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada"))
+    return "delivered";
   return nextStatus[order.status];
 };
 
@@ -151,7 +178,9 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
 const AdminDashboard = () => {
   const { storeId, loading: storeLoading } = useStore();
   const { isOpen: customerSeesOpen, nextOpeningText } = useStoreStatus();
-  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
+  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>(
+    {},
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
   const [activeTab, setActiveTab] = useState("pending");
@@ -209,10 +238,13 @@ const AdminDashboard = () => {
 
   // Fetch couriers
   const fetchCouriers = useCallback(async () => {
-    let q = supabase.from("couriers" as any).select("id, name, fixed_fee").eq("active", true);
+    let q = supabase
+      .from("couriers" as any)
+      .select("id, name, fixed_fee")
+      .eq("active", true);
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
-    setCouriers((data as any[] ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee) })));
+    setCouriers(((data as any[]) ?? []).map((c: any) => ({ id: c.id, name: c.name, fixed_fee: Number(c.fixed_fee) })));
   }, [storeId]);
 
   const todayBD = getTodayBusinessDay();
@@ -265,14 +297,20 @@ const AdminDashboard = () => {
       dayCount: dayRes.data?.length ?? 0,
       activeCount: activeRes.data?.length ?? 0,
       mergedCount: data.length,
-      preparingCount: data.filter(o => o.status === "preparing").length,
-      preparing: data.filter(o => o.status === "preparing").map(o => ({
-        n: o.order_number, status: o.status, pm: o.payment_method, pc: o.payment_confirmed, sid: (o as any).store_id,
-      })),
+      preparingCount: data.filter((o) => o.status === "preparing").length,
+      preparing: data
+        .filter((o) => o.status === "preparing")
+        .map((o) => ({
+          n: o.order_number,
+          status: o.status,
+          pm: o.payment_method,
+          pc: o.payment_confirmed,
+          sid: (o as any).store_id,
+        })),
     });
 
     setOrders(data);
-    const userIds = [...new Set(data.map(o => o.user_id))];
+    const userIds = [...new Set(data.map((o) => o.user_id))];
     if (userIds.length > 0) {
       supabase
         .from("profiles")
@@ -281,7 +319,9 @@ const AdminDashboard = () => {
         .then(({ data: profilesData }) => {
           if (profilesData) {
             const map: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
-            profilesData.forEach(p => { map[p.user_id] = p; });
+            profilesData.forEach((p) => {
+              map[p.user_id] = p;
+            });
             setProfiles(map);
           }
         });
@@ -295,7 +335,9 @@ const AdminDashboard = () => {
   const fetchStoreSettings = useCallback(async () => {
     let query = supabase
       .from("store_settings")
-      .select("id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled, entregador_receipt_enabled, delivery_time_minutes")
+      .select(
+        "id, is_open, opened_at, closed_at, scheduled_open, scheduled_close, use_schedule, obrigado_receipt_enabled, entregador_receipt_enabled, delivery_time_minutes",
+      )
       .limit(1);
 
     if (storeId) {
@@ -347,7 +389,7 @@ const AdminDashboard = () => {
     window.open(
       "/cozinha",
       "turbo-kitchen",
-      `width=${w},height=${h},left=${-w},top=0,menubar=no,toolbar=no,location=no,status=no`
+      `width=${w},height=${h},left=${-w},top=0,menubar=no,toolbar=no,location=no,status=no`,
     );
   };
 
@@ -379,7 +421,8 @@ const AdminDashboard = () => {
           const newOrder = payload.new as Order;
           if (!inRange(newOrder.created_at) || (storeId && (newOrder as any).store_id !== storeId)) return;
           // Only alert for orders that are visible (PIX must be paid first)
-          const isUnpaidPix = newOrder.payment_method === "pix" && !newOrder.payment_confirmed && newOrder.status !== "paid";
+          const isUnpaidPix =
+            newOrder.payment_method === "pix" && !newOrder.payment_confirmed && newOrder.status !== "paid";
           if (!isUnpaidPix) {
             toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
           }
@@ -426,14 +469,22 @@ const AdminDashboard = () => {
   }, [fetchOrders, fetchStoreSettings, fetchCouriers, isToday, selectedDate, storeId, toast]);
 
   // Only tick the timer when there are preparing orders visible (saves CPU)
-  const hasPreparingVisible = activeTab === "preparing" && orders.some(o => o.status === "preparing");
+  const hasPreparingVisible = activeTab === "preparing" && orders.some((o) => o.status === "preparing");
   useEffect(() => {
     if (hasPreparingVisible) {
       nowIntervalRef.current = setInterval(() => setNow(nowUtcMs()), 1000);
     } else {
-      if (nowIntervalRef.current) { clearInterval(nowIntervalRef.current); nowIntervalRef.current = null; }
+      if (nowIntervalRef.current) {
+        clearInterval(nowIntervalRef.current);
+        nowIntervalRef.current = null;
+      }
     }
-    return () => { if (nowIntervalRef.current) { clearInterval(nowIntervalRef.current); nowIntervalRef.current = null; } };
+    return () => {
+      if (nowIntervalRef.current) {
+        clearInterval(nowIntervalRef.current);
+        nowIntervalRef.current = null;
+      }
+    };
   }, [hasPreparingVisible]);
 
   const toggleStore = async () => {
@@ -475,19 +526,19 @@ const AdminDashboard = () => {
     setTogglingStore(false);
   };
 
-
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
-    const order = orders.find(o => o.id === orderId);
+    const order = orders.find((o) => o.id === orderId);
     // Block accepting and finalization if cash register is closed
     if ((newStatus === "preparing" || newStatus === "delivered") && !cashRegisterOpen) {
       toast({
         title: "🔒 Caixa fechado",
-        description: newStatus === "preparing"
-          ? "Abra o caixa antes de aceitar pedidos."
-          : "Abra o caixa antes de finalizar pedidos.",
+        description:
+          newStatus === "preparing"
+            ? "Abra o caixa antes de aceitar pedidos."
+            : "Abra o caixa antes de finalizar pedidos.",
         variant: "destructive",
       });
       return;
@@ -526,7 +577,7 @@ const AdminDashboard = () => {
 
     // Mark coupon as used when order is accepted (preparing)
     if (newStatus === "preparing") {
-      const order = orders.find(o => o.id === orderId);
+      const order = orders.find((o) => o.id === orderId);
       if (order?.coupon_code) {
         await supabase.rpc("increment_coupon_used_count" as any, { _code: order.coupon_code });
       }
@@ -565,7 +616,7 @@ const AdminDashboard = () => {
   const confirmCourierAndDeliver = async () => {
     if (!courierSelectOrderId || !selectedCourierId) return;
     const oid = courierSelectOrderId;
-    const isReassign = orders.find(o => o.id === oid)?.status === "delivering";
+    const isReassign = orders.find((o) => o.id === oid)?.status === "delivering";
     setCourierSelectOrderId(null);
     if (isReassign) {
       // Just change courier, don't change status
@@ -593,9 +644,31 @@ const AdminDashboard = () => {
   };
 
   const markAsFiado = async (orderId: string) => {
-    await supabase.from("orders").update({ payment_confirmed: false, payment_method: "fiado" }).eq("id", orderId);
+    const updateData: Record<string, unknown> = {
+      payment_confirmed: false,
+      payment_method: "fiado",
+      paid_at: null,
+      amount_paid_cash: 0,
+      amount_paid_pix: 0,
+      amount_paid_card: 0,
+    };
+
+    // Corrige pedidos antigos criados sem loja vinculada, para aparecerem na lista de Fiados.
+    if (storeId) updateData.store_id = storeId;
+
+    const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
+
+    if (error) {
+      toast({
+        title: "Erro ao marcar como fiado",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({ title: "📝 Pedido marcado como fiado!" });
-    fetchOrders();
+    await fetchOrders();
   };
 
   const printReceipt = async (orderId: string, tipo: string, delayMs?: number) => {
@@ -633,7 +706,7 @@ const AdminDashboard = () => {
       });
       return;
     }
-    const toAccept = orders.filter(o => o.status === "pending" || o.status === "paid");
+    const toAccept = orders.filter((o) => o.status === "pending" || o.status === "paid");
     if (toAccept.length === 0) {
       toast({ title: "Nenhum pedido pendente para aceitar." });
       return;
@@ -643,7 +716,10 @@ const AdminDashboard = () => {
     const { error } = await supabase
       .from("orders")
       .update({ status: "preparing", preparing_at: nowISO })
-      .in("id", toAccept.map(o => o.id));
+      .in(
+        "id",
+        toAccept.map((o) => o.id),
+      );
 
     if (error) {
       toast({ title: "Erro ao aceitar pedidos", variant: "destructive" });
@@ -651,7 +727,7 @@ const AdminDashboard = () => {
     }
 
     // Mark coupons as used for all accepted orders
-    const couponOrders = toAccept.filter(o => o.coupon_code);
+    const couponOrders = toAccept.filter((o) => o.coupon_code);
     for (const order of couponOrders) {
       await supabase.rpc("increment_coupon_used_count" as any, { _code: order.coupon_code });
     }
@@ -671,19 +747,26 @@ const AdminDashboard = () => {
   };
 
   const searchProducts = async (term: string) => {
-    if (term.length < 2) { setProductSuggestions([]); return; }
+    if (term.length < 2) {
+      setProductSuggestions([]);
+      return;
+    }
     let q = supabase.from("products").select("name, price").ilike("name", `%${term}%`).eq("active", true).limit(8);
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
     setProductSuggestions(data || []);
   };
 
-  const updateEditItem = (itemId: string, field: "quantity" | "unit_price" | "product_name" | "observations", value: any) => {
-    setEditItems(prev => prev.map(item => item.id === itemId ? { ...item, [field]: value } : item));
+  const updateEditItem = (
+    itemId: string,
+    field: "quantity" | "unit_price" | "product_name" | "observations",
+    value: any,
+  ) => {
+    setEditItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)));
   };
 
   const removeEditItem = (itemId: string) => {
-    setEditItems(prev => prev.filter(item => item.id !== itemId));
+    setEditItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const addNewItem = () => {
@@ -696,14 +779,14 @@ const AdminDashboard = () => {
       observations: null,
       addons_json: [],
     };
-    setEditItems(prev => [...prev, newItem]);
+    setEditItems((prev) => [...prev, newItem]);
     setAddItemName("");
     setAddItemQty(1);
     setAddItemPrice(0);
     setProductSuggestions([]);
   };
 
-  const calcEditSubtotal = () => editItems.reduce((sum, item) => sum + (Number(item.unit_price) * item.quantity), 0);
+  const calcEditSubtotal = () => editItems.reduce((sum, item) => sum + Number(item.unit_price) * item.quantity, 0);
 
   const saveEdit = async (orderId: string, reprint = false) => {
     const newSubtotal = calcEditSubtotal();
@@ -712,13 +795,16 @@ const AdminDashboard = () => {
     const newTotal = newSubtotal + newDeliveryFee - newDiscount;
 
     // Update order
-    const { error } = await supabase.from("orders").update({
-      ...editData,
-      subtotal: newSubtotal,
-      delivery_fee: newDeliveryFee,
-      discount: newDiscount,
-      total: newTotal,
-    }).eq("id", orderId);
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        ...editData,
+        subtotal: newSubtotal,
+        delivery_fee: newDeliveryFee,
+        discount: newDiscount,
+        total: newTotal,
+      })
+      .eq("id", orderId);
 
     if (error) {
       toast({ title: "Erro ao salvar", variant: "destructive" });
@@ -727,8 +813,8 @@ const AdminDashboard = () => {
 
     // Delete existing items and re-insert
     await supabase.from("order_items").delete().eq("order_id", orderId);
-    
-    const itemsToInsert = editItems.map(item => ({
+
+    const itemsToInsert = editItems.map((item) => ({
       order_id: orderId,
       product_name: item.product_name,
       quantity: item.quantity,
@@ -736,14 +822,18 @@ const AdminDashboard = () => {
       observations: item.observations || "",
       addons_json: item.addons_json || [],
     }));
-    
+
     if (itemsToInsert.length > 0) {
       await supabase.from("order_items").insert(itemsToInsert);
     }
 
     setEditingOrder(null);
     // Refresh items cache
-    setItems(prev => { const copy = { ...prev }; delete copy[orderId]; return copy; });
+    setItems((prev) => {
+      const copy = { ...prev };
+      delete copy[orderId];
+      return copy;
+    });
     toast({ title: "✅ Pedido atualizado!" });
     await fetchOrders();
     await fetchItems(orderId);
@@ -757,16 +847,20 @@ const AdminDashboard = () => {
   const fetchCourierCostsForDate = async (dateStr: string, ordersForDay?: Order[]) => {
     const { start, end } = getBusinessDayRange(new Date(dateStr + "T12:00:00"));
     let deliveredOrders: any[] = ordersForDay
-      ? ordersForDay.filter(o => o.status === "delivered" && o.courier_id)
+      ? ordersForDay.filter((o) => o.status === "delivered" && o.courier_id)
       : [];
 
     if (!ordersForDay) {
       const PAGE_SIZE = 1000;
       let page = 0;
       while (true) {
-        let q = supabase.from("orders").select("courier_id, delivery_fee, status")
-          .gte("created_at", start).lte("created_at", end)
-          .eq("status", "delivered").not("courier_id", "is", null)
+        let q = supabase
+          .from("orders")
+          .select("courier_id, delivery_fee, status")
+          .gte("created_at", start)
+          .lte("created_at", end)
+          .eq("status", "delivered")
+          .not("courier_id", "is", null)
           .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (storeId) q = q.eq("store_id", storeId);
         const { data } = await q;
@@ -789,32 +883,46 @@ const AdminDashboard = () => {
     if (courierIds.size === 0) return [];
 
     // Get courier names
-    const { data: courierData } = await supabase.from("couriers" as any).select("id, name").in("id", Array.from(courierIds));
+    const { data: courierData } = await supabase
+      .from("couriers" as any)
+      .select("id, name")
+      .in("id", Array.from(courierIds));
     const courierNames = new Map<string, string>();
-    (courierData as any[] ?? []).forEach((c: any) => courierNames.set(c.id, c.name));
+    ((courierData as any[]) ?? []).forEach((c: any) => courierNames.set(c.id, c.name));
 
     // Get daily fixed fees for the day of week
     const dayOfWeek = new Date(dateStr + "T12:00:00").getDay();
-    let dfq = supabase.from("courier_daily_fees" as any).select("courier_id, fixed_fee").eq("day_of_week", dayOfWeek).in("courier_id", Array.from(courierIds));
+    let dfq = supabase
+      .from("courier_daily_fees" as any)
+      .select("courier_id, fixed_fee")
+      .eq("day_of_week", dayOfWeek)
+      .in("courier_id", Array.from(courierIds));
     if (storeId) dfq = dfq.eq("store_id", storeId);
     const { data: dailyFeeData } = await dfq;
     const dailyFixedFees = new Map<string, number>();
-    (dailyFeeData as any[] ?? []).forEach((d: any) => dailyFixedFees.set(d.courier_id, Number(d.fixed_fee) || 0));
+    ((dailyFeeData as any[]) ?? []).forEach((d: any) => dailyFixedFees.set(d.courier_id, Number(d.fixed_fee) || 0));
 
     // Also check couriers table default fixed_fee
-    const { data: defaultFees } = await supabase.from("couriers" as any).select("id, fixed_fee").in("id", Array.from(courierIds));
+    const { data: defaultFees } = await supabase
+      .from("couriers" as any)
+      .select("id, fixed_fee")
+      .in("id", Array.from(courierIds));
     const defaultFixedFees = new Map<string, number>();
-    (defaultFees as any[] ?? []).forEach((c: any) => defaultFixedFees.set(c.id, Number(c.fixed_fee) || 0));
+    ((defaultFees as any[]) ?? []).forEach((c: any) => defaultFixedFees.set(c.id, Number(c.fixed_fee) || 0));
 
     const expenses: { amount: number; category: string; description: string }[] = [];
-    courierIds.forEach(cid => {
+    courierIds.forEach((cid) => {
       const name = courierNames.get(cid) || "Entregador";
       // Diária por dia da semana TEM PRIORIDADE (respeita 0); fallback = couriers.fixed_fee
-      const fixedFee = dailyFixedFees.has(cid) ? (dailyFixedFees.get(cid) as number) : (defaultFixedFees.get(cid) || 0);
+      const fixedFee = dailyFixedFees.has(cid) ? (dailyFixedFees.get(cid) as number) : defaultFixedFees.get(cid) || 0;
       const deliveryTotal = courierFees.get(cid) || 0;
       const total = fixedFee + deliveryTotal;
       if (total > 0) {
-        expenses.push({ amount: total, category: "diario", description: `${name} (Fixa R$${fixedFee.toFixed(2).replace(".",",")} + Taxas R$${deliveryTotal.toFixed(2).replace(".",",")})` });
+        expenses.push({
+          amount: total,
+          category: "diario",
+          description: `${name} (Fixa R$${fixedFee.toFixed(2).replace(".", ",")} + Taxas R$${deliveryTotal.toFixed(2).replace(".", ",")})`,
+        });
       }
     });
 
@@ -823,10 +931,17 @@ const AdminDashboard = () => {
 
   // Reprint daily report for any date
   const fetchExpensesForDate = async (dateStr: string) => {
-    let q = supabase.from("report_expenses" as any).select("amount, category, description").eq("expense_date", dateStr);
+    let q = supabase
+      .from("report_expenses" as any)
+      .select("amount, category, description")
+      .eq("expense_date", dateStr);
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
-    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description }));
+    return ((data as any[]) ?? []).map((e: any) => ({
+      amount: Number(e.amount),
+      category: e.category,
+      description: e.description,
+    }));
   };
 
   const reprintDailyReport = async () => {
@@ -876,25 +991,43 @@ const AdminDashboard = () => {
     printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido, expenses);
   };
 
-
   const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
-    let q = supabase.from("report_expenses" as any).select("amount, category, description, expense_date").gte("expense_date", fromDate).lte("expense_date", toDate);
+    let q = supabase
+      .from("report_expenses" as any)
+      .select("amount, category, description, expense_date")
+      .gte("expense_date", fromDate)
+      .lte("expense_date", toDate);
     if (storeId) q = q.eq("store_id", storeId);
     const { data } = await q;
-    return (data as any[] ?? []).map((e: any) => ({ amount: Number(e.amount), category: e.category, description: e.description, expense_date: e.expense_date }));
+    return ((data as any[]) ?? []).map((e: any) => ({
+      amount: Number(e.amount),
+      category: e.category,
+      description: e.description,
+      expense_date: e.expense_date,
+    }));
   };
 
-  const printReportTemplate = async (templateType: string, variables: Record<string, string>, blocks: Record<string, string> = {}) => {
-    const { data } = await supabase.from("receipt_templates" as any).select("*").eq("template_type", templateType).maybeSingle();
+  const printReportTemplate = async (
+    templateType: string,
+    variables: Record<string, string>,
+    blocks: Record<string, string> = {},
+  ) => {
+    const { data } = await supabase
+      .from("receipt_templates" as any)
+      .select("*")
+      .eq("template_type", templateType)
+      .maybeSingle();
     const template = data as any;
-    const label = template?.label || (templateType === "relatorio_entregas" ? "RELATÓRIO DE ENTREGAS" : "RELATÓRIO DE PERÍODO");
+    const label =
+      template?.label || (templateType === "relatorio_entregas" ? "RELATÓRIO DE ENTREGAS" : "RELATÓRIO DE PERÍODO");
     const rawTemplate = template?.body_template || getDefaultTemplate(templateType);
     // Garantir título compacto no relatório de entregas (remove [GRANDE]/[TXTGIGANTE] em volta de [TIPOCOMANDA])
-    const normalizedTemplate = templateType === "relatorio_entregas"
-      ? rawTemplate
-          .replace(/\[GRANDE\]\s*\[TIPOCOMANDA\]\s*\[\/GRANDE\]/g, "[TIPOCOMANDA]")
-          .replace(/\[TXTGIGANTE\]\s*\[TIPOCOMANDA\]\s*\[\/TXTGIGANTE\]/g, "[TIPOCOMANDA]")
-      : rawTemplate;
+    const normalizedTemplate =
+      templateType === "relatorio_entregas"
+        ? rawTemplate
+            .replace(/\[GRANDE\]\s*\[TIPOCOMANDA\]\s*\[\/GRANDE\]/g, "[TIPOCOMANDA]")
+            .replace(/\[TXTGIGANTE\]\s*\[TIPOCOMANDA\]\s*\[\/TXTGIGANTE\]/g, "[TIPOCOMANDA]")
+        : rawTemplate;
     const html = buildAdminPrintDocument({
       title: label,
       template: normalizedTemplate,
@@ -912,7 +1045,8 @@ const AdminDashboard = () => {
       bodyFontSizePx: template?.body_font_size ?? 10,
       labelFontSizePx: template?.label_font_size ?? (templateType === "relatorio_entregas" ? 12 : 18),
       sectionPaddingMm: 0,
-      extraCss: ".report-row{display:flex;justify-content:space-between;gap:4px;font-weight:900;font-size:9px;padding:1px 0}.report-row span{white-space:normal;overflow-wrap:anywhere}.report-row span:last-child{white-space:nowrap}",
+      extraCss:
+        ".report-row{display:flex;justify-content:space-between;gap:4px;font-weight:900;font-size:9px;padding:1px 0}.report-row span{white-space:normal;overflow-wrap:anywhere}.report-row span:last-child{white-space:nowrap}",
     });
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
@@ -966,29 +1100,34 @@ const AdminDashboard = () => {
     });
 
     // Fetch manual expenses for the period
-    const allManualExpenses = await fetchExpensesForRange(format(periodFrom, "yyyy-MM-dd"), format(periodTo, "yyyy-MM-dd"));
+    const allManualExpenses = await fetchExpensesForRange(
+      format(periodFrom, "yyyy-MM-dd"),
+      format(periodTo, "yyyy-MM-dd"),
+    );
     const manualExpensesByDate = new Map<string, number>();
-    allManualExpenses.forEach(e => {
+    allManualExpenses.forEach((e) => {
       manualExpensesByDate.set(e.expense_date, (manualExpensesByDate.get(e.expense_date) || 0) + e.amount);
     });
 
     // Calculate courier costs per date
-    const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map(d => format(d, "yyyy-MM-dd"));
-    
+    const allDates: string[] = eachDayOfInterval({ start: periodFrom, end: periodTo }).map((d) =>
+      format(d, "yyyy-MM-dd"),
+    );
+
     const courierCostsByDate = new Map<string, number>();
     const courierResults = await Promise.all(
       allDates.map(async (dateStr) => {
         const courierExpenses = await fetchCourierCostsForDate(dateStr);
         const total = courierExpenses.reduce((s, e) => s + e.amount, 0);
         return { dateStr, total };
-      })
+      }),
     );
     courierResults.forEach(({ dateStr, total }) => {
       if (total > 0) courierCostsByDate.set(dateStr, total);
     });
 
     // Build full rows
-    const fullRows = allDates.map(dateStr => {
+    const fullRows = allDates.map((dateStr) => {
       const orderData = ordersByDate.get(dateStr);
       const manualExp = manualExpensesByDate.get(dateStr) || 0;
       const courierExp = courierCostsByDate.get(dateStr) || 0;
@@ -1021,18 +1160,26 @@ const AdminDashboard = () => {
 
     const periodLabel = `${format(periodFrom, "dd/MM/yyyy")} a ${format(periodTo, "dd/MM/yyyy")}`;
 
-    const reportRows = fullRows.map(r => `
-      <div class="report-row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".",",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".",",")}</span></div>
-    `).join("");
-    await printReportTemplate("relatorio_periodo", {
-      "[PERIODO]": periodLabel,
-      "[LINHAS]": reportRows,
-      "[TOTALPEDIDOS]": String(totalOrders),
-      "[TOTALBRUTO]": `R$ ${totalBruto.toFixed(2).replace(".",",")}`,
-      "[TOTALENTREGADORES]": `R$ ${totalCourierPaid.toFixed(2).replace(".",",")}`,
-      "[TOTALGASTOS]": `R$ ${totalGastos.toFixed(2).replace(".",",")}`,
-      "[TOTALLIQUIDO]": `R$ ${totalLiquido.toFixed(2).replace(".",",")}`,
-    }, { "[LINHAS]": reportRows });
+    const reportRows = fullRows
+      .map(
+        (r) => `
+      <div class="report-row"><span>${format(new Date(r.report_date + "T12:00:00"), "dd/MM")}</span><span>${r.total_orders} ped.</span><span>R$ ${r.total_bruto.toFixed(2).replace(".", ",")}</span><span>R$ ${r.total_liquido.toFixed(2).replace(".", ",")}</span></div>
+    `,
+      )
+      .join("");
+    await printReportTemplate(
+      "relatorio_periodo",
+      {
+        "[PERIODO]": periodLabel,
+        "[LINHAS]": reportRows,
+        "[TOTALPEDIDOS]": String(totalOrders),
+        "[TOTALBRUTO]": `R$ ${totalBruto.toFixed(2).replace(".", ",")}`,
+        "[TOTALENTREGADORES]": `R$ ${totalCourierPaid.toFixed(2).replace(".", ",")}`,
+        "[TOTALGASTOS]": `R$ ${totalGastos.toFixed(2).replace(".", ",")}`,
+        "[TOTALLIQUIDO]": `R$ ${totalLiquido.toFixed(2).replace(".", ",")}`,
+      },
+      { "[LINHAS]": reportRows },
+    );
   };
 
   const handleCloseDay = async () => {
@@ -1044,29 +1191,35 @@ const AdminDashboard = () => {
     ]);
     const expenses = [...courierExpenses, ...manualExpenses];
 
-    const allOrders = orders.filter(o => o.status !== "cancelled");
+    const allOrders = orders.filter((o) => o.status !== "cancelled");
     const totalBruto = allOrders.reduce((s, o) => s + Number(o.total), 0);
     const totalDelivery = allOrders.reduce((s, o) => s + Number(o.delivery_fee), 0);
     const totalGastos = expenses.reduce((s, e) => s + e.amount, 0);
     const totalLiquido = totalBruto - totalGastos;
 
-    await supabase.from("daily_reports").upsert({
-      report_date: dateStr,
-      total_orders: allOrders.length,
-      total_bruto: totalBruto,
-      total_delivery_fees: totalDelivery,
-      total_gastos: totalGastos,
-      total_liquido: totalLiquido,
-      opened_at: storeSettings?.opened_at,
-      closed_at: new Date().toISOString(),
-      store_id: storeId,
-    }, { onConflict: "report_date" });
+    await supabase.from("daily_reports").upsert(
+      {
+        report_date: dateStr,
+        total_orders: allOrders.length,
+        total_bruto: totalBruto,
+        total_delivery_fees: totalDelivery,
+        total_gastos: totalGastos,
+        total_liquido: totalLiquido,
+        opened_at: storeSettings?.opened_at,
+        closed_at: new Date().toISOString(),
+        store_id: storeId,
+      },
+      { onConflict: "report_date" },
+    );
 
     if (storeSettings) {
-      await supabase.from("store_settings").update({
-        is_open: false,
-        closed_at: new Date().toISOString(),
-      }).eq("id", storeSettings.id);
+      await supabase
+        .from("store_settings")
+        .update({
+          is_open: false,
+          closed_at: new Date().toISOString(),
+        })
+        .eq("id", storeSettings.id);
     }
 
     printDailyReport(orders, totalBruto, totalDelivery, totalGastos, totalLiquido, expenses);
@@ -1074,19 +1227,26 @@ const AdminDashboard = () => {
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
 
-  const printDailyReport = (allOrders: Order[], bruto: number, delivery: number, gastos: number, liquido: number, expensesList: { amount: number; category: string; description: string }[] = []) => {
+  const printDailyReport = (
+    allOrders: Order[],
+    bruto: number,
+    delivery: number,
+    gastos: number,
+    liquido: number,
+    expensesList: { amount: number; category: string; description: string }[] = [],
+  ) => {
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     const date = format(selectedDate, "dd/MM/yyyy");
 
     const statusCounts = {
-      pending: allOrders.filter(o => o.status === "pending" || o.status === "paid").length,
-      
-      preparing: allOrders.filter(o => o.status === "preparing").length,
-      ready: allOrders.filter(o => o.status === "ready").length,
-      delivering: allOrders.filter(o => o.status === "delivering").length,
-      delivered: allOrders.filter(o => o.status === "delivered").length,
-      cancelled: allOrders.filter(o => o.status === "cancelled").length,
+      pending: allOrders.filter((o) => o.status === "pending" || o.status === "paid").length,
+
+      preparing: allOrders.filter((o) => o.status === "preparing").length,
+      ready: allOrders.filter((o) => o.status === "ready").length,
+      delivering: allOrders.filter((o) => o.status === "delivering").length,
+      delivered: allOrders.filter((o) => o.status === "delivered").length,
+      cancelled: allOrders.filter((o) => o.status === "cancelled").length,
     };
 
     const statusLabels: Record<string, string> = {
@@ -1104,11 +1264,19 @@ const AdminDashboard = () => {
       .map(([key, count]) => `<div class="row"><span>${statusLabels[key]}:</span><span>${count}</span></div>`)
       .join("");
 
-    const expenseRows = expensesList.length > 0
-      ? expensesList.map(e => `<div class="row"><span>${e.description}</span><span>R$ ${e.amount.toFixed(2).replace(".",",")}</span></div>`).join("")
-      : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
+    const expenseRows =
+      expensesList.length > 0
+        ? expensesList
+            .map(
+              (e) =>
+                `<div class="row"><span>${e.description}</span><span>R$ ${e.amount.toFixed(2).replace(".", ",")}</span></div>`,
+            )
+            .join("")
+        : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
 
-    w.document.write(makeTightThermalPrintHtml(`
+    w.document.write(
+      makeTightThermalPrintHtml(
+        `
       <html><head><style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -1131,22 +1299,34 @@ const AdminDashboard = () => {
         <div class="row"><span>Total de Pedidos:</span><span>${allOrders.length}</span></div>
         ${statusRows}
         <div class="sep"></div>
-        <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".",",")}</span></div>
-        <div class="row"><span>Pago Entregadores:</span><span>R$ ${expensesList.filter(e => e.category === "diario").reduce((s, e) => s + e.amount, 0).toFixed(2).replace(".",",")}</span></div>
+        <div class="row big"><span>TOTAL BRUTO:</span><span>R$ ${bruto.toFixed(2).replace(".", ",")}</span></div>
+        <div class="row"><span>Pago Entregadores:</span><span>R$ ${expensesList
+          .filter((e) => e.category === "diario")
+          .reduce((s, e) => s + e.amount, 0)
+          .toFixed(2)
+          .replace(".", ",")}</span></div>
         <div class="sep"></div>
         <div class="sub">GASTOS DO DIA:</div>
         ${expenseRows}
-        <div class="row"><span>Total Gastos:</span><span>R$ ${gastos.toFixed(2).replace(".",",")}</span></div>
+        <div class="row"><span>Total Gastos:</span><span>R$ ${gastos.toFixed(2).replace(".", ",")}</span></div>
         <div class="sep"></div>
-        <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${liquido.toFixed(2).replace(".",",")}</span></div>
+        <div class="row big"><span>TOTAL LÍQUIDO:</span><span>R$ ${liquido.toFixed(2).replace(".", ",")}</span></div>
         <div class="center" style="font-size:8px;">Relatório gerado automaticamente</div>
         <div class="sep thermal-cut-marker" data-thermal-cut="true" style="margin-bottom:0;padding-bottom:0;"></div>
       </body></html>
-    `, 72));
+    `,
+        72,
+      ),
+    );
     w.document.close();
     setTimeout(() => {
-      try { (w as any).prepareTightThermalPrintPage?.(); } catch {}
-      setTimeout(() => { w.print(); setTimeout(() => w.close(), 1400); }, 200);
+      try {
+        (w as any).prepareTightThermalPrintPage?.();
+      } catch {}
+      setTimeout(() => {
+        w.print();
+        setTimeout(() => w.close(), 1400);
+      }, 200);
     }, 500);
   };
 
@@ -1167,7 +1347,7 @@ const AdminDashboard = () => {
     const dateRanges: { start: string; end: string; date: Date }[] = [];
     if (isPeriod && deliveryPeriodFrom && deliveryPeriodTo) {
       const days = eachDayOfInterval({ start: deliveryPeriodFrom, end: deliveryPeriodTo });
-      days.forEach(d => {
+      days.forEach((d) => {
         const r = getBusinessDayRange(d);
         dateRanges.push({ start: r.start, end: r.end, date: d });
       });
@@ -1184,7 +1364,9 @@ const AdminDashboard = () => {
       while (true) {
         let q = supabase
           .from("orders")
-          .select("order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status")
+          .select(
+            "order_number, address_street, address_neighborhood, delivery_fee, courier_id, delivering_at, delivered_at, created_at, status",
+          )
           .gte("created_at", range.start)
           .lte("created_at", range.end)
           .eq("delivery_type", "delivery")
@@ -1200,7 +1382,7 @@ const AdminDashboard = () => {
       }
     }
 
-    const courier = couriers.find(c => c.id === deliveryReportCourierId);
+    const courier = couriers.find((c) => c.id === deliveryReportCourierId);
     const courierName = courier?.name || "Desconhecido";
 
     // Calculate fixed fees
@@ -1214,8 +1396,8 @@ const AdminDashboard = () => {
       const feeMap = new Map<number, number>();
       (allDailyFees || []).forEach((f: any) => feeMap.set(f.day_of_week, Number(f.fixed_fee) || 0));
       // Soma a diária por dia da semana (respeita 0 = "não cobra nesse dia")
-      days.forEach(d => {
-        totalFixedFees += feeMap.has(d.getDay()) ? (feeMap.get(d.getDay()) as number) : (Number(courier?.fixed_fee) || 0);
+      days.forEach((d) => {
+        totalFixedFees += feeMap.has(d.getDay()) ? (feeMap.get(d.getDay()) as number) : Number(courier?.fixed_fee) || 0;
       });
     } else {
       const reportDow = selectedDate.getDay();
@@ -1226,15 +1408,16 @@ const AdminDashboard = () => {
         .eq("day_of_week", reportDow)
         .maybeSingle();
       // Diária do dia da semana TEM PRIORIDADE (respeita 0); só cai pro padrão se NÃO houver linha
-      totalFixedFees = dailyFeeData ? (Number(dailyFeeData.fixed_fee) || 0) : (Number(courier?.fixed_fee) || 0);
+      totalFixedFees = dailyFeeData ? Number(dailyFeeData.fixed_fee) || 0 : Number(courier?.fixed_fee) || 0;
     }
 
     const totalTaxas = allDeliveryOrders.reduce((s, o) => s + Number(o.delivery_fee || 0), 0);
     const totalEntregador = totalFixedFees + totalTaxas;
 
-    const dateLabel = isPeriod && deliveryPeriodFrom && deliveryPeriodTo
-      ? `${formatDateBR(deliveryPeriodFrom)} a ${formatDateBR(deliveryPeriodTo)}`
-      : formatDateBR(selectedDate);
+    const dateLabel =
+      isPeriod && deliveryPeriodFrom && deliveryPeriodTo
+        ? `${formatDateBR(deliveryPeriodFrom)} a ${formatDateBR(deliveryPeriodTo)}`
+        : formatDateBR(selectedDate);
 
     // Ordena pela sequência real do pedido (order_number) para evitar inconsistências
     // causadas por relógio errado do notebook. Fallback: timestamps do servidor.
@@ -1247,24 +1430,36 @@ const AdminDashboard = () => {
       return new Date(tA).getTime() - new Date(tB).getTime();
     });
 
-    const rows = allDeliveryOrders.map((o, idx) => `
-      <div class="report-row"><span>${idx + 1} - #${String(o.order_number).padStart(5,"0")} ${escapeHtml(o.address_street || "S/R")}, ${escapeHtml(o.address_neighborhood || "")}</span><span>R$ ${Number(o.delivery_fee || 0).toFixed(2).replace(".",",")}</span></div>
-    `).join("");
+    const rows = allDeliveryOrders
+      .map(
+        (o, idx) => `
+      <div class="report-row"><span>${idx + 1} - #${String(o.order_number).padStart(5, "0")} ${escapeHtml(o.address_street || "S/R")}, ${escapeHtml(o.address_neighborhood || "")}</span><span>R$ ${Number(
+        o.delivery_fee || 0,
+      )
+        .toFixed(2)
+        .replace(".", ",")}</span></div>
+    `,
+      )
+      .join("");
 
     const fixedFeeLabel = isPeriod ? "Taxa Fixa (período)" : "Taxa Fixa do Dia";
 
-    await printReportTemplate("relatorio_entregas", {
-      "[PERIODO]": dateLabel,
-      "[NOMEENTREGADOR]": `🚚 ${courierName}`,
-      "[LINHAS]": rows,
-      "[TOTALENTREGAS]": String(allDeliveryOrders.length),
-      "[TOTALTAXAS]": `R$ ${totalTaxas.toFixed(2).replace(".",",")}`,
-      "[TAXAFIXA]": `R$ ${totalFixedFees.toFixed(2).replace(".",",")}`,
-      "[TOTALENTREGADOR]": `R$ ${totalEntregador.toFixed(2).replace(".",",")}`,
-    }, { "[LINHAS]": rows });
+    await printReportTemplate(
+      "relatorio_entregas",
+      {
+        "[PERIODO]": dateLabel,
+        "[NOMEENTREGADOR]": `🚚 ${courierName}`,
+        "[LINHAS]": rows,
+        "[TOTALENTREGAS]": String(allDeliveryOrders.length),
+        "[TOTALTAXAS]": `R$ ${totalTaxas.toFixed(2).replace(".", ",")}`,
+        "[TAXAFIXA]": `R$ ${totalFixedFees.toFixed(2).replace(".", ",")}`,
+        "[TOTALENTREGADOR]": `R$ ${totalEntregador.toFixed(2).replace(".", ",")}`,
+      },
+      { "[LINHAS]": rows },
+    );
   };
 
-  const activeTabConfig = tabs.find(t => t.key === activeTab);
+  const activeTabConfig = tabs.find((t) => t.key === activeTab);
   // Hide PIX orders that have NOT been paid yet — only while still pending awaiting payment.
   // Once an order moves past pending (preparing/ready/delivering/delivered), it must always be visible
   // regardless of payment_confirmed flag, otherwise PDV/manual orders created with payment_method='pix'
@@ -1273,22 +1468,26 @@ const AdminDashboard = () => {
   // Hide ONLY orders strictly awaiting an online PIX charge: status === 'awaiting_payment'.
   // Any order with status 'pending' is a confirmed pending order (cash/card/pix-on-delivery
   // or PIX checkout that already moved to pending) and MUST appear in the dashboard.
-  const visibleOrders = useMemo(() => orders.filter(o => {
-    if (o.status === "awaiting_payment" && !o.payment_confirmed) return false;
-    return true;
-  }), [orders]);
+  const visibleOrders = useMemo(
+    () =>
+      orders.filter((o) => {
+        if (o.status === "awaiting_payment" && !o.payment_confirmed) return false;
+        return true;
+      }),
+    [orders],
+  );
 
   const filteredOrders = visibleOrders
-    .filter(o => {
+    .filter((o) => {
       if (activeTab === "trashed") return o.status === "cancelled" && !!o.trashed_at;
       if (!activeTabConfig?.statuses.includes(o.status)) return false;
       return !o.trashed_at;
     })
-    .filter(o => {
+    .filter((o) => {
       if (!searchQuery.trim()) return true;
       const q = normalizeSearch(searchQuery);
       const profile = profiles[o.user_id];
-      const code = profile?.customer_code ? `t${String(profile.customer_code).padStart(5, '0')}` : "";
+      const code = profile?.customer_code ? `t${String(profile.customer_code).padStart(5, "0")}` : "";
       return (
         String(o.order_number).includes(q) ||
         code.includes(q) ||
@@ -1309,22 +1508,31 @@ const AdminDashboard = () => {
     return { min, sec };
   };
 
-  const stats = useMemo(() => ({
-    pending: visibleOrders.filter(o => !o.trashed_at && (o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment")).length,
-    preparing: visibleOrders.filter(o => !o.trashed_at && o.status === "preparing").length,
-    ready: visibleOrders.filter(o => !o.trashed_at && o.status === "ready").length,
-    delivering: visibleOrders.filter(o => !o.trashed_at && o.status === "delivering").length,
-    delivered: visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").length,
-    cancelled: visibleOrders.filter(o => !o.trashed_at && o.status === "cancelled").length,
-    trashed: visibleOrders.filter(o => !!o.trashed_at && o.status === "cancelled").length,
-  }), [visibleOrders]);
+  const stats = useMemo(
+    () => ({
+      pending: visibleOrders.filter(
+        (o) => !o.trashed_at && (o.status === "pending" || o.status === "paid" || o.status === "awaiting_payment"),
+      ).length,
+      preparing: visibleOrders.filter((o) => !o.trashed_at && o.status === "preparing").length,
+      ready: visibleOrders.filter((o) => !o.trashed_at && o.status === "ready").length,
+      delivering: visibleOrders.filter((o) => !o.trashed_at && o.status === "delivering").length,
+      delivered: visibleOrders.filter((o) => !o.trashed_at && o.status === "delivered").length,
+      cancelled: visibleOrders.filter((o) => !o.trashed_at && o.status === "cancelled").length,
+      trashed: visibleOrders.filter((o) => !!o.trashed_at && o.status === "cancelled").length,
+    }),
+    [visibleOrders],
+  );
 
-  const todayRevenue = useMemo(() => visibleOrders.filter(o => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0), [visibleOrders]);
+  const todayRevenue = useMemo(
+    () =>
+      visibleOrders.filter((o) => !o.trashed_at && o.status === "delivered").reduce((s, o) => s + Number(o.total), 0),
+    [visibleOrders],
+  );
 
   // Tick every 30s so late-delivery banner refreshes without waiting for new realtime events
   const [, forceLateTick] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => forceLateTick(n => n + 1), 30_000);
+    const t = setInterval(() => forceLateTick((n) => n + 1), 30_000);
     return () => clearInterval(t);
   }, []);
 
@@ -1332,11 +1540,12 @@ const AdminDashboard = () => {
     if (deliveryTimeMinutes <= 0) return [] as typeof visibleOrders;
     const active = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
     const now = Date.now();
-    return visibleOrders.filter(o =>
-      !o.trashed_at &&
-      o.delivery_type === "delivery" &&
-      active.includes(o.status) &&
-      (now - new Date(o.created_at).getTime()) / 60000 > deliveryTimeMinutes
+    return visibleOrders.filter(
+      (o) =>
+        !o.trashed_at &&
+        o.delivery_type === "delivery" &&
+        active.includes(o.status) &&
+        (now - new Date(o.created_at).getTime()) / 60000 > deliveryTimeMinutes,
     );
   }, [visibleOrders, deliveryTimeMinutes]);
 
@@ -1353,18 +1562,18 @@ const AdminDashboard = () => {
         {/* Modo de impressão das comandas (Pedido / Fechamento de Rota / Obrigado) */}
         <PrintModeSelector />
 
-
         {/* Status indicator - what customers see */}
-        <div className={cn(
-          "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
-          customerSeesOpen
-            ? "border-green-500 bg-green-500/10 text-green-600"
-            : "border-red-500 bg-red-500/10 text-red-600",
-        )}>
-          <span className={cn(
-            "h-3 w-3 rounded-full animate-pulse",
-            customerSeesOpen ? "bg-green-500" : "bg-red-500",
-          )} />
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
+            customerSeesOpen
+              ? "border-green-500 bg-green-500/10 text-green-600"
+              : "border-red-500 bg-red-500/10 text-red-600",
+          )}
+        >
+          <span
+            className={cn("h-3 w-3 rounded-full animate-pulse", customerSeesOpen ? "bg-green-500" : "bg-red-500")}
+          />
           {customerSeesOpen ? "LOJA ABERTA" : "LOJA FECHADA"}
           {!customerSeesOpen && nextOpeningText && (
             <span className="ml-1 text-xs font-normal text-muted-foreground">({nextOpeningText})</span>
@@ -1400,7 +1609,6 @@ const AdminDashboard = () => {
           Novo Pedido
         </button>
 
-
         <button
           onClick={openKitchenWindow}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
@@ -1418,7 +1626,10 @@ const AdminDashboard = () => {
         </button>
 
         <button
-          onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados!" }); }}
+          onClick={() => {
+            fetchOrders();
+            toast({ title: "✅ Pedidos atualizados!" });
+          }}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >
           <RefreshCw size={16} />
@@ -1443,11 +1654,15 @@ const AdminDashboard = () => {
 
         <div className="ml-auto flex items-center gap-4 text-sm">
           <div className="text-muted-foreground">
-            <span className="font-bold text-foreground">{visibleOrders.filter(o => !o.trashed_at).length}</span> pedidos
+            <span className="font-bold text-foreground">{visibleOrders.filter((o) => !o.trashed_at).length}</span>{" "}
+            pedidos
           </div>
           <div className="flex items-center gap-2 text-muted-foreground">
-            Faturamento: <span className="font-bold text-green-600">{valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".",",")}` : "R$ •••••"}</span>
-            <button onClick={() => setValuesVisible(v => !v)} className="p-1 rounded hover:bg-muted">
+            Faturamento:{" "}
+            <span className="font-bold text-green-600">
+              {valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".", ",")}` : "R$ •••••"}
+            </span>
+            <button onClick={() => setValuesVisible((v) => !v)} className="p-1 rounded hover:bg-muted">
               {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
@@ -1458,7 +1673,10 @@ const AdminDashboard = () => {
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-[200px] justify-start text-left font-medium", !selectedDate && "text-muted-foreground")}>
+            <Button
+              variant="outline"
+              className={cn("w-[200px] justify-start text-left font-medium", !selectedDate && "text-muted-foreground")}
+            >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {format(selectedDate, "dd/MM/yyyy")}
             </Button>
@@ -1489,7 +1707,7 @@ const AdminDashboard = () => {
             ref={searchInputRef}
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por nº pedido, nome, telefone, endereço..."
             autoComplete="off"
             name="dashboard-search-nofill"
@@ -1500,9 +1718,7 @@ const AdminDashboard = () => {
         {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
         <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
           <PopoverTrigger asChild>
-            <button
-              className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
-            >
+            <button className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
               <FileText size={16} />
               Relatórios
               <ChevronDown size={14} />
@@ -1510,19 +1726,28 @@ const AdminDashboard = () => {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-60 p-1">
             <button
-              onClick={() => { setShowReportsMenu(false); requireReportPassword(reprintDailyReport); }}
+              onClick={() => {
+                setShowReportsMenu(false);
+                requireReportPassword(reprintDailyReport);
+              }}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               <Printer size={15} /> Reimprimir Relatório
             </button>
             <button
-              onClick={() => { setShowReportsMenu(false); setShowPeriodReport(v => !v); }}
+              onClick={() => {
+                setShowReportsMenu(false);
+                setShowPeriodReport((v) => !v);
+              }}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               <FileText size={15} /> Relatório de Período
             </button>
             <button
-              onClick={() => { setShowReportsMenu(false); setShowDeliveryReport(v => !v); }}
+              onClick={() => {
+                setShowReportsMenu(false);
+                setShowDeliveryReport((v) => !v);
+              }}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted"
             >
               <Truck size={15} /> Relatório de Entregas
@@ -1543,7 +1768,13 @@ const AdminDashboard = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={periodFrom} onSelect={(d) => d && setPeriodFrom(d)} initialFocus className="p-3 pointer-events-auto" />
+                <Calendar
+                  mode="single"
+                  selected={periodFrom}
+                  onSelect={(d) => d && setPeriodFrom(d)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
               </PopoverContent>
             </Popover>
           </div>
@@ -1557,7 +1788,13 @@ const AdminDashboard = () => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={periodTo} onSelect={(d) => d && setPeriodTo(d)} initialFocus className="p-3 pointer-events-auto" />
+                <Calendar
+                  mode="single"
+                  selected={periodTo}
+                  onSelect={(d) => d && setPeriodTo(d)}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
               </PopoverContent>
             </Popover>
           </div>
@@ -1574,12 +1811,14 @@ const AdminDashboard = () => {
             <label className="text-xs font-semibold text-muted-foreground">Entregador</label>
             <select
               value={deliveryReportCourierId}
-              onChange={e => setDeliveryReportCourierId(e.target.value)}
+              onChange={(e) => setDeliveryReportCourierId(e.target.value)}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground min-w-[180px]"
             >
               <option value="">Selecione...</option>
-              {couriers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} (R$ {c.fixed_fee.toFixed(2).replace(".",",")})</option>
+              {couriers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} (R$ {c.fixed_fee.toFixed(2).replace(".", ",")})
+                </option>
               ))}
             </select>
           </div>
@@ -1587,7 +1826,7 @@ const AdminDashboard = () => {
             <label className="text-xs font-semibold text-muted-foreground">Modo</label>
             <select
               value={deliveryReportMode}
-              onChange={e => setDeliveryReportMode(e.target.value as "daily" | "period")}
+              onChange={(e) => setDeliveryReportMode(e.target.value as "daily" | "period")}
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground min-w-[140px]"
             >
               <option value="daily">Dia Selecionado</option>
@@ -1606,7 +1845,13 @@ const AdminDashboard = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={deliveryPeriodFrom} onSelect={(d) => d && setDeliveryPeriodFrom(d)} initialFocus className="p-3 pointer-events-auto" />
+                    <Calendar
+                      mode="single"
+                      selected={deliveryPeriodFrom}
+                      onSelect={(d) => d && setDeliveryPeriodFrom(d)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
@@ -1620,13 +1865,25 @@ const AdminDashboard = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={deliveryPeriodTo} onSelect={(d) => d && setDeliveryPeriodTo(d)} initialFocus className="p-3 pointer-events-auto" />
+                    <Calendar
+                      mode="single"
+                      selected={deliveryPeriodTo}
+                      onSelect={(d) => d && setDeliveryPeriodTo(d)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
             </>
           )}
-          <Button onClick={() => requireReportPassword(printDeliveryReport)} disabled={!deliveryReportCourierId || (deliveryReportMode === "period" && (!deliveryPeriodFrom || !deliveryPeriodTo))}>
+          <Button
+            onClick={() => requireReportPassword(printDeliveryReport)}
+            disabled={
+              !deliveryReportCourierId ||
+              (deliveryReportMode === "period" && (!deliveryPeriodFrom || !deliveryPeriodTo))
+            }
+          >
             <Printer size={16} />
             Imprimir Relatório de Entregas
           </Button>
@@ -1644,14 +1901,26 @@ const AdminDashboard = () => {
               A loja será fechada e o relatório diário será impresso automaticamente.
             </p>
             <div className="text-sm space-y-1">
-              <div className="flex justify-between"><span>Pedidos entregues:</span><span className="font-bold">{stats.delivered}</span></div>
-              <div className="flex justify-between"><span>Faturamento bruto:</span><span className="font-bold text-green-600">R$ {todayRevenue.toFixed(2).replace(".",",")}</span></div>
+              <div className="flex justify-between">
+                <span>Pedidos entregues:</span>
+                <span className="font-bold">{stats.delivered}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Faturamento bruto:</span>
+                <span className="font-bold text-green-600">R$ {todayRevenue.toFixed(2).replace(".", ",")}</span>
+              </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowCloseDay(false)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+              <button
+                onClick={() => setShowCloseDay(false)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
                 Cancelar
               </button>
-              <button onClick={handleCloseDay} className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-bold text-white">
+              <button
+                onClick={handleCloseDay}
+                className="flex-1 rounded-lg bg-red-600 py-2.5 text-sm font-bold text-white"
+              >
                 Confirmar e Imprimir
               </button>
             </div>
@@ -1665,9 +1934,7 @@ const AdminDashboard = () => {
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
               <Power size={24} className={customerSeesOpen ? "text-destructive" : "text-primary"} />
-              <AlertDialogTitle>
-                {customerSeesOpen ? "Fechar a loja?" : "Abrir a loja?"}
-              </AlertDialogTitle>
+              <AlertDialogTitle>{customerSeesOpen ? "Fechar a loja?" : "Abrir a loja?"}</AlertDialogTitle>
             </div>
             <AlertDialogDescription>
               {customerSeesOpen
@@ -1698,15 +1965,19 @@ const AdminDashboard = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-
       {lateDeliveryOrders.length > 0 && (
         <div className="flex items-center gap-3 rounded-xl border-2 border-red-600 bg-red-50 px-4 py-3 text-red-900 animate-pulse">
           <AlertTriangle size={20} className="shrink-0 text-red-600" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-extrabold">🚨 {lateDeliveryOrders.length} entrega(s) em ATRASO</p>
             <p className="text-xs font-semibold">
-              Pedidos: {lateDeliveryOrders.slice(0, 6).map(o => `#${String(o.order_number).padStart(5, "0")}`).join(", ")}
-              {lateDeliveryOrders.length > 6 ? ` +${lateDeliveryOrders.length - 6}` : ""} · prazo: {deliveryTimeMinutes}min
+              Pedidos:{" "}
+              {lateDeliveryOrders
+                .slice(0, 6)
+                .map((o) => `#${String(o.order_number).padStart(5, "0")}`)
+                .join(", ")}
+              {lateDeliveryOrders.length > 6 ? ` +${lateDeliveryOrders.length - 6}` : ""} · prazo: {deliveryTimeMinutes}
+              min
             </p>
           </div>
           <button
@@ -1719,7 +1990,7 @@ const AdminDashboard = () => {
       )}
 
       <div className="flex w-full flex-wrap gap-1.5 pb-1 sm:gap-2">
-        {tabs.map(tab => {
+        {tabs.map((tab) => {
           const count = stats[tab.key as keyof typeof stats] || 0;
           const isActive = activeTab === tab.key;
           const isPendingWithOrders = tab.key === "pending" && count > 0;
@@ -1728,17 +1999,21 @@ const AdminDashboard = () => {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex min-w-0 flex-1 basis-0 items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm ${
-                isActive
-                  ? `${tab.color} text-white`
-                  : "bg-card border border-border text-foreground hover:bg-muted"
+                isActive ? `${tab.color} text-white` : "bg-card border border-border text-foreground hover:bg-muted"
               } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-1" : ""}`}
             >
               <tab.icon size={14} className="shrink-0" />
               <span className="truncate">{tab.label}</span>
               {count > 0 && (
-                <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold sm:text-xs ${
-                  isActive ? "bg-white/20 text-white" : isPendingWithOrders ? "bg-amber-500 text-white" : "bg-muted text-foreground"
-                }`}>
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold sm:text-xs ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : isPendingWithOrders
+                        ? "bg-amber-500 text-white"
+                        : "bg-muted text-foreground"
+                  }`}
+                >
                   {count}
                 </span>
               )}
@@ -1751,7 +2026,9 @@ const AdminDashboard = () => {
       {filteredOrders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Package size={40} className="mb-3 opacity-40" />
-          <p className="text-sm">{searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}</p>
+          <p className="text-sm">
+            {searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1759,7 +2036,7 @@ const AdminDashboard = () => {
             const next = order.status === "awaiting_payment" ? null : getNextStatusForOrder(order);
             const elapsed = order.status === "preparing" ? getElapsed(order.preparing_at) : null;
             const profile = profiles[order.user_id];
-            const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, '0')}` : "";
+            const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
             const isEditing = editingOrder === order.id;
             const tableCode = getTableCode(order);
             const displayObservation = cleanOrderObservation(order.observations);
@@ -1770,21 +2047,28 @@ const AdminDashboard = () => {
             // and have exceeded the configured delivery time.
             const activeDeliveryStatuses = ["pending", "paid", "accepted", "preparing", "ready", "delivering"];
             const isDelivery = order.delivery_type === "delivery";
-            const isLateDelivery = isDelivery
-              && activeDeliveryStatuses.includes(order.status)
-              && deliveryTimeMinutes > 0
-              && (Date.now() - new Date(order.created_at).getTime()) / 60000 > deliveryTimeMinutes;
+            const isLateDelivery =
+              isDelivery &&
+              activeDeliveryStatuses.includes(order.status) &&
+              deliveryTimeMinutes > 0 &&
+              (Date.now() - new Date(order.created_at).getTime()) / 60000 > deliveryTimeMinutes;
             const lateMinutes = isLateDelivery
               ? Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000) - deliveryTimeMinutes
               : 0;
 
             return (
-              <div key={order.id} className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
-                isLateDelivery ? "border-red-600 border-2 animate-pulse" :
-                (order.status === "pending" || order.status === "paid") ? "border-amber-500 border-2 animate-pulse" :
-                (order.status === "ready" && order.courier_id) ? "border-red-500 border-2 animate-pulse" :
-                "border-border"
-              }`}>
+              <div
+                key={order.id}
+                className={`flex flex-col rounded-xl border bg-card shadow-sm overflow-hidden ${
+                  isLateDelivery
+                    ? "border-red-600 border-2 animate-pulse"
+                    : order.status === "pending" || order.status === "paid"
+                      ? "border-amber-500 border-2 animate-pulse"
+                      : order.status === "ready" && order.courier_id
+                        ? "border-red-500 border-2 animate-pulse"
+                        : "border-border"
+                }`}
+              >
                 <div className="flex items-start gap-3 p-4 border-b border-border">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1797,7 +2081,15 @@ const AdminDashboard = () => {
                         </span>
                       )}
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "mesa" ? "MESA" : order.delivery_type === "viagem" ? "VIAGEM" : order.delivery_type === "consumo" ? "CONSUMO" : "RETIRADA"}
+                        {order.delivery_type === "delivery"
+                          ? "DELIVERY"
+                          : order.delivery_type === "mesa"
+                            ? "MESA"
+                            : order.delivery_type === "viagem"
+                              ? "VIAGEM"
+                              : order.delivery_type === "consumo"
+                                ? "CONSUMO"
+                                : "RETIRADA"}
                       </span>
                       {order.status === "paid" && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
@@ -1817,327 +2109,468 @@ const AdminDashboard = () => {
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {new Date(order.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      {" · "}{getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                      {" · "}
+                      {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                       {profile?.full_name ? ` · ${profile.full_name}` : ""}
                     </p>
                   </div>
 
                   {elapsed && (
-                    <div className={`rounded-lg px-3 py-1.5 text-sm font-bold tabular-nums ${
-                      elapsed.min >= 20 ? "bg-red-600 text-white animate-pulse" :
-                      elapsed.min >= 15 ? "bg-amber-500 text-white" :
-                      "bg-green-600 text-white"
-                    }`}>
+                    <div
+                      className={`rounded-lg px-3 py-1.5 text-sm font-bold tabular-nums ${
+                        elapsed.min >= 20
+                          ? "bg-red-600 text-white animate-pulse"
+                          : elapsed.min >= 15
+                            ? "bg-amber-500 text-white"
+                            : "bg-green-600 text-white"
+                      }`}
+                    >
                       {elapsed.min}:{String(elapsed.sec).padStart(2, "0")}
                     </div>
                   )}
 
                   <span className="text-sm font-bold text-foreground">
-                    R$ {Number(order.total).toFixed(2).replace(".",",")}
+                    R$ {Number(order.total).toFixed(2).replace(".", ",")}
                   </span>
                 </div>
 
                 <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
-                    {/* Edit mode */}
-                    {isEditing ? (
-                      <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                        <h4 className="text-xs font-bold text-foreground">✏️ Editando Pedido</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Tipo</label>
-                            <select value={editData.delivery_type} onChange={e => setEditData(d => ({ ...d, delivery_type: e.target.value }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground">
-                              <option value="delivery">Delivery</option>
-                              <option value="pickup">Retirada</option>
-                              <option value="mesa">Mesa</option>
-                              <option value="viagem">Viagem</option>
-                              <option value="consumo">Consumo</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Pagamento</label>
-                            <select value={editData.payment_method} onChange={e => setEditData(d => ({ ...d, payment_method: e.target.value }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground">
-                              <option value="pix">PIX</option>
-                              <option value="dinheiro">Dinheiro</option>
-                              <option value="cartao">Cartão</option>
-                              <option value="credito">Crédito</option>
-                              <option value="debito">Débito</option>
-                              <option value="fiado">Fiado</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Desconto (R$)</label>
-                            <input type="number" step="0.01" value={editData.discount || 0}
-                              onChange={e => setEditData(d => ({ ...d, discount: Number(e.target.value) }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Taxa Entrega (R$)</label>
-                            <input type="number" step="0.01" value={editData.delivery_fee ?? 0}
-                              onChange={e => setEditData(d => ({ ...d, delivery_fee: Number(e.target.value) }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Bairro</label>
-                            <input type="text" value={editData.address_neighborhood || ""}
-                              onChange={e => setEditData(d => ({ ...d, address_neighborhood: e.target.value }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                          </div>
+                  {/* Edit mode */}
+                  {isEditing ? (
+                    <div className="space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <h4 className="text-xs font-bold text-foreground">✏️ Editando Pedido</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Tipo</label>
+                          <select
+                            value={editData.delivery_type}
+                            onChange={(e) => setEditData((d) => ({ ...d, delivery_type: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          >
+                            <option value="delivery">Delivery</option>
+                            <option value="pickup">Retirada</option>
+                            <option value="mesa">Mesa</option>
+                            <option value="viagem">Viagem</option>
+                            <option value="consumo">Consumo</option>
+                          </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-muted-foreground">Rua</label>
-                          <input type="text" value={editData.address_street || ""}
-                            onChange={e => setEditData(d => ({ ...d, address_street: e.target.value }))}
-                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Número</label>
-                            <input type="text" value={editData.address_number || ""}
-                              onChange={e => setEditData(d => ({ ...d, address_number: e.target.value }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                          </div>
-                          <div>
-                            <label className="text-[10px] text-muted-foreground">Complemento</label>
-                            <input type="text" value={editData.address_complement || ""}
-                              onChange={e => setEditData(d => ({ ...d, address_complement: e.target.value }))}
-                              className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" />
-                          </div>
+                          <label className="text-[10px] text-muted-foreground">Pagamento</label>
+                          <select
+                            value={editData.payment_method}
+                            onChange={(e) => setEditData((d) => ({ ...d, payment_method: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          >
+                            <option value="pix">PIX</option>
+                            <option value="dinheiro">Dinheiro</option>
+                            <option value="cartao">Cartão</option>
+                            <option value="credito">Crédito</option>
+                            <option value="debito">Débito</option>
+                            <option value="fiado">Fiado</option>
+                          </select>
                         </div>
                         <div>
-                          <label className="text-[10px] text-muted-foreground">Observações</label>
-                          <textarea value={editData.observations || ""}
-                            onChange={e => setEditData(d => ({ ...d, observations: e.target.value }))}
-                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground" rows={2} />
+                          <label className="text-[10px] text-muted-foreground">Desconto (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editData.discount || 0}
+                            onChange={(e) => setEditData((d) => ({ ...d, discount: Number(e.target.value) }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          />
                         </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Taxa Entrega (R$)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editData.delivery_fee ?? 0}
+                            onChange={(e) => setEditData((d) => ({ ...d, delivery_fee: Number(e.target.value) }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Bairro</label>
+                          <input
+                            type="text"
+                            value={editData.address_neighborhood || ""}
+                            onChange={(e) => setEditData((d) => ({ ...d, address_neighborhood: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Rua</label>
+                        <input
+                          type="text"
+                          value={editData.address_street || ""}
+                          onChange={(e) => setEditData((d) => ({ ...d, address_street: e.target.value }))}
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Número</label>
+                          <input
+                            type="text"
+                            value={editData.address_number || ""}
+                            onChange={(e) => setEditData((d) => ({ ...d, address_number: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Complemento</label>
+                          <input
+                            type="text"
+                            value={editData.address_complement || ""}
+                            onChange={(e) => setEditData((d) => ({ ...d, address_complement: e.target.value }))}
+                            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Observações</label>
+                        <textarea
+                          value={editData.observations || ""}
+                          onChange={(e) => setEditData((d) => ({ ...d, observations: e.target.value }))}
+                          className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground"
+                          rows={2}
+                        />
+                      </div>
 
-                        {/* Items editing */}
-                        <div className="space-y-2">
-                          <h5 className="text-[10px] font-bold text-muted-foreground uppercase">Itens do Pedido</h5>
-                          {editItems.map((item) => (
-                            <div key={item.id} className="flex items-center gap-2 rounded border border-border bg-background p-2">
-                              <input
-                                type="number" min={1} value={item.quantity}
-                                onChange={e => updateEditItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
-                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
-                              />
-                              <span className="text-xs text-muted-foreground">×</span>
-                              <input
-                                type="text" value={item.product_name}
-                                onChange={e => updateEditItem(item.id, "product_name", e.target.value)}
-                                className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground min-w-0"
-                              />
-                              <input
-                                type="number" step="0.01" value={item.unit_price}
-                                onChange={e => updateEditItem(item.id, "unit_price", Number(e.target.value))}
-                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
-                                title="Preço unitário"
-                              />
-                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                = R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
-                              </span>
-                              <button onClick={() => removeEditItem(item.id)} className="text-destructive hover:text-destructive/80 p-0.5" title="Remover item">
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          ))}
+                      {/* Items editing */}
+                      <div className="space-y-2">
+                        <h5 className="text-[10px] font-bold text-muted-foreground uppercase">Itens do Pedido</h5>
+                        {editItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-2 rounded border border-border bg-background p-2"
+                          >
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.quantity}
+                              onChange={(e) => updateEditItem(item.id, "quantity", Math.max(1, Number(e.target.value)))}
+                              className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                            />
+                            <span className="text-xs text-muted-foreground">×</span>
+                            <input
+                              type="text"
+                              value={item.product_name}
+                              onChange={(e) => updateEditItem(item.id, "product_name", e.target.value)}
+                              className="flex-1 rounded border border-border bg-background px-2 py-1 text-xs text-foreground min-w-0"
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={item.unit_price}
+                              onChange={(e) => updateEditItem(item.id, "unit_price", Number(e.target.value))}
+                              className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                              title="Preço unitário"
+                            />
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                              = R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                            </span>
+                            <button
+                              onClick={() => removeEditItem(item.id)}
+                              className="text-destructive hover:text-destructive/80 p-0.5"
+                              title="Remover item"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
 
-                          {/* Add new item */}
-                          <div className="rounded border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative flex-1">
-                                <input
-                                  type="text" placeholder="Adicionar produto..."
-                                  value={addItemName}
-                                  onChange={e => { setAddItemName(e.target.value); searchProducts(e.target.value); }}
-                                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
-                                />
-                                {productSuggestions.length > 0 && (
-                                  <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-32 overflow-y-auto">
-                                    {productSuggestions.map((p, i) => (
-                                      <button key={i} onClick={() => {
+                        {/* Add new item */}
+                        <div className="rounded border border-dashed border-primary/40 bg-primary/5 p-2 space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative flex-1">
+                              <input
+                                type="text"
+                                placeholder="Adicionar produto..."
+                                value={addItemName}
+                                onChange={(e) => {
+                                  setAddItemName(e.target.value);
+                                  searchProducts(e.target.value);
+                                }}
+                                className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground"
+                              />
+                              {productSuggestions.length > 0 && (
+                                <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border border-border bg-card shadow-lg max-h-32 overflow-y-auto">
+                                  {productSuggestions.map((p, i) => (
+                                    <button
+                                      key={i}
+                                      onClick={() => {
                                         setAddItemName(p.name);
                                         setAddItemPrice(p.price);
                                         setProductSuggestions([]);
-                                      }} className="w-full text-left px-2 py-1.5 text-xs text-foreground hover:bg-muted flex justify-between">
-                                        <span>{p.name}</span>
-                                        <span className="text-muted-foreground">R$ {p.price.toFixed(2).replace(".", ",")}</span>
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              <input type="number" min={1} value={addItemQty}
-                                onChange={e => setAddItemQty(Math.max(1, Number(e.target.value)))}
-                                className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
-                                title="Quantidade"
-                              />
-                              <input type="number" step="0.01" value={addItemPrice}
-                                onChange={e => setAddItemPrice(Number(e.target.value))}
-                                className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
-                                placeholder="R$"
-                                title="Preço unitário"
-                              />
-                              <button onClick={addNewItem} disabled={!addItemName.trim()}
-                                className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40" title="Adicionar item">
-                                <PlusCircle size={14} />
-                              </button>
+                                      }}
+                                      className="w-full text-left px-2 py-1.5 text-xs text-foreground hover:bg-muted flex justify-between"
+                                    >
+                                      <span>{p.name}</span>
+                                      <span className="text-muted-foreground">
+                                        R$ {p.price.toFixed(2).replace(".", ",")}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
+                            <input
+                              type="number"
+                              min={1}
+                              value={addItemQty}
+                              onChange={(e) => setAddItemQty(Math.max(1, Number(e.target.value)))}
+                              className="w-12 rounded border border-border bg-background px-1.5 py-1 text-xs text-center text-foreground"
+                              title="Quantidade"
+                            />
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={addItemPrice}
+                              onChange={(e) => setAddItemPrice(Number(e.target.value))}
+                              className="w-20 rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
+                              placeholder="R$"
+                              title="Preço unitário"
+                            />
+                            <button
+                              onClick={addNewItem}
+                              disabled={!addItemName.trim()}
+                              className="rounded-lg bg-primary p-1.5 text-primary-foreground disabled:opacity-40"
+                              title="Adicionar item"
+                            >
+                              <PlusCircle size={14} />
+                            </button>
                           </div>
                         </div>
+                      </div>
 
-                        {/* Totals preview */}
-                        <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-xs">
-                          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal (itens)</span><span className="font-bold text-foreground">R$ {calcEditSubtotal().toFixed(2).replace(".", ",")}</span></div>
-                          <div className="flex justify-between"><span className="text-muted-foreground">+ Entrega</span><span className="text-foreground">R$ {Number(editData.delivery_fee ?? 0).toFixed(2).replace(".", ",")}</span></div>
-                          {(editData.discount || 0) > 0 && <div className="flex justify-between"><span className="text-muted-foreground">- Desconto</span><span className="text-green-600">R$ {Number(editData.discount || 0).toFixed(2).replace(".", ",")}</span></div>}
-                          <div className="flex justify-between font-bold text-sm"><span className="text-foreground">Total</span><span className="text-primary">R$ {(calcEditSubtotal() + Number(editData.delivery_fee ?? 0) - Number(editData.discount || 0)).toFixed(2).replace(".", ",")}</span></div>
+                      {/* Totals preview */}
+                      <div className="rounded-lg bg-muted/50 p-2 space-y-0.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Subtotal (itens)</span>
+                          <span className="font-bold text-foreground">
+                            R$ {calcEditSubtotal().toFixed(2).replace(".", ",")}
+                          </span>
                         </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => saveEdit(order.id)}
-                            className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">
-                            <Save size={14} /> Salvar
-                          </button>
-                          <button onClick={() => saveEdit(order.id, true)}
-                            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">
-                            <Printer size={14} /> Salvar e Reimprimir
-                          </button>
-                          <button onClick={() => setEditingOrder(null)}
-                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground">
-                            Cancelar
-                          </button>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">+ Entrega</span>
+                          <span className="text-foreground">
+                            R${" "}
+                            {Number(editData.delivery_fee ?? 0)
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </div>
+                        {(editData.discount || 0) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">- Desconto</span>
+                            <span className="text-green-600">
+                              R${" "}
+                              {Number(editData.discount || 0)
+                                .toFixed(2)
+                                .replace(".", ",")}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-bold text-sm">
+                          <span className="text-foreground">Total</span>
+                          <span className="text-primary">
+                            R${" "}
+                            {(calcEditSubtotal() + Number(editData.delivery_fee ?? 0) - Number(editData.discount || 0))
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
                         </div>
                       </div>
-                    ) : (
-                      <>
-                        {order.address_street && (
-                          <p className="text-xs text-muted-foreground">
-                            📍 {order.address_street}, {order.address_number}
-                            {order.address_complement ? ` - ${order.address_complement}` : ""}
-                            {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
-                          </p>
-                        )}
-                        {displayObservation && (
-                          <p className="text-xs text-amber-600 font-medium">💬 {displayObservation}</p>
-                        )}
-                      </>
-                    )}
 
-                    <div className="space-y-1">
-                      {(items[order.id] || []).map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm">
-                          <span className="text-foreground">{item.quantity}x {item.product_name}</span>
-                          <span className="text-muted-foreground">R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".",",")}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Show courier info for delivering orders */}
-                    {order.status === "delivering" && order.courier_id && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          🚚 {couriers.find(c => c.id === order.courier_id)?.name || "Entregador"}
-                        </span>
+                      <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => changeCourier(order.id, order.courier_id)}
-                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                          onClick={() => saveEdit(order.id)}
+                          className="flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
                         >
-                          Trocar
+                          <Save size={14} /> Salvar
                         </button>
                         <button
-                          onClick={() => setTrackingCourierId(order.courier_id)}
-                          className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10"
+                          onClick={() => saveEdit(order.id, true)}
+                          className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white"
                         >
-                          📍 Rastrear
+                          <Printer size={14} /> Salvar e Reimprimir
+                        </button>
+                        <button
+                          onClick={() => setEditingOrder(null)}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground"
+                        >
+                          Cancelar
                         </button>
                       </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => printReceipt(order.id, "pedido")}
-                        className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Pedido
-                      </button>
-                      <button onClick={() => printReceipt(order.id, "obrigado")}
-                        className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                        <Printer size={14} /> Obrigado
-                      </button>
-                      {/* Manual reprint of "Fechamento de Rota" is always available */}
-                      <button onClick={() => printReceipt(order.id, "entregador")}
-                        className="flex items-center gap-1 rounded-lg border border-cyan-500 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-50">
-                        <Printer size={14} /> Fechamento de Rota
-                      </button>
-                      {!isEditing && (
-                        <button onClick={() => startEdit(order)}
-                          className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted">
-                          <Edit2 size={14} /> Editar
-                        </button>
-                      )}
                     </div>
-
-                    {/* Payment actions */}
-                    <div className="flex flex-wrap gap-2">
-                      {order.payment_method !== "fiado" && order.status !== "cancelled" && (
-                        <button onClick={() => markAsFiado(order.id)}
-                          className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white">
-                          📝 Marcar Fiado
-                        </button>
+                  ) : (
+                    <>
+                      {order.address_street && (
+                        <p className="text-xs text-muted-foreground">
+                          📍 {order.address_street}, {order.address_number}
+                          {order.address_complement ? ` - ${order.address_complement}` : ""}
+                          {order.address_neighborhood ? ` - ${order.address_neighborhood}` : ""}
+                        </p>
                       )}
-                      {order.payment_confirmed && order.status !== "awaiting_payment" && (
-                        <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
-                          ✅ {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                      {displayObservation && (
+                        <p className="text-xs text-amber-600 font-medium">💬 {displayObservation}</p>
+                      )}
+                    </>
+                  )}
+
+                  <div className="space-y-1">
+                    {(items[order.id] || []).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="text-foreground">
+                          {item.quantity}x {item.product_name}
                         </span>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2">
-                      {next && (
-                        <button
-                          onClick={() => updateStatus(order.id, next)}
-                          className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
-                        >
-                          {next === "preparing" ? "✅ Aceitar Pedido" : next === "delivered" ? "Finalizar" : `Avançar → ${tabs.find(t => t.key === next)?.label}`}
-                        </button>
-                      )}
-                      {order.status !== "cancelled" && (
-                        <button
-                          onClick={() => { setCancellingOrderId(order.id); setCancellationReason(""); }}
-                          className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
-                        >
-                          Recusar
-                        </button>
-                      )}
-                      {order.status === "cancelled" && !order.trashed_at && (
-                        <button
-                          onClick={async () => {
-                            if (!window.confirm("Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.")) return;
-                            const { error } = await supabase.from("orders").update({ trashed_at: new Date().toISOString() }).eq("id", order.id);
-                            if (error) { toast({ title: "Erro ao mover para a lixeira", variant: "destructive" }); return; }
-                            toast({ title: "🗑️ Pedido movido para a lixeira" });
-                            fetchOrders();
-                          }}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
-                        >
-                          <Trash2 size={14} /> Excluir
-                        </button>
-                      )}
-                      {order.status === "cancelled" && order.trashed_at && (
-                        <button
-                          onClick={async () => {
-                            const { error } = await supabase.from("orders").update({ trashed_at: null }).eq("id", order.id);
-                            if (error) { toast({ title: "Erro ao restaurar", variant: "destructive" }); return; }
-                            toast({ title: "♻️ Pedido restaurado para Recusados" });
-                            fetchOrders();
-                          }}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
-                        >
-                          <RotateCcw size={14} /> Restaurar
-                        </button>
-                      )}
-                    </div>
+                        <span className="text-muted-foreground">
+                          R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
+                    ))}
                   </div>
+
+                  {/* Show courier info for delivering orders */}
+                  {order.status === "delivering" && order.courier_id && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        🚚 {couriers.find((c) => c.id === order.courier_id)?.name || "Entregador"}
+                      </span>
+                      <button
+                        onClick={() => changeCourier(order.id, order.courier_id)}
+                        className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                      >
+                        Trocar
+                      </button>
+                      <button
+                        onClick={() => setTrackingCourierId(order.courier_id)}
+                        className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/10"
+                      >
+                        📍 Rastrear
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => printReceipt(order.id, "pedido")}
+                      className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                    >
+                      <Printer size={14} /> Pedido
+                    </button>
+                    <button
+                      onClick={() => printReceipt(order.id, "obrigado")}
+                      className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                    >
+                      <Printer size={14} /> Obrigado
+                    </button>
+                    {/* Manual reprint of "Fechamento de Rota" is always available */}
+                    <button
+                      onClick={() => printReceipt(order.id, "entregador")}
+                      className="flex items-center gap-1 rounded-lg border border-cyan-500 px-3 py-1.5 text-xs font-medium text-cyan-700 hover:bg-cyan-50"
+                    >
+                      <Printer size={14} /> Fechamento de Rota
+                    </button>
+                    {!isEditing && (
+                      <button
+                        onClick={() => startEdit(order)}
+                        className="flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+                      >
+                        <Edit2 size={14} /> Editar
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Payment actions */}
+                  <div className="flex flex-wrap gap-2">
+                    {order.payment_method !== "fiado" && order.status !== "cancelled" && (
+                      <button
+                        onClick={() => markAsFiado(order.id)}
+                        className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white"
+                      >
+                        📝 Marcar Fiado
+                      </button>
+                    )}
+                    {order.payment_confirmed && order.status !== "awaiting_payment" && (
+                      <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
+                        ✅ {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {next && (
+                      <button
+                        onClick={() => updateStatus(order.id, next)}
+                        className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
+                      >
+                        {next === "preparing"
+                          ? "✅ Aceitar Pedido"
+                          : next === "delivered"
+                            ? "Finalizar"
+                            : `Avançar → ${tabs.find((t) => t.key === next)?.label}`}
+                      </button>
+                    )}
+                    {order.status !== "cancelled" && (
+                      <button
+                        onClick={() => {
+                          setCancellingOrderId(order.id);
+                          setCancellationReason("");
+                        }}
+                        className="rounded-lg border border-destructive px-4 py-2.5 text-sm font-bold text-destructive"
+                      >
+                        Recusar
+                      </button>
+                    )}
+                    {order.status === "cancelled" && !order.trashed_at && (
+                      <button
+                        onClick={async () => {
+                          if (
+                            !window.confirm(
+                              "Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.",
+                            )
+                          )
+                            return;
+                          const { error } = await supabase
+                            .from("orders")
+                            .update({ trashed_at: new Date().toISOString() })
+                            .eq("id", order.id);
+                          if (error) {
+                            toast({ title: "Erro ao mover para a lixeira", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "🗑️ Pedido movido para a lixeira" });
+                          fetchOrders();
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
+                      >
+                        <Trash2 size={14} /> Excluir
+                      </button>
+                    )}
+                    {order.status === "cancelled" && order.trashed_at && (
+                      <button
+                        onClick={async () => {
+                          const { error } = await supabase
+                            .from("orders")
+                            .update({ trashed_at: null })
+                            .eq("id", order.id);
+                          if (error) {
+                            toast({ title: "Erro ao restaurar", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "♻️ Pedido restaurado para Recusados" });
+                          fetchOrders();
+                        }}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
+                      >
+                        <RotateCcw size={14} /> Restaurar
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -2151,23 +2584,29 @@ const AdminDashboard = () => {
             <p className="text-sm text-muted-foreground">Informe o motivo da recusa para o cliente:</p>
             <textarea
               value={cancellationReason}
-              onChange={e => setCancellationReason(e.target.value)}
+              onChange={(e) => setCancellationReason(e.target.value)}
               placeholder="Ex: Ingrediente em falta, fora da área de entrega..."
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               rows={3}
               autoFocus
             />
             <div className="flex gap-3">
-              <button onClick={() => setCancellingOrderId(null)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+              <button
+                onClick={() => setCancellingOrderId(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
                 Voltar
               </button>
               <button
                 disabled={!cancellationReason.trim()}
                 onClick={async () => {
-                  await supabase.from("orders").update({
-                    status: "cancelled",
-                    cancellation_reason: cancellationReason.trim(),
-                  }).eq("id", cancellingOrderId);
+                  await supabase
+                    .from("orders")
+                    .update({
+                      status: "cancelled",
+                      cancellation_reason: cancellationReason.trim(),
+                    })
+                    .eq("id", cancellingOrderId);
                   toast({ title: "Pedido recusado." });
                   setCancellingOrderId(null);
                   fetchOrders();
@@ -2188,7 +2627,7 @@ const AdminDashboard = () => {
             <h3 className="text-lg font-bold text-foreground">🚚 Selecionar Entregador</h3>
             <p className="text-sm text-muted-foreground">Escolha o entregador para esta entrega:</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {couriers.map(c => (
+              {couriers.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedCourierId(c.id)}
@@ -2196,12 +2635,12 @@ const AdminDashboard = () => {
                     "w-full rounded-lg border p-3 text-left text-sm font-semibold transition-all",
                     selectedCourierId === c.id
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-foreground hover:bg-muted"
+                      : "border-border text-foreground hover:bg-muted",
                   )}
                 >
                   {c.name}
                   <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    (R$ {c.fixed_fee.toFixed(2).replace(".",",")}/entrega)
+                    (R$ {c.fixed_fee.toFixed(2).replace(".", ",")}/entrega)
                   </span>
                 </button>
               ))}
@@ -2210,7 +2649,10 @@ const AdminDashboard = () => {
               )}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setCourierSelectOrderId(null)} className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground">
+              <button
+                onClick={() => setCourierSelectOrderId(null)}
+                className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+              >
                 Cancelar
               </button>
               <button
@@ -2233,8 +2675,11 @@ const AdminDashboard = () => {
             <input
               type="password"
               value={reportPwInput}
-              onChange={e => { setReportPwInput(e.target.value); setReportPwError(false); }}
-              onKeyDown={e => e.key === "Enter" && handleReportPwSubmit()}
+              onChange={(e) => {
+                setReportPwInput(e.target.value);
+                setReportPwError(false);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && handleReportPwSubmit()}
               placeholder=""
               autoComplete="new-password"
               className="w-full rounded-lg border border-border bg-background px-4 py-3 text-center text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -2243,7 +2688,10 @@ const AdminDashboard = () => {
             {reportPwError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
             <div className="flex gap-3">
               <button
-                onClick={() => { setShowReportPwModal(false); setPendingReportAction(null); }}
+                onClick={() => {
+                  setShowReportPwModal(false);
+                  setPendingReportAction(null);
+                }}
                 className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
               >
                 Cancelar
@@ -2254,70 +2702,84 @@ const AdminDashboard = () => {
               >
                 Desbloquear
               </button>
-    </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Route Closure Confirmation Modal */}
-      {showRouteClosureModal && (() => {
-        const closureOrder = orders.find(o => o.id === showRouteClosureModal);
-        const isReturned = closureOrder?.status === "ready" && !!closureOrder?.courier_id;
-        return (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
-              <h3 className="text-lg font-bold text-foreground">
-                {isReturned ? "⚠️ Pedido Devolvido" : "📋 Fechamento de Rota"}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {isReturned
-                  ? <>O pedido foi <span className="font-bold text-foreground">devolvido</span>?</>
-                  : <>Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?</>
-                }
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Confirme que o entregador devolveu a comanda e realize o carimbo de confirmação de pagamento.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowRouteClosureModal(null)}
-                  className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
-                >
-                  Não
-                </button>
-                <button
-                  onClick={() => confirmRouteClosure(showRouteClosureModal)}
-                  className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
-                >
-                  Sim, Finalizar
-                </button>
+      {showRouteClosureModal &&
+        (() => {
+          const closureOrder = orders.find((o) => o.id === showRouteClosureModal);
+          const isReturned = closureOrder?.status === "ready" && !!closureOrder?.courier_id;
+          return (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+              <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
+                <h3 className="text-lg font-bold text-foreground">
+                  {isReturned ? "⚠️ Pedido Devolvido" : "📋 Fechamento de Rota"}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {isReturned ? (
+                    <>
+                      O pedido foi <span className="font-bold text-foreground">devolvido</span>?
+                    </>
+                  ) : (
+                    <>
+                      Foi realizado o <span className="font-bold text-foreground">Fechamento de Rota</span>?
+                    </>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Confirme que o entregador devolveu a comanda e realize o carimbo de confirmação de pagamento.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowRouteClosureModal(null)}
+                    className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+                  >
+                    Não
+                  </button>
+                  <button
+                    onClick={() => confirmRouteClosure(showRouteClosureModal)}
+                    className="flex-1 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white"
+                  >
+                    Sim, Finalizar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Courier Tracking Modal */}
-      {trackingCourierId && (() => {
-        const trackingOrder = orders.find(o => o.courier_id === trackingCourierId && o.status === "delivering");
-        return (
-          <Suspense fallback={<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60"><p className="text-white">Carregando mapa...</p></div>}>
-            <CourierTrackingModal
-              courierId={trackingCourierId}
-              courierName={couriers.find(c => c.id === trackingCourierId)?.name || "Entregador"}
-              destinationAddress={trackingOrder ? `${trackingOrder.address_street || ""} ${trackingOrder.address_number || ""}`.trim() : undefined}
-              destinationNeighborhood={trackingOrder?.address_neighborhood || undefined}
-              onClose={() => setTrackingCourierId(null)}
-            />
-          </Suspense>
-        );
-      })()}
+      {trackingCourierId &&
+        (() => {
+          const trackingOrder = orders.find((o) => o.courier_id === trackingCourierId && o.status === "delivering");
+          return (
+            <Suspense
+              fallback={
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60">
+                  <p className="text-white">Carregando mapa...</p>
+                </div>
+              }
+            >
+              <CourierTrackingModal
+                courierId={trackingCourierId}
+                courierName={couriers.find((c) => c.id === trackingCourierId)?.name || "Entregador"}
+                destinationAddress={
+                  trackingOrder
+                    ? `${trackingOrder.address_street || ""} ${trackingOrder.address_number || ""}`.trim()
+                    : undefined
+                }
+                destinationNeighborhood={trackingOrder?.address_neighborhood || undefined}
+                onClose={() => setTrackingCourierId(null)}
+              />
+            </Suspense>
+          );
+        })()}
 
       {showExpenseManager && (
-        <ExpenseManager
-          selectedDate={selectedDate}
-          onClose={() => setShowExpenseManager(false)}
-        />
+        <ExpenseManager selectedDate={selectedDate} onClose={() => setShowExpenseManager(false)} />
       )}
 
       <CalculatorModal open={showCalculator} onClose={() => setShowCalculator(false)} />
