@@ -119,19 +119,35 @@ export const tryPrintOrderViaQz = async (
       ? (manualCode || "")
       : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
 
-    const quadraLote = [
-      profile?.quadra ? `Qd. ${profile.quadra}` : "",
-      profile?.lote ? `Lt. ${profile.lote}` : "",
-    ].filter(Boolean).join(", ");
-    const addressParts = [
-      order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "",
-      quadraLote,
-      order.address_complement || "",
-      order.address_neighborhood || "",
-    ].filter(Boolean);
+    const isDeliveryType = order.delivery_type === "delivery";
+    const quadraLote = isDeliveryType
+      ? [
+          profile?.quadra ? `Qd. ${profile.quadra}` : "",
+          profile?.lote ? `Lt. ${profile.lote}` : "",
+        ].filter(Boolean).join(", ")
+      : "";
+    const addressParts = isDeliveryType
+      ? [
+          order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "",
+          quadraLote,
+          order.address_complement || "",
+          order.address_neighborhood || "",
+        ].filter(Boolean)
+      : [];
+    const noAddressLabel = order.payment_method === "fiado"
+      ? "FIADO"
+      : order.delivery_type === "retirada" || order.delivery_type === "pickup"
+        ? "RETIRADA"
+        : order.delivery_type === "mesa"
+          ? "MESA"
+          : order.delivery_type === "viagem"
+            ? "VIAGEM"
+            : (order.delivery_type || "").toUpperCase() || "RETIRADA";
     const address = isTableOrder
       ? tableCode
-      : formatPrintAddress(addressParts.join(" | ") || "Retirada no local");
+      : (addressParts.length > 0
+          ? formatPrintAddress(addressParts.join(" | "))
+          : noAddressLabel);
 
     const subtotal = Number(order.subtotal) || 0;
     const deliveryFee = Number(order.delivery_fee) || 0;
