@@ -646,14 +646,16 @@ const AdminDashboard = () => {
   const markAsFiado = async (orderId: string) => {
     const updateData: Record<string, unknown> = {
       payment_confirmed: false,
-      payment_method: "fiado",
       paid_at: null,
       amount_paid_cash: 0,
       amount_paid_pix: 0,
       amount_paid_card: 0,
     };
 
-    // Corrige pedidos antigos criados sem loja vinculada, para aparecerem na lista de Fiados.
+    // Importante:
+    // O banco não aceita payment_method = "fiado" por causa da constraint
+    // orders_payment_method_check. Por isso, fiado é controlado por
+    // payment_confirmed = false, mantendo o método original do pedido.
     if (storeId) updateData.store_id = storeId;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);

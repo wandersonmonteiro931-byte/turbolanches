@@ -52,32 +52,36 @@ const AdminFiados = () => {
     let query = supabase
       .from("orders")
       .select(selectFields)
-      .eq("payment_method", "fiado")
       .neq("status", "cancelled")
       .is("trashed_at", null)
+      .eq("payment_confirmed", false)
       .order("created_at", { ascending: false });
 
-    // Antes a tela filtrava somente pelo store_id. Se algum pedido antigo foi criado
-    // com store_id nulo ou diferente, ele virava fiado mas não aparecia aqui.
-    // Agora buscamos os fiados da loja atual OU sem loja vinculada.
     if (storeId) query = query.or(`store_id.eq.${storeId},store_id.is.null`);
 
     const { data, error } = await query;
 
-    // Plano B: se a loja atual não retornou nada, busca todos os fiados.
-    // Isso evita sumir fiado por inconsistência de store_id em pedidos antigos.
     let rows = (data || []) as FiadoOrder[];
 
-    if (!error && storeId && rows.length === 0) {
-      const fallback = await supabase
+    // Plano B para pedidos antigos que já tenham sido salvos como payment_method = "fiado"
+    // em algum banco sem constraint.
+    if (!error && rows.length === 0) {
+      let fallbackQuery = supabase
         .from("orders")
         .select(selectFields)
-        .eq("payment_method", "fiado")
         .neq("status", "cancelled")
         .is("trashed_at", null)
         .order("created_at", { ascending: false });
 
-      if (!fallback.error) rows = (fallback.data || []) as FiadoOrder[];
+      if (storeId) fallbackQuery = fallbackQuery.or(`store_id.eq.${storeId},store_id.is.null`);
+
+      const fallback = await fallbackQuery;
+
+      if (!fallback.error) {
+        rows = ((fallback.data || []) as FiadoOrder[]).filter(
+          (order) => order.payment_confirmed === false || order.payment_method === "fiado",
+        );
+      }
     }
 
     setLoading(false);
