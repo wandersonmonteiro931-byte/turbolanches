@@ -54,7 +54,7 @@ const AdminFiados = () => {
       .select(selectFields)
       .neq("status", "cancelled")
       .is("trashed_at", null)
-      .eq("payment_confirmed", false)
+      .ilike("observations", "%[FIADO]%")
       .order("created_at", { ascending: false });
 
     if (storeId) query = query.or(`store_id.eq.${storeId},store_id.is.null`);
@@ -63,23 +63,28 @@ const AdminFiados = () => {
 
     let rows = (data || []) as FiadoOrder[];
 
-    // Plano B para pedidos antigos que já tenham sido salvos como payment_method = "fiado"
-    // em algum banco sem constraint.
-    if (!error && rows.length === 0) {
-      let fallbackQuery = supabase
+    // Compatibilidade com bancos antigos que chegaram a aceitar payment_method = "fiado".
+    if (!error) {
+      let antigoQuery = supabase
         .from("orders")
         .select(selectFields)
+        .eq("payment_method", "fiado")
         .neq("status", "cancelled")
         .is("trashed_at", null)
         .order("created_at", { ascending: false });
 
-      if (storeId) fallbackQuery = fallbackQuery.or(`store_id.eq.${storeId},store_id.is.null`);
+      if (storeId) antigoQuery = antigoQuery.or(`store_id.eq.${storeId},store_id.is.null`);
 
-      const fallback = await fallbackQuery;
+      const antigos = await antigoQuery;
 
-      if (!fallback.error) {
-        rows = ((fallback.data || []) as FiadoOrder[]).filter(
-          (order) => order.payment_confirmed === false || order.payment_method === "fiado",
+      if (!antigos.error && antigos.data?.length) {
+        const mapa = new Map<string, FiadoOrder>();
+
+        for (const row of rows) mapa.set(row.id, row);
+        for (const row of antigos.data as FiadoOrder[]) mapa.set(row.id, row);
+
+        rows = Array.from(mapa.values()).sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         );
       }
     }

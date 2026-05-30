@@ -644,18 +644,37 @@ const AdminDashboard = () => {
   };
 
   const markAsFiado = async (orderId: string) => {
+    const { data: order, error: loadError } = await supabase
+      .from("orders")
+      .select("id, observations")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (loadError) {
+      toast({
+        title: "Erro ao carregar pedido",
+        description: loadError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const observacaoAtual = String(order?.observations || "").trim();
+    const observacaoFiado = observacaoAtual.includes("[FIADO]")
+      ? observacaoAtual
+      : `[FIADO]${observacaoAtual ? ` ${observacaoAtual}` : ""}`;
+
     const updateData: Record<string, unknown> = {
       payment_confirmed: false,
       paid_at: null,
       amount_paid_cash: 0,
       amount_paid_pix: 0,
       amount_paid_card: 0,
+      observations: observacaoFiado,
     };
 
-    // Importante:
-    // O banco não aceita payment_method = "fiado" por causa da constraint
-    // orders_payment_method_check. Por isso, fiado é controlado por
-    // payment_confirmed = false, mantendo o método original do pedido.
+    // O banco não aceita payment_method = "fiado".
+    // Então fiado é marcado por payment_confirmed = false + [FIADO] em observations.
     if (storeId) updateData.store_id = storeId;
 
     const { error } = await supabase.from("orders").update(updateData).eq("id", orderId);
