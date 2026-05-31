@@ -3,11 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
-import {
-  buildAdminPrintDocument,
-  stripFormattingTags,
-  escapeHtml,
-} from "@/lib/adminPrintTemplates";
+import { buildAdminPrintDocument, stripFormattingTags, escapeHtml } from "@/lib/adminPrintTemplates";
 
 const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
 const ITEM_TEMPLATE_TOKENS = [
@@ -150,16 +146,26 @@ const AdminPrint = () => {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
-      const { data: orderData, error: orderErr } = await supabase
-        .from("orders").select("*").eq("id", id).single();
-      if (orderErr || !orderData) { setError("Pedido não encontrado"); return; }
+      const { data: orderData, error: orderErr } = await supabase.from("orders").select("*").eq("id", id).single();
+      if (orderErr || !orderData) {
+        setError("Pedido não encontrado");
+        return;
+      }
       setOrder(orderData);
 
       const tplType = orderData.delivery_type === "mesa" && resolveType(tipo) === "pedido" ? "mesa" : resolveType(tipo);
       const [itemsRes, profileRes, tplRes] = await Promise.all([
         supabase.from("order_items").select("*").eq("order_id", id),
-        supabase.from("profiles").select("full_name, phone, complement, quadra, lote, street, neighborhood, customer_code").eq("user_id", orderData.user_id).single(),
-        supabase.from("receipt_templates" as any).select("*").eq("template_type", tplType).single(),
+        supabase
+          .from("profiles")
+          .select("full_name, phone, complement, street, neighborhood, customer_code")
+          .eq("user_id", orderData.user_id)
+          .single(),
+        supabase
+          .from("receipt_templates" as any)
+          .select("*")
+          .eq("template_type", tplType)
+          .single(),
       ]);
 
       const orderItems = itemsRes.data || [];
@@ -194,25 +200,47 @@ const AdminPrint = () => {
     if (!ready || !order) return "";
 
     const createdAt = new Date(order.created_at);
-    const dataHoraPedido = createdAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const dataHoraPedido = createdAt.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     const maxEntrega = new Date(createdAt.getTime() + 45 * 60 * 1000);
     const horarioMax = maxEntrega.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     const agora = new Date();
-    const dataAgora = agora.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const dataAgora = agora.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     const horarioSaida = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
     const complemento = order.address_complement || "";
-    const quadraLote = [profile?.quadra ? `Qd. ${profile.quadra}` : "", profile?.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
+    // Não adicionar quadra/lote do cadastro automaticamente na impressão.
+    // A impressão deve usar apenas o endereço salvo no pedido.
     const addressLine1 = order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "";
-    const addressLine2 = quadraLote || "";
-    const addressLine3 = complemento || "";
-    const addressLine4 = order.address_neighborhood || "";
+    const addressLine2 = complemento || "";
+    const addressLine3 = order.address_neighborhood || "";
     const isTableOrder = order.delivery_type === "mesa";
     const rawTableCode = order.table_code || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
     const tableCode = rawTableCode.startsWith("#") ? rawTableCode.toUpperCase() : `#${rawTableCode.toUpperCase()}`;
-    const address = isTableOrder ? tableCode : formatPrintAddress([addressLine1, addressLine2, addressLine3, addressLine4].filter(Boolean).join(" | ") || "Retirada no local");
+    const address = isTableOrder
+      ? tableCode
+      : formatPrintAddress(
+          [addressLine1, addressLine2, addressLine3].filter(Boolean).join(" | ") || "Retirada no local",
+        );
 
-    const deliveryLabel = isTableOrder ? "MESA" : order.delivery_type === "delivery" ? "DELIVERY" : order.delivery_type === "pickup" ? "RETIRADA" : order.delivery_type?.toUpperCase() || "DELIVERY";
+    const deliveryLabel = isTableOrder
+      ? "MESA"
+      : order.delivery_type === "delivery"
+        ? "DELIVERY"
+        : order.delivery_type === "pickup"
+          ? "RETIRADA"
+          : order.delivery_type?.toUpperCase() || "DELIVERY";
 
     const subtotal = Number(order.subtotal);
     const deliveryFee = Number(order.delivery_fee);
@@ -245,9 +273,13 @@ const AdminPrint = () => {
     const manualTelMatch = obsText.match(/Tel:\s*([^|]+)/);
     const manualCodeMatch = obsText.match(/Código:\s*(T\d+)/);
 
-    const displayName = isManualOrder ? (manualClienteMatch?.[1]?.trim() || "") : (profile?.full_name || "");
-    const displayPhone = isManualOrder ? (manualTelMatch?.[1]?.trim() || "") : (profile?.phone || "");
-    const customerCode = isManualOrder ? (manualCodeMatch?.[1]?.trim() || "") : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
+    const displayName = isManualOrder ? manualClienteMatch?.[1]?.trim() || "" : profile?.full_name || "";
+    const displayPhone = isManualOrder ? manualTelMatch?.[1]?.trim() || "" : profile?.phone || "";
+    const customerCode = isManualOrder
+      ? manualCodeMatch?.[1]?.trim() || ""
+      : profile?.customer_code
+        ? `T${String(profile.customer_code).padStart(5, "0")}`
+        : "";
 
     const storeName = tpl?.store_name || "TURBO LANCHES";
     const resolvedType = isTableOrder && resolveType(tipo) === "pedido" ? "mesa" : resolveType(tipo);
@@ -267,9 +299,7 @@ const AdminPrint = () => {
 
     const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
-    const couponInfo = order.coupon_code
-      ? `${order.coupon_code} (-${fmt(discount)})`
-      : "Nenhum";
+    const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
 
     const varMap: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
@@ -306,11 +336,16 @@ const AdminPrint = () => {
     const formatCode = () => "";
     const formatAddonsText = (item: any) => {
       const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
-      return addons.map((addon: any) => `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`).join(" | ");
+      return addons
+        .map((addon: any) => `+ ${addon.name}${(addon.quantity || 1) > 1 ? ` x${addon.quantity}` : ""}`)
+        .join(" | ");
     };
     const getAddonsTotal = (item: any) => {
       const addons = Array.isArray(item.addons_json) ? item.addons_json : [];
-      return addons.reduce((sum: number, addon: any) => sum + (Number(addon.price) || 0) * (Number(addon.quantity) || 1), 0);
+      return addons.reduce(
+        (sum: number, addon: any) => sum + (Number(addon.price) || 0) * (Number(addon.quantity) || 1),
+        0,
+      );
     };
 
     const buildItemsTableHtml = () => {
@@ -353,7 +388,10 @@ const AdminPrint = () => {
           const lineTotal = Number(item.unit_price) * item.quantity + getAddonsTotal(item);
           const codeStr = "";
           const addonsText = formatAddonsText(item);
-          const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""].filter(Boolean).map((value) => `[FUNDPRETO]${value}[/FUNDPRETO]`).join(" ");
+          const obsWithAddons = [addonsText, item.observations?.trim() ? `Obs: ${item.observations.trim()}` : ""]
+            .filter(Boolean)
+            .map((value) => `[FUNDPRETO]${value}[/FUNDPRETO]`)
+            .join(" ");
           const itemVars = {
             "[PRODUTO]": item.product_name,
             "[PRODUTOS]": item.product_name,
@@ -406,19 +444,22 @@ const AdminPrint = () => {
     if (printedRef.current) return;
     printedRef.current = true;
 
-    const timer = setTimeout(() => {
-      try {
-        document.open();
-        document.write(printableDocument);
-        document.close();
-      } catch (e) {
-        console.error("[AdminPrint] write error", e);
-        return;
-      }
+    const timer = setTimeout(
+      () => {
+        try {
+          document.open();
+          document.write(printableDocument);
+          document.close();
+        } catch (e) {
+          console.error("[AdminPrint] write error", e);
+          return;
+        }
 
-      // The injected document triggers window.print() and closes only after the
-      // browser reports afterprint. Closing by timeout can cancel thermal jobs.
-    }, Math.max(60, printDelayMs));
+        // The injected document triggers window.print() and closes only after the
+        // browser reports afterprint. Closing by timeout can cancel thermal jobs.
+      },
+      Math.max(60, printDelayMs),
+    );
 
     return () => clearTimeout(timer);
   }, [keepOpen, printDelayMs, printableDocument, ready]);

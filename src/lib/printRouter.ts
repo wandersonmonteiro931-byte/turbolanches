@@ -60,10 +60,7 @@ TOTAL: [TOTAL]
 [CENTRO]*** [DELIVERYRETIRADAVIAGEM] ***[/CENTRO]
 `;
 
-export const tryPrintOrderViaQz = async (
-  orderId: string,
-  options: PrintOrderViaQzOptions = {},
-): Promise<boolean> => {
+export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderViaQzOptions = {}): Promise<boolean> => {
   const settings = getThermalPrintSettings();
   if (!settings.qzEnabled || !settings.qzPrinterName) return false;
 
@@ -74,8 +71,7 @@ export const tryPrintOrderViaQz = async (
       return false;
     }
 
-    const { data: order, error: orderErr } = await supabase
-      .from("orders").select("*").eq("id", orderId).single();
+    const { data: order, error: orderErr } = await supabase.from("orders").select("*").eq("id", orderId).single();
     if (orderErr || !order) {
       console.warn("[QZ] pedido não encontrado", orderId);
       return false;
@@ -83,14 +79,16 @@ export const tryPrintOrderViaQz = async (
 
     const tipoIn = options.tipo || "pedido";
     const isTableOrder = order.delivery_type === "mesa";
-    const resolvedType = isTableOrder && resolveType(tipoIn) === "pedido"
-      ? "mesa"
-      : resolveType(tipoIn);
+    const resolvedType = isTableOrder && resolveType(tipoIn) === "pedido" ? "mesa" : resolveType(tipoIn);
 
     const [itemsRes, profileRes, tplRes, courierRes] = await Promise.all([
       supabase.from("order_items").select("*").eq("order_id", orderId),
-      supabase.from("profiles").select("full_name, phone, customer_code, quadra, lote").eq("user_id", order.user_id).maybeSingle(),
-      supabase.from("receipt_templates" as any).select("*").eq("template_type", resolvedType).maybeSingle(),
+      supabase.from("profiles").select("full_name, phone, customer_code").eq("user_id", order.user_id).maybeSingle(),
+      supabase
+        .from("receipt_templates" as any)
+        .select("*")
+        .eq("template_type", resolvedType)
+        .maybeSingle(),
       order.courier_id
         ? supabase.from("couriers").select("name").eq("id", order.courier_id).maybeSingle()
         : Promise.resolve({ data: null } as any),
@@ -101,11 +99,9 @@ export const tryPrintOrderViaQz = async (
     const tpl: any = tplRes.data;
     const courierName: string = (courierRes as any)?.data?.name || "";
 
-    const rawTableCode = (order.table_code as string)
-      || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
-    const tableCode = rawTableCode.startsWith("#")
-      ? rawTableCode.toUpperCase()
-      : `#${rawTableCode.toUpperCase()}`;
+    const rawTableCode =
+      (order.table_code as string) || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
+    const tableCode = rawTableCode.startsWith("#") ? rawTableCode.toUpperCase() : `#${rawTableCode.toUpperCase()}`;
 
     const obsText: string = order.observations || "";
     const isManualOrder = obsText.includes("[PDV]");
@@ -113,41 +109,39 @@ export const tryPrintOrderViaQz = async (
     const manualPhone = obsText.match(/Tel:\s*([^|]+)/)?.[1]?.trim();
     const manualCode = obsText.match(/Código:\s*(T\d+)/)?.[1]?.trim();
 
-    const displayName = isManualOrder ? (manualName || "") : (profile?.full_name || "");
-    const displayPhone = isManualOrder ? (manualPhone || "") : (profile?.phone || "");
+    const displayName = isManualOrder ? manualName || "" : profile?.full_name || "";
+    const displayPhone = isManualOrder ? manualPhone || "" : profile?.phone || "";
     const customerCode = isManualOrder
-      ? (manualCode || "")
-      : (profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "");
+      ? manualCode || ""
+      : profile?.customer_code
+        ? `T${String(profile.customer_code).padStart(5, "0")}`
+        : "";
 
     const isDeliveryType = order.delivery_type === "delivery";
-    const quadraLote = isDeliveryType
-      ? [
-          profile?.quadra ? `Qd. ${profile.quadra}` : "",
-          profile?.lote ? `Lt. ${profile.lote}` : "",
-        ].filter(Boolean).join(", ")
-      : "";
+    // Não adicionar quadra/lote do cadastro automaticamente na impressão.
+    // A impressão deve usar apenas o endereço salvo no pedido.
     const addressParts = isDeliveryType
       ? [
           order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "",
-          quadraLote,
           order.address_complement || "",
           order.address_neighborhood || "",
         ].filter(Boolean)
       : [];
-    const noAddressLabel = order.payment_method === "fiado"
-      ? "FIADO"
-      : order.delivery_type === "retirada" || order.delivery_type === "pickup"
-        ? "RETIRADA"
-        : order.delivery_type === "mesa"
-          ? "MESA"
-          : order.delivery_type === "viagem"
-            ? "VIAGEM"
-            : (order.delivery_type || "").toUpperCase() || "RETIRADA";
+    const noAddressLabel =
+      order.payment_method === "fiado"
+        ? "FIADO"
+        : order.delivery_type === "retirada" || order.delivery_type === "pickup"
+          ? "RETIRADA"
+          : order.delivery_type === "mesa"
+            ? "MESA"
+            : order.delivery_type === "viagem"
+              ? "VIAGEM"
+              : (order.delivery_type || "").toUpperCase() || "RETIRADA";
     const address = isTableOrder
       ? tableCode
-      : (addressParts.length > 0
-          ? formatPrintAddress(addressParts.join(" | "))
-          : noAddressLabel);
+      : addressParts.length > 0
+        ? formatPrintAddress(addressParts.join(" | "))
+        : noAddressLabel;
 
     const subtotal = Number(order.subtotal) || 0;
     const deliveryFee = Number(order.delivery_fee) || 0;
@@ -183,13 +177,19 @@ export const tryPrintOrderViaQz = async (
           : (order.delivery_type || "DELIVERY").toUpperCase();
 
     const dateTime = new Date(order.created_at).toLocaleString("pt-BR", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
     const agora = new Date();
     const dataAgora = agora.toLocaleString("pt-BR", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
     const horarioSaida = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     const maxEntrega = new Date(new Date(order.created_at).getTime() + 45 * 60 * 1000);
@@ -198,14 +198,20 @@ export const tryPrintOrderViaQz = async (
     const cleanObs = obsText
       .split("|")
       .map((p: string) => p.trim())
-      .filter((p: string) => p && p !== "[PDV]" && !/^Cliente:/i.test(p) && !/^Tel:/i.test(p) && !/^Código:/i.test(p) && !/^Mesa:/i.test(p))
+      .filter(
+        (p: string) =>
+          p &&
+          p !== "[PDV]" &&
+          !/^Cliente:/i.test(p) &&
+          !/^Tel:/i.test(p) &&
+          !/^Código:/i.test(p) &&
+          !/^Mesa:/i.test(p),
+      )
       .join(" | ");
 
     const storeName = tpl?.store_name || "TURBO LANCHES";
     const tipoLabel = tpl?.label || DEFAULT_LABELS[resolvedType] || "PEDIDO";
-    const couponInfo = order.coupon_code
-      ? `${order.coupon_code} (-${fmt(discount)})`
-      : "Nenhum";
+    const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
 
     const variables: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,

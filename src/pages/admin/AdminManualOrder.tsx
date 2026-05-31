@@ -146,15 +146,6 @@ const cleanManualOrderObservation = (value: string) =>
     .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
     .join(" | ");
 
-const cleanAutoAddressComplement = (value: string) =>
-  value
-    .replace(/\bQd\s*\d+[A-Za-z]?\b/gi, "")
-    .replace(/\bQuadra\s*\d+[A-Za-z]?\b/gi, "")
-    .replace(/\bLt\s*\d+[A-Za-z]?\b/gi, "")
-    .replace(/\bLote\s*\d+[A-Za-z]?\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -534,7 +525,7 @@ const AdminManualOrder = () => {
       setAddressNumber(order.address_number || "");
       setAddressNeighborhood(order.address_neighborhood || "");
 
-      // Não preencher quadra/lote automaticamente no complemento.
+      // Não puxar quadra/lote automaticamente para o complemento.
       // O complemento deve ser somente o que foi digitado/salvo no pedido.
       setAddressComplement(order.address_complement || "");
       setObservations(cleanManualOrderObservation(order.observations || ""));
