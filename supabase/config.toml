@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.courier-location-update]
 verify_jwt = false
+
+[functions.courier-portal]
+verify_jwt = false

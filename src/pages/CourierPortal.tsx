@@ -45,24 +45,15 @@ function LoginScreen({ onLogin }: { onLogin: (c: CourierInfo) => void }) {
     if (!code.trim()) return;
     setLoading(true);
     setError("");
-    const { data, error: err } = await supabase
-      .from("couriers")
-      .select("*")
-      .eq("code", code.trim().toUpperCase())
-      .eq("active", true)
-      .maybeSingle();
+    const { data, error: err } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "login", code: code.trim().toUpperCase() },
+    });
     setLoading(false);
-    if (err || !data) {
+    if (err || !data?.courier) {
       setError("Código inválido ou entregador inativo.");
       return;
     }
-    const courier: CourierInfo = {
-      id: data.id,
-      name: data.name,
-      fixed_fee: Number(data.fixed_fee),
-      code: data.code,
-      store_id: data.store_id,
-    };
+    const courier: CourierInfo = data.courier;
     localStorage.setItem("courier_session", JSON.stringify(courier));
     onLogin(courier);
   };
@@ -243,12 +234,11 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   }, []);
 
   const fetchDailyFees = useCallback(async () => {
-    const { data } = await supabase
-      .from("courier_daily_fees")
-      .select("day_of_week, fixed_fee")
-      .eq("courier_id", courier.id);
-    setDailyFees((data as any[] ?? []).map((d: any) => ({ day_of_week: d.day_of_week, fixed_fee: Number(d.fixed_fee) })));
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "daily_fees", courier_id: courier.id, code: courier.code },
+    });
+    setDailyFees(((data?.fees as any[]) ?? []).map((d: any) => ({ day_of_week: d.day_of_week, fixed_fee: Number(d.fixed_fee) })));
+  }, [courier.id, courier.code]);
 
   const getTodayFixedFee = useCallback(() => {
     const now = new Date();
@@ -263,54 +253,27 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   }, [dailyFees, courier.fixed_fee]);
 
   const fetchPending = useCallback(async () => {
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivering")
-      .order("delivering_at", { ascending: true });
-    setPendingOrders(data ?? []);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "pending", courier_id: courier.id, code: courier.code },
+    });
+    setPendingOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   const fetchToday = useCallback(async () => {
     const bd = getTodayBusinessDay();
     const { start, end } = getBusinessDayRange(bd);
-    // Fetch delivering orders (no date filter - always show active)
-    // Plus delivered/cancelled within today's business day by delivered_at
-    const { data: activeData } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivering");
-    const { data: doneData } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivered")
-      .not("delivered_at", "is", null)
-      .gte("delivered_at", start)
-      .lte("delivered_at", end)
-      .order("delivered_at", { ascending: false });
-    const combined = [...(activeData ?? []), ...(doneData ?? [])];
-    // Deduplicate by id
-    const seen = new Set<string>();
-    const unique = combined.filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true; });
-    setTodayOrders(unique);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "today", courier_id: courier.id, code: courier.code, start, end },
+    });
+    setTodayOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   const fetchHistory = useCallback(async () => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivered")
-      .gte("created_at", thirtyDaysAgo.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(200);
-    setHistoryOrders(data ?? []);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "history", courier_id: courier.id, code: courier.code },
+    });
+    setHistoryOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   useEffect(() => {
     fetchDailyFees();
@@ -355,11 +318,9 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (!confirmAction) return;
     const { orderId, action } = confirmAction;
     if (action === "not_delivered") {
-      await supabase.from("orders").update({
-        status: "ready",
-        delivering_at: null,
-        courier_id: null,
-      }).eq("id", orderId);
+      await supabase.functions.invoke("courier-portal", {
+        body: { action: "not_delivered", courier_id: courier.id, code: courier.code, order_id: orderId },
+      });
       toast({ title: "❌ Entrega devolvida para a loja." });
     }
     setConfirmAction(null);
@@ -555,19 +516,17 @@ export default function CourierPortal() {
       try {
         const parsed = JSON.parse(saved) as CourierInfo;
         // Re-validate from DB to get fresh data (name, fixed_fee, active status)
-        const { data } = await supabase
-          .from("couriers")
-          .select("*")
-          .eq("id", parsed.id)
-          .eq("active", true)
-          .maybeSingle();
-        if (data) {
+        const { data } = await supabase.functions.invoke("courier-portal", {
+          body: { action: "restore", courier_id: parsed.id, code: parsed.code },
+        });
+        const courierData = (data as any)?.courier;
+        if (courierData) {
           const fresh: CourierInfo = {
-            id: data.id,
-            name: data.name,
-            fixed_fee: Number(data.fixed_fee),
-            code: data.code,
-            store_id: data.store_id,
+            id: courierData.id,
+            name: courierData.name,
+            fixed_fee: Number(courierData.fixed_fee),
+            code: courierData.code,
+            store_id: courierData.store_id,
           };
           localStorage.setItem("courier_session", JSON.stringify(fresh));
           setCourier(fresh);
