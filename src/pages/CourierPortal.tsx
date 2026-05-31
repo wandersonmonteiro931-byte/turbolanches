@@ -516,12 +516,10 @@ export default function CourierPortal() {
       try {
         const parsed = JSON.parse(saved) as CourierInfo;
         // Re-validate from DB to get fresh data (name, fixed_fee, active status)
-        const { data } = await supabase
-          .from("couriers")
-          .select("*")
-          .eq("id", parsed.id)
-          .eq("active", true)
-          .maybeSingle();
+        const { data } = await supabase.functions.invoke("courier-portal", {
+          body: { action: "restore", courier_id: parsed.id, code: parsed.code },
+        });
+        const courierData = (data as any)?.courier;
         if (data) {
           const fresh: CourierInfo = {
             id: data.id,
