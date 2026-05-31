@@ -520,13 +520,13 @@ export default function CourierPortal() {
           body: { action: "restore", courier_id: parsed.id, code: parsed.code },
         });
         const courierData = (data as any)?.courier;
-        if (data) {
+        if (courierData) {
           const fresh: CourierInfo = {
-            id: data.id,
-            name: data.name,
-            fixed_fee: Number(data.fixed_fee),
-            code: data.code,
-            store_id: data.store_id,
+            id: courierData.id,
+            name: courierData.name,
+            fixed_fee: Number(courierData.fixed_fee),
+            code: courierData.code,
+            store_id: courierData.store_id,
           };
           localStorage.setItem("courier_session", JSON.stringify(fresh));
           setCourier(fresh);
