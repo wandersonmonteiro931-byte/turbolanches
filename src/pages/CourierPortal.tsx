@@ -45,24 +45,15 @@ function LoginScreen({ onLogin }: { onLogin: (c: CourierInfo) => void }) {
     if (!code.trim()) return;
     setLoading(true);
     setError("");
-    const { data, error: err } = await supabase
-      .from("couriers")
-      .select("*")
-      .eq("code", code.trim().toUpperCase())
-      .eq("active", true)
-      .maybeSingle();
+    const { data, error: err } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "login", code: code.trim().toUpperCase() },
+    });
     setLoading(false);
-    if (err || !data) {
+    if (err || !data?.courier) {
       setError("Código inválido ou entregador inativo.");
       return;
     }
-    const courier: CourierInfo = {
-      id: data.id,
-      name: data.name,
-      fixed_fee: Number(data.fixed_fee),
-      code: data.code,
-      store_id: data.store_id,
-    };
+    const courier: CourierInfo = data.courier;
     localStorage.setItem("courier_session", JSON.stringify(courier));
     onLogin(courier);
   };
