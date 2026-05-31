@@ -318,11 +318,9 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
     if (!confirmAction) return;
     const { orderId, action } = confirmAction;
     if (action === "not_delivered") {
-      await supabase.from("orders").update({
-        status: "ready",
-        delivering_at: null,
-        courier_id: null,
-      }).eq("id", orderId);
+      await supabase.functions.invoke("courier-portal", {
+        body: { action: "not_delivered", courier_id: courier.id, code: courier.code, order_id: orderId },
+      });
       toast({ title: "❌ Entrega devolvida para a loja." });
     }
     setConfirmAction(null);
