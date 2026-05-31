@@ -146,6 +146,15 @@ const cleanManualOrderObservation = (value: string) =>
     .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part))
     .join(" | ");
 
+const cleanAutoAddressComplement = (value: string) =>
+  value
+    .replace(/\bQd\s*\d+[A-Za-z]?\b/gi, "")
+    .replace(/\bQuadra\s*\d+[A-Za-z]?\b/gi, "")
+    .replace(/\bLt\s*\d+[A-Za-z]?\b/gi, "")
+    .replace(/\bLote\s*\d+[A-Za-z]?\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const fadeIn = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -525,27 +534,9 @@ const AdminManualOrder = () => {
       setAddressNumber(order.address_number || "");
       setAddressNeighborhood(order.address_neighborhood || "");
 
-      // For orders placed by customers via the menu (have user_id) and delivery type,
-      // the complement should always reflect the customer's profile quadra/lote
-      // (no need to repeat it manually).
-      let resolvedComplement = order.address_complement || "";
-      if (order.user_id && order.delivery_type === "delivery") {
-        const { data: customerProfile } = await supabase
-          .from("profiles")
-          .select("complement, quadra, lote")
-          .eq("user_id", order.user_id)
-          .maybeSingle();
-        if (customerProfile) {
-          resolvedComplement = [
-            customerProfile.complement,
-            customerProfile.quadra ? `Qd ${customerProfile.quadra}` : "",
-            customerProfile.lote ? `Lt ${customerProfile.lote}` : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-        }
-      }
-      setAddressComplement(resolvedComplement);
+      // Não preencher quadra/lote automaticamente no complemento.
+      // O complemento deve ser somente o que foi digitado/salvo no pedido.
+      setAddressComplement(order.address_complement || "");
       setObservations(cleanManualOrderObservation(order.observations || ""));
       setDiscount(String(order.discount || 0));
       setCustomDeliveryFee(String(order.delivery_fee || 0));
@@ -921,10 +912,7 @@ const AdminManualOrder = () => {
         toast.error("Preencha o bairro para delivery");
         return;
       }
-      if (!addressComplement) {
-        toast.error("Preencha o complemento para delivery");
-        return;
-      }
+      // Complemento é opcional. Não obrigar quadra/lote.
     }
 
     const shouldPrintFinalReceipt = !isTableOrder || isChargingTable;
@@ -1509,15 +1497,7 @@ const AdminManualOrder = () => {
                     setAddressStreet(profile.street || "");
                     setAddressNumber(profile.number || "");
                     setAddressNeighborhood(profile.neighborhood || "");
-                    setAddressComplement(
-                      [
-                        profile.complement,
-                        profile.quadra ? `Qd ${profile.quadra}` : "",
-                        profile.lote ? `Lt ${profile.lote}` : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" "),
-                    );
+                    setAddressComplement(profile.complement || "");
                   }
                 }}
                 onClear={() => {
@@ -1600,7 +1580,7 @@ const AdminManualOrder = () => {
                 <input
                   value={addressComplement}
                   onChange={(e) => setAddressComplement(e.target.value)}
-                  placeholder="Complemento"
+                  placeholder="Complemento (opcional)"
                   className="h-7 border border-[hsl(199_76%_36%)] px-1 outline-none"
                 />
                 <div className="col-span-2">
