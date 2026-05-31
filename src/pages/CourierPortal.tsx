@@ -234,12 +234,11 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   }, []);
 
   const fetchDailyFees = useCallback(async () => {
-    const { data } = await supabase
-      .from("courier_daily_fees")
-      .select("day_of_week, fixed_fee")
-      .eq("courier_id", courier.id);
-    setDailyFees((data as any[] ?? []).map((d: any) => ({ day_of_week: d.day_of_week, fixed_fee: Number(d.fixed_fee) })));
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "daily_fees", courier_id: courier.id, code: courier.code },
+    });
+    setDailyFees(((data?.fees as any[]) ?? []).map((d: any) => ({ day_of_week: d.day_of_week, fixed_fee: Number(d.fixed_fee) })));
+  }, [courier.id, courier.code]);
 
   const getTodayFixedFee = useCallback(() => {
     const now = new Date();
@@ -254,54 +253,27 @@ function CourierDashboard({ courier }: { courier: CourierInfo }) {
   }, [dailyFees, courier.fixed_fee]);
 
   const fetchPending = useCallback(async () => {
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivering")
-      .order("delivering_at", { ascending: true });
-    setPendingOrders(data ?? []);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "pending", courier_id: courier.id, code: courier.code },
+    });
+    setPendingOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   const fetchToday = useCallback(async () => {
     const bd = getTodayBusinessDay();
     const { start, end } = getBusinessDayRange(bd);
-    // Fetch delivering orders (no date filter - always show active)
-    // Plus delivered/cancelled within today's business day by delivered_at
-    const { data: activeData } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivering");
-    const { data: doneData } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivered")
-      .not("delivered_at", "is", null)
-      .gte("delivered_at", start)
-      .lte("delivered_at", end)
-      .order("delivered_at", { ascending: false });
-    const combined = [...(activeData ?? []), ...(doneData ?? [])];
-    // Deduplicate by id
-    const seen = new Set<string>();
-    const unique = combined.filter(o => { if (seen.has(o.id)) return false; seen.add(o.id); return true; });
-    setTodayOrders(unique);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "today", courier_id: courier.id, code: courier.code, start, end },
+    });
+    setTodayOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   const fetchHistory = useCallback(async () => {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const { data } = await supabase
-      .from("orders")
-      .select("id, order_number, address_street, address_number, address_neighborhood, address_complement, delivery_fee, status, delivering_at, delivered_at, created_at")
-      .eq("courier_id", courier.id)
-      .eq("status", "delivered")
-      .gte("created_at", thirtyDaysAgo.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(200);
-    setHistoryOrders(data ?? []);
-  }, [courier.id]);
+    const { data } = await supabase.functions.invoke("courier-portal", {
+      body: { action: "orders", scope: "history", courier_id: courier.id, code: courier.code },
+    });
+    setHistoryOrders((data?.orders as DeliveryOrder[]) ?? []);
+  }, [courier.id, courier.code]);
 
   useEffect(() => {
     fetchDailyFees();
