@@ -935,8 +935,7 @@ const Kitchen = () => {
                     return (
                       <div key={item.id}>
                         <div className="kds-item">
-                          {item.quantity}x {item.product_code != null ? `[${item.product_code}] ` : ""}
-                          {item.product_name}
+                          {item.quantity}x {item.product_name}
                         </div>
                         {addons &&
                           addons.length > 0 &&
