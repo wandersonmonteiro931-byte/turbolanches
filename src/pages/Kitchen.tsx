@@ -52,19 +52,44 @@ const Kitchen = () => {
   };
 
   const fetchOrders = useCallback(async () => {
-    // Fetch preparing orders for display (filtered by Turbo Lanches store)
+    const selectFields =
+      "id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at, store_id";
+
+    // Busca principal: pedidos em preparo da loja atual.
+    // O problema era que alguns pedidos ficavam com store_id vazio/diferente e a cozinha filtrava fora.
     let query = supabase
       .from("orders")
-      .select(
-        "id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at",
-      )
+      .select(selectFields)
       .eq("status", "preparing")
-      .order("preparing_at", { ascending: true });
+      .is("trashed_at", null)
+      .order("preparing_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: true });
+
     if (storeId) query = query.eq("store_id", storeId);
-    const { data, error } = await query;
+
+    let { data, error } = await query;
+
+    // Plano B: se não achou nada com store_id, busca todos os pedidos em preparo.
+    // Assim a cozinha não fica vazia quando o pedido foi criado sem vínculo correto de loja.
+    if (!error && storeId && (!data || data.length === 0)) {
+      const fallback = await supabase
+        .from("orders")
+        .select(selectFields)
+        .eq("status", "preparing")
+        .is("trashed_at", null)
+        .order("preparing_at", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
+
+      if (!fallback.error) {
+        data = fallback.data;
+        error = null;
+      }
+    }
+
     if (error) {
       console.error("[Kitchen] Error fetching orders:", error.message);
     }
+
     const rows = data ?? [];
 
     // Detect orders that were actually cancelled (not just moved to ready/delivering)
@@ -133,13 +158,27 @@ const Kitchen = () => {
     } else {
       setItems({});
     }
-    // Check for pending orders (for alarm) — exclude unpaid PIX, filter by store
+    // Check for pending orders (for alarm) — exclude unpaid PIX.
     let alarmQuery = supabase
       .from("orders")
       .select("id, status, payment_method, store_id")
-      .in("status", ["pending", "paid"]);
+      .in("status", ["pending", "paid"])
+      .is("trashed_at", null);
+
     if (storeId) alarmQuery = alarmQuery.eq("store_id", storeId);
-    const { data: alarmOrders } = await alarmQuery;
+
+    let { data: alarmOrders } = await alarmQuery;
+
+    if (storeId && (!alarmOrders || alarmOrders.length === 0)) {
+      const fallbackAlarm = await supabase
+        .from("orders")
+        .select("id, status, payment_method, store_id")
+        .in("status", ["pending", "paid"])
+        .is("trashed_at", null);
+
+      if (!fallbackAlarm.error) alarmOrders = fallbackAlarm.data;
+    }
+
     const visiblePending = (alarmOrders || []).filter((o) => !(o.payment_method === "pix" && o.status === "pending"));
     setPendingCount(visiblePending.length);
   }, [storeId]);
