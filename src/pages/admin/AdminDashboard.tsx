@@ -156,33 +156,8 @@ const getTableCode = (order: Pick<Order, "delivery_type" | "table_code" | "obser
   return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "MESA";
 };
 
-const CANCEL_STATUS_MARKER = "STATUS_ANTES_CANCELAR";
-
-const getStatusBeforeCancel = (order: Pick<Order, "observations" | "delivery_type">) => {
-  const match = (order.observations || "").match(/\[STATUS_ANTES_CANCELAR:([^\]]+)\]/i);
-
-  if (match?.[1]) return match[1].trim();
-
-  // Segurança para pedidos cancelados antigos, que ainda não tinham marcador.
-  // Delivery volta para pendente; mesa/retirada também volta para pendente para poder seguir o fluxo.
-  return "pending";
-};
-
-const removeCancelStatusMarker = (value: string | null) =>
-  (value || "")
-    .replace(/\s*\|?\s*\[STATUS_ANTES_CANCELAR:[^\]]+\]/gi, "")
-    .replace(/\s*\|\s*$/g, "")
-    .trim();
-
-const withCancelStatusMarker = (value: string | null, status: string) => {
-  const cleaned = removeCancelStatusMarker(value);
-  const marker = `[${CANCEL_STATUS_MARKER}:${status}]`;
-
-  return cleaned ? `${cleaned} | ${marker}` : marker;
-};
-
 const cleanOrderObservation = (value: string | null) =>
-  removeCancelStatusMarker(value)
+  (value || "")
     .split("|")
     .map((part) => part.trim())
     .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part) && !/^#?MESA\d+$/i.test(part))
@@ -554,6 +529,89 @@ const AdminDashboard = () => {
   const [showRouteClosureModal, setShowRouteClosureModal] = useState<string | null>(null);
   const [cashRegisterOpen, setCashRegisterOpen] = useState(false);
 
+  const getStatusBeforeCancel = (order: Order): string => {
+    const observations = String(order.observations || "");
+    const match = observations.match(/\[STATUS_ANTES_CANCELAR:([a-z_]+)\]/i);
+    const savedStatus = match?.[1]?.toLowerCase();
+
+    if (savedStatus && savedStatus !== "cancelled") {
+      return savedStatus;
+    }
+
+    // Fallback para pedidos antigos que foram cancelados antes desta correção.
+    // Não dá para saber 100% o status antigo se ele não foi salvo,
+    // mas dá para inferir pela última etapa registrada no pedido.
+    if (order.delivered_at) return "delivered";
+    if (order.delivering_at) return "delivering";
+    if (order.ready_at) return "ready";
+    if (order.preparing_at) return "preparing";
+
+    return "pending";
+  };
+
+  const withStatusBeforeCancelMarker = (order: Order, reason: string): string => {
+    const observations = String(order.observations || "")
+      .replace(/\[STATUS_ANTES_CANCELAR:[a-z_]+\]/gi, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const previousStatus = order.status && order.status !== "cancelled" ? order.status : getStatusBeforeCancel(order);
+
+    const cleanReason = reason.trim();
+
+    return [
+      `[STATUS_ANTES_CANCELAR:${previousStatus}]`,
+      cleanReason ? `Motivo da recusa: ${cleanReason}` : "",
+      observations,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const removeStatusBeforeCancelMarker = (observations: string | null | undefined): string | null => {
+    const cleaned = String(observations || "")
+      .replace(/\[STATUS_ANTES_CANCELAR:[a-z_]+\]/gi, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s*\|\s*\|\s*/g, " | ")
+      .replace(/^\s*\|\s*/, "")
+      .replace(/\s*\|\s*$/, "")
+      .trim();
+
+    return cleaned || null;
+  };
+
+  const recuperarPedidoCancelado = async (order: Order) => {
+    const statusAnterior = getStatusBeforeCancel(order);
+
+    const confirmar = window.confirm(
+      `Recuperar o pedido #${String(order.order_number).padStart(5, "0")}?\n\n` +
+        `Ele vai voltar para: ${tabs.find((tab) => tab.key === statusAnterior)?.label || statusAnterior}.`,
+    );
+
+    if (!confirmar) return;
+
+    const updateData: Record<string, unknown> = {
+      status: statusAnterior,
+      trashed_at: null,
+      cancellation_reason: null,
+      observations: removeStatusBeforeCancelMarker(order.observations),
+    };
+
+    const { error } = await supabase.from("orders").update(updateData).eq("id", order.id);
+
+    if (error) {
+      toast({ title: "Erro ao recuperar pedido", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({
+      title: "♻️ Pedido recuperado!",
+      description: `Voltou para ${tabs.find((tab) => tab.key === statusAnterior)?.label || statusAnterior}.`,
+    });
+
+    await fetchOrders();
+  };
+
   const updateStatus = async (orderId: string, newStatus: string, courierId?: string) => {
     const order = orders.find((o) => o.id === orderId);
     // Block accepting and finalization if cash register is closed
@@ -714,47 +772,6 @@ const AdminDashboard = () => {
     }
 
     toast({ title: "📝 Pedido marcado como fiado!" });
-    await fetchOrders();
-  };
-
-  const restoreCancelledOrder = async (order: Order) => {
-    const previousStatus = getStatusBeforeCancel(order);
-
-    if (previousStatus === "cancelled") {
-      toast({
-        title: "Não foi possível recuperar",
-        description: "O status anterior salvo também era cancelado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const label =
-      tabs.find((tab) => tab.key === previousStatus || tab.statuses.includes(previousStatus))?.label || previousStatus;
-
-    if (!window.confirm(`Recuperar o pedido #${String(order.order_number).padStart(4, "0")} e voltar para ${label}?`)) {
-      return;
-    }
-
-    const updateData: Record<string, unknown> = {
-      status: previousStatus,
-      trashed_at: null,
-      cancellation_reason: null,
-      observations: removeCancelStatusMarker(order.observations) || null,
-    };
-
-    const { error } = await supabase.from("orders").update(updateData).eq("id", order.id);
-
-    if (error) {
-      toast({
-        title: "Erro ao recuperar pedido",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({ title: `♻️ Pedido recuperado para ${label}` });
     await fetchOrders();
   };
 
@@ -2615,8 +2632,8 @@ const AdminDashboard = () => {
                     {order.status === "cancelled" && !order.trashed_at && (
                       <>
                         <button
-                          onClick={() => restoreCancelledOrder(order)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-green-600 bg-green-50 py-2.5 text-sm font-bold text-green-700 hover:bg-green-100"
+                          onClick={() => recuperarPedidoCancelado(order)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
                         >
                           <RotateCcw size={14} /> Recuperar
                         </button>
@@ -2647,7 +2664,7 @@ const AdminDashboard = () => {
                     )}
                     {order.status === "cancelled" && order.trashed_at && (
                       <button
-                        onClick={() => restoreCancelledOrder(order)}
+                        onClick={() => recuperarPedidoCancelado(order)}
                         className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
                       >
                         <RotateCcw size={14} /> Recuperar
@@ -2686,15 +2703,18 @@ const AdminDashboard = () => {
                 onClick={async () => {
                   const orderToCancel = orders.find((order) => order.id === cancellingOrderId);
 
+                  if (!orderToCancel) {
+                    toast({ title: "Pedido não encontrado", variant: "destructive" });
+                    setCancellingOrderId(null);
+                    return;
+                  }
+
                   const { error } = await supabase
                     .from("orders")
                     .update({
                       status: "cancelled",
                       cancellation_reason: cancellationReason.trim(),
-                      observations: withCancelStatusMarker(
-                        orderToCancel?.observations ?? null,
-                        orderToCancel?.status ?? "pending",
-                      ),
+                      observations: withStatusBeforeCancelMarker(orderToCancel, cancellationReason.trim()),
                     })
                     .eq("id", cancellingOrderId);
 
