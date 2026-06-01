@@ -287,10 +287,10 @@ const Kitchen = () => {
         }
 
         .kds-header {
-          height: 92px;
+          height: 118px;
           background: rgba(7, 14, 28, 0.78);
           backdrop-filter: blur(24px);
-          padding: 14px 24px;
+          padding: 16px 28px;
           display: grid;
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
@@ -317,8 +317,8 @@ const Kitchen = () => {
         }
 
         .kds-logo {
-          width: 60px;
-          height: 60px;
+          width: 82px;
+          height: 82px;
           border-radius: 12px;
           object-fit: cover;
           box-shadow: 0 18px 38px rgba(0,0,0,0.38);
@@ -333,7 +333,7 @@ const Kitchen = () => {
         }
 
         .kds-title {
-          font-size: 28px;
+          font-size: 30px;
           font-weight: 950;
           letter-spacing: 4px;
           line-height: 1;
@@ -773,7 +773,7 @@ const Kitchen = () => {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          height: calc(100vh - 92px);
+          height: calc(100vh - 118px);
           color: #e5eefb;
           font-size: 28px;
           font-weight: 950;
@@ -848,7 +848,7 @@ const Kitchen = () => {
           }
 
           .kds-grid {
-            height: calc(100vh - 190px);
+            height: calc(100vh - 220px);
             grid-template-columns: 1fr;
             padding: 16px;
           }
