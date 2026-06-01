@@ -263,28 +263,49 @@ const Kitchen = () => {
         html, body, #root {
           min-height: 100%;
           background:
-            radial-gradient(circle at top left, rgba(234,29,44,0.10), transparent 30%),
-            linear-gradient(135deg, #f8fafc 0%, #eef2f7 45%, #e2e8f0 100%);
-          color: #0f172a;
+            radial-gradient(circle at 18% 12%, rgba(14,165,233,0.18), transparent 28%),
+            radial-gradient(circle at 88% 16%, rgba(239,68,68,0.14), transparent 24%),
+            radial-gradient(circle at 50% 100%, rgba(22,163,74,0.14), transparent 28%),
+            linear-gradient(135deg, #06111f 0%, #0f172a 42%, #172033 100%);
+          color: #e5eefb;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           -webkit-font-smoothing: antialiased;
           overflow: hidden;
         }
 
+        body::before {
+          content: "";
+          position: fixed;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.14;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+          background-size: 42px 42px;
+          mask-image: linear-gradient(to bottom, black, transparent 85%);
+        }
+
         .kds-header {
-          height: 104px;
-          background: rgba(255,255,255,0.92);
-          backdrop-filter: blur(18px);
+          height: 108px;
+          background: rgba(7, 14, 28, 0.78);
+          backdrop-filter: blur(24px);
           padding: 18px 32px;
           display: grid;
-          grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr);
+          grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
           align-items: center;
           gap: 24px;
-          border-bottom: 1px solid rgba(15,23,42,0.10);
-          box-shadow: 0 18px 45px rgba(15,23,42,0.10);
+          border-bottom: 1px solid rgba(148,163,184,0.18);
+          box-shadow: 0 18px 60px rgba(0,0,0,0.35);
           position: sticky;
           top: 0;
           z-index: 5;
+          animation: kds-slide-down 0.55s cubic-bezier(.2,.9,.2,1) both;
+        }
+
+        @keyframes kds-slide-down {
+          from { opacity: 0; transform: translateY(-18px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .kds-header-left {
@@ -295,62 +316,93 @@ const Kitchen = () => {
         }
 
         .kds-logo {
-          width: 58px;
-          height: 58px;
-          border-radius: 18px;
+          width: 60px;
+          height: 60px;
+          border-radius: 20px;
           object-fit: cover;
-          box-shadow: 0 12px 28px rgba(0,0,0,0.18);
-          border: 2px solid rgba(255,255,255,0.75);
-          background: #111827;
+          box-shadow: 0 18px 38px rgba(0,0,0,0.38);
+          border: 1px solid rgba(255,255,255,0.18);
+          background: #020617;
+          animation: kds-logo-glow 3.8s ease-in-out infinite;
+        }
+
+        @keyframes kds-logo-glow {
+          0%, 100% { box-shadow: 0 18px 38px rgba(0,0,0,0.38), 0 0 0 rgba(239,68,68,0); }
+          50% { box-shadow: 0 18px 38px rgba(0,0,0,0.38), 0 0 26px rgba(239,68,68,0.25); }
         }
 
         .kds-title {
-          font-size: 30px;
+          font-size: 31px;
           font-weight: 950;
           letter-spacing: 5px;
           line-height: 1;
           text-transform: uppercase;
-          color: #0f172a;
+          color: #ffffff;
         }
 
         .kds-subtitle {
-          margin-top: 8px;
+          margin-top: 9px;
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          font-size: 13px;
+          gap: 10px;
+          font-size: 12px;
           font-weight: 950;
-          color: #dc2626;
-          letter-spacing: 2px;
+          color: #fca5a5;
+          letter-spacing: 2.6px;
           text-transform: uppercase;
         }
 
         .kds-subtitle::before {
           content: "";
-          width: 9px;
-          height: 9px;
+          width: 10px;
+          height: 10px;
           border-radius: 999px;
-          background: #dc2626;
-          box-shadow: 0 0 0 6px rgba(220,38,38,0.12);
+          background: #ef4444;
+          box-shadow: 0 0 0 7px rgba(239,68,68,0.14);
+          animation: kds-live-dot 1.55s ease-in-out infinite;
+        }
+
+        @keyframes kds-live-dot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.35); opacity: .72; }
         }
 
         .kds-clock {
-          font-size: clamp(40px, 5vw, 64px);
+          position: relative;
+          font-size: clamp(42px, 5.3vw, 68px);
           font-weight: 950;
-          color: #0f172a;
+          color: #ffffff;
           font-variant-numeric: tabular-nums;
-          letter-spacing: 3px;
-          line-height: 0.95;
-          text-shadow: 0 10px 28px rgba(15,23,42,0.12);
+          letter-spacing: 4px;
+          line-height: .95;
+          text-shadow: 0 16px 36px rgba(0,0,0,0.35);
+        }
+
+        .kds-clock::after {
+          content: "";
+          display: block;
+          width: 68%;
+          height: 4px;
+          margin: 12px auto 0;
+          border-radius: 999px;
+          background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+          opacity: .8;
+          animation: kds-line-flow 2.6s linear infinite;
+        }
+
+        @keyframes kds-line-flow {
+          0% { transform: scaleX(.45); opacity: .45; }
+          50% { transform: scaleX(1); opacity: .95; }
+          100% { transform: scaleX(.45); opacity: .45; }
         }
 
         .kds-clock-label {
           margin-top: 8px;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 950;
-          color: #64748b;
+          color: #94a3b8;
           text-transform: uppercase;
-          letter-spacing: 2px;
+          letter-spacing: 2.4px;
         }
 
         .kds-count {
@@ -358,120 +410,174 @@ const Kitchen = () => {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-width: 148px;
-          padding: 14px 18px;
-          border-radius: 22px;
-          background: #0f172a;
-          color: white;
-          font-size: 20px;
+          min-width: 160px;
+          padding: 15px 20px;
+          border-radius: 24px;
+          background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.92));
+          color: #ffffff;
+          font-size: 21px;
           font-weight: 950;
-          box-shadow: 0 16px 36px rgba(15,23,42,0.22);
+          border: 1px solid rgba(148,163,184,0.22);
+          box-shadow: 0 18px 44px rgba(0,0,0,0.30);
         }
 
         .kds-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-          gap: 22px;
-          padding: 24px;
-          height: calc(100vh - 104px);
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 24px;
+          padding: 26px;
+          height: calc(100vh - 108px);
           overflow-y: auto;
           align-content: start;
           grid-auto-rows: min-content;
           scrollbar-width: thin;
-          scrollbar-color: rgba(15,23,42,0.25) transparent;
+          scrollbar-color: rgba(148,163,184,0.35) transparent;
         }
 
         .kds-grid::-webkit-scrollbar { width: 10px; }
         .kds-grid::-webkit-scrollbar-thumb {
-          background: rgba(15,23,42,0.20);
+          background: rgba(148,163,184,0.35);
           border-radius: 999px;
         }
 
         .kds-card {
-          background: rgba(255,255,255,0.96);
-          border-radius: 26px;
-          border: 1px solid rgba(15,23,42,0.10);
+          position: relative;
+          background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(241,245,249,0.98));
+          color: #0f172a;
+          border-radius: 30px;
+          border: 1px solid rgba(255,255,255,0.60);
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-          box-shadow: 0 18px 40px rgba(15,23,42,0.12);
-          min-height: 260px;
+          min-height: 278px;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+          animation: kds-card-in 0.5s cubic-bezier(.2,.9,.2,1) both;
+          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        .kds-card::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto 0;
+          height: 6px;
+          background: linear-gradient(90deg, #38bdf8, #22c55e);
+          opacity: .95;
         }
 
         .kds-card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 24px 55px rgba(15,23,42,0.16);
+          transform: translateY(-4px) scale(1.006);
+          box-shadow: 0 30px 75px rgba(0,0,0,0.34);
+        }
+
+        @keyframes kds-card-in {
+          from { opacity: 0; transform: translateY(18px) scale(.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .kds-card-priority {
-          border-color: #7c3aed !important;
-          box-shadow: 0 0 0 5px rgba(124,58,237,0.16), 0 22px 50px rgba(15,23,42,0.14);
+          border-color: rgba(168,85,247,0.9) !important;
+          box-shadow: 0 0 0 5px rgba(168,85,247,0.18), 0 24px 60px rgba(0,0,0,0.28);
+        }
+
+        .kds-card-priority::before {
+          background: linear-gradient(90deg, #7c3aed, #d946ef, #7c3aed);
+          background-size: 180% 100%;
+          animation: kds-gradient-flow 2.2s linear infinite;
         }
 
         .kds-card-late {
-          border-color: #dc2626 !important;
-          box-shadow: 0 0 0 5px rgba(220,38,38,0.13), 0 22px 50px rgba(15,23,42,0.14);
+          border-color: rgba(239,68,68,0.9) !important;
+          box-shadow: 0 0 0 5px rgba(239,68,68,0.18), 0 24px 60px rgba(0,0,0,0.28);
+        }
+
+        .kds-card-late::before {
+          background: linear-gradient(90deg, #991b1b, #ef4444, #991b1b);
+          background-size: 180% 100%;
+          animation: kds-gradient-flow 1.25s linear infinite;
         }
 
         .kds-card-warning {
-          border-color: #f59e0b !important;
-          box-shadow: 0 0 0 5px rgba(245,158,11,0.13), 0 22px 50px rgba(15,23,42,0.14);
+          border-color: rgba(245,158,11,0.9) !important;
+          box-shadow: 0 0 0 5px rgba(245,158,11,0.18), 0 24px 60px rgba(0,0,0,0.28);
+        }
+
+        .kds-card-warning::before {
+          background: linear-gradient(90deg, #f59e0b, #facc15, #f59e0b);
+          background-size: 180% 100%;
+          animation: kds-gradient-flow 1.8s linear infinite;
+        }
+
+        @keyframes kds-gradient-flow {
+          from { background-position: 0% 50%; }
+          to { background-position: 180% 50%; }
+        }
+
+        .kds-priority-banner,
+        .kds-edited-banner,
+        .kds-cancelled-banner {
+          text-align: center;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: 3px;
         }
 
         .kds-priority-banner {
-          background: linear-gradient(90deg, #7c3aed, #a855f7);
+          background: linear-gradient(90deg, #6d28d9, #9333ea, #c026d3);
           color: white;
-          text-align: center;
           font-size: 15px;
-          font-weight: 950;
-          padding: 10px;
-          letter-spacing: 3px;
-          text-transform: uppercase;
+          padding: 12px;
+          animation: kds-soft-shine 2.4s linear infinite;
+          background-size: 180% 100%;
         }
 
         .kds-card-edited {
-          border-color: #2563eb !important;
-          animation: kds-edited-blink 0.85s ease-in-out infinite;
-          box-shadow: 0 0 0 5px rgba(37,99,235,0.18), 0 22px 50px rgba(15,23,42,0.14);
+          border-color: rgba(37,99,235,0.92) !important;
+          animation: kds-card-in .5s cubic-bezier(.2,.9,.2,1) both, kds-edited-glow 1.1s ease-in-out infinite;
         }
 
-        @keyframes kds-edited-blink {
-          0%, 100% { background: rgba(255,255,255,0.98); }
-          50% { background: #dbeafe; }
+        @keyframes kds-edited-glow {
+          0%, 100% { box-shadow: 0 0 0 5px rgba(37,99,235,.18), 0 24px 60px rgba(0,0,0,.28); }
+          50% { box-shadow: 0 0 0 9px rgba(37,99,235,.25), 0 30px 75px rgba(0,0,0,.34); }
+        }
+
+        .kds-card-edited::before {
+          background: linear-gradient(90deg, #1d4ed8, #38bdf8, #1d4ed8);
+          background-size: 180% 100%;
+          animation: kds-gradient-flow 1.5s linear infinite;
         }
 
         .kds-edited-banner {
-          background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+          background: linear-gradient(90deg, #1d4ed8, #2563eb, #38bdf8);
           color: white;
-          text-align: center;
           font-size: 16px;
-          font-weight: 950;
-          padding: 11px;
-          letter-spacing: 3px;
-          text-transform: uppercase;
+          padding: 12px;
+          background-size: 180% 100%;
+          animation: kds-soft-shine 1.6s linear infinite;
+        }
+
+        @keyframes kds-soft-shine {
+          from { background-position: 0% 50%; }
+          to { background-position: 180% 50%; }
         }
 
         .kds-card-cancelled {
-          border-color: #dc2626 !important;
+          border-color: rgba(239,68,68,0.95) !important;
           background: #fff1f2 !important;
-          animation: kds-cancelled-blink 0.75s ease-in-out infinite;
+          animation: kds-card-in .45s cubic-bezier(.2,.9,.2,1) both, kds-cancelled-pulse .85s ease-in-out infinite;
         }
 
-        @keyframes kds-cancelled-blink {
-          0%, 100% { background: #fff1f2; }
-          50% { background: #ffe4e6; }
+        @keyframes kds-cancelled-pulse {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.06); }
         }
 
         .kds-cancelled-banner {
-          background: linear-gradient(90deg, #b91c1c, #ef4444);
+          background: linear-gradient(90deg, #7f1d1d, #dc2626, #ef4444);
           color: white;
-          text-align: center;
-          font-size: 28px;
-          font-weight: 950;
+          font-size: 24px;
           padding: 18px;
-          letter-spacing: 4px;
-          text-transform: uppercase;
+          background-size: 180% 100%;
+          animation: kds-soft-shine 1.2s linear infinite;
         }
 
         .kds-card-head {
@@ -479,15 +585,17 @@ const Kitchen = () => {
           justify-content: space-between;
           align-items: flex-start;
           gap: 14px;
-          padding: 18px 20px;
+          padding: 22px 22px 18px;
           border-bottom: 1px solid rgba(15,23,42,0.08);
-          background: linear-gradient(180deg, #ffffff, #f8fafc);
+          background:
+            radial-gradient(circle at 15% 0%, rgba(56,189,248,0.13), transparent 32%),
+            linear-gradient(180deg, #ffffff, #f8fafc);
         }
 
         .kds-order-num {
-          font-size: 32px;
+          font-size: 34px;
           font-weight: 950;
-          letter-spacing: 1px;
+          letter-spacing: .5px;
           color: #0f172a;
           line-height: 1;
         }
@@ -495,36 +603,59 @@ const Kitchen = () => {
         .kds-badge {
           display: inline-flex;
           align-items: center;
-          height: 26px;
+          height: 28px;
           font-size: 11px;
-          padding: 0 11px;
+          padding: 0 12px;
           border-radius: 999px;
           background: #e2e8f0;
           color: #334155;
           font-weight: 950;
           text-transform: uppercase;
-          letter-spacing: 0.7px;
+          letter-spacing: .8px;
           border: 1px solid rgba(15,23,42,0.08);
         }
 
         .kds-timer {
-          font-size: 26px;
-          padding: 8px 14px;
-          border-radius: 16px;
+          position: relative;
+          overflow: hidden;
+          font-size: 27px;
+          padding: 9px 15px;
+          border-radius: 18px;
           font-weight: 950;
-          min-width: 106px;
+          min-width: 112px;
           text-align: center;
           font-variant-numeric: tabular-nums;
           border: 1px solid rgba(15,23,42,0.10);
           box-shadow: inset 0 -2px 0 rgba(15,23,42,0.06);
         }
 
-        .kds-timer-normal { background: #dcfce7; color: #166534; }
-        .kds-timer-warning { background: #fef3c7; color: #92400e; animation: kds-pulse 1.7s ease-in-out infinite; }
-        .kds-timer-late { background: #fee2e2; color: #991b1b; animation: kds-blink 0.85s ease-in-out infinite; }
+        .kds-timer::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-110%);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+          animation: kds-sweep 2.2s ease-in-out infinite;
+        }
 
-        @keyframes kds-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.48; } }
-        @keyframes kds-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+        @keyframes kds-sweep {
+          0% { transform: translateX(-110%); }
+          45%, 100% { transform: translateX(110%); }
+        }
+
+        .kds-timer-normal { background: #dcfce7; color: #166534; }
+        .kds-timer-warning { background: #fef3c7; color: #92400e; animation: kds-timer-warning 1.4s ease-in-out infinite; }
+        .kds-timer-late { background: #fee2e2; color: #991b1b; animation: kds-timer-late .72s ease-in-out infinite; }
+
+        @keyframes kds-timer-warning {
+          0%,100% { transform: scale(1); }
+          50% { transform: scale(1.045); }
+        }
+
+        @keyframes kds-timer-late {
+          0%,100% { transform: scale(1); filter: brightness(1); }
+          50% { transform: scale(1.06); filter: brightness(1.08); }
+        }
 
         .kds-deadline {
           font-size: 12px;
@@ -532,113 +663,179 @@ const Kitchen = () => {
           color: #0369a1;
           background: #e0f2fe;
           border: 1px solid #bae6fd;
-          padding: 5px 10px;
+          padding: 6px 11px;
           border-radius: 999px;
-          margin-top: 4px;
+          margin-top: 5px;
           display: inline-block;
         }
 
         .kds-items {
-          padding: 14px 20px;
+          padding: 15px 22px;
           flex: 1;
         }
 
         .kds-item {
-          font-size: 22px;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          font-size: 23px;
           font-weight: 950;
-          padding: 10px 0;
+          padding: 11px 0;
           border-bottom: 1px solid rgba(15,23,42,0.08);
-          letter-spacing: 0.1px;
+          letter-spacing: .1px;
           color: #0f172a;
           line-height: 1.15;
+        }
+
+        .kds-item::before {
+          content: "";
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: #22c55e;
+          margin-top: 8px;
+          box-shadow: 0 0 0 5px rgba(34,197,94,.13);
+          flex: 0 0 auto;
         }
 
         .kds-item:last-child { border-bottom: none; }
 
         .kds-addon {
-          margin-top: 2px;
-          margin-left: 10px;
+          margin: 2px 0 4px 22px;
           font-size: 16px;
           color: #475569;
-          padding-left: 16px;
-          font-weight: 800;
+          padding-left: 15px;
+          font-weight: 850;
           border-left: 4px solid #cbd5e1;
         }
 
         .kds-item-obs {
-          margin: 8px 0 4px 10px;
+          margin: 8px 0 4px 22px;
           font-size: 15px;
           color: #92400e;
-          padding: 8px 12px;
+          padding: 9px 12px;
           font-weight: 900;
           background: #fef3c7;
           border: 1px solid #fde68a;
-          border-radius: 12px;
+          border-radius: 14px;
         }
 
         .kds-order-obs {
-          margin: 0 20px 14px;
+          margin: 0 22px 15px;
           padding: 12px 14px;
           font-size: 16px;
           color: #78350f;
           font-weight: 950;
           border: 1px dashed #f59e0b;
           background: #fffbeb;
-          border-radius: 14px;
+          border-radius: 16px;
         }
 
         .kds-footer {
-          padding: 16px 20px 20px;
-          background: #f8fafc;
+          padding: 17px 22px 22px;
+          background: linear-gradient(180deg, #f8fafc, #eef2f7);
           border-top: 1px solid rgba(15,23,42,0.08);
         }
 
         .kds-btn {
+          position: relative;
+          overflow: hidden;
           width: 100%;
-          padding: 18px;
+          padding: 19px;
           border: none;
-          border-radius: 18px;
-          background: linear-gradient(135deg, #16a34a, #22c55e);
+          border-radius: 20px;
+          background: linear-gradient(135deg, #16a34a, #22c55e, #86efac);
+          background-size: 180% 100%;
           color: #fff;
           font-size: 18px;
           font-weight: 950;
           cursor: pointer;
           text-transform: uppercase;
-          letter-spacing: 1.5px;
-          transition: transform 0.12s ease, filter 0.12s ease;
+          letter-spacing: 1.7px;
+          transition: transform .13s ease, filter .13s ease;
           font-family: 'Inter', sans-serif;
-          box-shadow: 0 14px 28px rgba(22,163,74,0.26);
+          box-shadow: 0 18px 34px rgba(22,163,74,0.28);
+          animation: kds-btn-flow 3s linear infinite;
         }
 
-        .kds-btn:hover { filter: brightness(1.04); }
-        .kds-btn:active { transform: scale(0.985); }
+        .kds-btn::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          transform: translateX(-110%);
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,.34), transparent);
+          animation: kds-sweep 2.7s ease-in-out infinite;
+        }
+
+        @keyframes kds-btn-flow {
+          from { background-position: 0% 50%; }
+          to { background-position: 180% 50%; }
+        }
+
+        .kds-btn:hover { filter: brightness(1.05); }
+        .kds-btn:active { transform: scale(.985); }
 
         .kds-empty {
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          height: calc(100vh - 104px);
-          color: #0f172a;
-          font-size: 30px;
+          height: calc(100vh - 108px);
+          color: #e5eefb;
+          font-size: 31px;
           font-weight: 950;
-          letter-spacing: 0.3px;
+          letter-spacing: .3px;
           text-align: center;
+          animation: kds-empty-in .65s cubic-bezier(.2,.9,.2,1) both;
         }
 
-        .kds-empty span {
+        @keyframes kds-empty-in {
+          from { opacity: 0; transform: translateY(18px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .kds-empty-icon {
+          position: relative;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 110px;
-          height: 110px;
-          border-radius: 32px;
+          width: 118px;
+          height: 118px;
+          border-radius: 36px;
           background: linear-gradient(135deg, #22c55e, #16a34a);
-          color: white;
-          font-size: 70px;
-          margin-bottom: 24px;
-          box-shadow: 0 24px 55px rgba(22,163,74,0.28);
-          border: 6px solid white;
+          margin-bottom: 26px;
+          box-shadow: 0 28px 65px rgba(22,163,74,.32);
+          border: 6px solid rgba(255,255,255,.92);
+          animation: kds-empty-float 3s ease-in-out infinite;
+        }
+
+        .kds-empty-icon::before {
+          content: "";
+          width: 46px;
+          height: 24px;
+          border-left: 10px solid #ffffff;
+          border-bottom: 10px solid #ffffff;
+          transform: rotate(-45deg) translate(2px, -3px);
+          border-radius: 3px;
+        }
+
+        .kds-empty-icon::after {
+          content: "";
+          position: absolute;
+          inset: -16px;
+          border-radius: 46px;
+          border: 2px solid rgba(34,197,94,.28);
+          animation: kds-ring 2s ease-out infinite;
+        }
+
+        @keyframes kds-empty-float {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        @keyframes kds-ring {
+          0% { transform: scale(.86); opacity: .8; }
+          100% { transform: scale(1.18); opacity: 0; }
         }
 
         @media (max-width: 900px) {
@@ -646,7 +843,7 @@ const Kitchen = () => {
             height: auto;
             grid-template-columns: 1fr;
             text-align: center;
-            padding: 16px;
+            padding: 18px;
           }
 
           .kds-header-left {
@@ -658,7 +855,7 @@ const Kitchen = () => {
           }
 
           .kds-grid {
-            height: calc(100vh - 210px);
+            height: calc(100vh - 230px);
             grid-template-columns: 1fr;
             padding: 16px;
           }
@@ -684,14 +881,14 @@ const Kitchen = () => {
 
       {orders.length === 0 && cancelledAlerts.length === 0 ? (
         <div className="kds-empty">
-          <span>✅</span>
+          <span className="kds-empty-icon"></span>
           Nenhum pedido em preparo
         </div>
       ) : (
         <div className="kds-grid">
           {cancelledAlerts.map((alert) => (
             <div key={`cancelled-${alert.order.id}`} className="kds-card kds-card-cancelled">
-              <div className="kds-cancelled-banner">❌ CANCELADO ❌</div>
+              <div className="kds-cancelled-banner">PEDIDO CANCELADO</div>
               <div className="kds-card-head">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span className="kds-order-num" style={{ color: "#dc3545" }}>
@@ -702,7 +899,7 @@ const Kitchen = () => {
                   </span>
                 </div>
               </div>
-              {alert.order.observations && <div className="kds-order-obs">📝 {alert.order.observations}</div>}
+              {alert.order.observations && <div className="kds-order-obs">OBS: {alert.order.observations}</div>}
             </div>
           ))}
 
@@ -723,8 +920,8 @@ const Kitchen = () => {
 
             return (
               <div key={order.id} className={`kds-card${cardClass}`}>
-                {isEdited && <div className="kds-edited-banner">✏️ PEDIDO ALTERADO ✏️</div>}
-                {order.priority && !isEdited && <div className="kds-priority-banner">⚡ PRIORIDADE ⚡</div>}
+                {isEdited && <div className="kds-edited-banner">PEDIDO ALTERADO</div>}
+                {order.priority && !isEdited && <div className="kds-priority-banner">PRIORIDADE</div>}
                 <div className="kds-card-head">
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span className="kds-order-num">{getDisplayCode(order)}</span>
@@ -736,7 +933,7 @@ const Kitchen = () => {
                     <div className={`kds-timer ${timerClass}`}>
                       {minutes}:{String(seconds).padStart(2, "0")}
                     </div>
-                    <span className="kds-deadline">🕐 Até {getDeadline(order)}</span>
+                    <span className="kds-deadline">Até {getDeadline(order)}</span>
                   </div>
                 </div>
 
@@ -757,17 +954,17 @@ const Kitchen = () => {
                               {(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}
                             </div>
                           ))}
-                        {item.observations && <div className="kds-item-obs">⚠ {item.observations}</div>}
+                        {item.observations && <div className="kds-item-obs">OBS: {item.observations}</div>}
                       </div>
                     );
                   })}
                 </div>
 
-                {order.observations && <div className="kds-order-obs">📝 {order.observations}</div>}
+                {order.observations && <div className="kds-order-obs">OBS: {order.observations}</div>}
 
                 <div className="kds-footer">
                   <button className="kds-btn" onClick={() => markReady(order.id)}>
-                    ✅ MARCAR PRONTO
+                    MARCAR PRONTO
                   </button>
                 </div>
               </div>
