@@ -156,8 +156,33 @@ const getTableCode = (order: Pick<Order, "delivery_type" | "table_code" | "obser
   return fromObs ? (fromObs.startsWith("#") ? fromObs.toUpperCase() : `#${fromObs.toUpperCase()}`) : "MESA";
 };
 
-const cleanOrderObservation = (value: string | null) =>
+const CANCEL_STATUS_MARKER = "STATUS_ANTES_CANCELAR";
+
+const getStatusBeforeCancel = (order: Pick<Order, "observations" | "delivery_type">) => {
+  const match = (order.observations || "").match(/\[STATUS_ANTES_CANCELAR:([^\]]+)\]/i);
+
+  if (match?.[1]) return match[1].trim();
+
+  // Segurança para pedidos cancelados antigos, que ainda não tinham marcador.
+  // Delivery volta para pendente; mesa/retirada também volta para pendente para poder seguir o fluxo.
+  return "pending";
+};
+
+const removeCancelStatusMarker = (value: string | null) =>
   (value || "")
+    .replace(/\s*\|?\s*\[STATUS_ANTES_CANCELAR:[^\]]+\]/gi, "")
+    .replace(/\s*\|\s*$/g, "")
+    .trim();
+
+const withCancelStatusMarker = (value: string | null, status: string) => {
+  const cleaned = removeCancelStatusMarker(value);
+  const marker = `[${CANCEL_STATUS_MARKER}:${status}]`;
+
+  return cleaned ? `${cleaned} | ${marker}` : marker;
+};
+
+const cleanOrderObservation = (value: string | null) =>
+  removeCancelStatusMarker(value)
     .split("|")
     .map((part) => part.trim())
     .filter((part) => part && part !== "[PDV]" && !/^Mesa:\s*#?MESA\d+/i.test(part) && !/^#?MESA\d+$/i.test(part))
@@ -689,6 +714,47 @@ const AdminDashboard = () => {
     }
 
     toast({ title: "📝 Pedido marcado como fiado!" });
+    await fetchOrders();
+  };
+
+  const restoreCancelledOrder = async (order: Order) => {
+    const previousStatus = getStatusBeforeCancel(order);
+
+    if (previousStatus === "cancelled") {
+      toast({
+        title: "Não foi possível recuperar",
+        description: "O status anterior salvo também era cancelado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const label =
+      tabs.find((tab) => tab.key === previousStatus || tab.statuses.includes(previousStatus))?.label || previousStatus;
+
+    if (!window.confirm(`Recuperar o pedido #${String(order.order_number).padStart(4, "0")} e voltar para ${label}?`)) {
+      return;
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: previousStatus,
+      trashed_at: null,
+      cancellation_reason: null,
+      observations: removeCancelStatusMarker(order.observations) || null,
+    };
+
+    const { error } = await supabase.from("orders").update(updateData).eq("id", order.id);
+
+    if (error) {
+      toast({
+        title: "Erro ao recuperar pedido",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: `♻️ Pedido recuperado para ${label}` });
     await fetchOrders();
   };
 
@@ -2547,47 +2613,44 @@ const AdminDashboard = () => {
                       </button>
                     )}
                     {order.status === "cancelled" && !order.trashed_at && (
-                      <button
-                        onClick={async () => {
-                          if (
-                            !window.confirm(
-                              "Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.",
+                      <>
+                        <button
+                          onClick={() => restoreCancelledOrder(order)}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-green-600 bg-green-50 py-2.5 text-sm font-bold text-green-700 hover:bg-green-100"
+                        >
+                          <RotateCcw size={14} /> Recuperar
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                "Mover este pedido para a lixeira? Ele deixará de aparecer em 'Recusados' e não será contabilizado.",
+                              )
                             )
-                          )
-                            return;
-                          const { error } = await supabase
-                            .from("orders")
-                            .update({ trashed_at: new Date().toISOString() })
-                            .eq("id", order.id);
-                          if (error) {
-                            toast({ title: "Erro ao mover para a lixeira", variant: "destructive" });
-                            return;
-                          }
-                          toast({ title: "🗑️ Pedido movido para a lixeira" });
-                          fetchOrders();
-                        }}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
-                      >
-                        <Trash2 size={14} /> Excluir
-                      </button>
+                              return;
+                            const { error } = await supabase
+                              .from("orders")
+                              .update({ trashed_at: new Date().toISOString() })
+                              .eq("id", order.id);
+                            if (error) {
+                              toast({ title: "Erro ao mover para a lixeira", variant: "destructive" });
+                              return;
+                            }
+                            toast({ title: "🗑️ Pedido movido para a lixeira" });
+                            fetchOrders();
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-500 py-2.5 text-sm font-bold text-gray-700"
+                        >
+                          <Trash2 size={14} /> Excluir
+                        </button>
+                      </>
                     )}
                     {order.status === "cancelled" && order.trashed_at && (
                       <button
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from("orders")
-                            .update({ trashed_at: null })
-                            .eq("id", order.id);
-                          if (error) {
-                            toast({ title: "Erro ao restaurar", variant: "destructive" });
-                            return;
-                          }
-                          toast({ title: "♻️ Pedido restaurado para Recusados" });
-                          fetchOrders();
-                        }}
+                        onClick={() => restoreCancelledOrder(order)}
                         className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500 py-2.5 text-sm font-bold text-blue-700"
                       >
-                        <RotateCcw size={14} /> Restaurar
+                        <RotateCcw size={14} /> Recuperar
                       </button>
                     )}
                   </div>
@@ -2621,13 +2684,25 @@ const AdminDashboard = () => {
               <button
                 disabled={!cancellationReason.trim()}
                 onClick={async () => {
-                  await supabase
+                  const orderToCancel = orders.find((order) => order.id === cancellingOrderId);
+
+                  const { error } = await supabase
                     .from("orders")
                     .update({
                       status: "cancelled",
                       cancellation_reason: cancellationReason.trim(),
+                      observations: withCancelStatusMarker(
+                        orderToCancel?.observations ?? null,
+                        orderToCancel?.status ?? "pending",
+                      ),
                     })
                     .eq("id", cancellingOrderId);
+
+                  if (error) {
+                    toast({ title: "Erro ao recusar pedido", description: error.message, variant: "destructive" });
+                    return;
+                  }
+
                   toast({ title: "Pedido recusado." });
                   setCancellingOrderId(null);
                   fetchOrders();
