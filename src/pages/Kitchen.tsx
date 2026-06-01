@@ -56,7 +56,7 @@ const Kitchen = () => {
     const { data: sessionData } = await supabase.auth.getSession();
 
     if (!sessionData.session) {
-      setDebugMessage("Cozinha sem sessão de admin. Abra a cozinha a partir do painel admin ou faça login novamente.");
+      setDebugMessage(null);
       setOrders([]);
       setItems({});
       setPendingCount(0);
@@ -74,7 +74,7 @@ const Kitchen = () => {
 
     if (error) {
       console.error("[Kitchen] Error fetching orders:", error.message);
-      setDebugMessage(`Erro ao carregar pedidos: ${error.message}`);
+      setDebugMessage(null);
       setOrders([]);
       setItems({});
       return;
@@ -114,11 +114,7 @@ const Kitchen = () => {
         .map((order) => `#${String(order.order_number).padStart(5, "0")}=${order.status}`)
         .join(" | ");
 
-      setDebugMessage(
-        lastOrders
-          ? `Nenhum pedido com status de preparo. Últimos status encontrados: ${lastOrders}`
-          : "Nenhum pedido encontrado no banco para a cozinha.",
-      );
+      setDebugMessage(null);
     } else {
       setDebugMessage(null);
     }
@@ -834,20 +830,6 @@ const Kitchen = () => {
         .kds-btn:hover { filter: brightness(1.05); }
         .kds-btn:active { transform: scale(.985); }
 
-        .kds-debug {
-          margin-top: 16px;
-          max-width: 820px;
-          border: 1px solid rgba(56,189,248,0.35);
-          background: rgba(15,23,42,0.62);
-          color: #bfdbfe;
-          padding: 12px 16px;
-          border-radius: 12px;
-          font-size: 14px;
-          line-height: 1.45;
-          font-weight: 800;
-          letter-spacing: 0;
-        }
-
         .kds-empty {
           display: flex;
           flex-direction: column;
@@ -955,7 +937,6 @@ const Kitchen = () => {
         <div className="kds-empty">
           <span className="kds-empty-icon"></span>
           Nenhum pedido em preparo
-          {debugMessage && <div className="kds-debug">{debugMessage}</div>}
         </div>
       ) : (
         <div className="kds-grid">
