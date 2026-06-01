@@ -52,42 +52,20 @@ const Kitchen = () => {
   };
 
   const fetchOrders = useCallback(async () => {
-    const selectFields =
-      "id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at, store_id";
-
-    // Busca principal: pedidos em preparo da loja atual.
-    // O problema era que alguns pedidos ficavam com store_id vazio/diferente e a cozinha filtrava fora.
-    let query = supabase
+    // Busca direta: somente pedidos EM PREPARO.
+    // Sem filtro por store_id para evitar a cozinha vazia quando o pedido foi criado sem loja vinculada corretamente.
+    // Sem filtro por trashed_at para evitar erro em banco que não tenha a coluna na visão atual.
+    const { data, error } = await supabase
       .from("orders")
-      .select(selectFields)
+      .select(
+        "id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at",
+      )
       .eq("status", "preparing")
-      .is("trashed_at", null)
       .order("preparing_at", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true });
 
-    if (storeId) query = query.eq("store_id", storeId);
-
-    let { data, error } = await query;
-
-    // Plano B: se não achou nada com store_id, busca todos os pedidos em preparo.
-    // Assim a cozinha não fica vazia quando o pedido foi criado sem vínculo correto de loja.
-    if (!error && storeId && (!data || data.length === 0)) {
-      const fallback = await supabase
-        .from("orders")
-        .select(selectFields)
-        .eq("status", "preparing")
-        .is("trashed_at", null)
-        .order("preparing_at", { ascending: true, nullsFirst: false })
-        .order("created_at", { ascending: true });
-
-      if (!fallback.error) {
-        data = fallback.data;
-        error = null;
-      }
-    }
-
     if (error) {
-      console.error("[Kitchen] Error fetching orders:", error.message);
+      console.error("[Kitchen] Error fetching preparing orders:", error.message);
     }
 
     const rows = data ?? [];
@@ -95,8 +73,8 @@ const Kitchen = () => {
     // Detect orders that were actually cancelled (not just moved to ready/delivering)
     const currentIds = new Set(rows.map((o) => o.id));
     const disappeared = prevOrdersRef.current.filter((o) => !currentIds.has(o.id));
+
     if (disappeared.length > 0) {
-      // Check actual status of disappeared orders
       const { data: statusCheck } = await supabase
         .from("orders")
         .select("id, status")
@@ -104,13 +82,16 @@ const Kitchen = () => {
           "id",
           disappeared.map((o) => o.id),
         );
+
       const cancelledIds = new Set((statusCheck || []).filter((o) => o.status === "cancelled").map((o) => o.id));
+
       if (cancelledIds.size > 0) {
         setCancelledAlerts((prev) => {
           const existingIds = new Set(prev.map((a) => a.order.id));
           const newAlerts = disappeared
             .filter((o) => cancelledIds.has(o.id) && !existingIds.has(o.id))
             .map((order) => ({ order, cancelledAt: Date.now() }));
+
           return [...prev, ...newAlerts];
         });
       }
@@ -124,13 +105,14 @@ const Kitchen = () => {
         return prev && prev !== o.updated_at;
       })
       .map((o) => o.id);
+
     if (newlyEdited.length > 0) {
       setEditedOrderIds((prev) => {
         const next = new Set(prev);
         newlyEdited.forEach((id) => next.add(id));
         return next;
       });
-      // Auto-clear flash after 30 seconds
+
       setTimeout(() => {
         setEditedOrderIds((prev) => {
           const next = new Set(prev);
@@ -141,47 +123,39 @@ const Kitchen = () => {
     }
 
     setOrders(rows as KitchenOrder[]);
+
     const ids = rows.map((o) => o.id);
+
     if (ids.length > 0) {
       const { data: itemsData } = await supabase
         .from("order_items")
         .select("id, product_name, product_code, quantity, observations, addons_json, order_id")
         .in("order_id", ids);
+
       if (itemsData) {
         const grouped: Record<string, KitchenItem[]> = {};
+
         itemsData.forEach((item: any) => {
           if (!grouped[item.order_id]) grouped[item.order_id] = [];
           grouped[item.order_id].push(item);
         });
+
         setItems(grouped);
       }
     } else {
       setItems({});
     }
+
     // Check for pending orders (for alarm) — exclude unpaid PIX.
-    let alarmQuery = supabase
+    const { data: alarmOrders } = await supabase
       .from("orders")
-      .select("id, status, payment_method, store_id")
-      .in("status", ["pending", "paid"])
-      .is("trashed_at", null);
-
-    if (storeId) alarmQuery = alarmQuery.eq("store_id", storeId);
-
-    let { data: alarmOrders } = await alarmQuery;
-
-    if (storeId && (!alarmOrders || alarmOrders.length === 0)) {
-      const fallbackAlarm = await supabase
-        .from("orders")
-        .select("id, status, payment_method, store_id")
-        .in("status", ["pending", "paid"])
-        .is("trashed_at", null);
-
-      if (!fallbackAlarm.error) alarmOrders = fallbackAlarm.data;
-    }
+      .select("id, status, payment_method")
+      .in("status", ["pending", "paid"]);
 
     const visiblePending = (alarmOrders || []).filter((o) => !(o.payment_method === "pix" && o.status === "pending"));
+
     setPendingCount(visiblePending.length);
-  }, [storeId]);
+  }, []);
 
   useEffect(() => {
     fetchOrders();
