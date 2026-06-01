@@ -53,6 +53,16 @@ const Kitchen = () => {
   };
 
   const fetchOrders = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    if (!sessionData.session) {
+      setDebugMessage("Cozinha sem sessão de admin. Abra a cozinha a partir do painel admin ou faça login novamente.");
+      setOrders([]);
+      setItems({});
+      setPendingCount(0);
+      return;
+    }
+
     // Busca robusta:
     // O painel pode mostrar "Em preparo" mesmo quando o pedido foi salvo com variação de status.
     // Por isso buscamos pedidos recentes e filtramos no frontend.

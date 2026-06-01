@@ -127,23 +127,95 @@ const AppInner = () => {
         <RouterEffects userId={user?.id} />
         <Routes>
           {/* Public routes - accessible without login */}
-          <Route path="/" element={<AdminKioskRoute><Index /></AdminKioskRoute>} />
+          <Route
+            path="/"
+            element={
+              <AdminKioskRoute>
+                <Index />
+              </AdminKioskRoute>
+            }
+          />
           <Route path="/produto/:id" element={<ProductDetail />} />
           <Route path="/auth" element={<Auth />} />
 
           {/* Protected routes - require authentication */}
-          <Route path="/carrinho" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-          <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-          <Route path="/busca" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-          <Route path="/pedidos" element={<ProtectedRoute><AdminKioskRoute><Orders /></AdminKioskRoute></ProtectedRoute>} />
-          <Route path="/pedido/:id" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
-          <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/presentes" element={<ProtectedRoute><MyScratchCards /></ProtectedRoute>} />
+          <Route
+            path="/carrinho"
+            element={
+              <ProtectedRoute>
+                <Cart />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/busca"
+            element={
+              <ProtectedRoute>
+                <Search />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pedidos"
+            element={
+              <ProtectedRoute>
+                <AdminKioskRoute>
+                  <Orders />
+                </AdminKioskRoute>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pedido/:id"
+            element={
+              <ProtectedRoute>
+                <OrderTracking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/presentes"
+            element={
+              <ProtectedRoute>
+                <MyScratchCards />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/minhas-raspadinhas" element={<Navigate to="/presentes" replace />} />
-          <Route path="/completar-perfil" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
+          <Route
+            path="/completar-perfil"
+            element={
+              <ProtectedRoute>
+                <CompleteProfile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin routes */}
-          <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<AdminDashboard />} />
             <Route path="pedidos" element={<AdminOrders />} />
             <Route path="fiados" element={<AdminFiados />} />
@@ -175,7 +247,14 @@ const AppInner = () => {
           <Route path="/tv" element={<TvDisplay />} />
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
-          <Route path="/cozinha" element={<Kitchen />} />
+          <Route
+            path="/cozinha"
+            element={
+              <ProtectedRoute>
+                <Kitchen />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/admin/cardapio-png" element={<MenuExport />} />
           <Route path="/entregador" element={<CourierPortal />} />
           <Route path="/funcionario" element={<EmployeePortal />} />
