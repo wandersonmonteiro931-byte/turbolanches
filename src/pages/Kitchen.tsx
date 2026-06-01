@@ -40,6 +40,7 @@ const Kitchen = () => {
   const [now, setNow] = useState(Date.now());
   const [brasiliaTime, setBrasiliaTime] = useState("");
   const [cancelledAlerts, setCancelledAlerts] = useState<CancelledAlert[]>([]);
+  const [debugMessage, setDebugMessage] = useState<string | null>(null);
   const [editedOrderIds, setEditedOrderIds] = useState<Set<string>>(new Set());
   const prevOrdersRef = useRef<KitchenOrder[]>([]);
 
@@ -52,23 +53,65 @@ const Kitchen = () => {
   };
 
   const fetchOrders = useCallback(async () => {
-    // Busca direta: somente pedidos EM PREPARO.
-    // Sem filtro por store_id para evitar a cozinha vazia quando o pedido foi criado sem loja vinculada corretamente.
-    // Sem filtro por trashed_at para evitar erro em banco que não tenha a coluna na visão atual.
+    // Busca robusta:
+    // O painel pode mostrar "Em preparo" mesmo quando o pedido foi salvo com variação de status.
+    // Por isso buscamos pedidos recentes e filtramos no frontend.
     const { data, error } = await supabase
       .from("orders")
-      .select(
-        "id, order_number, status, preparing_at, observations, delivery_type, table_code, created_at, priority, updated_at",
-      )
-      .eq("status", "preparing")
-      .order("preparing_at", { ascending: true, nullsFirst: false })
-      .order("created_at", { ascending: true });
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(80);
 
     if (error) {
-      console.error("[Kitchen] Error fetching preparing orders:", error.message);
+      console.error("[Kitchen] Error fetching orders:", error.message);
+      setDebugMessage(`Erro ao carregar pedidos: ${error.message}`);
+      setOrders([]);
+      setItems({});
+      return;
     }
 
-    const rows = data ?? [];
+    const allRows = (data ?? []) as any[];
+
+    const preparingStatusList = new Set([
+      "preparing",
+      "em_preparo",
+      "em preparo",
+      "in_preparation",
+      "processing",
+      "accepted",
+      "aceito",
+      "cozinha",
+    ]);
+
+    const rows = allRows
+      .filter((order) => {
+        const status = String(order.status || "")
+          .trim()
+          .toLowerCase();
+        const isPreparing = preparingStatusList.has(status);
+        const isTrashed = Boolean(order.trashed_at);
+        return isPreparing && !isTrashed;
+      })
+      .sort((a, b) => {
+        const refA = a.preparing_at || a.created_at;
+        const refB = b.preparing_at || b.created_at;
+        return new Date(refA).getTime() - new Date(refB).getTime();
+      });
+
+    if (rows.length === 0) {
+      const lastOrders = allRows
+        .slice(0, 8)
+        .map((order) => `#${String(order.order_number).padStart(5, "0")}=${order.status}`)
+        .join(" | ");
+
+      setDebugMessage(
+        lastOrders
+          ? `Nenhum pedido com status de preparo. Últimos status encontrados: ${lastOrders}`
+          : "Nenhum pedido encontrado no banco para a cozinha.",
+      );
+    } else {
+      setDebugMessage(null);
+    }
 
     // Detect orders that were actually cancelled (not just moved to ready/delivering)
     const currentIds = new Set(rows.map((o) => o.id));
@@ -147,12 +190,12 @@ const Kitchen = () => {
     }
 
     // Check for pending orders (for alarm) — exclude unpaid PIX.
-    const { data: alarmOrders } = await supabase
-      .from("orders")
-      .select("id, status, payment_method")
-      .in("status", ["pending", "paid"]);
-
-    const visiblePending = (alarmOrders || []).filter((o) => !(o.payment_method === "pix" && o.status === "pending"));
+    const visiblePending = allRows.filter((order) => {
+      const status = String(order.status || "")
+        .trim()
+        .toLowerCase();
+      return (status === "pending" || status === "paid") && !(order.payment_method === "pix" && status === "pending");
+    });
 
     setPendingCount(visiblePending.length);
   }, []);
@@ -781,6 +824,20 @@ const Kitchen = () => {
         .kds-btn:hover { filter: brightness(1.05); }
         .kds-btn:active { transform: scale(.985); }
 
+        .kds-debug {
+          margin-top: 16px;
+          max-width: 820px;
+          border: 1px solid rgba(56,189,248,0.35);
+          background: rgba(15,23,42,0.62);
+          color: #bfdbfe;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 14px;
+          line-height: 1.45;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
         .kds-empty {
           display: flex;
           flex-direction: column;
@@ -888,6 +945,7 @@ const Kitchen = () => {
         <div className="kds-empty">
           <span className="kds-empty-icon"></span>
           Nenhum pedido em preparo
+          {debugMessage && <div className="kds-debug">{debugMessage}</div>}
         </div>
       ) : (
         <div className="kds-grid">
