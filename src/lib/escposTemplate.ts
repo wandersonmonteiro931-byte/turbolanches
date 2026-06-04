@@ -158,18 +158,29 @@ const completeVariables = (vars: Record<string, string>) => {
   return out;
 };
 
-const replaceTokens = (text: string, vars: Record<string, string>): string => {
+const replaceTokens = (text: string, vars: Record<string, string>, preserveEmptyItemTokens = true): string => {
   let out = text;
   const mergedVars = completeVariables(vars);
+
   for (let pass = 0; pass < 3; pass += 1) {
     for (const [k, v] of Object.entries(mergedVars)) {
       const value = normalizeHtmlForEscPos(v ?? "");
+
+      // Importante:
+      // No primeiro passo global, NÃO podemos apagar [ITENS]/[ITEM]/[PRODUTO] etc.
+      // Se apagar aqui, os produtos somem da comanda antes da expansão.
+      if (preserveEmptyItemTokens && ITEM_TOKENS.includes(k) && !value) {
+        continue;
+      }
+
       const replacement = isAddressToken(k)
         ? `${ADDRESS_OPEN}${formatPrintAddressForEscPos(value)}${ADDRESS_CLOSE}`
         : value;
+
       out = out.split(k).join(replacement);
     }
   }
+
   return out;
 };
 
@@ -263,7 +274,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[CODIGOPROD]": code,
         });
 
-        return [replaceTokens(rawLine, itemVars)];
+        return [replaceTokens(rawLine, itemVars, false)];
       });
     })
     .join("\n");
@@ -677,7 +688,7 @@ export const renderTemplateToEscPos = (
   const cols = opts.columns ?? 48;
 
   // 1. Substitui variáveis globais e limpa qualquer HTML vindo do template/variáveis.
-  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, completeVariables(input.variables)));
+  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, completeVariables(input.variables), true));
 
   // 2. Expande [ITENS]
   if (input.items && input.items.length > 0) {
