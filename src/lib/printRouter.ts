@@ -205,7 +205,7 @@ const highlightQzValue = (value: string) => {
   return `[DESTAQUE]${clean}[/DESTAQUE]`;
 };
 
-const hasPriorityText = (value: string) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
+const hasPriorityText = (value: unknown) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
 
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
@@ -254,6 +254,13 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       console.warn("[QZ] pedido não encontrado", orderId);
       return false;
     }
+
+    const orderPriorityFields = order as unknown as {
+      priority?: unknown;
+      priority_level?: unknown;
+      delivery_priority?: unknown;
+      observations?: unknown;
+    };
 
     const isTableOrder = order.delivery_type === "mesa";
     const resolvedType = isTableOrder && resolveType(tipoIn) === "pedido" ? "mesa" : resolveType(tipoIn);
@@ -422,7 +429,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText(order.priority || order.priority_level || order.observations || "")
+        hasPriorityText(orderPriorityFields.priority || orderPriorityFields.priority_level || orderPriorityFields.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -432,7 +439,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
+        hasPriorityText(`${orderPriorityFields.delivery_priority || ""} ${orderPriorityFields.priority || ""} ${orderPriorityFields.observations || ""}`)
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
