@@ -87,21 +87,6 @@ const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(tok
 const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
 const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(value).toLocaleUpperCase("pt-BR");
 
-const replaceTokens = (text: string, vars: Record<string, string>): string => {
-  let out = text;
-  const mergedVars = completeVariables(vars);
-  for (let pass = 0; pass < 3; pass += 1) {
-    for (const [k, v] of Object.entries(mergedVars)) {
-      const value = normalizeHtmlForEscPos(v ?? "");
-      const replacement = isAddressToken(k)
-        ? `${ADDRESS_OPEN}${formatPrintAddressForEscPos(value)}${ADDRESS_CLOSE}`
-        : value;
-      out = out.split(k).join(replacement);
-    }
-  }
-  return out;
-};
-
 const ALL_KNOWN_VARIABLES = [
   "[NUMEROPEDIDO]",
   "[MESA]",
@@ -167,6 +152,21 @@ const completeVariables = (vars: Record<string, string>) => {
   for (const key of ALL_KNOWN_VARIABLES) out[key] = "";
   for (const [key, value] of Object.entries(vars || {}))
     out[key] = normalizeItemMarker(normalizeHtmlForEscPos(value ?? ""));
+  return out;
+};
+
+const replaceTokens = (text: string, vars: Record<string, string>): string => {
+  let out = text;
+  const mergedVars = completeVariables(vars);
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (const [k, v] of Object.entries(mergedVars)) {
+      const value = normalizeHtmlForEscPos(v ?? "");
+      const replacement = isAddressToken(k)
+        ? `${ADDRESS_OPEN}${formatPrintAddressForEscPos(value)}${ADDRESS_CLOSE}`
+        : value;
+      out = out.split(k).join(replacement);
+    }
+  }
   return out;
 };
 
@@ -559,9 +559,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
 
-    // Destaque com respiro:
-    // 1 linha preta vazia acima + texto com espaço lateral + 1 linha preta vazia abaixo.
-    // Assim o preto não fica colado na palavra e o bloco fica mais parecido com PDV/supermercado.
+    // Destaque com respiro: linha preta acima, texto no meio e linha preta abaixo.
     b.rawText(" ".repeat(cols));
 
     const innerCols = Math.max(1, cols - 2);
