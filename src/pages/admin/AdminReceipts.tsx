@@ -172,15 +172,10 @@ const AdminReceipts = () => {
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
     const mode: PrintMode = getPrintMode();
 
-    // O teste deve respeitar o modo de impressão selecionado no Dashboard:
-    // QZ Tray = imprime via QZ Tray.
-    // PDF = abre a tela de comandas/PDF.
-    // Auto = tenta QZ Tray e, se falhar, abre PDF.
-    if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao") {
-      toast.info("Para testar etiquetas/lista, use a tela específica dessa função.");
-      return;
-    }
-
+    // Regra Turbo:
+    // Todo teste, de qualquer tipo de comanda, usa SEMPRE o último pedido real do sistema como base.
+    // Isso garante que variáveis, colunas, itens, valores, endereço e formatação sejam testados
+    // exatamente no mesmo fluxo de uma impressão normal.
     setPrinting(true);
 
     try {
@@ -200,7 +195,7 @@ const AdminReceipts = () => {
         const sentViaQz = await tryPrintOrderViaQz(lastOrder.id, { tipo: type, copies: qty });
 
         if (sentViaQz) {
-          toast.success("Teste enviado via QZ Tray.");
+          toast.success("Teste enviado via QZ Tray usando o último pedido como base.");
           return;
         }
 
@@ -221,7 +216,7 @@ const AdminReceipts = () => {
         return;
       }
 
-      toast.success("Teste enviado pela tela de comandas/PDF.");
+      toast.success("Teste enviado pela tela de comandas/PDF usando o último pedido como base.");
     } catch (err: any) {
       console.error(err);
       toast.error(`Falha no teste: ${err?.message || "verifique a impressão"}`);

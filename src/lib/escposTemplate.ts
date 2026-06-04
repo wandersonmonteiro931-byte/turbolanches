@@ -398,6 +398,27 @@ const boxedLineNoWrap = (text: string, cols: number, align: Align = "left") => {
   return `| ${fixedLine(text, inner, align)} |`;
 };
 
+const splitValueAtRight = (line: string): { left: string; right: string } | null => {
+  const valuePattern = /(R\$\s*-?\d{1,3}(?:\.\d{3})*,\d{2}|R\$\s*-?\d+,\d{2}|-?\d+,\d{2})\s*$/i;
+  const match = String(line || "").match(valuePattern);
+  if (!match) return null;
+
+  const right = match[0].trim();
+  const left = String(line || "")
+    .slice(0, match.index)
+    .trim();
+  if (!left || !right) return null;
+
+  return { left, right };
+};
+
+const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
+  const pair = splitValueAtRight(line);
+  if (!pair) return false;
+  b.twoCols(pair.left, pair.right);
+  return true;
+};
+
 const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
   const value = text.trim();
   if (value.length >= cols) return value;
@@ -630,7 +651,14 @@ export const renderTemplateToEscPos = (
       continue;
     }
 
-    // Tabela de itens em 3 colunas: qtd | produto | valor.
+    // Qualquer linha comum terminando com valor fica alinhada em 2 colunas.
+    // Ex.: "#00001 RUA X - Bairro R$ 10,00" corta o endereço se não couber,
+    // mas o valor permanece reto no final da linha.
+    if (renderFixedMoneyLine(b, trimmed, cols)) {
+      continue;
+    }
+
+    // Tabela de itens em 3 colunas: qtd | produto/endereço | valor.
     // Regra Turbo: NUNCA quebra para outra linha; corta produto/endereço e mantém valor reto.
     if (trimmed.startsWith("__ITEM3__")) {
       const [, rest] = trimmed.split("__ITEM3__");
@@ -657,7 +685,8 @@ export const renderTemplateToEscPos = (
       continue;
     }
 
-    // Item/linha de relatório com label/preço (gerado por expandItemsLines ou HTML report-row)
+    // Item/linha de relatório com label/preço.
+    // Regra Turbo: não quebra; texto à esquerda pode ser cortado, valor fica reto.
     if (trimmed.startsWith("__ITEM__")) {
       const [, rest] = trimmed.split("__ITEM__");
       const [left, right] = rest.split("__SEP__");
