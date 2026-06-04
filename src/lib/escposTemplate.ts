@@ -204,9 +204,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           );
           const lineTotal = it.unitPrice * it.quantity + addonsTotal;
 
-          // No modelo "PEDIDO", o [ITENS] deve imprimir limpo como no PDF:
-          // 1x PRODUTO                                  R$ 0,50
-          // Sem código do produto e sem marcador técnico _item_1.
+          // Igual ao PDF: quantidade + produto à esquerda e valor reto à direita.
           out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
 
           for (const ad of it.addons || []) {
@@ -411,6 +409,20 @@ const boxedLineNoWrap = (text: string, cols: number, align: Align = "left") => {
   return `| ${fixedLine(text, inner, align)} |`;
 };
 
+const safeThermalBoxStyle = (style: LineStyle): LineStyle => ({
+  ...DEFAULT_STYLE,
+  align: style.align,
+  bold: style.bold || style.big || style.giant || style.medium,
+  invert: style.invert,
+  invertFull: style.invertFull,
+  small: false,
+  medium: false,
+  big: false,
+  giant: false,
+  frame: "none",
+  box: false,
+});
+
 const splitValueAtRight = (line: string): { left: string; right: string } | null => {
   const valuePattern = /(R\$\s*-?\d{1,3}(?:\.\d{3})*,\d{2}|R\$\s*-?\d+,\d{2}|-?\d+,\d{2})\s*$/i;
   const match = String(line || "").match(valuePattern);
@@ -504,8 +516,9 @@ const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: numb
 };
 
 const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  applyStyleToBuilder(b, { ...style, frame: "none", box: false, invert: false, invertFull: false });
-  b.rawText(boxedLineNoWrap(text, cols, style.align));
+  const safeStyle = safeThermalBoxStyle(style);
+  applyStyleToBuilder(b, safeStyle);
+  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
   resetStyle(b);
 };
 
@@ -518,11 +531,13 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   // [CAIXA], [BORDA] e molduras inline: moldura real com topo, texto e base.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
     const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
+    const safeStyle = safeThermalBoxStyle(fittedStyle);
     resetStyle(b);
     renderFrameLine(b, frame, cols);
-    renderTextInsideFrame(b, fittedStyle, finalText, cols);
-    renderFrameLine(b, frame, cols);
+    applyStyleToBuilder(b, safeStyle);
+    b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
     resetStyle(b);
+    renderFrameLine(b, frame, cols);
     return;
   }
 
@@ -530,25 +545,19 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
-    const effectiveCols = effectiveColumns(cols, fittedStyle);
-    applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: true, frame: "none", box: false });
-    for (const line of outputLines) {
-      b.rawText(paddedFullLine(line, effectiveCols, fittedStyle.align));
-    }
+    const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
+    applyStyleToBuilder(b, safeStyle);
+    const line = fixedLine(finalText, cols, safeStyle.align);
+    b.rawText(line);
     resetStyle(b);
     return;
   }
 
   // [TXTBORDATXT]/[FUNDPRETO]/[DESTAQUE]: fundo preto só ao redor do texto.
   if (fittedStyle.invert) {
-    applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: false, frame: "none", box: false });
-    for (const line of outputLines) {
-      const value =
-        fittedStyle.align === "center"
-          ? paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center").trim()
-          : line.trim();
-      b.rawText(truncateLineToCols(value, effectiveColumns(cols, fittedStyle)));
-    }
+    const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true });
+    applyStyleToBuilder(b, safeStyle);
+    b.rawText(truncateLineToCols(finalText.trim(), cols));
     resetStyle(b);
     return;
   }
@@ -574,14 +583,15 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const safeStyle = safeThermalBoxStyle(style);
+
   if (!text.replace(/\s/g, "")) {
-    b.rawText(boxedLineNoWrap("", cols, "left"));
+    b.rawText(boxedLineNoWrap("", cols, safeStyle.align));
     return;
   }
 
-  const fittedStyle = fitStyleToSingleLine(style, [text], Math.max(4, cols - 4));
-  applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
-  b.rawText(boxedLineNoWrap(text, cols, fittedStyle.align));
+  applyStyleToBuilder(b, safeStyle);
+  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
   resetStyle(b);
 };
 
@@ -705,10 +715,7 @@ export const renderTemplateToEscPos = (
       const [left, right] = rest.split("__SEP__");
       resetStyle(b);
       b.bold(true)
-        .twoCols(
-          normalizeItemMarker(normalizeHtmlForEscPos(left || "")).replace(/(\d+\s*-\s*)[-–—:]\s*/g, "$1"),
-          normalizeHtmlForEscPos(right || ""),
-        )
+        .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
         .bold(false);
       continue;
     }
