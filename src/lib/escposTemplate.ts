@@ -523,7 +523,13 @@ const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: numb
 const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const safeStyle = safeThermalBoxStyle(style);
   applyStyleToBuilder(b, safeStyle);
-  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+  if (safeStyle.invertFull) {
+    b.rawText(" ".repeat(cols));
+    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+    b.rawText(" ".repeat(cols));
+  } else {
+    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+  }
   resetStyle(b);
 };
 
@@ -552,10 +558,24 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   if (fittedStyle.invertFull) {
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
-    // Faixa preta retangular da largura inteira.
-    // Se o texto não couber, corta no limite da impressora, sem quebrar linha.
-    const line = fixedLine(finalText, cols, safeStyle.align);
-    b.rawText(line);
+
+    // Destaque com respiro:
+    // 1 linha preta vazia acima + texto com espaço lateral + 1 linha preta vazia abaixo.
+    // Assim o preto não fica colado na palavra e o bloco fica mais parecido com PDV/supermercado.
+    b.rawText(" ".repeat(cols));
+
+    const innerCols = Math.max(1, cols - 2);
+    const content = truncateLineToCols(finalText.trim(), innerCols);
+    const paddedContent =
+      safeStyle.align === "center"
+        ? ` ${fixedLine(content, innerCols, "center")} `
+        : safeStyle.align === "right"
+          ? ` ${fixedLine(content, innerCols, "right")} `
+          : ` ${fixedLine(content, innerCols, "left")} `;
+
+    b.rawText(paddedContent.slice(0, cols));
+    b.rawText(" ".repeat(cols));
+
     resetStyle(b);
     return;
   }
