@@ -364,6 +364,12 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
     // Destaques automáticos configurados na tela de Comandas de Impressão.
     // Regra: só aplica na comanda de PEDIDO. Obrigado, entregador, relatórios, mesa e etiquetas não são alterados.
+    const orderPriorityFields = order as typeof order & {
+      priority?: string | null;
+      priority_level?: string | null;
+      delivery_priority?: string | null;
+    };
+
     if (resolvedType === "pedido") {
       if (settings.pedidoHighlightOrderNumber) {
         variables["[NUMEROPEDIDO]"] = highlightQzValue(variables["[NUMEROPEDIDO]"]);
@@ -375,7 +381,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText(order.priority || order.priority_level || order.observations || "")
+        hasPriorityText(orderPriorityFields.priority || orderPriorityFields.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -385,7 +391,9 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
+        hasPriorityText(
+          `${orderPriorityFields.delivery_priority || ""} ${orderPriorityFields.priority || ""} ${order.observations || ""}`,
+        )
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
