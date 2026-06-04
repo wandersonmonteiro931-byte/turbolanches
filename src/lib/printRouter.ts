@@ -75,6 +75,44 @@ const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
 
 const cleanAddressPart = (value: unknown) => String(value ?? "").trim();
 
+const normalizePdvAddressExact = (value: string) =>
+  String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\s+,/g, " ,")
+    .replace(/\s+-\s+/g, " - ")
+    .trim();
+
+const buildPdvAddressExact = (order: any, fallback: string) => {
+  // PDV: imprimir o endereço exatamente como foi digitado/salvo.
+  // Não inserir QD, LT, LOTE, complemento ou dados automáticos.
+  const directAddress = cleanAddressPart(
+    order.address ||
+      order.delivery_address ||
+      order.customer_address ||
+      order.full_address ||
+      order.endereco ||
+      order.endereco_completo,
+  );
+
+  if (directAddress) return normalizePdvAddressExact(directAddress);
+
+  // Se não existir campo completo, monta somente com os campos realmente salvos no pedido,
+  // sem inventar QD/LT e sem deixar tudo maiúsculo.
+  const street = cleanAddressPart(order.address_street || order.street || order.rua);
+  const number = cleanAddressPart(order.address_number || order.number || order.numero);
+  const complement = cleanAddressPart(order.address_complement || order.complement || order.complemento);
+  const neighborhood = cleanAddressPart(order.address_neighborhood || order.neighborhood || order.bairro);
+  const reference = cleanAddressPart(order.address_reference || order.reference || order.referencia);
+
+  const first = street ? `${street}${number ? ` , ${number}` : ""}` : "";
+  const second = complement;
+  const third = neighborhood;
+  const fourth = reference;
+
+  const address = [first, second, third, fourth].filter(Boolean).join(" - ");
+  return normalizePdvAddressExact(address || fallback);
+};
+
 const normalizeAddressDuplicates = (value: string) => {
   let out = String(value || "")
     .replace(/\s+/g, " ")
@@ -137,7 +175,7 @@ const buildOrderAddress = (order: any, isDeliveryType: boolean, fallback: string
   if (!isDeliveryType) return fallback;
 
   if (isPdvOrder) {
-    return buildPdvAddress(order, fallback);
+    return buildPdvAddressExact(order, fallback);
   }
 
   const directAddress = cleanAddressPart(
@@ -167,7 +205,7 @@ const highlightQzValue = (value: string) => {
   return `[DESTAQUE]${clean}[/DESTAQUE]`;
 };
 
-const hasPriorityText = (value: unknown) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
+const hasPriorityText = (value: string) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
 
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
@@ -338,12 +376,6 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const storeName = tpl?.store_name || "TURBO LANCHES";
     const tipoLabel = tpl?.label || DEFAULT_LABELS[resolvedType] || "PEDIDO";
     const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
-    const orderPriorityFields = order as unknown as {
-      priority?: unknown;
-      priority_level?: unknown;
-      delivery_priority?: unknown;
-      observations?: unknown;
-    };
 
     const variables: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
@@ -390,9 +422,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText(
-          orderPriorityFields.priority || orderPriorityFields.priority_level || orderPriorityFields.observations || "",
-        )
+        hasPriorityText(order.priority || order.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -402,9 +432,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(
-          `${orderPriorityFields.delivery_priority || ""} ${orderPriorityFields.priority || ""} ${orderPriorityFields.observations || ""}`,
-        )
+        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
