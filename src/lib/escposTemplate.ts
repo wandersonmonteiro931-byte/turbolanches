@@ -600,15 +600,15 @@ const wrapAddressFullLines = (value: string, cols: number) => {
 };
 
 const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "left") => {
-  // Deixa margem lateral de 1 caractere, igual faixa preta limpa de PDV.
-  const innerCols = Math.max(8, cols - 2);
-  const lines = wrapAddressFullLines(text, innerCols);
+  // Mesmo visual do [TZTBORDA]: fundo preto na linha inteira.
+  // A diferença é que endereço pode quebrar em várias linhas sem cortar.
+  const lines = wrapAddressFullLines(text, cols);
 
   resetStyle(b);
-  b.align("left").font("A").bold(true).size(0, 0).invert(true);
+  b.align("left").font("A").bold(true).size(0, 1).invert(true);
 
   for (const line of lines) {
-    b.rawText(` ${fixedLine(line, innerCols, align)} `.slice(0, cols));
+    b.rawText(fixedLine(line, cols, align));
   }
 
   resetStyle(b);
@@ -651,8 +651,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
-    // Regra especial para [TZTBORDA][ENDEREÇO][/TZTBORDA]:
-    // endereço nunca pode ser cortado; deve quebrar em várias linhas com fundo preto.
+    // [TZTBORDA][ENDEREÇO][/TZTBORDA]:
+    // fundo preto igual ao TZTBORDA normal, mas o endereço quebra sem cortar.
     if (fittedStyle.address) {
       renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
       return;
@@ -661,7 +661,6 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
 
-    // Fundo preto alto em uma única linha, sem linha vazia em cima/baixo.
     b.size(0, 1);
     b.rawText(fixedLine(finalText.trim(), cols, safeStyle.align));
 
