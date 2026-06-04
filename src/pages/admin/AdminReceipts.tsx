@@ -482,6 +482,71 @@ const AdminReceipts = () => {
         </div>
       </div>
 
+      {activeTab === "pedido" && (
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <div className="mb-3">
+            <h3 className="text-sm font-bold text-foreground">Destacar informações</h3>
+            <p className="text-xs text-muted-foreground">
+              Destaques automáticos aplicados somente na comanda de Pedido impressa pelo QZ Tray.
+            </p>
+          </div>
+
+          <div className="mb-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+            Os destaques podem variar conforme a impressora térmica. Faça impressões de teste.
+          </div>
+
+          <div className="divide-y rounded-md border border-border">
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Número do pedido</p>
+                <p className="text-xs text-muted-foreground">Destaca automaticamente o campo [NUMEROPEDIDO].</p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightOrderNumber}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightOrderNumber", v)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Entregas com prioridade</p>
+                <p className="text-xs text-muted-foreground">
+                  Destaca o tipo DELIVERY quando o pedido tiver informação de prioridade.
+                </p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightPriorityDeliveries}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightPriorityDeliveries", v)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Prioridade do pedido</p>
+                <p className="text-xs text-muted-foreground">
+                  Destaca a observação quando encontrar prioridade, urgente ou atraso.
+                </p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightOrderPriority}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightOrderPriority", v)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Previsão de entrega</p>
+                <p className="text-xs text-muted-foreground">Destaca automaticamente o campo [DATAHORAENTREGA].</p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightDeliveryEstimate}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightDeliveryEstimate", v)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={(value) => setSearchParams({ tipo: value })}>
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-muted p-1">
           {tabConfig.map((tab) => (

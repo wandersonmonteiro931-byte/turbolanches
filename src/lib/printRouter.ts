@@ -73,6 +73,14 @@ const DEFAULT_LABELS: Record<string, string> = {
 
 const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
 
+const highlightQzValue = (value: string) => {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+  return `[DESTAQUE]${clean}[/DESTAQUE]`;
+};
+
+const hasPriorityText = (value: string) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
+
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
 [CENTRO][TIPOCOMANDA][/CENTRO]
@@ -287,6 +295,35 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       "[RODAPÉ]": tpl?.footer_message || "",
       "[DIVULGAÇÃO]": tpl?.custom_message || "",
     };
+
+    // Destaques automáticos configurados na tela de Comandas de Impressão.
+    // Regra: só aplica na comanda de PEDIDO. Obrigado, entregador, relatórios, mesa e etiquetas não são alterados.
+    if (resolvedType === "pedido") {
+      if (settings.pedidoHighlightOrderNumber) {
+        variables["[NUMEROPEDIDO]"] = highlightQzValue(variables["[NUMEROPEDIDO]"]);
+      }
+
+      if (settings.pedidoHighlightDeliveryEstimate) {
+        variables["[DATAHORAENTREGA]"] = highlightQzValue(variables["[DATAHORAENTREGA]"]);
+      }
+
+      if (
+        settings.pedidoHighlightOrderPriority &&
+        hasPriorityText(order.priority || order.priority_level || order.observations || "")
+      ) {
+        variables["[OBS]"] = variables["[OBS]"]
+          ? highlightQzValue(variables["[OBS]"])
+          : highlightQzValue("PRIORIDADE DO PEDIDO");
+      }
+
+      if (
+        settings.pedidoHighlightPriorityDeliveries &&
+        order.delivery_type === "delivery" &&
+        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
+      ) {
+        variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
+      }
+    }
 
     const qzVariables: Record<string, string> = {};
     for (const [key, value] of Object.entries(variables)) {

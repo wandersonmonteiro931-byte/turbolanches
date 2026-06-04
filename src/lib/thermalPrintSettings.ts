@@ -15,6 +15,12 @@ export interface ThermalPrintSettings {
   qzFeedLines: number;
   /** Codepage ESC/POS (16 = WPC1252, 17 = PC852, etc). */
   qzCodepage: number;
+
+  /** Destaques automáticos aplicados somente na comanda de PEDIDO via QZ Tray. */
+  pedidoHighlightOrderNumber: boolean;
+  pedidoHighlightPriorityDeliveries: boolean;
+  pedidoHighlightOrderPriority: boolean;
+  pedidoHighlightDeliveryEstimate: boolean;
 }
 
 export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
@@ -31,6 +37,10 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   qzColumns: 48,
   qzFeedLines: 3,
   qzCodepage: 16,
+  pedidoHighlightOrderNumber: true,
+  pedidoHighlightPriorityDeliveries: false,
+  pedidoHighlightOrderPriority: false,
+  pedidoHighlightDeliveryEstimate: false,
 };
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
@@ -47,10 +57,23 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   popupHeightPx: clampNumber(value?.popupHeightPx, DEFAULT_THERMAL_PRINT_SETTINGS.popupHeightPx, 80, 1200),
   printGapMs: clampNumber(value?.printGapMs, DEFAULT_THERMAL_PRINT_SETTINGS.printGapMs, 350, 5000),
   qzEnabled: Boolean(value?.qzEnabled ?? DEFAULT_THERMAL_PRINT_SETTINGS.qzEnabled),
-  qzPrinterName: typeof value?.qzPrinterName === "string" ? value!.qzPrinterName : DEFAULT_THERMAL_PRINT_SETTINGS.qzPrinterName,
+  qzPrinterName:
+    typeof value?.qzPrinterName === "string" ? value!.qzPrinterName : DEFAULT_THERMAL_PRINT_SETTINGS.qzPrinterName,
   qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 64),
   qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
   qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
+  pedidoHighlightOrderNumber: Boolean(
+    value?.pedidoHighlightOrderNumber ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightOrderNumber,
+  ),
+  pedidoHighlightPriorityDeliveries: Boolean(
+    value?.pedidoHighlightPriorityDeliveries ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightPriorityDeliveries,
+  ),
+  pedidoHighlightOrderPriority: Boolean(
+    value?.pedidoHighlightOrderPriority ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightOrderPriority,
+  ),
+  pedidoHighlightDeliveryEstimate: Boolean(
+    value?.pedidoHighlightDeliveryEstimate ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightDeliveryEstimate,
+  ),
 });
 
 export const getThermalPrintSettings = (): ThermalPrintSettings => {
