@@ -26,6 +26,30 @@ const resolveType = (tipo: string): string => {
   return tipo;
 };
 
+const PRINT_DEDUPE_WINDOW_MS = 5000;
+const printDedupeMap = new Map<string, number>();
+
+const shouldSkipDuplicatePrint = (key: string) => {
+  const now = Date.now();
+  const last = printDedupeMap.get(key) || 0;
+
+  if (now - last < PRINT_DEDUPE_WINDOW_MS) {
+    console.warn("[QZ] impressão duplicada bloqueada:", key);
+    return true;
+  }
+
+  printDedupeMap.set(key, now);
+
+  // Limpa registros antigos para não crescer indefinidamente.
+  for (const [mapKey, mapTime] of printDedupeMap.entries()) {
+    if (now - mapTime > PRINT_DEDUPE_WINDOW_MS * 3) {
+      printDedupeMap.delete(mapKey);
+    }
+  }
+
+  return false;
+};
+
 const DEFAULT_LABELS: Record<string, string> = {
   pedido: "PEDIDO",
   mesa: "MESA",
@@ -61,6 +85,14 @@ TOTAL: [TOTAL]
 `;
 
 export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderViaQzOptions = {}): Promise<boolean> => {
+  const tipoIn = options.tipo || "pedido";
+  const copies = Math.max(1, Number(options.copies || 1));
+  const dedupeKey = `${orderId}:${resolveType(tipoIn)}:${copies}`;
+
+  // Evita duas impressões do mesmo pedido quando duas telas/funções chamam QZ ao mesmo tempo
+  // ou quando o botão é clicado duas vezes.
+  if (shouldSkipDuplicatePrint(dedupeKey)) return true;
+
   const settings = getThermalPrintSettings();
   if (!settings.qzEnabled || !settings.qzPrinterName) return false;
 
@@ -77,7 +109,6 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       return false;
     }
 
-    const tipoIn = options.tipo || "pedido";
     const isTableOrder = order.delivery_type === "mesa";
     const resolvedType = isTableOrder && resolveType(tipoIn) === "pedido" ? "mesa" : resolveType(tipoIn);
 
@@ -264,7 +295,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       },
     );
 
-    await printRawEscPos(settings.qzPrinterName, bytes, options.copies || 1);
+    await printRawEscPos(settings.qzPrinterName, bytes, copies);
     return true;
   } catch (err) {
     console.error("[QZ] erro ao imprimir, fallback para HTML", err);

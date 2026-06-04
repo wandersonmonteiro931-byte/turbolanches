@@ -1122,8 +1122,18 @@ const AdminManualOrder = () => {
           isTableOrder ? `${mesaCode} aberta!` : `Pedido #${String(order.order_number).padStart(5, "0")} criado!`,
         );
         clearDraft();
-        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=${isTableOrder ? "mesa" : "pedido"}`);
-        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
+
+        // Evita impressão duplicada no PDV.
+        // Antes imprimia uma vez aqui com openPrintPopup() e outra vez com printPopup.
+        // Agora:
+        // - mesa aberta imprime somente o recibo da mesa;
+        // - pedido normal imprime somente a comanda do pedido.
+        if (isTableOrder) {
+          routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=mesa`);
+        } else if (shouldPrintFinalReceipt) {
+          routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
+        }
+
         if (options.stay) navigate(`/admin/novo-pedido?edit=${order.id}`);
         else navigate("/admin");
       }
