@@ -25,6 +25,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { openPrintUrl } from "@/lib/printPopup";
+import { getPrintMode, type PrintMode } from "@/lib/printModePreference";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
 import { isQzAvailable, listQzPrinters, getQzDefaultPrinter, printRawEscPos } from "@/lib/qzTray";
 import { EscPosBuilder } from "@/lib/escposBuilder";
@@ -169,10 +170,12 @@ const AdminReceipts = () => {
     e.stopPropagation();
 
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
+    const mode: PrintMode = getPrintMode();
 
-    // O teste deve usar SEMPRE a tela real de comandas.
-    // Assim o teste respeita o mesmo fluxo de impressão normal:
-    // modo QZ Tray/PDF, variáveis, formatação, cópias e modelo salvo.
+    // O teste deve respeitar o modo de impressão selecionado no Dashboard:
+    // QZ Tray = imprime via QZ Tray.
+    // PDF = abre a tela de comandas/PDF.
+    // Auto = tenta QZ Tray e, se falhar, abre PDF.
     if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao") {
       toast.info("Para testar etiquetas/lista, use a tela específica dessa função.");
       return;
@@ -193,6 +196,20 @@ const AdminReceipts = () => {
         return;
       }
 
+      if (mode !== "pdf") {
+        const sentViaQz = await tryPrintOrderViaQz(lastOrder.id, { tipo: type, copies: qty });
+
+        if (sentViaQz) {
+          toast.success("Teste enviado via QZ Tray.");
+          return;
+        }
+
+        if (mode === "qz") {
+          toast.error("QZ Tray indisponível. Abra o QZ Tray e confira a impressora configurada.");
+          return;
+        }
+      }
+
       const win = openPrintUrl(
         `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&teste=1`,
         `teste_${type}`,
@@ -200,11 +217,11 @@ const AdminReceipts = () => {
       );
 
       if (!win || win.closed) {
-        toast.error("Popup bloqueado. Permita popups neste site para imprimir o teste.");
+        toast.error("Popup bloqueado. Permita popups neste site para imprimir o teste em PDF.");
         return;
       }
 
-      toast.success("Teste enviado pela tela de comandas.");
+      toast.success("Teste enviado pela tela de comandas/PDF.");
     } catch (err: any) {
       console.error(err);
       toast.error(`Falha no teste: ${err?.message || "verifique a impressão"}`);
