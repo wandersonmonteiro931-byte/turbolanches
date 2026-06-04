@@ -21,6 +21,9 @@ export interface ThermalPrintSettings {
   pedidoHighlightPriorityDeliveries: boolean;
   pedidoHighlightOrderPriority: boolean;
   pedidoHighlightDeliveryEstimate: boolean;
+  pedidoHighlightItemQuantity: boolean;
+  pedidoHighlightComplements: boolean;
+  pedidoHighlightObservations: boolean;
 }
 
 export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
@@ -41,6 +44,9 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   pedidoHighlightPriorityDeliveries: false,
   pedidoHighlightOrderPriority: false,
   pedidoHighlightDeliveryEstimate: false,
+  pedidoHighlightItemQuantity: true,
+  pedidoHighlightComplements: true,
+  pedidoHighlightObservations: true,
 };
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
@@ -73,6 +79,15 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   ),
   pedidoHighlightDeliveryEstimate: Boolean(
     value?.pedidoHighlightDeliveryEstimate ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightDeliveryEstimate,
+  ),
+  pedidoHighlightItemQuantity: Boolean(
+    value?.pedidoHighlightItemQuantity ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightItemQuantity,
+  ),
+  pedidoHighlightComplements: Boolean(
+    value?.pedidoHighlightComplements ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightComplements,
+  ),
+  pedidoHighlightObservations: Boolean(
+    value?.pedidoHighlightObservations ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightObservations,
   ),
 });
 
