@@ -75,6 +75,59 @@ const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
 
 const cleanAddressPart = (value: unknown) => String(value ?? "").trim();
 
+const normalizeAddressDuplicates = (value: string) => {
+  let out = String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\bQ\s*D\b/gi, "QD")
+    .replace(/\bL\s*T\b/gi, "LT")
+    .trim();
+
+  // Remove duplicações coladas do tipo: "QD 14 QD 14", "Q 14 QD 14", "LT 20 L 20".
+  out = out.replace(/\b(QD|Q)\s*([A-Z0-9]+)\s+\b(QD|Q)\s*\2\b/gi, "QD $2");
+  out = out.replace(/\b(LT|L|LOTE)\s*([A-Z0-9]+)\s+\b(LT|L|LOTE)\s*\2\b/gi, "LT $2");
+
+  // Remove tokens repetidos em sequência, mesmo quando separados por vírgula, hífen ou barra.
+  out = out.replace(/\b(QD|Q)\s*([A-Z0-9]+)\s*([,|/\\-]+)\s*\b(QD|Q)\s*\2\b/gi, "QD $2");
+  out = out.replace(/\b(LT|L|LOTE)\s*([A-Z0-9]+)\s*([,|/\\-]+)\s*\b(LT|L|LOTE)\s*\2\b/gi, "LT $2");
+
+  // Se o endereço vier com Q e QD diferentes por erro de concatenação,
+  // mantém apenas a primeira quadra encontrada e remove as seguintes.
+  const seen: Record<string, boolean> = {};
+  out = out
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      let p = part;
+
+      p = p.replace(/\b(QD|Q)\s*([A-Z0-9]+)\b/gi, (match, _label, num) => {
+        const key = `QD:${String(num).toUpperCase()}`;
+        if (seen[key]) return "";
+        seen[key] = true;
+        return `QD ${num}`;
+      });
+
+      p = p.replace(/\b(LT|L|LOTE)\s*([A-Z0-9]+)\b/gi, (match, _label, num) => {
+        const key = `LT:${String(num).toUpperCase()}`;
+        if (seen[key]) return "";
+        seen[key] = true;
+        return `LT ${num}`;
+      });
+
+      return p
+        .replace(/\s{2,}/g, " ")
+        .replace(/\s*,\s*,/g, ",")
+        .trim();
+    })
+    .filter(Boolean)
+    .join(" | ");
+
+  return out
+    .replace(/\s{2,}/g, " ")
+    .replace(/\|\s*\|/g, "|")
+    .trim();
+};
+
 const buildOrderAddress = (order: any, isDeliveryType: boolean, fallback: string) => {
   if (!isDeliveryType) return fallback;
 
@@ -96,7 +149,7 @@ const buildOrderAddress = (order: any, isDeliveryType: boolean, fallback: string
   ].filter(Boolean);
 
   const composed = parts.length > 0 ? parts.join(" | ") : "";
-  return formatPrintAddress(directAddress || composed || fallback);
+  return formatPrintAddress(normalizeAddressDuplicates(directAddress || composed || fallback));
 };
 
 const highlightQzValue = (value: string) => {
@@ -105,7 +158,7 @@ const highlightQzValue = (value: string) => {
   return `[DESTAQUE]${clean}[/DESTAQUE]`;
 };
 
-const hasPriorityText = (value: unknown) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
+const hasPriorityText = (value: string) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
 
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
@@ -175,11 +228,6 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const profile: any = profileRes.data;
     const tpl: any = tplRes.data;
     const courierName: string = (courierRes as any)?.data?.name || "";
-    const orderPriorityFields = order as unknown as {
-      priority?: unknown;
-      priority_level?: unknown;
-      delivery_priority?: unknown;
-    };
 
     const rawTableCode =
       (order.table_code as string) || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
@@ -327,7 +375,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText(orderPriorityFields.priority || orderPriorityFields.priority_level || order.observations || "")
+        hasPriorityText(order.priority || order.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -337,9 +385,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(
-          `${orderPriorityFields.delivery_priority || ""} ${orderPriorityFields.priority || ""} ${order.observations || ""}`,
-        )
+        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
