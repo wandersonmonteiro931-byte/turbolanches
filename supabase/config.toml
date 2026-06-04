@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.courier-portal]
 verify_jwt = false
+
+[functions.qz-sign]
+verify_jwt = false
