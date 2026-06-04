@@ -105,7 +105,7 @@ const highlightQzValue = (value: string) => {
   return `[DESTAQUE]${clean}[/DESTAQUE]`;
 };
 
-const hasPriorityText = (value: string) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
+const hasPriorityText = (value: unknown) => /prioridade|urgente|preferencial|atrasado|atraso/i.test(String(value || ""));
 
 // Fallback minimalista — só usado se o template do banco não existir
 const FALLBACK_TEMPLATE = `[CENTRO][NOMELOJA][/CENTRO]
@@ -175,10 +175,10 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const profile: any = profileRes.data;
     const tpl: any = tplRes.data;
     const courierName: string = (courierRes as any)?.data?.name || "";
-    const orderPriorityFields = order as typeof order & {
-      priority?: string | null;
-      priority_level?: string | null;
-      delivery_priority?: string | null;
+    const orderPriorityFields = order as unknown as {
+      priority?: unknown;
+      priority_level?: unknown;
+      delivery_priority?: unknown;
     };
 
     const rawTableCode =
