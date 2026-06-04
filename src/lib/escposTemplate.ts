@@ -535,10 +535,18 @@ const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: numb
 const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const safeStyle = safeThermalBoxStyle(style);
   applyStyleToBuilder(b, safeStyle);
-  if (safeStyle.invertFull) {
-    b.size(0, 1);
+
+  // Somente endereço pode quebrar dentro da caixa.
+  if (style.address) {
+    const innerCols = Math.max(1, cols - 4);
+    const addressLines = wrapAddressLines(text, innerCols);
+    for (const addressLine of addressLines) {
+      b.rawText(boxedLineNoWrap(addressLine, cols, safeStyle.align));
+    }
+  } else {
+    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
   }
-  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+
   resetStyle(b);
 };
 
@@ -561,7 +569,9 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
-  const outputLines = [truncateLineToCols(finalText, effectiveColumns(cols, fittedStyle))];
+  const outputLines = fittedStyle.address
+    ? wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle))
+    : [truncateLineToCols(finalText, effectiveColumns(cols, fittedStyle))];
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
