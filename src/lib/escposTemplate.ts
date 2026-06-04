@@ -553,17 +553,27 @@ const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: numb
 
 const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const safeStyle = safeThermalBoxStyle(style);
-  applyStyleToBuilder(b, safeStyle);
 
   // Somente endereço pode quebrar dentro da caixa.
   if (style.address) {
-    const innerCols = Math.max(1, cols - 4);
-    const addressLines = wrapAddressLines(text, innerCols);
-    for (const addressLine of addressLines) {
-      b.rawText(boxedLineNoWrap(addressLine, cols, safeStyle.align));
-    }
-  } else {
-    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+    renderBoxedWrappedAddress(b, safeStyle, text, cols);
+    return;
+  }
+
+  applyStyleToBuilder(b, safeStyle);
+  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+  resetStyle(b);
+};
+
+const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const safeStyle = safeThermalBoxStyle(style);
+  const innerCols = Math.max(1, cols - 4);
+  const addressLines = wrapAddressLines(text, innerCols);
+
+  applyStyleToBuilder(b, safeStyle);
+
+  for (const addressLine of addressLines) {
+    b.rawText(boxedLineNoWrap(addressLine, cols, safeStyle.align));
   }
 
   resetStyle(b);
@@ -579,11 +589,20 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   if (fittedStyle.box || fittedStyle.frame !== "none") {
     const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
     const safeStyle = safeThermalBoxStyle(fittedStyle);
+
     resetStyle(b);
     renderFrameLine(b, frame, cols);
-    applyStyleToBuilder(b, safeStyle);
-    b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
-    resetStyle(b);
+
+    // Somente endereço pode quebrar em várias linhas dentro da caixa.
+    // Isso evita cortar endereço grande na comanda de Pedido.
+    if (fittedStyle.address) {
+      renderBoxedWrappedAddress(b, safeStyle, finalText, cols);
+    } else {
+      applyStyleToBuilder(b, safeStyle);
+      b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
+      resetStyle(b);
+    }
+
     renderFrameLine(b, frame, cols);
     return;
   }
