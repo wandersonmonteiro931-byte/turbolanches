@@ -64,7 +64,7 @@ const normalizeHtmlForEscPos = (value: string) => {
   out = out.replace(
     /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
     (_, left, right) =>
-      `\n__ITEM__${decodeHtmlEntities(String(left).replace(/<[^>]*>/g, "")).trim()}__SEP__${decodeHtmlEntities(String(right).replace(/<[^>]*>/g, "")).trim()}\n`,
+      `\n@@ITEM@@${decodeHtmlEntities(String(left).replace(/<[^>]*>/g, "")).trim()}@@SEP@@${decodeHtmlEntities(String(right).replace(/<[^>]*>/g, "")).trim()}\n`,
   );
 
   out = out
@@ -220,21 +220,21 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           const lineTotal = it.unitPrice * it.quantity + addonsTotal;
 
           if (it.highlightQuantity) {
-            out.push(`__ITEM_QHL__${it.quantity}x__SEP__${it.productName}__SEP__${fmt(lineTotal)}`);
+            out.push(`@@ITEMQ@@${it.quantity}x@@SEP@@${it.productName}@@SEP@@${fmt(lineTotal)}`);
           } else {
-            out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
+            out.push(`@@ITEM@@${it.quantity}x ${it.productName}@@SEP@@${fmt(lineTotal)}`);
           }
 
           for (const ad of it.addons || []) {
             const q = (ad.quantity || 1) > 1 ? ` x${ad.quantity}` : "";
             const price = Number(ad.price || 0) > 0 ? ` ${fmt(Number(ad.price || 0) * Number(ad.quantity || 1))}` : "";
             const line = `+ ${ad.name}${q}${price}`;
-            out.push(it.highlightComplements ? `__BLACKLINE__${line}` : `  ${line}`);
+            out.push(it.highlightComplements ? `@@BLACK@@${line}` : `  ${line}`);
           }
 
           if (it.observations?.trim()) {
             const obs = `OBS: ${it.observations.trim()}`;
-            out.push(it.highlightObservations ? `__BLACKLINE__${obs}` : `  ${obs}`);
+            out.push(it.highlightObservations ? `@@BLACK@@${obs}` : `  ${obs}`);
           }
         }
 
@@ -763,25 +763,25 @@ export const renderTemplateToEscPos = (
     }
 
     // Item com quantidade destacada automaticamente.
-    if (trimmed.startsWith("__ITEM_QHL__")) {
-      const [, rest] = trimmed.split("__ITEM_QHL__");
-      const [qty, product, price] = rest.split("__SEP__");
+    if (trimmed.startsWith("@@ITEMQ@@")) {
+      const [, rest] = trimmed.split("@@ITEMQ@@");
+      const [qty, product, price] = rest.split("@@SEP@@");
       renderItemQuantityHighlighted(b, qty || "", product || "", price || "", cols);
       continue;
     }
 
     // Linha preta automática para complementos/observações.
-    if (trimmed.startsWith("__BLACKLINE__")) {
-      const [, text] = trimmed.split("__BLACKLINE__");
+    if (trimmed.startsWith("@@BLACK@@")) {
+      const [, text] = trimmed.split("@@BLACK@@");
       renderBlackFullLine(b, text || "", cols, "left");
       continue;
     }
 
     // Tabela de itens em 3 colunas: qtd | produto/endereço | valor.
     // Regra Turbo: NUNCA quebra para outra linha; corta produto/endereço e mantém valor reto.
-    if (trimmed.startsWith("__ITEM3__")) {
-      const [, rest] = trimmed.split("__ITEM3__");
-      const [qtyRaw, nameRaw, priceRaw] = rest.split("__SEP__");
+    if (trimmed.startsWith("@@ITEM3@@")) {
+      const [, rest] = trimmed.split("@@ITEM3@@");
+      const [qtyRaw, nameRaw, priceRaw] = rest.split("@@SEP@@");
       const qty = normalizeHtmlForEscPos(qtyRaw || "");
       const name = normalizeItemMarker(normalizeHtmlForEscPos(nameRaw || ""));
       const price = normalizeHtmlForEscPos(priceRaw || "");
@@ -806,9 +806,9 @@ export const renderTemplateToEscPos = (
 
     // Item/linha de relatório com label/preço.
     // Regra Turbo: não quebra; texto à esquerda pode ser cortado, valor fica reto.
-    if (trimmed.startsWith("__ITEM__")) {
-      const [, rest] = trimmed.split("__ITEM__");
-      const [left, right] = rest.split("__SEP__");
+    if (trimmed.startsWith("@@ITEM@@")) {
+      const [, rest] = trimmed.split("@@ITEM@@");
+      const [left, right] = rest.split("@@SEP@@");
       resetStyle(b);
       b.bold(true)
         .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
