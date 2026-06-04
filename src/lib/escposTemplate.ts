@@ -628,11 +628,9 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   // [CAIXA], [BORDA] e molduras inline.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
-    // Regra especial: endereço não pode cortar. Ele quebra em várias linhas.
-    // Para ficar igual ao visual desejado, o endereço sai como faixas pretas por linha,
-    // sem moldura com +---+.
+    // Endereço não pode ser cortado. Quebra em várias linhas.
     if (fittedStyle.address) {
-      renderBoxedWrappedAddress(b, fittedStyle, finalText, cols);
+      renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
       return;
     }
 
@@ -653,6 +651,13 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
+    // Regra especial para [TZTBORDA][ENDEREÇO][/TZTBORDA]:
+    // endereço nunca pode ser cortado; deve quebrar em várias linhas com fundo preto.
+    if (fittedStyle.address) {
+      renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
+      return;
+    }
+
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
 
