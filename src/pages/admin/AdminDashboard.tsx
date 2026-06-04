@@ -1136,6 +1136,45 @@ const AdminDashboard = () => {
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
+  const completeReportVariablesForQz = (variables: Record<string, string>) => ({
+    "[NUMEROPEDIDO]": "",
+    "[MESA]": "",
+    "[NOMECLIENTE]": "",
+    "[CODIGOCLIENTE]": "",
+    "[TELEFONECLIENTE]": "",
+    "[ENDEREÇO]": "",
+    "[ENDERECO]": "",
+    "[FORMAPAGTO]": "",
+    "[TOTALRECEBER]": "",
+    "[TOTALPAGO]": "",
+    "[SUBTOTAL]": "",
+    "[TOTAL]": "",
+    "[TAXAENTREGA]": "",
+    "[DESCONTO]": "",
+    "[CUPOM]": "",
+    "[TROCO]": "",
+    "[DATAHORAENTREGA]": "",
+    "[DATAHORASAÍDAENTREGA]": "",
+    "[DATAHORASAIDAENTREGA]": "",
+    "[OBS]": "",
+    "[ITENS]": "",
+    "[ITEM]": "",
+    "[PRODUTO]": "",
+    "[MARCA]": "",
+    "[DATAFABRICACAO]": "",
+    "[VALIDADE]": "",
+    "[RESPONSAVEL]": "",
+    "[TITULO]": "",
+    "[TOTALITENS]": "",
+    "[LISTA]": "",
+    "[RESFRIADO]": "",
+    "[CONGELADO]": "",
+    "[ARMAZENAR]": "",
+    "[GRAUS]": "",
+    "[FRASEARMAZ]": "",
+    ...variables,
+  });
+
   const tryPrintTemplateReportViaQz = async (
     templateType: string,
     template: string,
@@ -1146,7 +1185,7 @@ const AdminDashboard = () => {
     if (!settings.qzEnabled || !settings.qzPrinterName) return false;
 
     const cleanVariables: Record<string, string> = {};
-    for (const [key, value] of Object.entries({ ...variables, ...blocks })) {
+    for (const [key, value] of Object.entries(completeReportVariablesForQz({ ...variables, ...blocks }))) {
       cleanVariables[key] = stripReportHtml(value);
     }
 

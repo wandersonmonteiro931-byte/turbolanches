@@ -19,6 +19,7 @@ export interface RenderTemplateInput {
 
 export interface ItemForTemplate {
   productName: string;
+  productCode?: string | number | null;
   quantity: number;
   unitPrice: number;
   observations?: string | null;
@@ -82,8 +83,9 @@ const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(va
 
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
-  for (let pass = 0; pass < 2; pass += 1) {
-    for (const [k, v] of Object.entries(vars)) {
+  const mergedVars = completeVariables(vars);
+  for (let pass = 0; pass < 3; pass += 1) {
+    for (const [k, v] of Object.entries(mergedVars)) {
       const value = normalizeHtmlForEscPos(v ?? "");
       const replacement = isAddressToken(k)
         ? `${ADDRESS_OPEN}${formatPrintAddressForEscPos(value)}${ADDRESS_CLOSE}`
@@ -91,6 +93,73 @@ const replaceTokens = (text: string, vars: Record<string, string>): string => {
       out = out.split(k).join(replacement);
     }
   }
+  return out;
+};
+
+const ALL_KNOWN_VARIABLES = [
+  "[NUMEROPEDIDO]",
+  "[MESA]",
+  "[NOMECLIENTE]",
+  "[CODIGOCLIENTE]",
+  "[TELEFONECLIENTE]",
+  "[ENDEREÇO]",
+  "[ENDERECO]",
+  "[FORMAPAGTO]",
+  "[TOTALRECEBER]",
+  "[TOTALPAGO]",
+  "[SUBTOTAL]",
+  "[TOTAL]",
+  "[TAXAENTREGA]",
+  "[DESCONTO]",
+  "[CUPOM]",
+  "[TROCO]",
+  "[NOMELOJA]",
+  "[TIPOCOMANDA]",
+  "[DATAHORA]",
+  "[DATAAGORA]",
+  "[DATAHORAPEDIDO]",
+  "[DATAHORAENTREGA]",
+  "[DATAHORASAÍDAENTREGA]",
+  "[DATAHORASAIDAENTREGA]",
+  "[HORASAIDA]",
+  "[OBS]",
+  "[ITENS]",
+  "[ITEM]",
+  "[VALORITEM]",
+  "[QNTITENS]",
+  "[PRODUTOS]",
+  "[PREÇOPROD]",
+  "[PRECOPROD]",
+  "[QUANTIDADEPROD]",
+  "[OBSITEM]",
+  "[ADICIONAIS]",
+  "[CÓDIGOPROD]",
+  "[CODIGOPROD]",
+  "[DELIVERYRETIRADAVIAGEM]",
+  "[RODAPÉ]",
+  "[RODAPE]",
+  "[DIVULGAÇÃO]",
+  "[DIVULGACAO]",
+  "[PRODUTO]",
+  "[MARCA]",
+  "[DATAFABRICACAO]",
+  "[VALIDADE]",
+  "[RESPONSAVEL]",
+  "[TITULO]",
+  "[TOTALITENS]",
+  "[LISTA]",
+  "[RESFRIADO]",
+  "[CONGELADO]",
+  "[ARMAZENAR]",
+  "[GRAUS]",
+  "[FRASEARMAZ]",
+  "[NOMEENTREGADOR]",
+];
+
+const completeVariables = (vars: Record<string, string>) => {
+  const out: Record<string, string> = {};
+  for (const key of ALL_KNOWN_VARIABLES) out[key] = "";
+  for (const [key, value] of Object.entries(vars || {})) out[key] = normalizeHtmlForEscPos(value ?? "");
   return out;
 };
 
@@ -103,6 +172,7 @@ const ITEM_TOKENS = [
   "[QUANTIDADEPROD]",
   "[VALORITEM]",
   "[PREÇOPROD]",
+  "[PRECOPROD]",
   "[OBSITEM]",
   "[ADICIONAIS]",
   "[CÓDIGOPROD]",
@@ -118,46 +188,58 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (!lineHasItemToken(rawLine)) return [rawLine];
       if (items.length === 0) return [];
 
-      // Caso 1: linha é só [ITENS] → expande em formato padrão
       if (/^\s*\[(ITENS|ITEM)\]\s*$/i.test(rawLine)) {
         const out: string[] = [];
         for (const it of items) {
-          const lineTotal =
-            it.unitPrice * it.quantity +
-            (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
-          out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
+          const addonsTotal = (it.addons || []).reduce(
+            (s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1),
+            0,
+          );
+          const lineTotal = it.unitPrice * it.quantity + addonsTotal;
+          out.push(`__ITEM3__${it.quantity}__SEP__${it.productName}__SEP__${fmt(lineTotal)}`);
           for (const ad of it.addons || []) {
             const q = (ad.quantity || 1) > 1 ? ` x${ad.quantity}` : "";
-            out.push(`  + ${ad.name}${q}`);
+            const price = Number(ad.price || 0) > 0 ? ` ${fmt(Number(ad.price || 0) * Number(ad.quantity || 1))}` : "";
+            out.push(`  + ${ad.name}${q}${price}`);
           }
-          if (it.observations?.trim()) out.push(`  Obs: ${it.observations.trim()}`);
+          if (it.observations?.trim()) out.push(`  OBS: ${it.observations.trim()}`);
         }
         return out;
       }
 
-      // Caso 2: template inline com tokens → expande para cada item
       return items.flatMap((it) => {
-        const lineTotal =
-          it.unitPrice * it.quantity +
-          (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
+        const addonsTotal = (it.addons || []).reduce(
+          (s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1),
+          0,
+        );
+        const lineTotal = it.unitPrice * it.quantity + addonsTotal;
         const addonsText = (it.addons || [])
-          .map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+          .map((a) => {
+            const q = (a.quantity || 1) > 1 ? ` x${a.quantity}` : "";
+            const price = Number(a.price || 0) > 0 ? ` ${fmt(Number(a.price || 0) * Number(a.quantity || 1))}` : "";
+            return `+ ${a.name}${q}${price}`;
+          })
           .join(" | ");
-        const itemVars = {
+        const code = it.productCode == null ? "" : String(it.productCode);
+
+        const itemVars = completeVariables({
           "[ITENS]": "",
+          "[ITEM]": "",
           "[PRODUTO]": it.productName,
           "[PRODUTOS]": it.productName,
           "[QNTITENS]": String(it.quantity),
           "[QUANTIDADEPROD]": String(it.quantity),
           "[VALORITEM]": fmt(lineTotal),
           "[PREÇOPROD]": fmt(it.unitPrice),
-          "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""]
+          "[PRECOPROD]": fmt(it.unitPrice),
+          "[OBSITEM]": [addonsText, it.observations?.trim() ? `OBS: ${it.observations.trim()}` : ""]
             .filter(Boolean)
             .join(" "),
           "[ADICIONAIS]": addonsText,
-          "[CÓDIGOPROD]": "",
-          "[CODIGOPROD]": "",
-        };
+          "[CÓDIGOPROD]": code,
+          "[CODIGOPROD]": code,
+        });
+
         return [replaceTokens(rawLine, itemVars)];
       });
     })
@@ -427,7 +509,7 @@ export const renderTemplateToEscPos = (
   const cols = opts.columns ?? 48;
 
   // 1. Substitui variáveis globais e limpa qualquer HTML vindo do template/variáveis.
-  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, input.variables));
+  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, completeVariables(input.variables)));
 
   // 2. Expande [ITENS]
   if (input.items && input.items.length > 0) {
@@ -498,6 +580,48 @@ export const renderTemplateToEscPos = (
       if (activeBlockFrame !== "none")
         renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
       else b.line("-".repeat(cols));
+      continue;
+    }
+
+    // Tabela de itens em 3 colunas: qtd | produto | valor
+    if (trimmed.startsWith("__ITEM3__")) {
+      const [, rest] = trimmed.split("__ITEM3__");
+      const [qtyRaw, nameRaw, priceRaw] = rest.split("__SEP__");
+      const qty = normalizeHtmlForEscPos(qtyRaw || "");
+      const name = normalizeHtmlForEscPos(nameRaw || "");
+      const price = normalizeHtmlForEscPos(priceRaw || "");
+
+      resetStyle(b);
+      b.bold(true);
+
+      const qtyWidth = Math.min(6, Math.max(4, qty.length + 1));
+      const priceWidth = Math.min(12, Math.max(9, price.length));
+      const gap = 1;
+      const nameWidth = Math.max(8, cols - qtyWidth - priceWidth - gap * 2);
+
+      const words = name.split(/\s+/).filter(Boolean);
+      const nameLines: string[] = [];
+      let current = "";
+      for (const word of words) {
+        const test = current ? `${current} ${word}` : word;
+        if (test.length > nameWidth && current) {
+          nameLines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      }
+      if (current) nameLines.push(current);
+      if (nameLines.length === 0) nameLines.push("");
+
+      nameLines.forEach((line, index) => {
+        const leftQty = index === 0 ? qty.padEnd(qtyWidth) : " ".repeat(qtyWidth);
+        const mid = line.padEnd(nameWidth);
+        const right = index === 0 ? price.padStart(priceWidth) : " ".repeat(priceWidth);
+        b.rawText(`${leftQty}${" ".repeat(gap)}${mid}${" ".repeat(gap)}${right}`.slice(0, cols));
+      });
+
+      b.bold(false);
       continue;
     }
 

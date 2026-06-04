@@ -295,11 +295,52 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
     const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
       productName: it.product_name,
+      productCode: it.product_code ?? it.product_code_num ?? it.codigo ?? it.code ?? it.product_id ?? "",
       quantity: it.quantity,
       unitPrice: Number(it.unit_price),
       observations: it.observations,
       addons: Array.isArray(it.addons_json) ? it.addons_json : [],
     }));
+
+    const firstItem = itemsForTpl[0];
+    const firstItemAddons = firstItem?.addons || [];
+    const firstItemAddonsText = firstItemAddons
+      .map((a: any) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+      .join(" | ");
+    const firstItemTotal = firstItem
+      ? Number(firstItem.unitPrice || 0) * Number(firstItem.quantity || 0) +
+        firstItemAddons.reduce((s: number, a: any) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0)
+      : 0;
+
+    Object.assign(variables, {
+      "[PRODUTO]": firstItem?.productName || "",
+      "[PRODUTOS]": firstItem?.productName || "",
+      "[QNTITENS]": firstItem ? String(firstItem.quantity) : "",
+      "[QUANTIDADEPROD]": firstItem ? String(firstItem.quantity) : "",
+      "[VALORITEM]": firstItem ? fmt(firstItemTotal) : "",
+      "[PREÇOPROD]": firstItem ? fmt(Number(firstItem.unitPrice || 0)) : "",
+      "[PRECOPROD]": firstItem ? fmt(Number(firstItem.unitPrice || 0)) : "",
+      "[OBSITEM]": firstItem
+        ? [firstItemAddonsText, firstItem.observations?.trim() ? `OBS: ${firstItem.observations.trim()}` : ""]
+            .filter(Boolean)
+            .join(" ")
+        : "",
+      "[ADICIONAIS]": firstItemAddonsText,
+      "[CÓDIGOPROD]": firstItem?.productCode == null ? "" : String(firstItem.productCode),
+      "[CODIGOPROD]": firstItem?.productCode == null ? "" : String(firstItem.productCode),
+      "[MARCA]": "",
+      "[DATAFABRICACAO]": "",
+      "[VALIDADE]": "",
+      "[RESPONSAVEL]": "",
+      "[TITULO]": "",
+      "[TOTALITENS]": String(itemsForTpl.reduce((s, it) => s + Number(it.quantity || 0), 0)),
+      "[LISTA]": "",
+      "[RESFRIADO]": "",
+      "[CONGELADO]": "",
+      "[ARMAZENAR]": "",
+      "[GRAUS]": "",
+      "[FRASEARMAZ]": "",
+    });
 
     const template: string = (tpl?.body_template as string) || FALLBACK_TEMPLATE;
 
