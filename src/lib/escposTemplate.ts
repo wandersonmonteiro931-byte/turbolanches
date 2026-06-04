@@ -30,22 +30,84 @@ const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 const ADDRESS_OPEN = "\uE000ADDR\uE000";
 const ADDRESS_CLOSE = "\uE000/ADDR\uE000";
 
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+
+const removeEmojisAndControls = (value: string) =>
+  value
+    .replace(/[\u{1F000}-\u{1FAFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[📦🛵🚚🛍️🍔🍕✅❌⚠️🧾💰🔒🔓🔥⭐❤️❤]/g, "")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+
+const normalizeHtmlForEscPos = (value: string) => {
+  let out = String(value || "");
+
+  out = out.replace(
+    /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
+    (_, left, right) =>
+      `\n__ITEM__${decodeHtmlEntities(String(left).replace(/<[^>]*>/g, "")).trim()}__SEP__${decodeHtmlEntities(String(right).replace(/<[^>]*>/g, "")).trim()}\n`,
+  );
+
+  out = out
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:div|p|tr|li|h1|h2|h3|h4)>/gi, "\n")
+    .replace(/<td[^>]*>/gi, " ")
+    .replace(/<\/td>/gi, " ")
+    .replace(/<th[^>]*>/gi, " ")
+    .replace(/<\/th>/gi, " ")
+    .replace(/<[^>]*>/g, "");
+
+  out = decodeHtmlEntities(out);
+  out = removeEmojisAndControls(out);
+
+  return out
+    .split("\n")
+    .map((line) => line.replace(/[ \t]{2,}/g, " ").trimEnd())
+    .join("\n")
+    .replace(/\n{4,}/g, "\n\n");
+};
+
 const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
 const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
+const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(value).toLocaleUpperCase("pt-BR");
 
 const replaceTokens = (text: string, vars: Record<string, string>): string => {
   let out = text;
   for (let pass = 0; pass < 2; pass += 1) {
     for (const [k, v] of Object.entries(vars)) {
-      const value = v ?? "";
-      const replacement = isAddressToken(k) ? `${ADDRESS_OPEN}${formatAddressValue(value)}${ADDRESS_CLOSE}` : value;
+      const value = normalizeHtmlForEscPos(v ?? "");
+      const replacement = isAddressToken(k)
+        ? `${ADDRESS_OPEN}${formatPrintAddressForEscPos(value)}${ADDRESS_CLOSE}`
+        : value;
       out = out.split(k).join(replacement);
     }
   }
   return out;
 };
 
-const ITEM_TOKENS = ["[ITENS]", "[ITEM]", "[PRODUTO]", "[PRODUTOS]", "[QNTITENS]", "[QUANTIDADEPROD]", "[VALORITEM]", "[PREÇOPROD]", "[OBSITEM]", "[ADICIONAIS]", "[CÓDIGOPROD]", "[CODIGOPROD]"];
+const ITEM_TOKENS = [
+  "[ITENS]",
+  "[ITEM]",
+  "[PRODUTO]",
+  "[PRODUTOS]",
+  "[QNTITENS]",
+  "[QUANTIDADEPROD]",
+  "[VALORITEM]",
+  "[PREÇOPROD]",
+  "[OBSITEM]",
+  "[ADICIONAIS]",
+  "[CÓDIGOPROD]",
+  "[CODIGOPROD]",
+];
 
 const lineHasItemToken = (line: string) => ITEM_TOKENS.some((t) => line.includes(t));
 
@@ -60,8 +122,9 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
       if (/^\s*\[(ITENS|ITEM)\]\s*$/i.test(rawLine)) {
         const out: string[] = [];
         for (const it of items) {
-          const lineTotal = it.unitPrice * it.quantity
-            + (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
+          const lineTotal =
+            it.unitPrice * it.quantity +
+            (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
           out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
           for (const ad of it.addons || []) {
             const q = (ad.quantity || 1) > 1 ? ` x${ad.quantity}` : "";
@@ -74,9 +137,12 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
 
       // Caso 2: template inline com tokens → expande para cada item
       return items.flatMap((it) => {
-        const lineTotal = it.unitPrice * it.quantity
-          + (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
-        const addonsText = (it.addons || []).map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`).join(" | ");
+        const lineTotal =
+          it.unitPrice * it.quantity +
+          (it.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
+        const addonsText = (it.addons || [])
+          .map((a) => `+ ${a.name}${(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}`)
+          .join(" | ");
         const itemVars = {
           "[ITENS]": "",
           "[PRODUTO]": it.productName,
@@ -85,7 +151,9 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           "[QUANTIDADEPROD]": String(it.quantity),
           "[VALORITEM]": fmt(lineTotal),
           "[PREÇOPROD]": fmt(it.unitPrice),
-          "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""].filter(Boolean).join(" "),
+          "[OBSITEM]": [addonsText, it.observations?.trim() ? `Obs: ${it.observations.trim()}` : ""]
+            .filter(Boolean)
+            .join(" "),
           "[ADICIONAIS]": addonsText,
           "[CÓDIGOPROD]": "",
           "[CODIGOPROD]": "",
@@ -103,13 +171,13 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
 interface LineStyle {
   align: Align;
   bold: boolean;
-  big: boolean;       // [GRANDE]/[DESTAQUE]
-  giant: boolean;     // [TXTGIGANTE]
-  medium: boolean;    // [TXTMEDIO]
-  small: boolean;     // [TXTPEQUENO]
-  box: boolean;       // [CAIXA]
+  big: boolean; // [GRANDE]/[DESTAQUE]
+  giant: boolean; // [TXTGIGANTE]
+  medium: boolean; // [TXTMEDIO]
+  small: boolean; // [TXTPEQUENO]
+  box: boolean; // [CAIXA]
   underline: 0 | 1 | 2;
-  invert: boolean;    // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
+  invert: boolean; // [FUNDPRETO]/[TXTBORDATXT] = fundo preto só ao redor
   invertFull: boolean; // [TZTBORDA]/[TXTBORDA] = fundo preto ponta-a-ponta
   frame: "none" | "thin" | "strong" | "rect";
   address: boolean;
@@ -130,7 +198,8 @@ const DEFAULT_STYLE: LineStyle = {
   address: false,
 };
 
-const ALL_TAGS_RE = /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
+const ALL_TAGS_RE =
+  /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
@@ -294,7 +363,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   if (fittedStyle.box || fittedStyle.frame !== "none") {
     resetStyle(b);
     applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false, invert: true, invertFull: true });
-    for (const line of outputLines) b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
+    for (const line of outputLines)
+      b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
     resetStyle(b);
     return;
   }
@@ -354,15 +424,17 @@ export const renderTemplateToEscPos = (
   opts: Partial<EscPosBuilderOptions> = {},
 ): Uint8Array => {
   const b = new EscPosBuilder(opts);
-  const cols = (opts.columns ?? 48);
+  const cols = opts.columns ?? 48;
 
-  // 1. Substitui variáveis globais
-  let resolved = replaceTokens(input.template, input.variables);
+  // 1. Substitui variáveis globais e limpa qualquer HTML vindo do template/variáveis.
+  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, input.variables));
 
   // 2. Expande [ITENS]
   if (input.items && input.items.length > 0) {
     resolved = expandItemsLines(resolved, input.items);
   }
+
+  resolved = normalizeHtmlForEscPos(resolved);
 
   // 3. Limpeza pós-substituição:
   //   - Remove linhas que ficaram vazias por causa de variáveis sem valor
@@ -423,17 +495,20 @@ export const renderTemplateToEscPos = (
     // Separador
     if (trimmed === "---") {
       resetStyle(b);
-      if (activeBlockFrame !== "none") renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
+      if (activeBlockFrame !== "none")
+        renderBlockContentLine(b, DEFAULT_STYLE, "-".repeat(Math.max(1, cols - 4)), cols);
       else b.line("-".repeat(cols));
       continue;
     }
 
-    // Item com label/preço (gerado por expandItemsLines)
+    // Item/linha de relatório com label/preço (gerado por expandItemsLines ou HTML report-row)
     if (trimmed.startsWith("__ITEM__")) {
       const [, rest] = trimmed.split("__ITEM__");
       const [left, right] = rest.split("__SEP__");
       resetStyle(b);
-      b.bold(true).twoCols(left || "", right || "").bold(false);
+      b.bold(true)
+        .twoCols(normalizeHtmlForEscPos(left || ""), normalizeHtmlForEscPos(right || ""))
+        .bold(false);
       continue;
     }
 

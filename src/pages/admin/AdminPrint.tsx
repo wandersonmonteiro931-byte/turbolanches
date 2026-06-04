@@ -122,6 +122,12 @@ const LEGACY_RECEIPT_PRINT_CSS = `
   }
 `;
 
+const stripEmojisFromPrintHtml = (html: string) =>
+  String(html || "")
+    .replace(/[\u{1F000}-\u{1FAFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[📦🛵🚚🛍️🍔🍕✅❌⚠️🧾💰🔒🔓🔥⭐❤️❤]/g, "");
+
 const AdminPrint = () => {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -448,7 +454,7 @@ const AdminPrint = () => {
       () => {
         try {
           document.open();
-          document.write(printableDocument);
+          document.write(stripEmojisFromPrintHtml(printableDocument));
           document.close();
         } catch (e) {
           console.error("[AdminPrint] write error", e);

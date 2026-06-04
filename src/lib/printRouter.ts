@@ -19,6 +19,18 @@ interface PrintOrderViaQzOptions {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
+const normalizeTextForQzTemplate = (value: string) =>
+  String(value || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/[\u{1F000}-\u{1FAFF}]/gu, "")
+    .replace(/[\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[🔒🔓]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+
 const resolveType = (tipo: string): string => {
   if (tipo === "cozinha" || tipo === "entrega") return "pedido";
   if (tipo === "cliente") return "obrigado";
@@ -276,6 +288,11 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       "[DIVULGAÇÃO]": tpl?.custom_message || "",
     };
 
+    const qzVariables: Record<string, string> = {};
+    for (const [key, value] of Object.entries(variables)) {
+      qzVariables[key] = normalizeTextForQzTemplate(value);
+    }
+
     const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
       productName: it.product_name,
       quantity: it.quantity,
@@ -287,7 +304,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const template: string = (tpl?.body_template as string) || FALLBACK_TEMPLATE;
 
     const bytes = renderTemplateToEscPos(
-      { template, variables, items: itemsForTpl },
+      { template, variables: qzVariables, items: itemsForTpl },
       {
         columns: settings.qzColumns,
         codepage: settings.qzCodepage,

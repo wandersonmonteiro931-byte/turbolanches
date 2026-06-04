@@ -8,7 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, ClipboardList, Heart, RotateCcw, Sticker, ShoppingBasket, Truck, Printer, Armchair, DollarSign, Zap, RefreshCw } from "lucide-react";
+import {
+  Save,
+  ClipboardList,
+  Heart,
+  RotateCcw,
+  Sticker,
+  ShoppingBasket,
+  Truck,
+  Printer,
+  Armchair,
+  DollarSign,
+  Zap,
+  RefreshCw,
+} from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { openPrintUrl } from "@/lib/printPopup";
@@ -155,8 +168,14 @@ const AdminReceipts = () => {
     e.preventDefault();
     e.stopPropagation();
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
-      if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao" || type === "relatorio_entregas" || type === "relatorio_periodo") {
-        toast.info("Para testar etiquetas de preço, use a tela /admin/etiquetas-preco.");
+    if (
+      type === "etiquetas" ||
+      type === "etiqueta_preco" ||
+      type === "reposicao" ||
+      type === "relatorio_entregas" ||
+      type === "relatorio_periodo"
+    ) {
+      toast.info("Para testar etiquetas de preço, use a tela /admin/etiquetas-preco.");
       return;
     }
     setPrinting(true);
@@ -178,7 +197,11 @@ const AdminReceipts = () => {
         return;
       }
 
-      const win = openPrintUrl(`/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100`, `print_${type}`, "width=280,height=120");
+      const win = openPrintUrl(
+        `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100`,
+        `print_${type}`,
+        "width=280,height=120",
+      );
       if (!win) {
         toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
       } else {
@@ -251,7 +274,11 @@ const AdminReceipts = () => {
           <div className="flex items-center gap-2">
             <span
               className={`text-xs font-bold ${
-                qzStatus === "online" ? "text-emerald-600" : qzStatus === "offline" ? "text-destructive" : "text-muted-foreground"
+                qzStatus === "online"
+                  ? "text-emerald-600"
+                  : qzStatus === "offline"
+                    ? "text-destructive"
+                    : "text-muted-foreground"
               }`}
             >
               {qzStatus === "online" ? "● Online" : qzStatus === "offline" ? "● Offline" : "○ Não verificado"}
@@ -269,14 +296,12 @@ const AdminReceipts = () => {
         </div>
 
         <div className="mb-3 flex items-center gap-3 rounded-md bg-card/60 p-2.5">
-          <Switch
-            checked={thermalSettings.qzEnabled}
-            onCheckedChange={(v) => updateThermalSetting("qzEnabled", v)}
-          />
+          <Switch checked={thermalSettings.qzEnabled} onCheckedChange={(v) => updateThermalSetting("qzEnabled", v)} />
           <div className="flex-1">
             <p className="text-xs font-semibold">Usar QZ Tray para imprimir comandas de pedido</p>
             <p className="text-[11px] text-muted-foreground">
-              Quando ativo, o sistema envia bytes ESC/POS direto pra impressora. Se falhar, cai automaticamente no modo HTML.
+              Quando ativo, o sistema envia bytes ESC/POS direto pra impressora. Se falhar, cai automaticamente no modo
+              HTML.
             </p>
           </div>
         </div>
@@ -292,7 +317,9 @@ const AdminReceipts = () => {
               >
                 <option value="">— Selecione —</option>
                 {qzPrinters.map((p) => (
-                  <option key={p} value={p}>{p}</option>
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
                 ))}
               </select>
             ) : (
@@ -350,11 +377,12 @@ const AdminReceipts = () => {
         </div>
 
         <div className="mt-3 rounded-md bg-amber-500/10 p-2.5 text-[11px] text-amber-900 dark:text-amber-200">
-          <strong>Como configurar:</strong> 1) Baixe e instale o QZ Tray no PC do caixa. 2) Abra o app (fica na bandeja). 3) Clique em "Detectar" acima. 4) Selecione sua impressora. 5) Ative o switch e teste. Na primeira impressão o QZ pedirá permissão — marque "sempre permitir".
+          <strong>Como configurar:</strong> 1) Baixe e instale o QZ Tray no PC do caixa. 2) Abra o app (fica na
+          bandeja). 3) Clique em "Detectar" acima. 4) Selecione sua impressora. 5) Ative o switch e teste. Na primeira
+          impressão o QZ pedirá permissão — marque "sempre permitir".
         </div>
       </div>
       {/* ============ /PAINEL QZ TRAY ============ */}
-
 
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -374,29 +402,69 @@ const AdminReceipts = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Largura do papel (mm)</Label>
-            <Input type="number" min={40} max={110} value={thermalSettings.paperWidthMm} onChange={(e) => updateThermalSetting("paperWidthMm", Number(e.target.value))} />
+            <Input
+              type="number"
+              min={40}
+              max={110}
+              value={thermalSettings.paperWidthMm}
+              onChange={(e) => updateThermalSetting("paperWidthMm", Number(e.target.value))}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Altura fixa da página (mm)</Label>
-            <Input type="number" min={0} max={500} value={thermalSettings.fixedHeightMm} onChange={(e) => updateThermalSetting("fixedHeightMm", Number(e.target.value))} />
-            <p className="text-[11px] text-muted-foreground">0 = automática. Se houver sobra, ajuste o tamanho do papel/driver no computador.</p>
+            <Input
+              type="number"
+              min={0}
+              max={500}
+              value={thermalSettings.fixedHeightMm}
+              onChange={(e) => updateThermalSetting("fixedHeightMm", Number(e.target.value))}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              0 = automática. Se houver sobra, ajuste o tamanho do papel/driver no computador.
+            </p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Folga após o texto (mm)</Label>
-            <Input type="number" min={0} max={80} value={thermalSettings.cutOffsetMm} onChange={(e) => updateThermalSetting("cutOffsetMm", Number(e.target.value))} />
-            <p className="text-[11px] text-muted-foreground">0 = sem folga extra. Não corta texto; só adiciona espaço quando necessário.</p>
+            <Input
+              type="number"
+              min={0}
+              max={80}
+              value={thermalSettings.cutOffsetMm}
+              onChange={(e) => updateThermalSetting("cutOffsetMm", Number(e.target.value))}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              0 = sem folga extra. Não corta texto; só adiciona espaço quando necessário.
+            </p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Largura da janela (px)</Label>
-            <Input type="number" min={180} max={800} value={thermalSettings.popupWidthPx} onChange={(e) => updateThermalSetting("popupWidthPx", Number(e.target.value))} />
+            <Input
+              type="number"
+              min={180}
+              max={800}
+              value={thermalSettings.popupWidthPx}
+              onChange={(e) => updateThermalSetting("popupWidthPx", Number(e.target.value))}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Altura da janela (px)</Label>
-            <Input type="number" min={80} max={1200} value={thermalSettings.popupHeightPx} onChange={(e) => updateThermalSetting("popupHeightPx", Number(e.target.value))} />
+            <Input
+              type="number"
+              min={80}
+              max={1200}
+              value={thermalSettings.popupHeightPx}
+              onChange={(e) => updateThermalSetting("popupHeightPx", Number(e.target.value))}
+            />
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Intervalo entre cópias (ms)</Label>
-            <Input type="number" min={350} max={5000} value={thermalSettings.printGapMs} onChange={(e) => updateThermalSetting("printGapMs", Number(e.target.value))} />
+            <Input
+              type="number"
+              min={350}
+              max={5000}
+              value={thermalSettings.printGapMs}
+              onChange={(e) => updateThermalSetting("printGapMs", Number(e.target.value))}
+            />
           </div>
         </div>
       </div>
@@ -490,9 +558,7 @@ const AdminReceipts = () => {
               {/* Full body template */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold">
-                    Modelo Completo da Comanda
-                  </Label>
+                  <Label className="text-xs font-semibold">Modelo Completo da Comanda</Label>
                   <button
                     onClick={() => handleResetTemplate(tab.type)}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -529,9 +595,7 @@ const AdminReceipts = () => {
                     min={1}
                     max={20}
                     value={printQty[tab.type] ?? 1}
-                    onChange={(e) =>
-                      setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))
-                    }
+                    onChange={(e) => setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))}
                     className="h-9 w-16 text-center"
                   />
                   <button

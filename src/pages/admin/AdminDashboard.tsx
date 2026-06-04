@@ -620,7 +620,7 @@ const AdminDashboard = () => {
     // Block accepting and finalization if cash register is closed
     if ((newStatus === "preparing" || newStatus === "delivered") && !cashRegisterOpen) {
       toast({
-        title: "🔒 Caixa fechado",
+        title: " Caixa fechado",
         description:
           newStatus === "preparing"
             ? "Abra o caixa antes de aceitar pedidos."
@@ -658,7 +658,7 @@ const AdminDashboard = () => {
       toast({ title: "Erro ao atualizar pedido", variant: "destructive" });
       return;
     }
-    toast({ title: newStatus === "delivered" ? "✅ Pedido finalizado!" : `Pedido atualizado!` });
+    toast({ title: newStatus === "delivered" ? " Pedido finalizado!" : `Pedido atualizado!` });
     await fetchOrders();
 
     // Mark coupon as used when order is accepted (preparing)
@@ -678,7 +678,7 @@ const AdminDashboard = () => {
   const confirmRouteClosure = async (orderId: string) => {
     if (!cashRegisterOpen) {
       toast({
-        title: "🔒 Caixa fechado",
+        title: " Caixa fechado",
         description: "Abra o caixa antes de finalizar pedidos.",
         variant: "destructive",
       });
@@ -694,7 +694,7 @@ const AdminDashboard = () => {
       toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
       return;
     }
-    toast({ title: "✅ Entrega finalizada com Fechamento de Rota!" });
+    toast({ title: " Entrega finalizada com Fechamento de Rota!" });
     setShowRouteClosureModal(null);
     await fetchOrders();
   };
@@ -725,7 +725,7 @@ const AdminDashboard = () => {
 
   const confirmPayment = async (orderId: string) => {
     await supabase.from("orders").update({ payment_confirmed: true }).eq("id", orderId);
-    toast({ title: "💰 Pagamento confirmado manualmente!" });
+    toast({ title: " Pagamento confirmado manualmente!" });
     fetchOrders();
   };
 
@@ -803,7 +803,7 @@ const AdminDashboard = () => {
   const acceptAllPending = async () => {
     if (!cashRegisterOpen) {
       toast({
-        title: "🔒 Caixa fechado",
+        title: " Caixa fechado",
         description: "Abra o caixa antes de aceitar pedidos.",
         variant: "destructive",
       });
@@ -840,7 +840,7 @@ const AdminDashboard = () => {
       setTimeout(() => printReceipt(order.id, "pedido"), i * 800);
     });
 
-    toast({ title: `✅ ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
+    toast({ title: ` ${toAccept.length} pedido(s) aceito(s) e enviados para cozinha!` });
     fetchOrders();
   };
 
@@ -937,7 +937,7 @@ const AdminDashboard = () => {
       delete copy[orderId];
       return copy;
     });
-    toast({ title: "✅ Pedido atualizado!" });
+    toast({ title: " Pedido atualizado!" });
     await fetchOrders();
     await fetchItems(orderId);
 
@@ -1112,6 +1112,15 @@ const AdminDashboard = () => {
 
   const stripReportHtml = (value: string) =>
     String(value || "")
+      .replace(
+        /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
+        (_, left, right) =>
+          `__ITEM__${String(left)
+            .replace(/<[^>]*>/g, "")
+            .trim()}__SEP__${String(right)
+            .replace(/<[^>]*>/g, "")
+            .trim()}\n`,
+      )
       .replace(/<br\s*\/?>/gi, "\n")
       .replace(/<\/div>/gi, "\n")
       .replace(/<\/p>/gi, "\n")
@@ -1120,6 +1129,10 @@ const AdminDashboard = () => {
       .replace(/&amp;/g, "&")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
+      .replace(/[\u{1F000}-\u{1FAFF}]/gu, "")
+      .replace(/[\u{2600}-\u{27BF}]/gu, "")
+      .replace(/[]/g, "")
+      .replace(/[ \t]{2,}/g, " ")
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
@@ -1189,7 +1202,7 @@ const AdminDashboard = () => {
     const rawTemplate = template?.body_template || getDefaultTemplate(templateType);
     // Garantir título compacto no relatório de entregas (remove [GRANDE]/[TXTGIGANTE] em volta de [TIPOCOMANDA])
     const normalizedTemplate =
-      templateType === "relatorio_entregas"
+      templateType === "relatorio_entregas" || templateType === "relatorio_periodo"
         ? rawTemplate
             .replace(/\[GRANDE\]\s*\[TIPOCOMANDA\]\s*\[\/GRANDE\]/g, "[TIPOCOMANDA]")
             .replace(/\[TXTGIGANTE\]\s*\[TIPOCOMANDA\]\s*\[\/TXTGIGANTE\]/g, "[TIPOCOMANDA]")
@@ -1710,7 +1723,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       "relatorio_entregas",
       {
         "[PERIODO]": dateLabel,
-        "[NOMEENTREGADOR]": `🚚 ${courierName}`,
+        "[NOMEENTREGADOR]": courierName,
         "[LINHAS]": rows,
         "[TOTALENTREGAS]": String(allDeliveryOrders.length),
         "[TOTALTAXAS]": `R$ ${totalTaxas.toFixed(2).replace(".", ",")}`,
@@ -1890,7 +1903,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
         <button
           onClick={() => {
             fetchOrders();
-            toast({ title: "✅ Pedidos atualizados!" });
+            toast({ title: " Pedidos atualizados!" });
           }}
           className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
         >
@@ -2355,12 +2368,12 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                       </span>
                       {order.status === "paid" && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700">
-                          💰 PAGO
+                          PAGO
                         </span>
                       )}
                       {order.status === "ready" && order.courier_id && (
                         <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
-                          ⚠️ DEVOLVIDO
+                          DEVOLVIDO
                         </span>
                       )}
                       {isLateDelivery && (
@@ -2699,7 +2712,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                   {order.status === "delivering" && order.courier_id && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-muted-foreground">
-                        🚚 {couriers.find((c) => c.id === order.courier_id)?.name || "Entregador"}
+                        {couriers.find((c) => c.id === order.courier_id)?.name || "Entregador"}
                       </span>
                       <button
                         onClick={() => changeCourier(order.id, order.courier_id)}
@@ -2758,7 +2771,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                     )}
                     {order.payment_confirmed && order.status !== "awaiting_payment" && (
                       <span className="flex items-center gap-1 rounded-lg bg-green-100 px-3 py-1.5 text-xs font-bold text-green-700">
-                        ✅ {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                        {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                       </span>
                     )}
                   </div>
@@ -2770,7 +2783,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                         className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground"
                       >
                         {next === "preparing"
-                          ? "✅ Aceitar Pedido"
+                          ? " Aceitar Pedido"
                           : next === "delivered"
                             ? "Finalizar"
                             : `Avançar → ${tabs.find((t) => t.key === next)?.label}`}
@@ -2839,7 +2852,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {cancellingOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
-            <h3 className="text-lg font-bold text-foreground">❌ Recusar Pedido</h3>
+            <h3 className="text-lg font-bold text-foreground"> Recusar Pedido</h3>
             <p className="text-sm text-muted-foreground">Informe o motivo da recusa para o cliente:</p>
             <textarea
               value={cancellationReason}
@@ -2898,7 +2911,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {courierSelectOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
-            <h3 className="text-lg font-bold text-foreground">🚚 Selecionar Entregador</h3>
+            <h3 className="text-lg font-bold text-foreground"> Selecionar Entregador</h3>
             <p className="text-sm text-muted-foreground">Escolha o entregador para esta entrega:</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {couriers.map((c) => (
@@ -2944,7 +2957,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {showReportPwModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
           <div className="w-full max-w-xs rounded-2xl bg-card p-6 space-y-4 mx-4">
-            <h3 className="text-lg font-bold text-foreground">🔒 Senha do Administrador</h3>
+            <h3 className="text-lg font-bold text-foreground"> Senha do Administrador</h3>
             <p className="text-sm text-muted-foreground">Digite a senha para imprimir o relatório.</p>
             <input
               type="password"
@@ -2990,7 +3003,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
               <div className="w-full max-w-sm rounded-2xl bg-card p-6 space-y-4 mx-4">
                 <h3 className="text-lg font-bold text-foreground">
-                  {isReturned ? "⚠️ Pedido Devolvido" : "📋 Fechamento de Rota"}
+                  {isReturned ? " Pedido Devolvido" : "📋 Fechamento de Rota"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {isReturned ? (
