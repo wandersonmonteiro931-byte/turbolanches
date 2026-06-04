@@ -49,6 +49,12 @@ const removeEmojisAndControls = (value: string) =>
     .replace(/[📦🛵🚚🛍️🍔🍕✅❌⚠️🧾💰🔒🔓🔥⭐❤️❤]/g, "")
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
 
+const normalizeItemMarker = (value: string) =>
+  String(value || "")
+    .replace(/\b_+item_(\d+)\b/gi, "$1 - ")
+    .replace(/\bitem_(\d+)\b/gi, "$1 - ")
+    .replace(/_{2,}/g, "_");
+
 const normalizeHtmlForEscPos = (value: string) => {
   let out = String(value || "");
 
@@ -68,9 +74,9 @@ const normalizeHtmlForEscPos = (value: string) => {
     .replace(/<[^>]*>/g, "");
 
   out = decodeHtmlEntities(out);
-  out = removeEmojisAndControls(out);
+  out = normalizeItemMarker(removeEmojisAndControls(out));
 
-  return out
+  return normalizeItemMarker(out)
     .split("\n")
     .map((line) => line.replace(/[ \t]{2,}/g, " ").trimEnd())
     .join("\n")
@@ -159,7 +165,8 @@ const ALL_KNOWN_VARIABLES = [
 const completeVariables = (vars: Record<string, string>) => {
   const out: Record<string, string> = {};
   for (const key of ALL_KNOWN_VARIABLES) out[key] = "";
-  for (const [key, value] of Object.entries(vars || {})) out[key] = normalizeHtmlForEscPos(value ?? "");
+  for (const [key, value] of Object.entries(vars || {}))
+    out[key] = normalizeItemMarker(normalizeHtmlForEscPos(value ?? ""));
   return out;
 };
 
@@ -382,7 +389,7 @@ const boxedLine = (text: string, cols: number, align: Align = "left") => {
 const truncateLineToCols = (value: string, cols: number) => String(value || "").slice(0, Math.max(0, cols));
 
 const fixedLine = (value: string, cols: number, align: Align = "left") => {
-  const text = truncateLineToCols(String(value || "").trim(), cols);
+  const text = truncateLineToCols(normalizeItemMarker(String(value || "").trim()), cols);
   if (text.length >= cols) return text;
   const missing = cols - text.length;
   if (align === "right") return `${" ".repeat(missing)}${text}`;
@@ -664,7 +671,7 @@ export const renderTemplateToEscPos = (
       const [, rest] = trimmed.split("__ITEM3__");
       const [qtyRaw, nameRaw, priceRaw] = rest.split("__SEP__");
       const qty = normalizeHtmlForEscPos(qtyRaw || "");
-      const name = normalizeHtmlForEscPos(nameRaw || "");
+      const name = normalizeItemMarker(normalizeHtmlForEscPos(nameRaw || ""));
       const price = normalizeHtmlForEscPos(priceRaw || "");
 
       resetStyle(b);
@@ -692,7 +699,7 @@ export const renderTemplateToEscPos = (
       const [left, right] = rest.split("__SEP__");
       resetStyle(b);
       b.bold(true)
-        .twoCols(normalizeHtmlForEscPos(left || ""), normalizeHtmlForEscPos(right || ""))
+        .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
         .bold(false);
       continue;
     }
