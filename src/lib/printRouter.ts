@@ -73,6 +73,32 @@ const DEFAULT_LABELS: Record<string, string> = {
 
 const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
 
+const cleanAddressPart = (value: unknown) => String(value ?? "").trim();
+
+const buildOrderAddress = (order: any, isDeliveryType: boolean, fallback: string) => {
+  if (!isDeliveryType) return fallback;
+
+  const directAddress = cleanAddressPart(
+    order.address ||
+      order.delivery_address ||
+      order.customer_address ||
+      order.full_address ||
+      order.endereco ||
+      order.endereco_completo,
+  );
+
+  const parts = [
+    cleanAddressPart(order.address_street || order.street || order.rua),
+    cleanAddressPart(order.address_number || order.number || order.numero || "S/N"),
+    cleanAddressPart(order.address_complement || order.complement || order.complemento),
+    cleanAddressPart(order.address_neighborhood || order.neighborhood || order.bairro),
+    cleanAddressPart(order.address_reference || order.reference || order.referencia),
+  ].filter(Boolean);
+
+  const composed = parts.length > 0 ? parts.join(" | ") : "";
+  return formatPrintAddress(directAddress || composed || fallback);
+};
+
 const highlightQzValue = (value: string) => {
   const clean = String(value || "").trim();
   if (!clean) return "";
@@ -169,15 +195,6 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
         : "";
 
     const isDeliveryType = order.delivery_type === "delivery";
-    // Não adicionar quadra/lote do cadastro automaticamente na impressão.
-    // A impressão deve usar apenas o endereço salvo no pedido.
-    const addressParts = isDeliveryType
-      ? [
-          order.address_street ? `${order.address_street}, ${order.address_number || "S/N"}` : "",
-          order.address_complement || "",
-          order.address_neighborhood || "",
-        ].filter(Boolean)
-      : [];
     const noAddressLabel =
       order.payment_method === "fiado"
         ? "FIADO"
@@ -188,11 +205,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
             : order.delivery_type === "viagem"
               ? "VIAGEM"
               : (order.delivery_type || "").toUpperCase() || "RETIRADA";
-    const address = isTableOrder
-      ? tableCode
-      : addressParts.length > 0
-        ? formatPrintAddress(addressParts.join(" | "))
-        : noAddressLabel;
+    const address = isTableOrder ? tableCode : buildOrderAddress(order, isDeliveryType, noAddressLabel);
 
     const subtotal = Number(order.subtotal) || 0;
     const deliveryFee = Number(order.delivery_fee) || 0;
@@ -309,7 +322,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText((order as any).priority || (order as any).priority_level || order.observations || "")
+        hasPriorityText(order.priority || order.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -319,19 +332,14 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(`${(order as any).delivery_priority || ""} ${(order as any).priority || ""} ${order.observations || ""}`)
+        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
     }
 
-    const qzVariables: Record<string, string> = {};
-    for (const [key, value] of Object.entries(variables)) {
-      qzVariables[key] = normalizeTextForQzTemplate(value);
-    }
-
     const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
-      productName: it.product_name,
+      productName: it.product_name || it.name || it.product || "ITEM",
       productCode: it.product_code ?? it.product_code_num ?? it.codigo ?? it.code ?? it.product_id ?? "",
       highlightQuantity: resolvedType === "pedido" && settings.pedidoHighlightItemQuantity,
       highlightComplements: resolvedType === "pedido" && settings.pedidoHighlightComplements,
@@ -339,7 +347,18 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       quantity: it.quantity,
       unitPrice: Number(it.unit_price),
       observations: it.observations,
-      addons: Array.isArray(it.addons_json) ? it.addons_json : [],
+      addons: Array.isArray(it.addons_json)
+        ? it.addons_json
+        : typeof it.addons_json === "string"
+          ? (() => {
+              try {
+                const parsed = JSON.parse(it.addons_json);
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })()
+          : [],
     }));
 
     const firstItem = itemsForTpl[0];
@@ -381,6 +400,11 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       "[GRAUS]": "",
       "[FRASEARMAZ]": "",
     });
+
+    const qzVariables: Record<string, string> = {};
+    for (const [key, value] of Object.entries(variables)) {
+      qzVariables[key] = normalizeTextForQzTemplate(value);
+    }
 
     const template: string = (tpl?.body_template as string) || FALLBACK_TEMPLATE;
 
