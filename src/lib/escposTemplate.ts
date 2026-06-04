@@ -465,8 +465,16 @@ const splitValueAtRight = (line: string): { left: string; right: string } | null
   return { left, right };
 };
 
+const removeInternalPrintMarkers = (value: string) =>
+  String(value || "")
+    .replace(/@@ITEMQ@@/g, "")
+    .replace(/@@ITEM@@/g, "")
+    .replace(/@@ITEM3@@/g, "")
+    .replace(/@@BLACK@@/g, "")
+    .replace(/@@SEP@@/g, " ");
+
 const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
-  const pair = splitValueAtRight(line);
+  const pair = splitValueAtRight(removeInternalPrintMarkers(line));
   if (!pair) return false;
   b.twoCols(pair.left, pair.right);
   return true;
@@ -562,7 +570,7 @@ const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string,
 };
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const finalText = text;
+  const finalText = removeInternalPrintMarkers(text);
   if (!finalText.replace(/\s/g, "")) return;
 
   const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
@@ -755,13 +763,6 @@ export const renderTemplateToEscPos = (
       continue;
     }
 
-    // Qualquer linha comum terminando com valor fica alinhada em 2 colunas.
-    // Ex.: "#00001 RUA X - Bairro R$ 10,00" corta o endereço se não couber,
-    // mas o valor permanece reto no final da linha.
-    if (renderFixedMoneyLine(b, trimmed, cols)) {
-      continue;
-    }
-
     // Item com quantidade destacada automaticamente.
     if (trimmed.startsWith("@@ITEMQ@@")) {
       const [, rest] = trimmed.split("@@ITEMQ@@");
@@ -774,6 +775,25 @@ export const renderTemplateToEscPos = (
     if (trimmed.startsWith("@@BLACK@@")) {
       const [, text] = trimmed.split("@@BLACK@@");
       renderBlackFullLine(b, text || "", cols, "left");
+      continue;
+    }
+
+    // Item/linha de relatório com label/preço.
+    // Regra Turbo: não quebra; texto à esquerda pode ser cortado, valor fica reto.
+    if (trimmed.startsWith("@@ITEM@@")) {
+      const [, rest] = trimmed.split("@@ITEM@@");
+      const [left, right] = rest.split("@@SEP@@");
+      resetStyle(b);
+      b.bold(true)
+        .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
+        .bold(false);
+      continue;
+    }
+
+    // Qualquer linha comum terminando com valor fica alinhada em 2 colunas.
+    // Ex.: "#00001 RUA X - Bairro R$ 10,00" corta o endereço se não couber,
+    // mas o valor permanece reto no final da linha.
+    if (renderFixedMoneyLine(b, trimmed, cols)) {
       continue;
     }
 
@@ -801,18 +821,6 @@ export const renderTemplateToEscPos = (
 
       b.rawText(line.slice(0, cols));
       b.bold(false);
-      continue;
-    }
-
-    // Item/linha de relatório com label/preço.
-    // Regra Turbo: não quebra; texto à esquerda pode ser cortado, valor fica reto.
-    if (trimmed.startsWith("@@ITEM@@")) {
-      const [, rest] = trimmed.split("@@ITEM@@");
-      const [left, right] = rest.split("@@SEP@@");
-      resetStyle(b);
-      b.bold(true)
-        .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
-        .bold(false);
       continue;
     }
 
