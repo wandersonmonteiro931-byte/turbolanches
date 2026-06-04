@@ -318,10 +318,12 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   }
   if (/\[DESTAQUE\]/i.test(line)) {
     style.bold = true;
-    style.big = true;
+    style.big = false;
     style.medium = false;
     style.small = false;
-    style.invert = true;
+    // Destaque deve ser uma faixa preta retangular na linha toda,
+    // e não apenas fundo preto atrás da palavra.
+    style.invertFull = true;
   }
   if (/\[TXTGIGANTE\]/i.test(line)) {
     style.bold = true;
@@ -350,7 +352,10 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(line)) {
-    style.invert = true;
+    // Agora também vira faixa preta retangular na linha toda.
+    // Antes ficava preto apenas atrás das letras.
+    style.invertFull = true;
+    style.invert = false;
     style.bold = true;
   }
 
@@ -413,7 +418,7 @@ const safeThermalBoxStyle = (style: LineStyle): LineStyle => ({
   ...DEFAULT_STYLE,
   align: style.align,
   bold: style.bold || style.big || style.giant || style.medium,
-  invert: style.invert,
+  invert: style.invert || style.invertFull,
   invertFull: style.invertFull,
   small: false,
   medium: false,
@@ -547,6 +552,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   if (fittedStyle.invertFull) {
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
+    // Faixa preta retangular da largura inteira.
+    // Se o texto não couber, corta no limite da impressora, sem quebrar linha.
     const line = fixedLine(finalText, cols, safeStyle.align);
     b.rawText(line);
     resetStyle(b);
