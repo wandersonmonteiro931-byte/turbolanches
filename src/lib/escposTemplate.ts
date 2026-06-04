@@ -379,6 +379,25 @@ const boxedLine = (text: string, cols: number, align: Align = "left") => {
   return `| ${" ".repeat(left)}${text}${" ".repeat(right)} |`;
 };
 
+const truncateLineToCols = (value: string, cols: number) => String(value || "").slice(0, Math.max(0, cols));
+
+const fixedLine = (value: string, cols: number, align: Align = "left") => {
+  const text = truncateLineToCols(String(value || "").trim(), cols);
+  if (text.length >= cols) return text;
+  const missing = cols - text.length;
+  if (align === "right") return `${" ".repeat(missing)}${text}`;
+  if (align === "center") {
+    const left = Math.floor(missing / 2);
+    return `${" ".repeat(left)}${text}${" ".repeat(missing - left)}`;
+  }
+  return `${text}${" ".repeat(missing)}`;
+};
+
+const boxedLineNoWrap = (text: string, cols: number, align: Align = "left") => {
+  const inner = Math.max(1, cols - 4);
+  return `| ${fixedLine(text, inner, align)} |`;
+};
+
 const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
   const value = text.trim();
   if (value.length >= cols) return value;
@@ -451,17 +470,8 @@ const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: numb
 };
 
 const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const innerCols = Math.max(4, cols - 4);
-  const effective = effectiveColumns(innerCols, style);
-  const lines = style.address ? wrapAddressLines(text, effective) : wrapAddressLines(text, effective);
   applyStyleToBuilder(b, { ...style, frame: "none", box: false, invert: false, invertFull: false });
-
-  for (const line of lines.length ? lines : [""]) {
-    const clean = line.trim();
-    const padded = boxedLine(clean, cols, style.align);
-    b.rawText(padded);
-  }
-
+  b.rawText(boxedLineNoWrap(text, cols, style.align));
   resetStyle(b);
 };
 
@@ -482,9 +492,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
-  const outputLines = fittedStyle.address
-    ? wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle))
-    : wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle));
+  const outputLines = [truncateLineToCols(finalText, effectiveColumns(cols, fittedStyle))];
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
@@ -505,7 +513,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
         fittedStyle.align === "center"
           ? paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center").trim()
           : line.trim();
-      b.rawText(value);
+      b.rawText(truncateLineToCols(value, effectiveColumns(cols, fittedStyle)));
     }
     resetStyle(b);
     return;
@@ -516,7 +524,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     if (fittedStyle.align === "center") b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center"));
     else if (fittedStyle.align === "right")
       b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "right"));
-    else b.rawText(line);
+    else b.rawText(truncateLineToCols(line, effectiveColumns(cols, fittedStyle)));
   }
   resetStyle(b);
 };
@@ -532,23 +540,14 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const frame = style.frame !== "none" ? style.frame : "thin";
-  const innerCols = Math.max(4, cols - 4);
-
   if (!text.replace(/\s/g, "")) {
-    b.rawText(boxedLine("", cols, "left"));
+    b.rawText(boxedLineNoWrap("", cols, "left"));
     return;
   }
 
-  const fittedStyle = fitStyleToSingleLine(style, [text], innerCols);
-  const lines = fittedStyle.address
-    ? wrapAddressLines(text, effectiveColumns(innerCols, fittedStyle))
-    : wrapAddressLines(text, effectiveColumns(innerCols, fittedStyle));
-
+  const fittedStyle = fitStyleToSingleLine(style, [text], Math.max(4, cols - 4));
   applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
-  for (const line of lines.length ? lines : [""]) {
-    b.rawText(boxedLine(line.trim(), cols, fittedStyle.align));
-  }
+  b.rawText(boxedLineNoWrap(text, cols, fittedStyle.align));
   resetStyle(b);
 };
 
@@ -631,7 +630,8 @@ export const renderTemplateToEscPos = (
       continue;
     }
 
-    // Tabela de itens em 3 colunas: qtd | produto | valor
+    // Tabela de itens em 3 colunas: qtd | produto | valor.
+    // Regra Turbo: NUNCA quebra para outra linha; corta produto/endereço e mantém valor reto.
     if (trimmed.startsWith("__ITEM3__")) {
       const [, rest] = trimmed.split("__ITEM3__");
       const [qtyRaw, nameRaw, priceRaw] = rest.split("__SEP__");
@@ -645,30 +645,14 @@ export const renderTemplateToEscPos = (
       const qtyWidth = Math.min(6, Math.max(4, qty.length + 1));
       const priceWidth = Math.min(12, Math.max(9, price.length));
       const gap = 1;
-      const nameWidth = Math.max(8, cols - qtyWidth - priceWidth - gap * 2);
+      const nameWidth = Math.max(1, cols - qtyWidth - priceWidth - gap * 2);
 
-      const words = name.split(/\s+/).filter(Boolean);
-      const nameLines: string[] = [];
-      let current = "";
-      for (const word of words) {
-        const test = current ? `${current} ${word}` : word;
-        if (test.length > nameWidth && current) {
-          nameLines.push(current);
-          current = word;
-        } else {
-          current = test;
-        }
-      }
-      if (current) nameLines.push(current);
-      if (nameLines.length === 0) nameLines.push("");
+      const line =
+        `${fixedLine(qty, qtyWidth, "left")}${" ".repeat(gap)}` +
+        `${truncateLineToCols(name, nameWidth).padEnd(nameWidth)}${" ".repeat(gap)}` +
+        `${fixedLine(price, priceWidth, "right")}`;
 
-      nameLines.forEach((line, index) => {
-        const leftQty = index === 0 ? qty.padEnd(qtyWidth) : " ".repeat(qtyWidth);
-        const mid = line.padEnd(nameWidth);
-        const right = index === 0 ? price.padStart(priceWidth) : " ".repeat(priceWidth);
-        b.rawText(`${leftQty}${" ".repeat(gap)}${mid}${" ".repeat(gap)}${right}`.slice(0, cols));
-      });
-
+      b.rawText(line.slice(0, cols));
       b.bold(false);
       continue;
     }

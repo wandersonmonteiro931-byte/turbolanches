@@ -13,22 +13,68 @@ const GS = 0x1d;
 
 // Tabela mínima UTF-8 → CP1252 cobrindo PT-BR.
 const CP1252_MAP: Record<string, number> = {
-  "á": 0xe1, "à": 0xe0, "â": 0xe2, "ã": 0xe3, "ä": 0xe4,
-  "é": 0xe9, "è": 0xe8, "ê": 0xea, "ë": 0xeb,
-  "í": 0xed, "ì": 0xec, "î": 0xee, "ï": 0xef,
-  "ó": 0xf3, "ò": 0xf2, "ô": 0xf4, "õ": 0xf5, "ö": 0xf6,
-  "ú": 0xfa, "ù": 0xf9, "û": 0xfb, "ü": 0xfc,
-  "ç": 0xe7, "ñ": 0xf1,
-  "Á": 0xc1, "À": 0xc0, "Â": 0xc2, "Ã": 0xc3, "Ä": 0xc4,
-  "É": 0xc9, "È": 0xc8, "Ê": 0xca, "Ë": 0xcb,
-  "Í": 0xcd, "Ì": 0xcc, "Î": 0xce, "Ï": 0xcf,
-  "Ó": 0xd3, "Ò": 0xd2, "Ô": 0xd4, "Õ": 0xd5, "Ö": 0xd6,
-  "Ú": 0xda, "Ù": 0xd9, "Û": 0xdb, "Ü": 0xdc,
-  "Ç": 0xc7, "Ñ": 0xd1,
-  "ª": 0xaa, "º": 0xba, "°": 0xb0,
-  "€": 0x80, "£": 0xa3, "¥": 0xa5, "¢": 0xa2,
-  "“": 0x93, "”": 0x94, "‘": 0x91, "’": 0x92,
-  "–": 0x96, "—": 0x97, "•": 0x95,
+  á: 0xe1,
+  à: 0xe0,
+  â: 0xe2,
+  ã: 0xe3,
+  ä: 0xe4,
+  é: 0xe9,
+  è: 0xe8,
+  ê: 0xea,
+  ë: 0xeb,
+  í: 0xed,
+  ì: 0xec,
+  î: 0xee,
+  ï: 0xef,
+  ó: 0xf3,
+  ò: 0xf2,
+  ô: 0xf4,
+  õ: 0xf5,
+  ö: 0xf6,
+  ú: 0xfa,
+  ù: 0xf9,
+  û: 0xfb,
+  ü: 0xfc,
+  ç: 0xe7,
+  ñ: 0xf1,
+  Á: 0xc1,
+  À: 0xc0,
+  Â: 0xc2,
+  Ã: 0xc3,
+  Ä: 0xc4,
+  É: 0xc9,
+  È: 0xc8,
+  Ê: 0xca,
+  Ë: 0xcb,
+  Í: 0xcd,
+  Ì: 0xcc,
+  Î: 0xce,
+  Ï: 0xcf,
+  Ó: 0xd3,
+  Ò: 0xd2,
+  Ô: 0xd4,
+  Õ: 0xd5,
+  Ö: 0xd6,
+  Ú: 0xda,
+  Ù: 0xd9,
+  Û: 0xdb,
+  Ü: 0xdc,
+  Ç: 0xc7,
+  Ñ: 0xd1,
+  ª: 0xaa,
+  º: 0xba,
+  "°": 0xb0,
+  "€": 0x80,
+  "£": 0xa3,
+  "¥": 0xa5,
+  "¢": 0xa2,
+  "“": 0x93,
+  "”": 0x94,
+  "‘": 0x91,
+  "’": 0x92,
+  "–": 0x96,
+  "—": 0x97,
+  "•": 0x95,
 };
 
 const encodeCp1252 = (text: string): number[] => {
@@ -133,19 +179,21 @@ export class EscPosBuilder {
     return this.line(char.repeat(this.opts.columns));
   }
 
-  /** Linha com label à esquerda e valor à direita, alinhados nas bordas. */
+  /** Linha com label à esquerda e valor à direita, alinhados nas bordas.
+   * Regra Turbo: NUNCA quebra para a próxima linha.
+   * Se não couber, corta o texto da esquerda e mantém o valor reto à direita.
+   */
   twoCols(left: string, right: string): this {
     const cols = this.opts.columns;
-    const lTrim = left.trim();
-    const rTrim = right.trim();
-    if (lTrim.length + rTrim.length + 1 > cols) {
-      // Quebra: label numa linha, valor à direita na próxima.
-      this.line(lTrim);
-      const padded = rTrim.padStart(cols);
-      return this.line(padded);
-    }
-    const spaces = cols - lTrim.length - rTrim.length;
-    return this.line(`${lTrim}${" ".repeat(spaces)}${rTrim}`);
+    const lTrim = String(left || "").trim();
+    const rTrim = String(right || "").trim();
+    const rightWidth = Math.min(cols, rTrim.length);
+    const minGap = rTrim ? 1 : 0;
+    const leftWidth = Math.max(0, cols - rightWidth - minGap);
+    const leftFixed = lTrim.length > leftWidth ? lTrim.slice(0, leftWidth) : lTrim;
+    const spaces = Math.max(minGap, cols - leftFixed.length - rightWidth);
+
+    return this.line(`${leftFixed}${" ".repeat(spaces)}${rTrim.slice(0, rightWidth)}`.slice(0, cols));
   }
 
   /**
@@ -256,10 +304,7 @@ export interface EscPosOrderInput {
 
 const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
-export const buildOrderEscPos = (
-  order: EscPosOrderInput,
-  opts: Partial<EscPosBuilderOptions> = {},
-): Uint8Array => {
+export const buildOrderEscPos = (order: EscPosOrderInput, opts: Partial<EscPosBuilderOptions> = {}): Uint8Array => {
   const b = new EscPosBuilder(opts);
 
   // Cabeçalho
@@ -280,7 +325,7 @@ export const buildOrderEscPos = (
     if (order.customerPhone) b.line(`Tel: ${order.customerPhone}`);
     if (order.address) {
       b.line("Endereço:");
-        b.wrap(order.address.toLocaleUpperCase("pt-BR"));
+      b.wrap(order.address.toLocaleUpperCase("pt-BR"));
     }
     b.separator("-");
   }
@@ -288,8 +333,9 @@ export const buildOrderEscPos = (
   // Itens
   b.bold(true).line("ITENS").bold(false);
   for (const item of order.items) {
-    const lineTotal = item.unitPrice * item.quantity
-      + (item.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
+    const lineTotal =
+      item.unitPrice * item.quantity +
+      (item.addons || []).reduce((s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1), 0);
     b.bold(true).twoCols(`${item.quantity}x ${item.name}`, fmt(lineTotal)).bold(false);
     for (const addon of item.addons || []) {
       const q = (addon.quantity || 1) > 1 ? ` x${addon.quantity}` : "";
@@ -309,7 +355,9 @@ export const buildOrderEscPos = (
 
   b.line(`Pagamento: ${order.paymentMethod.toUpperCase()} - ${order.paymentLabel}`);
   if (order.changeFor && order.changeFor > order.total) {
-    b.bold(true).line(`DEVOLVER: ${fmt(order.changeFor - order.total)}`).bold(false);
+    b.bold(true)
+      .line(`DEVOLVER: ${fmt(order.changeFor - order.total)}`)
+      .bold(false);
   }
 
   if (order.observations?.trim()) {
