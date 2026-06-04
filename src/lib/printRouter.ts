@@ -309,7 +309,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText((order as any).priority || (order as any).priority_level || order.observations || "")
+        hasPriorityText(order.priority || order.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -319,7 +319,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(`${(order as any).delivery_priority || ""} ${(order as any).priority || ""} ${order.observations || ""}`)
+        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
@@ -333,6 +333,9 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const itemsForTpl: ItemForTemplate[] = items.map((it: any) => ({
       productName: it.product_name,
       productCode: it.product_code ?? it.product_code_num ?? it.codigo ?? it.code ?? it.product_id ?? "",
+      highlightQuantity: resolvedType === "pedido" && settings.pedidoHighlightItemQuantity,
+      highlightComplements: resolvedType === "pedido" && settings.pedidoHighlightComplements,
+      highlightObservations: resolvedType === "pedido" && settings.pedidoHighlightObservations,
       quantity: it.quantity,
       unitPrice: Number(it.unit_price),
       observations: it.observations,
