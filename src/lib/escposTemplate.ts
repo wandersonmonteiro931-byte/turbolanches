@@ -524,12 +524,9 @@ const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string,
   const safeStyle = safeThermalBoxStyle(style);
   applyStyleToBuilder(b, safeStyle);
   if (safeStyle.invertFull) {
-    b.rawText(" ".repeat(cols));
-    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
-    b.rawText(" ".repeat(cols));
-  } else {
-    b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+    b.size(0, 1);
   }
+  b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
   resetStyle(b);
 };
 
@@ -559,20 +556,13 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
 
-    // Destaque com respiro: linha preta acima, texto no meio e linha preta abaixo.
-    b.rawText(" ".repeat(cols));
+    // Fundo preto mais alto em UMA linha só.
+    // Não imprime faixa vazia em cima nem embaixo.
+    // Aumenta apenas a altura do texto/fundo preto, sem aumentar a largura.
+    b.size(0, 1);
 
-    const innerCols = Math.max(1, cols - 2);
-    const content = truncateLineToCols(finalText.trim(), innerCols);
-    const paddedContent =
-      safeStyle.align === "center"
-        ? ` ${fixedLine(content, innerCols, "center")} `
-        : safeStyle.align === "right"
-          ? ` ${fixedLine(content, innerCols, "right")} `
-          : ` ${fixedLine(content, innerCols, "left")} `;
-
-    b.rawText(paddedContent.slice(0, cols));
-    b.rawText(" ".repeat(cols));
+    const line = fixedLine(finalText.trim(), cols, safeStyle.align);
+    b.rawText(line);
 
     resetStyle(b);
     return;
