@@ -44,6 +44,9 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { openPrintUrl } from "@/lib/printPopup";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
+import { printRawEscPos } from "@/lib/qzTray";
+import { renderTemplateToEscPos } from "@/lib/escposTemplate";
+import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
 import { getPrintMode, setPrintMode, PRINT_MODE_LABEL, type PrintMode } from "@/lib/printModePreference";
 import { useStore } from "@/contexts/StoreContext";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
@@ -776,15 +779,12 @@ const AdminDashboard = () => {
   };
 
   const printReceipt = async (orderId: string, tipo: string, delayMs?: number) => {
-    // Aplica preferência de modo SOMENTE para comandas: pedido, entregador, obrigado.
-    const isComanda = tipo === "pedido" || tipo === "entregador" || tipo === "obrigado";
-    const mode: PrintMode = isComanda ? getPrintMode() : "auto";
+    const mode: PrintMode = getPrintMode();
 
     if (mode !== "pdf") {
-      // "auto" ou "qz": tenta QZ Tray (ESC/POS) primeiro
       const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
       if (sentViaQz) return;
-      // Se modo for "qz" forçado e QZ falhar, avisa e sai (não cai no PDF antigo)
+
       if (mode === "qz") {
         toast({
           title: "QZ Tray indisponível",
@@ -795,7 +795,6 @@ const AdminDashboard = () => {
       }
     }
 
-    // Modo "pdf" (antigo) ou fallback "auto": popup HTML
     const params = new URLSearchParams({ tipo });
     if (typeof delayMs === "number") params.set("delay_ms", String(delayMs));
     const w = openPrintUrl(`/admin/imprimir/${orderId}?${params.toString()}`, `print_${tipo}`, "width=280,height=120");
@@ -1092,7 +1091,7 @@ const AdminDashboard = () => {
     const gastos = expenses.reduce((s, e) => s + e.amount, 0);
     const liquido = bruto - gastos;
 
-    printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido, expenses);
+    await printDailyReport(currentDayOrders, bruto, delivery, gastos, liquido, expenses);
   };
 
   const fetchExpensesForRange = async (fromDate: string, toDate: string) => {
@@ -1109,6 +1108,69 @@ const AdminDashboard = () => {
       description: e.description,
       expense_date: e.expense_date,
     }));
+  };
+
+  const stripReportHtml = (value: string) =>
+    String(value || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+  const tryPrintTemplateReportViaQz = async (
+    templateType: string,
+    template: string,
+    variables: Record<string, string>,
+    blocks: Record<string, string> = {},
+  ) => {
+    const settings = getThermalPrintSettings();
+    if (!settings.qzEnabled || !settings.qzPrinterName) return false;
+
+    const cleanVariables: Record<string, string> = {};
+    for (const [key, value] of Object.entries({ ...variables, ...blocks })) {
+      cleanVariables[key] = stripReportHtml(value);
+    }
+
+    const bytes = renderTemplateToEscPos(
+      {
+        template,
+        variables: cleanVariables,
+      },
+      {
+        columns: settings.qzColumns,
+        feedLines: settings.qzFeedLines,
+        codepage: settings.qzCodepage,
+      },
+    );
+
+    await printRawEscPos(settings.qzPrinterName, bytes, 1);
+    return true;
+  };
+
+  const tryPrintPlainReportViaQz = async (template: string) => {
+    const settings = getThermalPrintSettings();
+    if (!settings.qzEnabled || !settings.qzPrinterName) return false;
+
+    const bytes = renderTemplateToEscPos(
+      {
+        template,
+        variables: {},
+      },
+      {
+        columns: settings.qzColumns,
+        feedLines: settings.qzFeedLines,
+        codepage: settings.qzCodepage,
+      },
+    );
+
+    await printRawEscPos(settings.qzPrinterName, bytes, 1);
+    return true;
   };
 
   const printReportTemplate = async (
@@ -1132,6 +1194,44 @@ const AdminDashboard = () => {
             .replace(/\[GRANDE\]\s*\[TIPOCOMANDA\]\s*\[\/GRANDE\]/g, "[TIPOCOMANDA]")
             .replace(/\[TXTGIGANTE\]\s*\[TIPOCOMANDA\]\s*\[\/TXTGIGANTE\]/g, "[TIPOCOMANDA]")
         : rawTemplate;
+    const mode = getPrintMode();
+
+    if (mode !== "pdf") {
+      try {
+        const sentViaQz = await tryPrintTemplateReportViaQz(
+          templateType,
+          normalizedTemplate,
+          {
+            "[NOMELOJA]": template?.store_name || "TURBO LANCHES",
+            "[TIPOCOMANDA]": label,
+            "[RODAPÉ]": template?.footer_message || "",
+            ...variables,
+          },
+          blocks,
+        );
+
+        if (sentViaQz) return;
+
+        if (mode === "qz") {
+          toast({
+            title: "QZ Tray indisponível",
+            description: "Verifique se o QZ Tray está aberto e a impressora configurada.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (error) {
+        if (mode === "qz") {
+          toast({
+            title: "Erro ao imprimir via QZ Tray",
+            description: error instanceof Error ? error.message : "Falha desconhecida.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
     const html = buildAdminPrintDocument({
       title: label,
       template: normalizedTemplate,
@@ -1331,7 +1431,7 @@ const AdminDashboard = () => {
     toast({ title: "📊 Dia finalizado! Relatório impresso." });
   };
 
-  const printDailyReport = (
+  const printDailyReport = async (
     allOrders: Order[],
     bruto: number,
     delivery: number,
@@ -1339,8 +1439,6 @@ const AdminDashboard = () => {
     liquido: number,
     expensesList: { amount: number; category: string; description: string }[] = [],
   ) => {
-    const w = window.open("", "_blank", "width=400,height=600");
-    if (!w) return;
     const date = format(selectedDate, "dd/MM/yyyy");
 
     const statusCounts = {
@@ -1377,6 +1475,66 @@ const AdminDashboard = () => {
             )
             .join("")
         : `<div class="row"><span>Nenhum gasto cadastrado</span><span>R$ 0,00</span></div>`;
+
+    const mode = getPrintMode();
+    if (mode !== "pdf") {
+      const plainExpenseRows =
+        expensesList.length > 0
+          ? expensesList.map((e) => `${e.description}: R$ ${e.amount.toFixed(2).replace(".", ",")}`).join("\n")
+          : "Nenhum gasto cadastrado: R$ 0,00";
+
+      const plainStatusRows = Object.entries(statusCounts)
+        .filter(([, count]) => count > 0)
+        .map(([key, count]) => `${statusLabels[key]}: ${count}`)
+        .join("\n");
+
+      const template = `[CENTRO][NOMELOJA][/CENTRO]
+[CENTRO]RELATÓRIO DIÁRIO[/CENTRO]
+[CENTRO]${date}[/CENTRO]
+---
+Total de Pedidos: ${allOrders.length}
+${plainStatusRows}
+---
+TOTAL BRUTO: R$ ${bruto.toFixed(2).replace(".", ",")}
+Pago Entregadores: R$ ${expensesList
+        .filter((e) => e.category === "diario")
+        .reduce((s, e) => s + e.amount, 0)
+        .toFixed(2)
+        .replace(".", ",")}
+---
+GASTOS DO DIA:
+${plainExpenseRows}
+Total Gastos: R$ ${gastos.toFixed(2).replace(".", ",")}
+---
+TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
+[CENTRO]Relatório gerado automaticamente[/CENTRO]`;
+
+      try {
+        const sentViaQz = await tryPrintPlainReportViaQz(template.replace("[NOMELOJA]", "TURBO LANCHES"));
+        if (sentViaQz) return;
+
+        if (mode === "qz") {
+          toast({
+            title: "QZ Tray indisponível",
+            description: "Verifique se o QZ Tray está aberto e a impressora configurada.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (error) {
+        if (mode === "qz") {
+          toast({
+            title: "Erro ao imprimir via QZ Tray",
+            description: error instanceof Error ? error.message : "Falha desconhecida.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
 
     w.document.write(
       makeTightThermalPrintHtml(

@@ -27,7 +27,7 @@ export const setPrintMode = (mode: PrintMode) => {
 };
 
 export const PRINT_MODE_LABEL: Record<PrintMode, string> = {
-  auto: "Automático",
-  qz: "Sistema atual (QZ Tray)",
-  pdf: "Antigo (PDF / Popup)",
+  auto: "Auto",
+  qz: "QZ Tray",
+  pdf: "PDF",
 };

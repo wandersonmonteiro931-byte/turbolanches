@@ -1,11 +1,26 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Truck, Clock, ChefHat, Package, Printer, RefreshCw, Search, Filter, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import {
+  Check,
+  X,
+  Truck,
+  Clock,
+  ChefHat,
+  Package,
+  Printer,
+  RefreshCw,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useToast } from "@/hooks/use-toast";
 import { openPrintUrl } from "@/lib/printPopup";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
+import { getPrintMode, type PrintMode } from "@/lib/printModePreference";
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -73,7 +88,8 @@ const nextStatus: Record<string, string> = {
 };
 
 const getNextStatusForOrder = (order: Pick<Order, "status" | "delivery_type">) => {
-  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada")) return "delivered";
+  if (order.status === "ready" && (order.delivery_type === "mesa" || order.delivery_type === "retirada"))
+    return "delivered";
   return nextStatus[order.status];
 };
 
@@ -110,13 +126,44 @@ const deliveryLabels: Record<string, string> = {
 };
 
 const sectionDefs: Array<{ key: string; label: string; statuses: string[]; accent: string; trashed?: boolean }> = [
-  { key: "pendentes", label: "Pendentes", statuses: ["pending", "paid"], accent: "border-primary/15 bg-primary/5 text-foreground" },
-  { key: "preparo", label: "Em Preparo", statuses: ["accepted", "preparing"], accent: "border-border/80 bg-card text-foreground" },
+  {
+    key: "pendentes",
+    label: "Pendentes",
+    statuses: ["pending", "paid"],
+    accent: "border-primary/15 bg-primary/5 text-foreground",
+  },
+  {
+    key: "preparo",
+    label: "Em Preparo",
+    statuses: ["accepted", "preparing"],
+    accent: "border-border/80 bg-card text-foreground",
+  },
   { key: "aguardando", label: "Pronto", statuses: ["ready"], accent: "border-border/80 bg-card text-foreground" },
-  { key: "entregando", label: "Entregando", statuses: ["delivering"], accent: "border-border/80 bg-card text-foreground" },
-  { key: "finalizados", label: "Finalizados", statuses: ["delivered"], accent: "border-border/80 bg-card text-muted-foreground" },
-  { key: "recusados", label: "Recusados", statuses: ["cancelled"], accent: "border-destructive/15 bg-destructive/5 text-foreground" },
-  { key: "lixeira", label: "Lixeira", statuses: ["cancelled"], accent: "border-border/80 bg-card text-muted-foreground", trashed: true },
+  {
+    key: "entregando",
+    label: "Entregando",
+    statuses: ["delivering"],
+    accent: "border-border/80 bg-card text-foreground",
+  },
+  {
+    key: "finalizados",
+    label: "Finalizados",
+    statuses: ["delivered"],
+    accent: "border-border/80 bg-card text-muted-foreground",
+  },
+  {
+    key: "recusados",
+    label: "Recusados",
+    statuses: ["cancelled"],
+    accent: "border-destructive/15 bg-destructive/5 text-foreground",
+  },
+  {
+    key: "lixeira",
+    label: "Lixeira",
+    statuses: ["cancelled"],
+    accent: "border-border/80 bg-card text-muted-foreground",
+    trashed: true,
+  },
 ];
 
 const INITIAL_SECTION_VISIBLE_COUNT = 20;
@@ -132,7 +179,9 @@ const AdminOrders = () => {
   const { storeId } = useStore();
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<Record<string, OrderItem[]>>({});
-  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>({});
+  const [profiles, setProfiles] = useState<Record<string, { customer_code: number; full_name: string; phone: string }>>(
+    {},
+  );
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [sectionVisibleCount, setSectionVisibleCount] = useState<Record<string, number>>({});
   const [obrigadoEnabled, setObrigadoEnabled] = useState(true);
@@ -162,8 +211,6 @@ const AdminOrders = () => {
   // Product names for items filter - load all items for filtered orders
   const [allItems, setAllItems] = useState<Record<string, OrderItem[]>>({});
 
-
-
   const fetchOrders = useCallback(async () => {
     let all: Order[] = [];
     let from = 0;
@@ -173,7 +220,9 @@ const AdminOrders = () => {
     while (hasMore) {
       let query = supabase
         .from("orders")
-        .select("id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id, trashed_at, table_code")
+        .select(
+          "id, order_number, user_id, status, subtotal, total, delivery_fee, discount, payment_method, payment_confirmed, delivery_type, address_street, address_number, address_complement, address_neighborhood, created_at, preparing_at, ready_at, delivering_at, delivered_at, observations, priority, change_for, cancellation_reason, courier_id, trashed_at, table_code",
+        )
         .order("order_number", { ascending: false })
         .range(from, from + pageSize - 1);
 
@@ -207,15 +256,14 @@ const AdminOrders = () => {
     }
     const results = await Promise.all(
       batches.map((batch) =>
-        supabase
-          .from("profiles")
-          .select("user_id, customer_code, full_name, phone")
-          .in("user_id", batch)
-      )
+        supabase.from("profiles").select("user_id, customer_code, full_name, phone").in("user_id", batch),
+      ),
     );
     const profileMap: Record<string, { customer_code: number; full_name: string; phone: string }> = {};
     results.forEach(({ data: profilesData }) => {
-      profilesData?.forEach((p) => { profileMap[p.user_id] = p; });
+      profilesData?.forEach((p) => {
+        profileMap[p.user_id] = p;
+      });
     });
     setProfiles(profileMap);
   }, [storeId]);
@@ -249,36 +297,33 @@ const AdminOrders = () => {
 
   const fetchItems = async (orderId: string) => {
     if (items[orderId]) return;
-    const { data } = await supabase
-      .from("order_items")
-      .select("*")
-      .eq("order_id", orderId);
+    const { data } = await supabase.from("order_items").select("*").eq("order_id", orderId);
     if (data) setItems((prev) => ({ ...prev, [orderId]: data }));
   };
 
-  const fetchItemsBatch = useCallback(async (orderIds: string[]) => {
-    const missingIds = [...new Set(orderIds)].filter((orderId) => !items[orderId]);
-    if (missingIds.length === 0) return;
+  const fetchItemsBatch = useCallback(
+    async (orderIds: string[]) => {
+      const missingIds = [...new Set(orderIds)].filter((orderId) => !items[orderId]);
+      if (missingIds.length === 0) return;
 
-    const { data } = await supabase
-      .from("order_items")
-      .select("*")
-      .in("order_id", missingIds);
+      const { data } = await supabase.from("order_items").select("*").in("order_id", missingIds);
 
-    if (!data) return;
+      if (!data) return;
 
-    const grouped = missingIds.reduce<Record<string, OrderItem[]>>((acc, orderId) => {
-      acc[orderId] = [];
-      return acc;
-    }, {});
+      const grouped = missingIds.reduce<Record<string, OrderItem[]>>((acc, orderId) => {
+        acc[orderId] = [];
+        return acc;
+      }, {});
 
-    data.forEach((item: any) => {
-      if (!grouped[item.order_id]) grouped[item.order_id] = [];
-      grouped[item.order_id].push(item);
-    });
+      data.forEach((item: any) => {
+        if (!grouped[item.order_id]) grouped[item.order_id] = [];
+        grouped[item.order_id].push(item);
+      });
 
-    setItems((prev) => ({ ...prev, ...grouped }));
-  }, [items]);
+      setItems((prev) => ({ ...prev, ...grouped }));
+    },
+    [items],
+  );
 
   useEffect(() => {
     void fetchOrders();
@@ -300,19 +345,25 @@ const AdminOrders = () => {
           const newOrder = payload.new as Order;
           if (storeId && (newOrder as any).store_id !== storeId) return;
           toast({ title: "🔔 Novo pedido!", description: "Um novo pedido acaba de chegar." });
-          setAllOrders((prev) => prev.some((o) => o.id === newOrder.id) ? prev : [newOrder, ...prev]);
+          setAllOrders((prev) => (prev.some((o) => o.id === newOrder.id) ? prev : [newOrder, ...prev]));
           // Lazy-load missing profile
           if (newOrder.user_id) {
             setProfiles((prev) => {
               if (prev[newOrder.user_id]) return prev;
-              supabase.from("profiles").select("user_id, customer_code, full_name, phone").eq("user_id", newOrder.user_id).maybeSingle()
-                .then(({ data }) => { if (data) setProfiles((p) => ({ ...p, [data.user_id]: data })); });
+              supabase
+                .from("profiles")
+                .select("user_id, customer_code, full_name, phone")
+                .eq("user_id", newOrder.user_id)
+                .maybeSingle()
+                .then(({ data }) => {
+                  if (data) setProfiles((p) => ({ ...p, [data.user_id]: data }));
+                });
               return prev;
             });
           }
         } else if (payload.eventType === "UPDATE") {
           const updated = payload.new as Order;
-          setAllOrders((prev) => prev.map((o) => o.id === updated.id ? { ...o, ...updated } : o));
+          setAllOrders((prev) => prev.map((o) => (o.id === updated.id ? { ...o, ...updated } : o)));
         } else if (payload.eventType === "DELETE") {
           const oldId = (payload.old as any)?.id;
           if (oldId) setAllOrders((prev) => prev.filter((o) => o.id !== oldId));
@@ -334,7 +385,8 @@ const AdminOrders = () => {
         o.payment_method === "pix" &&
         !o.payment_confirmed &&
         (o.status === "pending" || o.status === "awaiting_payment")
-      ) return false;
+      )
+        return false;
       return true;
     });
 
@@ -413,7 +465,21 @@ const AdminOrders = () => {
     }
 
     return result;
-  }, [allOrders, searchQuery, filterStatus, filterPayment, filterDeliveryType, filterDateFrom, filterDateTo, filterMinValue, filterMaxValue, filterPaid, filterProductName, allItems, profiles]);
+  }, [
+    allOrders,
+    searchQuery,
+    filterStatus,
+    filterPayment,
+    filterDeliveryType,
+    filterDateFrom,
+    filterDateTo,
+    filterMinValue,
+    filterMaxValue,
+    filterPaid,
+    filterProductName,
+    allItems,
+    profiles,
+  ]);
 
   const sectionOrdersMap = useMemo(() => {
     return Object.fromEntries(
@@ -460,7 +526,7 @@ const AdminOrders = () => {
   };
 
   const updateStatus = async (orderId: string, newStatus: string) => {
-    const order = allOrders.find(o => o.id === orderId);
+    const order = allOrders.find((o) => o.id === orderId);
     // If moving to delivered, require route closure confirmation
     if (newStatus === "delivered" && order?.delivery_type === "delivery") {
       setShowRouteClosureModal(orderId);
@@ -480,7 +546,12 @@ const AdminOrders = () => {
       return;
     }
     await fetchOrders();
-    toast({ title: newStatus === "delivered" ? "✅ Pedido finalizado!" : `Pedido atualizado para: ${statusConfig[newStatus]?.label}` });
+    toast({
+      title:
+        newStatus === "delivered"
+          ? "✅ Pedido finalizado!"
+          : `Pedido atualizado para: ${statusConfig[newStatus]?.label}`,
+    });
 
     if (newStatus === "preparing") {
       safePrint(`/admin/imprimir/${orderId}?tipo=pedido`);
@@ -492,10 +563,13 @@ const AdminOrders = () => {
   };
 
   const confirmRouteClosure = async (orderId: string) => {
-    const { error } = await supabase.from("orders").update({
-      status: "delivered",
-      delivered_at: new Date().toISOString(),
-    }).eq("id", orderId);
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        status: "delivered",
+        delivered_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
     if (error) {
       toast({ title: "Erro ao finalizar pedido", variant: "destructive" });
       return;
@@ -505,25 +579,49 @@ const AdminOrders = () => {
     await fetchOrders();
   };
 
-  const safePrint = (url: string) => {
+  const safePrint = async (url: string) => {
+    const mode: PrintMode = getPrintMode();
+    const match = url.match(/\/admin\/imprimir\/([^?]+)(?:\?(.*))?/);
+
+    if (mode !== "pdf" && match) {
+      const orderId = match[1];
+      const params = new URLSearchParams(match[2] || "");
+      const tipo = params.get("tipo") || "pedido";
+      const copies = Number(params.get("copies") || 1);
+      const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies });
+      if (sentViaQz) return;
+
+      if (mode === "qz") {
+        toast({
+          title: "QZ Tray indisponível",
+          description: "Verifique se o QZ Tray está aberto e a impressora configurada.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const win = openPrintUrl(url, "print", "width=300,height=600");
     if (!win || win.closed) {
-      toast({ title: "❌ Popup bloqueado! Permita popups neste site para impressão automática.", variant: "destructive" });
+      toast({
+        title: "❌ Popup bloqueado! Permita popups neste site para impressão automática.",
+        variant: "destructive",
+      });
     }
   };
 
   const printReceipt = async (orderId: string, tipo: "pedido" | "obrigado" | "entregador", delayMs?: number) => {
-    // Tenta QZ Tray (ESC/POS) primeiro — corte exato, sem sobra
-    const sentViaQz = await tryPrintOrderViaQz(orderId, { tipo, copies: 1 });
-    if (sentViaQz) return;
     const delayParam = typeof delayMs === "number" ? `&delay_ms=${delayMs}` : "";
-    safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
+    await safePrint(`/admin/imprimir/${orderId}?tipo=${tipo}${delayParam}`);
   };
 
   const formatDateTime = (date: string) => {
     return formatDateTimeBR(date, {
-      day: "2-digit", month: "2-digit", year: "2-digit",
-      hour: "2-digit", minute: "2-digit",
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -571,7 +669,10 @@ const AdminOrders = () => {
           )}
         </button>
         <button
-          onClick={() => { fetchOrders(); toast({ title: "✅ Pedidos atualizados" }); }}
+          onClick={() => {
+            fetchOrders();
+            toast({ title: "✅ Pedidos atualizados" });
+          }}
           className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 shrink-0"
         >
           <RefreshCw size={14} />
@@ -599,7 +700,9 @@ const AdminOrders = () => {
                   key={key}
                   onClick={() => toggleFilter(filterStatus, key, setFilterStatus)}
                   className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                    filterStatus.includes(key) ? val.color + " ring-2 ring-offset-1 ring-primary/30" : "bg-muted text-muted-foreground"
+                    filterStatus.includes(key)
+                      ? val.color + " ring-2 ring-offset-1 ring-primary/30"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {val.label}
@@ -617,7 +720,9 @@ const AdminOrders = () => {
                   key={key}
                   onClick={() => toggleFilter(filterPayment, key, setFilterPayment)}
                   className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                    filterPayment.includes(key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    filterPayment.includes(key)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {label}
@@ -635,7 +740,9 @@ const AdminOrders = () => {
                   key={key}
                   onClick={() => toggleFilter(filterDeliveryType, key, setFilterDeliveryType)}
                   className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                    filterDeliveryType.includes(key) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    filterDeliveryType.includes(key)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
                   {label}
@@ -646,9 +753,17 @@ const AdminOrders = () => {
 
           {/* Paid Status */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Pagamento Confirmado</label>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">
+              Pagamento Confirmado
+            </label>
             <div className="flex gap-1.5">
-              {([["all", "Todos"], ["paid", "Pagos"], ["unpaid", "Não pagos"]] as const).map(([key, label]) => (
+              {(
+                [
+                  ["all", "Todos"],
+                  ["paid", "Pagos"],
+                  ["unpaid", "Não pagos"],
+                ] as const
+              ).map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setFilterPaid(key)}
@@ -687,7 +802,9 @@ const AdminOrders = () => {
           {/* Value Range */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Valor mínimo (R$)</label>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">
+                Valor mínimo (R$)
+              </label>
               <input
                 type="number"
                 placeholder="0,00"
@@ -697,7 +814,9 @@ const AdminOrders = () => {
               />
             </div>
             <div>
-              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Valor máximo (R$)</label>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">
+                Valor máximo (R$)
+              </label>
               <input
                 type="number"
                 placeholder="999,99"
@@ -710,7 +829,9 @@ const AdminOrders = () => {
 
           {/* Product Name */}
           <div>
-            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">Item do cardápio</label>
+            <label className="text-[10px] font-medium text-muted-foreground uppercase mb-1 block">
+              Item do cardápio
+            </label>
             <input
               placeholder="Ex: X-Bacon, Coca-Cola..."
               value={filterProductName}
@@ -732,42 +853,48 @@ const AdminOrders = () => {
       {filteredOrders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
           <Package size={48} className="mb-3 opacity-50" />
-          <p className="text-sm">{searchQuery || activeFiltersCount > 0 ? "Nenhum pedido encontrado com esses filtros" : "Nenhum pedido ainda"}</p>
+          <p className="text-sm">
+            {searchQuery || activeFiltersCount > 0
+              ? "Nenhum pedido encontrado com esses filtros"
+              : "Nenhum pedido ainda"}
+          </p>
         </div>
       )}
 
       {/* Sections grouped by status — each renders as cards (quadrados), not a list */}
       {sectionDefs.map((section) => {
-          const sectionOrders = sectionOrdersMap[section.key] || [];
-          if (sectionOrders.length === 0) return null;
-          const defaultOpen = section.key === "pendentes" || section.key === "preparo";
-          const isOpen = expandedSections[section.key] ?? defaultOpen;
-          const visibleCount = sectionVisibleCount[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT;
-          const visibleOrders = sectionOrders.slice(0, visibleCount);
-          const hasMore = sectionOrders.length > visibleCount;
+        const sectionOrders = sectionOrdersMap[section.key] || [];
+        if (sectionOrders.length === 0) return null;
+        const defaultOpen = section.key === "pendentes" || section.key === "preparo";
+        const isOpen = expandedSections[section.key] ?? defaultOpen;
+        const visibleCount = sectionVisibleCount[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT;
+        const visibleOrders = sectionOrders.slice(0, visibleCount);
+        const hasMore = sectionOrders.length > visibleCount;
 
-          return (
-            <section key={section.key} className="space-y-3">
-              <button
-                type="button"
-                onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
-                className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm transition-colors hover:bg-muted/60 ${section.accent}`}
-              >
-                {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                <h2 className="text-sm font-semibold">{section.label}</h2>
-                <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                  {sectionOrders.length}
-                </span>
-              </button>
+        return (
+          <section key={section.key} className="space-y-3">
+            <button
+              type="button"
+              onClick={() => setExpandedSections((prev) => ({ ...prev, [section.key]: !isOpen }))}
+              className={`w-full flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm transition-colors hover:bg-muted/60 ${section.accent}`}
+            >
+              {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <h2 className="text-sm font-semibold">{section.label}</h2>
+              <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                {sectionOrders.length}
+              </span>
+            </button>
 
-              {isOpen && (
-                <div className="flex flex-col gap-3">
-                  {visibleOrders.map((order) => {
+            {isOpen && (
+              <div className="flex flex-col gap-3">
+                {visibleOrders.map((order) => {
                   const status = statusConfig[order.status] || statusConfig.pending;
                   const StatusIcon = status.icon;
                   const next = getNextStatusForOrder(order);
                   const profile = profiles[order.user_id];
-                  const customerCode = profile?.customer_code ? `T${String(profile.customer_code).padStart(5, "0")}` : "";
+                  const customerCode = profile?.customer_code
+                    ? `T${String(profile.customer_code).padStart(5, "0")}`
+                    : "";
                   const orderItems = items[order.id] || [];
                   const tableCode = getTableCode(order);
                   const displayObservation = cleanOrderObservation(order.observations);
@@ -779,40 +906,63 @@ const AdminOrders = () => {
                     >
                       {/* Header */}
                       <div className="flex items-start gap-3 border-b border-border/70 bg-background/40 p-3">
-                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${status.color}`}>
+                        <div
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${status.color}`}
+                        >
                           <StatusIcon size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-base font-extrabold text-foreground">{tableCode || `#${String(order.order_number).padStart(5, "0")}`}</span>
+                            <span className="text-base font-extrabold text-foreground">
+                              {tableCode || `#${String(order.order_number).padStart(5, "0")}`}
+                            </span>
                             {customerCode && (
-                              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">{customerCode}</span>
+                              <span className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                                {customerCode}
+                              </span>
                             )}
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}>{status.label}</span>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${status.color}`}
+                            >
+                              {status.label}
+                            </span>
                             {order.priority && (
-                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">⚡</span>
+                              <span className="rounded-full border border-primary/15 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                                ⚡
+                              </span>
                             )}
                             {order.status === "ready" && order.courier_id && (
-                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">⚠️ DEVOLVIDO</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                ⚠️ DEVOLVIDO
+                              </span>
                             )}
                             {!order.payment_confirmed && order.status !== "cancelled" && (
-                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">$ Pendente</span>
+                              <span className="rounded-full border border-destructive/15 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                $ Pendente
+                              </span>
                             )}
                           </div>
                           <p className="mt-1 text-[11px] text-muted-foreground break-words">
-                            {formatDateTime(order.created_at)} · {deliveryLabels[order.delivery_type] || order.delivery_type} · {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
+                            {formatDateTime(order.created_at)} ·{" "}
+                            {deliveryLabels[order.delivery_type] || order.delivery_type} ·{" "}
+                            {getPaymentDisplay(order.payment_method, order.payment_confirmed)}
                           </p>
                           {profile?.full_name && (
-                            <p className="text-[11px] text-muted-foreground break-words">👤 {profile.full_name}{profile.phone ? ` · ${profile.phone}` : ""}</p>
+                            <p className="text-[11px] text-muted-foreground break-words">
+                              👤 {profile.full_name}
+                              {profile.phone ? ` · ${profile.phone}` : ""}
+                            </p>
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <span className="whitespace-nowrap text-sm font-extrabold text-foreground">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+                          <span className="whitespace-nowrap text-sm font-extrabold text-foreground">
+                            R$ {Number(order.total).toFixed(2).replace(".", ",")}
+                          </span>
                         </div>
                       </div>
 
                       {/* Body — always visible, never truncated */}
-                        <div className="flex-1 space-y-2.5 p-3">
+                      <div className="flex-1 space-y-2.5 p-3">
                         {/* Timeline */}
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
                           <span>📥 {formatTime(order.created_at)}</span>
@@ -826,11 +976,13 @@ const AdminOrders = () => {
                         {order.delivery_type === "delivery" && order.address_street ? (
                           <p className="text-xs text-muted-foreground break-words">
                             📍 {order.address_street}, {order.address_number || "S/N"}
-                            {order.address_complement ? ` - ${order.address_complement}` : ""} - {order.address_neighborhood}
+                            {order.address_complement ? ` - ${order.address_complement}` : ""} -{" "}
+                            {order.address_neighborhood}
                           </p>
                         ) : (
                           <p className="text-xs font-semibold text-foreground break-words">
-                            📍 {order.payment_method === "fiado"
+                            📍{" "}
+                            {order.payment_method === "fiado"
                               ? "FIADO"
                               : order.delivery_type === "retirada" || order.delivery_type === "pickup"
                                 ? "RETIRADA"
@@ -844,87 +996,136 @@ const AdminOrders = () => {
 
                         {/* Observations */}
                         {displayObservation && (
-                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">💬 {displayObservation}</p>
+                          <p className="break-words rounded-lg border border-primary/10 bg-primary/5 p-2 text-xs text-foreground">
+                            💬 {displayObservation}
+                          </p>
                         )}
 
                         {/* Cancellation reason */}
                         {order.cancellation_reason && (
-                          <p className="break-words text-xs font-semibold text-destructive">❌ Motivo: {order.cancellation_reason}</p>
+                          <p className="break-words text-xs font-semibold text-destructive">
+                            ❌ Motivo: {order.cancellation_reason}
+                          </p>
                         )}
 
                         {/* Items */}
                         <div className="space-y-1">
                           {orderItems.length === 0 ? (
                             <div className="text-[11px] text-muted-foreground italic">Carregando itens...</div>
-                          ) : orderItems.map((item) => (
-                            <div key={item.id} className="text-xs">
-                              <div className="flex items-start justify-between gap-2">
-                                <span className="text-foreground font-semibold break-words flex-1">
-                                  {item.quantity}x {item.product_name}
-                                </span>
-                                <span className="text-muted-foreground whitespace-nowrap">
-                                  R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
-                                </span>
+                          ) : (
+                            orderItems.map((item) => (
+                              <div key={item.id} className="text-xs">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-foreground font-semibold break-words flex-1">
+                                    {item.quantity}x {item.product_name}
+                                  </span>
+                                  <span className="text-muted-foreground whitespace-nowrap">
+                                    R$ {(Number(item.unit_price) * item.quantity).toFixed(2).replace(".", ",")}
+                                  </span>
+                                </div>
+                                {item.addons_json &&
+                                  (item.addons_json as any[]).length > 0 &&
+                                  (item.addons_json as any[]).map((a: any, i: number) => (
+                                    <div key={i} className="text-[10px] text-muted-foreground pl-3 break-words">
+                                      + {a.name}
+                                      {(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}
+                                    </div>
+                                  ))}
+                                {item.observations && (
+                                  <div className="text-[10px] text-muted-foreground pl-3 break-words">
+                                    Obs: {item.observations}
+                                  </div>
+                                )}
                               </div>
-                              {item.addons_json && (item.addons_json as any[]).length > 0 && (item.addons_json as any[]).map((a: any, i: number) => (
-                                <div key={i} className="text-[10px] text-muted-foreground pl-3 break-words">+ {a.name}{(a.quantity || 1) > 1 ? ` x${a.quantity}` : ""}</div>
-                              ))}
-                              {item.observations && <div className="text-[10px] text-muted-foreground pl-3 break-words">Obs: {item.observations}</div>}
-                            </div>
-                          ))}
+                            ))
+                          )}
                         </div>
 
                         {/* Totals */}
                         <div className="space-y-0.5 rounded-lg border border-border/70 bg-muted/35 p-2 text-[11px]">
-                          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="text-foreground">R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}</span></div>
-                          {order.discount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="text-primary">- R$ {Number(order.discount).toFixed(2).replace(".", ",")}</span></div>}
-                          <div className="flex justify-between"><span className="text-muted-foreground">Entrega</span><span className="text-foreground">R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}</span></div>
-                          <div className="flex justify-between font-bold text-xs"><span className="text-foreground">Total</span><span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span></div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span className="text-foreground">
+                              R$ {Number(order.subtotal).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                          {order.discount > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Desconto</span>
+                              <span className="text-primary">
+                                - R$ {Number(order.discount).toFixed(2).replace(".", ",")}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Entrega</span>
+                            <span className="text-foreground">
+                              R$ {Number(order.delivery_fee).toFixed(2).replace(".", ",")}
+                            </span>
+                          </div>
+                          <div className="flex justify-between font-bold text-xs">
+                            <span className="text-foreground">Total</span>
+                            <span className="text-primary">R$ {Number(order.total).toFixed(2).replace(".", ",")}</span>
+                          </div>
                           {order.change_for && order.change_for > 0 && (
-                            <div className="flex justify-between"><span className="text-muted-foreground">Troco para</span><span className="text-foreground">R$ {Number(order.change_for).toFixed(2).replace(".", ",")}</span></div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Troco para</span>
+                              <span className="text-foreground">
+                                R$ {Number(order.change_for).toFixed(2).replace(".", ",")}
+                              </span>
+                            </div>
                           )}
                         </div>
 
                         {/* Print buttons */}
                         <div className="flex flex-wrap gap-1.5">
-                          <button onClick={() => printReceipt(order.id, "pedido")}
-                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted">
+                          <button
+                            onClick={() => printReceipt(order.id, "pedido")}
+                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                          >
                             <Printer size={12} /> Pedido
                           </button>
-                          <button onClick={() => printReceipt(order.id, "obrigado")}
-                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted">
+                          <button
+                            onClick={() => printReceipt(order.id, "obrigado")}
+                            className="flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted"
+                          >
                             <Printer size={12} /> Obrigado
                           </button>
                           {order.courier_id && (
-                            <button onClick={() => { safePrint(`/admin/imprimir/${order.id}?tipo=entregador`); }}
-                              className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/5">
+                            <button
+                              onClick={() => {
+                                safePrint(`/admin/imprimir/${order.id}?tipo=entregador`);
+                              }}
+                              className="flex items-center gap-1 rounded-lg border border-primary/20 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/5"
+                            >
                               <Printer size={12} /> Rota
                             </button>
                           )}
                         </div>
-
                       </div>
                     </div>
                   );
-                  })}
+                })}
 
-                  {hasMore && (
-                    <button
-                      type="button"
-                      onClick={() => setSectionVisibleCount((prev) => ({
+                {hasMore && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSectionVisibleCount((prev) => ({
                         ...prev,
                         [section.key]: (prev[section.key] ?? INITIAL_SECTION_VISIBLE_COUNT) + SECTION_LOAD_MORE_STEP,
-                      }))}
-                      className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
-                    >
-                      Carregar mais {Math.min(SECTION_LOAD_MORE_STEP, sectionOrders.length - visibleCount)} pedidos
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
-          );
-        })}
+                      }))
+                    }
+                    className="rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                  >
+                    Carregar mais {Math.min(SECTION_LOAD_MORE_STEP, sectionOrders.length - visibleCount)} pedidos
+                  </button>
+                )}
+              </div>
+            )}
+          </section>
+        );
+      })}
       {/* Route Closure Confirmation Modal */}
       {showRouteClosureModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">

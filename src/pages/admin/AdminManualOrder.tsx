@@ -24,6 +24,7 @@ import { formatBusinessDate } from "@/lib/businessDay";
 import { useStoreName } from "@/hooks/useStoreName";
 import { openPreparedPrintPopup, routePreparedPrintPopup } from "@/lib/printPopup";
 import { tryPrintOrderViaQz } from "@/lib/printRouter";
+import { getPrintMode } from "@/lib/printModePreference";
 import { useGlobalKeyboardSearch } from "@/hooks/useGlobalKeyboardSearch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -246,32 +247,63 @@ const clearDraft = () => {
 const openPrintPopup = () => openPreparedPrintPopup("width=300,height=600");
 
 const routePopupToPrint = (popup: Window | null, url: string) => {
-  // Tenta QZ Tray primeiro; se sucesso, fecha o popup já aberto.
+  const mode = getPrintMode();
+
+  // Modo PDF: toda impressão abre no modelo PDF/popup.
+  if (mode === "pdf") {
+    routePreparedPrintPopup(popup, url, "width=300,height=600");
+    return;
+  }
+
   const match = url.match(/\/admin\/imprimir\/([^?]+)(?:\?(.*))?/);
   if (match) {
     const orderId = match[1];
     const params = new URLSearchParams(match[2] || "");
     const tipo = params.get("tipo") || "pedido";
     const copies = Number(params.get("copies") || 1);
-    if (tipo === "pedido" || tipo === "obrigado" || tipo === "mesa") {
-      tryPrintOrderViaQz(orderId, { tipo, copies })
-        .then((sent) => {
-          if (sent) {
-            try {
-              popup?.close();
-            } catch {
-              /* noop */
-            }
-          } else {
-            routePreparedPrintPopup(popup, url, "width=300,height=600");
+
+    tryPrintOrderViaQz(orderId, { tipo, copies })
+      .then((sent) => {
+        if (sent) {
+          try {
+            popup?.close();
+          } catch {
+            /* noop */
           }
-        })
-        .catch(() => {
-          routePreparedPrintPopup(popup, url, "width=300,height=600");
-        });
-      return;
-    }
+          return;
+        }
+
+        // Modo QZ Tray: não cair para PDF se o QZ falhar.
+        if (mode === "qz") {
+          alert("QZ Tray indisponível. Abra o QZ Tray e confira a impressora configurada.");
+          try {
+            popup?.close();
+          } catch {
+            /* noop */
+          }
+          return;
+        }
+
+        // Auto: se QZ falhar, usa PDF.
+        routePreparedPrintPopup(popup, url, "width=300,height=600");
+      })
+      .catch(() => {
+        if (mode === "qz") {
+          alert("Erro ao imprimir via QZ Tray. Verifique o QZ Tray.");
+          try {
+            popup?.close();
+          } catch {
+            /* noop */
+          }
+          return;
+        }
+
+        routePreparedPrintPopup(popup, url, "width=300,height=600");
+      });
+
+    return;
   }
+
   routePreparedPrintPopup(popup, url, "width=300,height=600");
 };
 
@@ -1122,18 +1154,8 @@ const AdminManualOrder = () => {
           isTableOrder ? `${mesaCode} aberta!` : `Pedido #${String(order.order_number).padStart(5, "0")} criado!`,
         );
         clearDraft();
-
-        // Evita impressão duplicada no PDV.
-        // Antes imprimia uma vez aqui com openPrintPopup() e outra vez com printPopup.
-        // Agora:
-        // - mesa aberta imprime somente o recibo da mesa;
-        // - pedido normal imprime somente a comanda do pedido.
-        if (isTableOrder) {
-          routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=mesa`);
-        } else if (shouldPrintFinalReceipt) {
-          routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
-        }
-
+        routePopupToPrint(openPrintPopup(), `/admin/imprimir/${order.id}?tipo=${isTableOrder ? "mesa" : "pedido"}`);
+        if (shouldPrintFinalReceipt) routePopupToPrint(printPopup, `/admin/imprimir/${order.id}?tipo=pedido`);
         if (options.stay) navigate(`/admin/novo-pedido?edit=${order.id}`);
         else navigate("/admin");
       }
