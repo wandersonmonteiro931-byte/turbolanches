@@ -281,39 +281,69 @@ const DEFAULT_STYLE: LineStyle = {
 };
 
 const ALL_TAGS_RE =
-  /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|BORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
+  /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|BORDA|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
   if (rawLine.includes(ADDRESS_OPEN)) style.address = true;
 
-  if (/\[CENTRO\]/i.test(rawLine)) style.align = "center";
-  if (/\[NEGRITO\]|\[DESTAQUE\]|\[QUADRADONEGRITO\]/i.test(rawLine)) style.bold = true;
-  if (/\[TXTGIGANTE\]/i.test(rawLine)) style.giant = true;
-  if (/\[GRANDE\]|\[DESTAQUE\]/i.test(rawLine) && !style.giant) style.big = true;
-  if (/\[TXTMEDIO\]|\[NEGRITO\]/i.test(rawLine) && !style.big && !style.giant) style.medium = true;
-  if (/\[TXTPEQUENO\]/i.test(rawLine)) style.small = true;
-  if (/\[CAIXA\]/i.test(rawLine)) {
+  const line = rawLine || "";
+
+  // Alinhamento
+  if (/\[CENTRO\]/i.test(line)) style.align = "center";
+
+  // Tamanhos/estilos — respeita tags mesmo com várias variáveis na mesma linha.
+  if (/\[TXTPEQUENO\]/i.test(line)) style.small = true;
+  if (/\[TXTMEDIO\]/i.test(line)) style.medium = true;
+  if (/\[NEGRITO\]/i.test(line)) {
+    style.bold = true;
+    style.medium = true;
+  }
+  if (/\[GRANDE\]/i.test(line)) {
+    style.bold = true;
+    style.big = true;
+    style.medium = false;
+    style.small = false;
+  }
+  if (/\[DESTAQUE\]/i.test(line)) {
+    style.bold = true;
+    style.big = true;
+    style.medium = false;
+    style.small = false;
+    style.invert = true;
+  }
+  if (/\[TXTGIGANTE\]/i.test(line)) {
+    style.bold = true;
+    style.giant = true;
+    style.big = false;
+    style.medium = false;
+    style.small = false;
+  }
+
+  // Caixa/moldura
+  if (/\[CAIXA\]/i.test(line)) {
     style.box = true;
     style.bold = true;
   }
-  if (/\[BORDA\]/i.test(rawLine)) style.frame = "thin";
-  if (/\[QUADRADO\]/i.test(rawLine)) style.frame = "thin";
-  if (/\[RETANGULO\]/i.test(rawLine)) style.frame = "rect";
-  // Fundo preto, texto branco — diferenciamos os dois modos:
-  // [TZTBORDA]/[TXTBORDA] = ponta a ponta (preenche a linha inteira invertida)
-  // [TXTBORDATXT]/[FUNDPRETO] = só ao redor das letras
-  if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(rawLine)) style.invertFull = true;
-  if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(rawLine)) style.invert = true;
-  if (/\[QUADRADONEGRITO\]/i.test(rawLine)) {
-    // Inline com conteúdo na mesma linha: faixa preta sólida ponta-a-ponta
-    // (equivalente a [TZTBORDA]). Quando aparece sozinho em uma linha,
-    // o renderer principal trata como banner separador antes de chegar aqui.
+  if (/\[BORDA\]/i.test(line)) style.frame = "thin";
+  if (/\[QUADRADO\]/i.test(line)) style.frame = "thin";
+  if (/\[QUADRADONEGRITO\]/i.test(line)) {
+    style.frame = "strong";
+    style.bold = true;
+  }
+  if (/\[RETANGULO\]/i.test(line)) style.frame = "rect";
+
+  // Fundo preto
+  if (/\[TZTBORDA\]|\[TXTBORDA\]/i.test(line)) {
     style.invertFull = true;
     style.bold = true;
   }
+  if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(line)) {
+    style.invert = true;
+    style.bold = true;
+  }
 
-  const text = rawLine.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
+  const text = line.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
   return { style, text };
 };
 
@@ -415,46 +445,79 @@ const wrapAddressLines = (text: string, cols: number) => {
   return lines.length ? lines : [text];
 };
 
+const renderFrameLine = (b: EscPosBuilder, frame: LineStyle["frame"], cols: number) => {
+  const ch = frame === "strong" ? "=" : "-";
+  b.rawText(`+${ch.repeat(Math.max(0, cols - 2))}+`);
+};
+
+const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  const innerCols = Math.max(4, cols - 4);
+  const effective = effectiveColumns(innerCols, style);
+  const lines = style.address ? wrapAddressLines(text, effective) : wrapAddressLines(text, effective);
+  applyStyleToBuilder(b, { ...style, frame: "none", box: false, invert: false, invertFull: false });
+
+  for (const line of lines.length ? lines : [""]) {
+    const clean = line.trim();
+    const padded = boxedLine(clean, cols, style.align);
+    b.rawText(padded);
+  }
+
+  resetStyle(b);
+};
+
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const finalText = text;
   if (!finalText.replace(/\s/g, "")) return;
-  const outputLines = style.address ? wrapAddressLines(finalText, effectiveColumns(cols, style)) : [finalText];
-  const fittedStyle = fitStyleToSingleLine(style, outputLines, cols);
 
-  // Fundo preto em uma única faixa sólida ponta-a-ponta, sem linhas
-  // transparentes cortando a caixa, mantendo o tamanho configurado.
-  if (fittedStyle.invertFull || fittedStyle.invert) {
+  const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
+
+  // [CAIXA], [BORDA] e molduras inline: moldura real com topo, texto e base.
+  if (fittedStyle.box || fittedStyle.frame !== "none") {
+    const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
+    resetStyle(b);
+    renderFrameLine(b, frame, cols);
+    renderTextInsideFrame(b, fittedStyle, finalText, cols);
+    renderFrameLine(b, frame, cols);
+    resetStyle(b);
+    return;
+  }
+
+  const outputLines = fittedStyle.address
+    ? wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle))
+    : wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle));
+
+  // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
+  if (fittedStyle.invertFull) {
     const effectiveCols = effectiveColumns(cols, fittedStyle);
     applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: true, frame: "none", box: false });
     for (const line of outputLines) {
-      const trimmedTxt = line.trim();
-      let padded: string;
-      if (trimmedTxt.length >= effectiveCols) {
-        padded = trimmedTxt;
-      } else {
-        const total = effectiveCols - trimmedTxt.length;
-        const left = Math.floor(total / 2);
-        padded = " ".repeat(left) + trimmedTxt + " ".repeat(total - left);
-      }
-      b.rawText(padded);
+      b.rawText(paddedFullLine(line, effectiveCols, fittedStyle.align));
     }
     resetStyle(b);
     return;
   }
 
-  if (fittedStyle.box || fittedStyle.frame !== "none") {
-    resetStyle(b);
-    applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false, invert: true, invertFull: true });
-    for (const line of outputLines)
-      b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), fittedStyle.align));
+  // [TXTBORDATXT]/[FUNDPRETO]/[DESTAQUE]: fundo preto só ao redor do texto.
+  if (fittedStyle.invert) {
+    applyStyleToBuilder(b, { ...fittedStyle, invert: true, invertFull: false, frame: "none", box: false });
+    for (const line of outputLines) {
+      const value =
+        fittedStyle.align === "center"
+          ? paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center").trim()
+          : line.trim();
+      b.rawText(value);
+    }
     resetStyle(b);
     return;
   }
 
   applyStyleToBuilder(b, fittedStyle);
-  // Regra do usuário: NUNCA quebrar texto/número para a linha de baixo.
-  // Exceção do endereço: quebra somente em espaços para a impressora não cortar palavras.
-  for (const line of outputLines) b.rawText(line);
+  for (const line of outputLines) {
+    if (fittedStyle.align === "center") b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center"));
+    else if (fittedStyle.align === "right")
+      b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "right"));
+    else b.rawText(line);
+  }
   resetStyle(b);
 };
 
@@ -469,30 +532,22 @@ const getBlockFrameTag = (trimmedLine: string): { kind: "open" | "close"; frame:
 };
 
 const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  // Dentro de um bloco (QUADRADO/QUADRADONEGRITO/RETANGULO) NÃO desenhamos bordas
-  // com caracteres "| ... |" / "+---+". O bloco é apenas um agrupamento visual:
-  // imprimimos o conteúdo normalmente respeitando o estilo configurado.
+  const frame = style.frame !== "none" ? style.frame : "thin";
+  const innerCols = Math.max(4, cols - 4);
+
   if (!text.replace(/\s/g, "")) {
-    b.newline();
+    b.rawText(boxedLine("", cols, "left"));
     return;
   }
-  const fittedStyle = fitStyleToSingleLine(style, [text], cols);
+
+  const fittedStyle = fitStyleToSingleLine(style, [text], innerCols);
+  const lines = fittedStyle.address
+    ? wrapAddressLines(text, effectiveColumns(innerCols, fittedStyle))
+    : wrapAddressLines(text, effectiveColumns(innerCols, fittedStyle));
+
   applyStyleToBuilder(b, { ...fittedStyle, frame: "none", box: false });
-  const lines = fittedStyle.address ? wrapAddressLines(text, effectiveColumns(cols, fittedStyle)) : [text];
-  for (const line of lines) {
-    if (fittedStyle.align === "center") {
-      const eff = effectiveColumns(cols, fittedStyle);
-      const trimmed = line.trim();
-      if (trimmed.length < eff) {
-        const total = eff - trimmed.length;
-        const left = Math.floor(total / 2);
-        b.rawText(" ".repeat(left) + trimmed + " ".repeat(total - left));
-      } else {
-        b.rawText(trimmed);
-      }
-    } else {
-      b.rawText(line);
-    }
+  for (const line of lines.length ? lines : [""]) {
+    b.rawText(boxedLine(line.trim(), cols, fittedStyle.align));
   }
   resetStyle(b);
 };
@@ -555,14 +610,7 @@ export const renderTemplateToEscPos = (
     const blockTag = getBlockFrameTag(trimmed);
     if (blockTag) {
       resetStyle(b);
-      // [QUADRADONEGRITO] isolado em uma linha = faixa preta sólida ponta-a-ponta
-      // (comportamento legado: serve como separador visual grosso/banner).
-      // [QUADRADO]/[RETANGULO] continuam apenas como marcadores de agrupamento.
-      if (blockTag.frame === "strong") {
-        applyStyleToBuilder(b, { ...DEFAULT_STYLE, invert: true, invertFull: true, bold: true });
-        b.rawText(" ".repeat(cols));
-        resetStyle(b);
-      }
+      renderFrameLine(b, blockTag.frame, cols);
       activeBlockFrame = blockTag.kind === "open" ? blockTag.frame : "none";
       continue;
     }
@@ -638,7 +686,7 @@ export const renderTemplateToEscPos = (
 
     const { style, text } = parseLineStyle(rawLine);
     if (activeBlockFrame !== "none" && style.frame === "none" && !style.box && !style.invertFull) {
-      renderBlockContentLine(b, style, text, cols);
+      renderBlockContentLine(b, { ...style, frame: activeBlockFrame }, text, cols);
     } else {
       renderStyledText(b, style, text, cols);
     }
