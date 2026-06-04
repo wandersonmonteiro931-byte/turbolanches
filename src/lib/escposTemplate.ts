@@ -565,18 +565,59 @@ const renderTextInsideFrame = (b: EscPosBuilder, style: LineStyle, text: string,
   resetStyle(b);
 };
 
-const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const safeStyle = safeThermalBoxStyle(style);
-  const innerCols = Math.max(1, cols - 4);
-  const addressLines = wrapAddressLines(text, innerCols);
+const wrapAddressFullLines = (value: string, cols: number) => {
+  const max = Math.max(8, cols);
+  const words = normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
 
-  applyStyleToBuilder(b, safeStyle);
+  const lines: string[] = [];
+  let current = "";
 
-  for (const addressLine of addressLines) {
-    b.rawText(boxedLineNoWrap(addressLine, cols, safeStyle.align));
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+
+    if (test.length <= max) {
+      current = test;
+      continue;
+    }
+
+    if (current) {
+      lines.push(current);
+      current = word;
+      continue;
+    }
+
+    // Se uma palavra isolada for maior que a largura, aí sim corta em pedaços,
+    // para não estourar a impressora.
+    for (let i = 0; i < word.length; i += max) {
+      lines.push(word.slice(i, i + max));
+    }
+    current = "";
+  }
+
+  if (current) lines.push(current);
+
+  return lines.length ? lines : [normalizeHtmlForEscPos(value)];
+};
+
+const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "left") => {
+  // Deixa margem lateral de 1 caractere, igual faixa preta limpa de PDV.
+  const innerCols = Math.max(8, cols - 2);
+  const lines = wrapAddressFullLines(text, innerCols);
+
+  resetStyle(b);
+  b.align("left").font("A").bold(true).size(0, 0).invert(true);
+
+  for (const line of lines) {
+    b.rawText(` ${fixedLine(line, innerCols, align)} `.slice(0, cols));
   }
 
   resetStyle(b);
+};
+
+const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
+  // Endereço do pedido: imprimir inteiro, quebrando em várias linhas,
+  // com fundo preto em cada linha, sem cortar e sem borda de caixa.
+  renderAddressBlackLines(b, text, cols, style.align || "left");
 };
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
@@ -585,24 +626,23 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
 
-  // [CAIXA], [BORDA] e molduras inline: moldura real com topo, texto e base.
+  // [CAIXA], [BORDA] e molduras inline.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
-    const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
-    const safeStyle = safeThermalBoxStyle(fittedStyle);
-
-    resetStyle(b);
-    renderFrameLine(b, frame, cols);
-
-    // Somente endereço pode quebrar em várias linhas dentro da caixa.
-    // Isso evita cortar endereço grande na comanda de Pedido.
+    // Regra especial: endereço não pode cortar. Ele quebra em várias linhas.
+    // Para ficar igual ao visual desejado, o endereço sai como faixas pretas por linha,
+    // sem moldura com +---+.
     if (fittedStyle.address) {
-      renderBoxedWrappedAddress(b, safeStyle, finalText, cols);
-    } else {
-      applyStyleToBuilder(b, safeStyle);
-      b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
-      resetStyle(b);
+      renderBoxedWrappedAddress(b, fittedStyle, finalText, cols);
+      return;
     }
 
+    const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
+    const safeStyle = safeThermalBoxStyle(fittedStyle);
+    resetStyle(b);
+    renderFrameLine(b, frame, cols);
+    applyStyleToBuilder(b, safeStyle);
+    b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
+    resetStyle(b);
     renderFrameLine(b, frame, cols);
     return;
   }
