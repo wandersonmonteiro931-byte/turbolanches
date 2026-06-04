@@ -175,6 +175,11 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const profile: any = profileRes.data;
     const tpl: any = tplRes.data;
     const courierName: string = (courierRes as any)?.data?.name || "";
+    const orderPriorityFields = order as typeof order & {
+      priority?: string | null;
+      priority_level?: string | null;
+      delivery_priority?: string | null;
+    };
 
     const rawTableCode =
       (order.table_code as string) || (order.observations?.match(/Mesa:\s*(#?MESA\d+)/i)?.[1] ?? "#MESA--");
@@ -322,7 +327,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
 
       if (
         settings.pedidoHighlightOrderPriority &&
-        hasPriorityText(order.priority || order.priority_level || order.observations || "")
+        hasPriorityText(orderPriorityFields.priority || orderPriorityFields.priority_level || order.observations || "")
       ) {
         variables["[OBS]"] = variables["[OBS]"]
           ? highlightQzValue(variables["[OBS]"])
@@ -332,7 +337,9 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
       if (
         settings.pedidoHighlightPriorityDeliveries &&
         order.delivery_type === "delivery" &&
-        hasPriorityText(`${order.delivery_priority || ""} ${order.priority || ""} ${order.observations || ""}`)
+        hasPriorityText(
+          `${orderPriorityFields.delivery_priority || ""} ${orderPriorityFields.priority || ""} ${order.observations || ""}`,
+        )
       ) {
         variables["[DELIVERYRETIRADAVIAGEM]"] = highlightQzValue(variables["[DELIVERYRETIRADAVIAGEM]"]);
       }
