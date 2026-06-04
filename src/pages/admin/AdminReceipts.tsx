@@ -167,18 +167,19 @@ const AdminReceipts = () => {
   const handlePrintTest = async (e: React.MouseEvent, type: string) => {
     e.preventDefault();
     e.stopPropagation();
+
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
-    if (
-      type === "etiquetas" ||
-      type === "etiqueta_preco" ||
-      type === "reposicao" ||
-      type === "relatorio_entregas" ||
-      type === "relatorio_periodo"
-    ) {
-      toast.info("Para testar etiquetas de preço, use a tela /admin/etiquetas-preco.");
+
+    // O teste deve usar SEMPRE a tela real de comandas.
+    // Assim o teste respeita o mesmo fluxo de impressão normal:
+    // modo QZ Tray/PDF, variáveis, formatação, cópias e modelo salvo.
+    if (type === "etiquetas" || type === "etiqueta_preco" || type === "reposicao") {
+      toast.info("Para testar etiquetas/lista, use a tela específica dessa função.");
       return;
     }
+
     setPrinting(true);
+
     try {
       const { data: lastOrder, error } = await supabase
         .from("orders")
@@ -186,27 +187,27 @@ const AdminReceipts = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
       if (error || !lastOrder) {
         toast.error("Nenhum pedido encontrado para teste de impressão.");
         return;
       }
-      // Tenta QZ Tray (ESC/POS) primeiro — sem sobra de papel.
-      const sentViaQz = await tryPrintOrderViaQz(lastOrder.id, { tipo: type, copies: qty });
-      if (sentViaQz) {
-        toast.success(`${qty} cópia${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} via QZ Tray (ESC/POS).`);
+
+      const win = openPrintUrl(
+        `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&teste=1`,
+        `teste_${type}`,
+        "width=300,height=600",
+      );
+
+      if (!win || win.closed) {
+        toast.error("Popup bloqueado. Permita popups neste site para imprimir o teste.");
         return;
       }
 
-      const win = openPrintUrl(
-        `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100`,
-        `print_${type}`,
-        "width=280,height=120",
-      );
-      if (!win) {
-        toast.error("O navegador bloqueou as janelas. Permita pop-ups para este site.");
-      } else {
-        toast.success(`${qty} página${qty > 1 ? "s" : ""} enviada${qty > 1 ? "s" : ""} para impressão (HTML).`);
-      }
+      toast.success("Teste enviado pela tela de comandas.");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`Falha no teste: ${err?.message || "verifique a impressão"}`);
     } finally {
       setPrinting(false);
     }
