@@ -1,15 +1,16 @@
 export const DEFAULT_PEDIDO = `[CENTRO][NOMELOJA][/CENTRO]
-[CENTRO][GRANDE][TIPOCOMANDA][/GRANDE][/CENTRO]
+[CENTRO][TIPOCOMANDA][/CENTRO]
 ---
-PEDIDO [NUMEROPEDIDO] | CLIENTE: [CODIGOCLIENTE]
+[QUADRADONEGRITO][GRANDE][CENTRO][NUMEROPEDIDO][/CENTRO][/GRANDE][/QUADRADONEGRITO]
+---
 DATA E HORA PEDIDO: [DATAHORAPEDIDO]
-HORÁRIO MÁXIMO PARA ENTREGA: [DATAHORAENTREGA]
 ---
 Cliente: [NOMECLIENTE]
 Telefone: [TELEFONECLIENTE]
-[CAIXA][ENDEREÇO][/CAIXA]
 ---
-[GRANDE][ITENS][/GRANDE]
+[TXTMEDIO][CAIXA][ENDEREÇO][/CAIXA][/TXTMEDIO]
+---
+[ITENS]
 ---
 SUBTOTAL: [SUBTOTAL]
 ENTREGA: [TAXAENTREGA]
@@ -17,18 +18,21 @@ DESCONTO: [DESCONTO]
 CUPOM: [CUPOM]
 TOTAL: [TOTAL]
 TOTAL PAGO: [TOTALPAGO]
-[GRANDE][CENTRO][CAIXA]TOTAL A RECEBER: [TOTALRECEBER][/CAIXA][/CENTRO][/GRANDE]
 TROCO: [TROCO]
-PAGAMENTO: [FORMAPAGTO]
 ---
-[CENTRO]*** [DELIVERYRETIRADAVIAGEM] ***[/CENTRO]
+[QUADRADONEGRITO][TXTMEDIO][CENTRO]FORMA DE PAGAMENTO:[/CENTRO][/TXTMEDIO][/QUADRADONEGRITO]
+[QUADRADONEGRITO][CENTRO][TXTMEDIO][FORMAPAGTO][/TXTMEDIO][/CENTRO][/QUADRADONEGRITO]
+---
+[TXTMEDIO][TZTBORDA][CENTRO][CAIXA]TOTAL A RECEBER:[/CAIXA][/CENTRO][/TZTBORDA][/TXTMEDIO]
+[TXTMEDIO][TZTBORDA][CENTRO][CAIXA][TOTALRECEBER][/CAIXA][/CENTRO][/TZTBORDA][/TXTMEDIO]
 ---
 [OBS]
 ---
-ENTREGADOR: _________________________
-HORÁRIO DE SAÍDA: ___________________
+[CENTRO]*** [DELIVERYRETIRADAVIAGEM] ***[/CENTRO]
 ---
-[CENTRO][RODAPÉ][/CENTRO]`;
+[CENTRO]WhatsApp: (62) 99475-3582[/CENTRO]
+[CENTRO]Instagram: @turboolanches[/CENTRO]
+[CENTRO]Nos acompanhe pelo Instagram![/CENTRO]`;
 
 export const DEFAULT_OBRIGADO = `[CENTRO][NOMELOJA][/CENTRO]
 [GRANDE][TIPOCOMANDA][/GRANDE]
@@ -189,21 +193,36 @@ TOTAL GASTOS: [TOTALGASTOS]
 
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
-    case "pedido": return DEFAULT_PEDIDO;
-    case "obrigado": return DEFAULT_OBRIGADO;
-    case "mesa": return DEFAULT_MESA;
-    case "mesa_cobrar": return DEFAULT_MESA_COBRAR;
-    case "mesa_conta": return DEFAULT_MESA_CONTA;
-    case "etiquetas": return DEFAULT_ETIQUETAS;
-    case "etiqueta_preco": return DEFAULT_ETIQUETA_PRECO;
-    case "reposicao": return DEFAULT_REPOSICAO;
-    case "entregador": return DEFAULT_ENTREGADOR;
-    case "relatorio_entregas": return DEFAULT_RELATORIO_ENTREGAS;
-    case "relatorio_periodo": return DEFAULT_RELATORIO_PERIODO;
+    case "pedido":
+      return DEFAULT_PEDIDO;
+    case "obrigado":
+      return DEFAULT_OBRIGADO;
+    case "mesa":
+      return DEFAULT_MESA;
+    case "mesa_cobrar":
+      return DEFAULT_MESA_COBRAR;
+    case "mesa_conta":
+      return DEFAULT_MESA_CONTA;
+    case "etiquetas":
+      return DEFAULT_ETIQUETAS;
+    case "etiqueta_preco":
+      return DEFAULT_ETIQUETA_PRECO;
+    case "reposicao":
+      return DEFAULT_REPOSICAO;
+    case "entregador":
+      return DEFAULT_ENTREGADOR;
+    case "relatorio_entregas":
+      return DEFAULT_RELATORIO_ENTREGAS;
+    case "relatorio_periodo":
+      return DEFAULT_RELATORIO_PERIODO;
     // Legacy fallbacks
-    case "cozinha": return DEFAULT_PEDIDO;
-    case "entrega": return DEFAULT_PEDIDO;
-    case "cliente": return DEFAULT_OBRIGADO;
-    default: return DEFAULT_PEDIDO;
+    case "cozinha":
+      return DEFAULT_PEDIDO;
+    case "entrega":
+      return DEFAULT_PEDIDO;
+    case "cliente":
+      return DEFAULT_OBRIGADO;
+    default:
+      return DEFAULT_PEDIDO;
   }
 };

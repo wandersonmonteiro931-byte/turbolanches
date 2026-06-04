@@ -203,12 +203,18 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
             0,
           );
           const lineTotal = it.unitPrice * it.quantity + addonsTotal;
-          out.push(`__ITEM3__${it.quantity}__SEP__${it.productName}__SEP__${fmt(lineTotal)}`);
+
+          // No modelo "PEDIDO", o [ITENS] deve imprimir limpo como no PDF:
+          // 1x PRODUTO                                  R$ 0,50
+          // Sem código do produto e sem marcador técnico _item_1.
+          out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
+
           for (const ad of it.addons || []) {
             const q = (ad.quantity || 1) > 1 ? ` x${ad.quantity}` : "";
             const price = Number(ad.price || 0) > 0 ? ` ${fmt(Number(ad.price || 0) * Number(ad.quantity || 1))}` : "";
             out.push(`  + ${ad.name}${q}${price}`);
           }
+
           if (it.observations?.trim()) out.push(`  OBS: ${it.observations.trim()}`);
         }
         return out;
@@ -699,7 +705,10 @@ export const renderTemplateToEscPos = (
       const [left, right] = rest.split("__SEP__");
       resetStyle(b);
       b.bold(true)
-        .twoCols(normalizeItemMarker(normalizeHtmlForEscPos(left || "")), normalizeHtmlForEscPos(right || ""))
+        .twoCols(
+          normalizeItemMarker(normalizeHtmlForEscPos(left || "")).replace(/(\d+\s*-\s*)[-–—:]\s*/g, "$1"),
+          normalizeHtmlForEscPos(right || ""),
+        )
         .bold(false);
       continue;
     }
