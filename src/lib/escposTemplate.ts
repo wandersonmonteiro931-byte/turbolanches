@@ -20,6 +20,9 @@ export interface RenderTemplateInput {
 export interface ItemForTemplate {
   productName: string;
   productCode?: string | number | null;
+  highlightQuantity?: boolean;
+  highlightComplements?: boolean;
+  highlightObservations?: boolean;
   quantity: number;
   unitPrice: number;
   observations?: string | null;
@@ -197,6 +200,7 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
 
       if (/^\s*\[(ITENS|ITEM)\]\s*$/i.test(rawLine)) {
         const out: string[] = [];
+
         for (const it of items) {
           const addonsTotal = (it.addons || []).reduce(
             (s, a) => s + (Number(a.price) || 0) * (Number(a.quantity) || 1),
@@ -204,17 +208,25 @@ const expandItemsLines = (template: string, items: ItemForTemplate[]): string =>
           );
           const lineTotal = it.unitPrice * it.quantity + addonsTotal;
 
-          // Igual ao PDF: quantidade + produto à esquerda e valor reto à direita.
-          out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
+          if (it.highlightQuantity) {
+            out.push(`__ITEM_QHL__${it.quantity}x__SEP__${it.productName}__SEP__${fmt(lineTotal)}`);
+          } else {
+            out.push(`__ITEM__${it.quantity}x ${it.productName}__SEP__${fmt(lineTotal)}`);
+          }
 
           for (const ad of it.addons || []) {
             const q = (ad.quantity || 1) > 1 ? ` x${ad.quantity}` : "";
             const price = Number(ad.price || 0) > 0 ? ` ${fmt(Number(ad.price || 0) * Number(ad.quantity || 1))}` : "";
-            out.push(`  + ${ad.name}${q}${price}`);
+            const line = `+ ${ad.name}${q}${price}`;
+            out.push(it.highlightComplements ? `__BLACKLINE__${line}` : `  ${line}`);
           }
 
-          if (it.observations?.trim()) out.push(`  OBS: ${it.observations.trim()}`);
+          if (it.observations?.trim()) {
+            const obs = `OBS: ${it.observations.trim()}`;
+            out.push(it.highlightObservations ? `__BLACKLINE__${obs}` : `  ${obs}`);
+          }
         }
+
         return out;
       }
 
@@ -556,13 +568,9 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
 
-    // Fundo preto mais alto em UMA linha só.
-    // Não imprime faixa vazia em cima nem embaixo.
-    // Aumenta apenas a altura do texto/fundo preto, sem aumentar a largura.
+    // Fundo preto alto em uma única linha, sem linha vazia em cima/baixo.
     b.size(0, 1);
-
-    const line = fixedLine(finalText.trim(), cols, safeStyle.align);
-    b.rawText(line);
+    b.rawText(fixedLine(finalText.trim(), cols, safeStyle.align));
 
     resetStyle(b);
     return;
@@ -607,6 +615,43 @@ const renderBlockContentLine = (b: EscPosBuilder, style: LineStyle, text: string
 
   applyStyleToBuilder(b, safeStyle);
   b.rawText(boxedLineNoWrap(text, cols, safeStyle.align));
+  resetStyle(b);
+};
+
+const renderBlackFullLine = (b: EscPosBuilder, text: string, cols: number, align: Align = "left") => {
+  resetStyle(b);
+  b.align("left").font("A").bold(true).size(0, 1).invert(true);
+  b.rawText(fixedLine(normalizeHtmlForEscPos(text), cols, align));
+  resetStyle(b);
+};
+
+const renderItemQuantityHighlighted = (
+  b: EscPosBuilder,
+  qtyText: string,
+  productText: string,
+  priceText: string,
+  cols: number,
+) => {
+  resetStyle(b);
+
+  const qty = normalizeHtmlForEscPos(qtyText);
+  const product = normalizeHtmlForEscPos(productText);
+  const price = normalizeHtmlForEscPos(priceText);
+  const qtyWidth = Math.min(8, Math.max(4, qty.length + 2));
+  const priceWidth = Math.min(12, Math.max(9, price.length));
+  const gap = 1;
+  const productWidth = Math.max(1, cols - qtyWidth - priceWidth - gap * 2);
+
+  b.align("left").font("A").bold(true).size(0, 1).invert(true);
+  b.text(fixedLine(qty, qtyWidth, "center"));
+
+  b.invert(false).size(0, 0).bold(true);
+  b.text(" ".repeat(gap));
+  b.text(truncateLineToCols(product, productWidth).padEnd(productWidth));
+  b.text(" ".repeat(gap));
+  b.text(fixedLine(price, priceWidth, "right"));
+  b.newline();
+
   resetStyle(b);
 };
 
@@ -693,6 +738,21 @@ export const renderTemplateToEscPos = (
     // Ex.: "#00001 RUA X - Bairro R$ 10,00" corta o endereço se não couber,
     // mas o valor permanece reto no final da linha.
     if (renderFixedMoneyLine(b, trimmed, cols)) {
+      continue;
+    }
+
+    // Item com quantidade destacada automaticamente.
+    if (trimmed.startsWith("__ITEM_QHL__")) {
+      const [, rest] = trimmed.split("__ITEM_QHL__");
+      const [qty, product, price] = rest.split("__SEP__");
+      renderItemQuantityHighlighted(b, qty || "", product || "", price || "", cols);
+      continue;
+    }
+
+    // Linha preta automática para complementos/observações.
+    if (trimmed.startsWith("__BLACKLINE__")) {
+      const [, text] = trimmed.split("__BLACKLINE__");
+      renderBlackFullLine(b, text || "", cols, "left");
       continue;
     }
 

@@ -543,6 +543,43 @@ const AdminReceipts = () => {
                 onCheckedChange={(v) => updateThermalSetting("pedidoHighlightDeliveryEstimate", v)}
               />
             </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Quantidade de itens</p>
+                <p className="text-xs text-muted-foreground">
+                  Destaca automaticamente a quantidade dos itens do pedido.
+                </p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightItemQuantity}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightItemQuantity", v)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Complementos</p>
+                <p className="text-xs text-muted-foreground">
+                  Destaca automaticamente adicionais/complementos dos itens.
+                </p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightComplements}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightComplements", v)}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Observações</p>
+                <p className="text-xs text-muted-foreground">Destaca automaticamente observações dos itens/pedido.</p>
+              </div>
+              <Switch
+                checked={thermalSettings.pedidoHighlightObservations}
+                onCheckedChange={(v) => updateThermalSetting("pedidoHighlightObservations", v)}
+              />
+            </div>
           </div>
         </div>
       )}
