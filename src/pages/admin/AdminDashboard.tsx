@@ -1175,6 +1175,66 @@ const AdminDashboard = () => {
     ...variables,
   });
 
+  const normalizeDeliveryReportText = (value: string) => {
+    let out = String(value || "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n");
+
+    // Corrige qualquer variação do erro:
+    // 1- #00492
+    // 1 - #00492
+    // 1-- #00492
+    // 1 – – #00492
+    out = out.replace(/(^|\n)(\s*\d+)\s*[-–—]+\s*[-–—]+\s*/g, "$1$2 - ");
+    out = out.replace(/(^|\n)(\s*\d+)\s*[-–—]\s*/g, "$1$2 - ");
+
+    // Remove linhas vazias entre entregas numeradas e antes do resumo.
+    const lines = out.split("\n");
+    const cleaned: string[] = [];
+
+    const isDeliveryLine = (line: string) =>
+      /^\s*\d+\s*[-–—]\s*(?:#\d+|RUA|AV|ALAMEDA|TRAVESSA|ROD|ESTRADA|LOTE|QD|CASA|[A-ZÀ-Ú0-9])/i.test(line.trim());
+
+    const isSummaryLine = (line: string) =>
+      /^\s*(TOTAL DE ENTREGAS|TOTAL TAXAS DE ENTREGA|TAXA FIXA DIÁRIA|TOTAL ENTREGADOR)/i.test(line.trim());
+
+    for (let i = 0; i < lines.length; i += 1) {
+      const cur = lines[i];
+      const prev = cleaned.length ? cleaned[cleaned.length - 1] : "";
+      const next = i + 1 < lines.length ? lines[i + 1] : "";
+
+      if (cur.trim() === "" && (isDeliveryLine(prev) || isDeliveryLine(next) || isSummaryLine(next))) {
+        continue;
+      }
+
+      cleaned.push(cur);
+    }
+
+    return cleaned
+      .join("\n")
+      .replace(/(^|\n)(\s*\d+)\s*[-–—]+\s*[-–—]+\s*/g, "$1$2 - ")
+      .replace(/(^|\n)(\s*\d+)\s*-\s*-\s*/g, "$1$2 - ");
+  };
+
+  const normalizeDeliveryReportVariables = (variables: Record<string, string>) => {
+    const next = { ...variables };
+
+    for (const key of Object.keys(next)) {
+      const upperKey = key.toUpperCase();
+      if (
+        upperKey.includes("LINHAS") ||
+        upperKey.includes("ENTREGA") ||
+        upperKey.includes("LISTA") ||
+        upperKey.includes("RELATORIO") ||
+        upperKey.includes("RELATÓRIO")
+      ) {
+        next[key] = normalizeDeliveryReportText(next[key]);
+      }
+    }
+
+    return next;
+  };
+
   const tryPrintTemplateReportViaQz = async (
     templateType: string,
     template: string,
@@ -1185,7 +1245,9 @@ const AdminDashboard = () => {
     if (!settings.qzEnabled || !settings.qzPrinterName) return false;
 
     const cleanVariables: Record<string, string> = {};
-    for (const [key, value] of Object.entries(completeReportVariablesForQz({ ...variables, ...blocks }))) {
+    for (const [key, value] of Object.entries(
+      completeReportVariablesForQz(normalizeDeliveryReportVariables({ ...variables, ...blocks })),
+    )) {
       cleanVariables[key] = stripReportHtml(value);
     }
 
