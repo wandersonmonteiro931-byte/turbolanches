@@ -213,7 +213,7 @@ export const getDefaultTemplate = (type: string): string => {
     case "reposicao":
       return DEFAULT_REPOSICAO;
     case "entregador":
-      return DEFAULT_ENTREGADOR;
+      return DEFAULT_FECHAMENTO_ROTA;
     case "relatorio_entregas":
       return DEFAULT_RELATORIO_ENTREGAS;
     case "relatorio_periodo":
