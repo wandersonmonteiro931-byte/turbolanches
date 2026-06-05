@@ -111,6 +111,34 @@ const normalizeHtmlForEscPos = (value: string) => {
     .join("\n");
 };
 
+const isDeliveryReportLine = (value: string) =>
+  /^\s*\d+\s*[-–—]\s*(?:#\d+|RUA|AV|ALAMEDA|TRAVESSA|ROD|ESTRADA|LOTE|QD|CASA)/i.test(
+    normalizeItemMarker(String(value || "")).trim(),
+  );
+
+const isReportSummaryLine = (value: string) =>
+  /^\s*(TOTAL DE ENTREGAS|TOTAL TAXAS DE ENTREGA|TAXA FIXA DIÁRIA|TOTAL ENTREGADOR)/i.test(String(value || "").trim());
+
+const compactDeliveryReportBlankLines = (value: string) => {
+  const lines = String(value || "").split("\n");
+  const out: string[] = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const cur = normalizeItemMarker(lines[i]);
+    const prev = out.length > 0 ? out[out.length - 1] : "";
+    const next = i + 1 < lines.length ? normalizeItemMarker(lines[i + 1]) : "";
+
+    // Remove linha vazia entre duas entregas ou antes do resumo do relatório.
+    if (cur.trim() === "" && (isDeliveryReportLine(prev) || isDeliveryReportLine(next) || isReportSummaryLine(next))) {
+      continue;
+    }
+
+    out.push(cur);
+  }
+
+  return out.join("\n");
+};
+
 const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
 const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
 const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(value);
@@ -501,7 +529,7 @@ const removeInternalPrintMarkers = (value: string) =>
     .replace(/@@SEP@@/g, " ");
 
 const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
-  const pair = splitValueAtRight(removeInternalPrintMarkers(line));
+  const pair = splitValueAtRight(normalizeItemMarker(removeInternalPrintMarkers(line)));
   if (!pair) return false;
   b.twoCols(pair.left, pair.right);
   return true;
@@ -650,7 +678,7 @@ const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: str
 const isSignatureLine = (value: string) => /^_+$/.test(String(value || "").trim());
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const finalText = removeInternalPrintMarkers(text);
+  const finalText = normalizeItemMarker(removeInternalPrintMarkers(text));
   if (!finalText.replace(/\s/g, "")) {
     // Preserva linhas vazias digitadas no editor da comanda.
     b.rawText("");
@@ -811,6 +839,7 @@ export const renderTemplateToEscPos = (
   resolved = resolved.split("\n").join("\n");
 
   // 4. Renderiza linha a linha
+  resolved = compactDeliveryReportBlankLines(resolved);
   const lines = resolved.split("\n");
   let activeBlockFrame: LineStyle["frame"] = "none";
 
