@@ -82,8 +82,7 @@ const normalizeHtmlForEscPos = (value: string) => {
   return normalizeItemMarker(out)
     .split("\n")
     .map((line) => line.replace(/[ \t]{2,}/g, " ").trimEnd())
-    .join("\n")
-    .replace(/\n{4,}/g, "\n\n");
+    .join("\n");
 };
 
 const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
@@ -622,7 +621,11 @@ const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: str
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const finalText = removeInternalPrintMarkers(text);
-  if (!finalText.replace(/\s/g, "")) return;
+  if (!finalText.replace(/\s/g, "")) {
+    // Preserva linhas vazias digitadas no editor da comanda.
+    b.rawText("");
+    return;
+  }
 
   const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
 
@@ -766,38 +769,31 @@ export const renderTemplateToEscPos = (
 
   resolved = normalizeHtmlForEscPos(resolved);
 
-  // 3. Limpeza pós-substituição:
-  //   - Remove linhas que ficaram vazias por causa de variáveis sem valor
-  //     (ex: [OBS], [CUPOM], [NOMEENTREGADOR] vazios), MAS preserva linhas
-  //     em branco intencionais que existiam no template original.
-  //   - Colapsa separadores '---' duplicados/consecutivos para um único.
-  const originalLines = input.template.split("\n");
-  const resolvedLines = resolved.split("\n");
-  const cleaned: string[] = [];
-  for (let i = 0; i < resolvedLines.length; i += 1) {
-    const cur = resolvedLines[i];
-    const trimmedCur = cur.trim();
-    const original = (originalLines[i] ?? "").trim();
-    // Se a linha original tinha conteúdo (ex: variável) e agora ficou vazia,
-    // pulamos — evita "---\n\n---" virando 3 separadores grudados.
-    if (!trimmedCur && original && !/^\s*$/.test(original)) continue;
-    cleaned.push(cur);
-  }
-  // Colapsa separadores consecutivos
-  const finalLines: string[] = [];
-  for (const ln of cleaned) {
-    const t = ln.trim();
-    const prev = finalLines.length > 0 ? finalLines[finalLines.length - 1].trim() : null;
-    if (t === "---" && prev === "---") continue;
-    finalLines.push(ln);
-  }
-  resolved = finalLines.join("\n");
+  // 3. Preserva exatamente as quebras de linha do modelo.
+  // Não remover linhas vazias aqui.
+  // O usuário pode colocar espaços/linhas em branco antes de assinatura, carimbo etc.
+  // Também não colapsar separadores, porque a comanda deve respeitar o editor.
+  resolved = resolved.split("\n").join("\n");
 
   // 4. Renderiza linha a linha
   const lines = resolved.split("\n");
   let activeBlockFrame: LineStyle["frame"] = "none";
 
   for (const rawLine of lines) {
+    // Preserva linhas totalmente vazias digitadas no editor.
+    if (rawLine === "") {
+      resetStyle(b);
+      b.newline();
+      continue;
+    }
+
+    // Preserva linhas que tenham apenas espaços.
+    if (rawLine.length > 0 && rawLine.trim() === "") {
+      resetStyle(b);
+      b.rawText(rawLine.slice(0, cols));
+      continue;
+    }
+
     const trimmed = rawLine.trim();
 
     const blockTag = getBlockFrameTag(trimmed);
