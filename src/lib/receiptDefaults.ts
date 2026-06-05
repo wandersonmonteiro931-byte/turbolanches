@@ -142,7 +142,7 @@ export const DEFAULT_FECHAMENTO_ROTA = `[CENTRO][NOMELOJA][/CENTRO]
 ---
 [CENTRO]HORÁRIO DE SAÍDA: [HORASAIDA][/CENTRO]
 ---
-[CENTRO][ENDEREÇO][/CENTRO]
+[TZTBORDA][CENTRO][ENDEREÇO][/CENTRO][/TZTBORDA]
 ---
 [CENTRO]PAGAMENTO: [FORMAPAGTO][/CENTRO]
 [TXTMEDIO][TZTBORDA][CENTRO]TOTAL A RECEBER: [TOTALRECEBER][/CENTRO][/TZTBORDA][/TXTMEDIO]
@@ -196,6 +196,12 @@ TOTAL GASTOS: [TOTALGASTOS]
 
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
+    case "fechamento_rota":
+    case "fechamento_de_rota":
+    case "rota":
+    case "entregador":
+      return DEFAULT_FECHAMENTO_ROTA;
+
     case "pedido":
       return DEFAULT_PEDIDO;
     case "obrigado":
@@ -213,7 +219,7 @@ export const getDefaultTemplate = (type: string): string => {
     case "reposicao":
       return DEFAULT_REPOSICAO;
     case "entregador":
-      return DEFAULT_FECHAMENTO_ROTA;
+      return DEFAULT_ENTREGADOR;
     case "relatorio_entregas":
       return DEFAULT_RELATORIO_ENTREGAS;
     case "relatorio_periodo":

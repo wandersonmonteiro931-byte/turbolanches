@@ -58,8 +58,19 @@ const normalizeItemMarker = (value: string) =>
     .replace(/\bitem_(\d+)\b/gi, "$1 - ")
     .replace(/_{2,}/g, "_");
 
+const normalizeReceiptTags = (value: string) =>
+  String(value || "")
+    // Corrige fechamentos escritos sem "/" por engano.
+    .replace(/\[TZTBORDA\](?![\s\S]*?\[\/TZTBORDA\])/gi, "[TZTBORDA]")
+    // Corrige casos comuns em que a tag foi fechada com ela mesma no fim da linha.
+    .replace(/\[CENTRO\]([^\n]*?)\[CENTRO\]/gi, "[CENTRO]$1[/CENTRO]")
+    .replace(/\[TXTMEDIO\]([^\n]*?)\[TXTMEDIO\]/gi, "[TXTMEDIO]$1[/TXTMEDIO]")
+    .replace(/\[TZTBORDA\]([^\n]*?)\[TZTBORDA\]/gi, "[TZTBORDA]$1[/TZTBORDA]")
+    // Corrige endereço que veio com fechamento errado: [CENTRO][ENDEREÇO][/TXTMEDIO]
+    .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]");
+
 const normalizeHtmlForEscPos = (value: string) => {
-  let out = String(value || "");
+  let out = normalizeReceiptTags(String(value || ""));
 
   out = out.replace(
     /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
@@ -661,10 +672,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
-
     b.size(0, 1);
     b.rawText(fixedLine(finalText.trim(), cols, safeStyle.align));
-
     resetStyle(b);
     return;
   }
