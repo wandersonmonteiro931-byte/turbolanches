@@ -58,6 +58,21 @@ const normalizeItemMarker = (value: string) =>
     .replace(/\bitem_(\d+)\b/gi, "$1 - ")
     .replace(/_{2,}/g, "_");
 
+const stripReceiptTags = (value: string) => String(value || "").replace(/\[[^\]\n]+\]/g, "");
+
+const normalizeReceiptTagsStrict = (value: string) =>
+  String(value || "")
+    // Corrige linhas onde a pessoa repetiu a tag em vez de fechar com "/".
+    .replace(/\[CENTRO\]([^\n]*?)\[CENTRO\]/gi, "[CENTRO]$1[/CENTRO]")
+    .replace(/\[TXTMEDIO\]([^\n]*?)\[TXTMEDIO\]/gi, "[TXTMEDIO]$1[/TXTMEDIO]")
+    .replace(/\[TZTBORDA\]([^\n]*?)\[TZTBORDA\]/gi, "[TZTBORDA]$1[/TZTBORDA]")
+    .replace(/\[GRANDE\]([^\n]*?)\[GRANDE\]/gi, "[GRANDE]$1[/GRANDE]")
+    .replace(/\[NEGRITO\]([^\n]*?)\[NEGRITO\]/gi, "[NEGRITO]$1[/NEGRITO]")
+    // Corrige endereço fechado errado.
+    .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]")
+    // Corrige total fechado errado.
+    .replace(/\[\/CENTRO\]\[TZTBORDA\]\[TXTMEDIO\]/gi, "[/CENTRO][/TZTBORDA][/TXTMEDIO]");
+
 const normalizeReceiptTags = (value: string) =>
   String(value || "")
     // Corrige fechamentos escritos sem "/" por engano.
@@ -70,7 +85,7 @@ const normalizeReceiptTags = (value: string) =>
     .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]");
 
 const normalizeHtmlForEscPos = (value: string) => {
-  let out = normalizeReceiptTags(String(value || ""));
+  let out = normalizeReceiptTagsStrict(normalizeReceiptTags(String(value || "")));
 
   out = out.replace(
     /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
@@ -392,7 +407,9 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
 
-  const text = line.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
+  const text = stripReceiptTags(
+    line.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join(""),
+  );
   return { style, text };
 };
 
@@ -630,11 +647,20 @@ const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: str
   renderAddressBlackLines(b, text, cols, style.align || "left");
 };
 
+const isSignatureLine = (value: string) => /^_+$/.test(String(value || "").trim());
+
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const finalText = removeInternalPrintMarkers(text);
   if (!finalText.replace(/\s/g, "")) {
     // Preserva linhas vazias digitadas no editor da comanda.
     b.rawText("");
+    return;
+  }
+
+  if (isSignatureLine(finalText)) {
+    const line = truncateLineToCols(finalText.trim(), cols);
+    b.rawText(paddedFullLine(line, cols, style.align));
+    resetStyle(b);
     return;
   }
 

@@ -218,6 +218,8 @@ export const getDefaultTemplate = (type: string): string => {
       return DEFAULT_ETIQUETA_PRECO;
     case "reposicao":
       return DEFAULT_REPOSICAO;
+    case "entregador":
+      return DEFAULT_ENTREGADOR;
     case "relatorio_entregas":
       return DEFAULT_RELATORIO_ENTREGAS;
     case "relatorio_periodo":
