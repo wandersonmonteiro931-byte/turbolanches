@@ -31,6 +31,7 @@ export interface ReceiptTemplate {
 
 export const useReceiptTemplates = () => {
   const { storeId } = useStore();
+
   return useQuery({
     queryKey: ["receipt_templates", storeId],
     queryFn: async () => {
@@ -87,6 +88,20 @@ const EDITABLE_FIELDS = [
   "print_image_quality",
 ] as const;
 
+const normalizeImageMode = (value: unknown): "none" | "logo" | "full" => {
+  return value === "logo" || value === "full" || value === "none" ? value : "none";
+};
+
+const normalizeImageQuality = (value: unknown): "normal" | "high" => {
+  return value === "normal" || value === "high" ? value : "high";
+};
+
+const normalizeImageWidth = (value: unknown, fallback = 32) => {
+  const next = Number(value);
+  if (!Number.isFinite(next)) return fallback;
+  return Math.max(18, Math.min(66, next));
+};
+
 export const useUpdateReceiptTemplate = () => {
   const queryClient = useQueryClient();
   const { storeId } = useStore();
@@ -94,10 +109,27 @@ export const useUpdateReceiptTemplate = () => {
   return useMutation({
     mutationFn: async (template: Partial<ReceiptTemplate> & { template_type: string; id?: string }) => {
       const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
       for (const key of EDITABLE_FIELDS) {
         if (key in template) {
           payload[key] = (template as any)[key];
         }
+      }
+
+      if ("print_image_mode" in template) {
+        payload.print_image_mode = normalizeImageMode(template.print_image_mode);
+      }
+
+      if ("print_image_quality" in template) {
+        payload.print_image_quality = normalizeImageQuality(template.print_image_quality);
+      }
+
+      if ("print_image_width_mm" in template) {
+        payload.print_image_width_mm = normalizeImageWidth(template.print_image_width_mm, 32);
+      }
+
+      if ("print_image_url" in template) {
+        payload.print_image_url = template.print_image_url || null;
       }
 
       if (template.id) {
@@ -141,7 +173,16 @@ export const useUpdateReceiptTemplate = () => {
         show_totals_detail: Boolean(template.show_totals_detail),
         items_font_size: template.items_font_size ?? 14,
         label_font_size: template.label_font_size ?? 24,
+        body_font_size: template.body_font_size ?? 11,
+        print_image_url: template.print_image_url || null,
+        print_image_mode: normalizeImageMode(template.print_image_mode),
+        print_image_width_mm: normalizeImageWidth(
+          template.print_image_width_mm,
+          template.template_type === "panfleto" ? 64 : 32,
+        ),
+        print_image_quality: normalizeImageQuality(template.print_image_quality),
       });
+
       if (error) throw error;
     },
     onSuccess: () => {
