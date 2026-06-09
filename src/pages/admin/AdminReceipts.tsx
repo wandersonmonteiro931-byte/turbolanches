@@ -109,6 +109,17 @@ const AdminReceipts = () => {
     setThermalSettings(next);
   };
 
+  const applyThermalSettings = () => {
+    const next = saveThermalPrintSettings(thermalSettings);
+    setThermalSettings(next);
+
+    try {
+      window.dispatchEvent(new CustomEvent("turbo-thermal-settings-updated", { detail: next }));
+    } catch {}
+
+    toast.success("Configuração salva e aplicada neste computador.");
+  };
+
   const resetThermalSettings = () => {
     const next = saveThermalPrintSettings(DEFAULT_THERMAL_PRINT_SETTINGS);
     setThermalSettings(next);
@@ -211,7 +222,6 @@ const AdminReceipts = () => {
       const win = openPrintUrl(
         `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&teste=1`,
         `teste_${type}`,
-        "width=300,height=600",
       );
 
       if (!win || win.closed) {
@@ -299,6 +309,13 @@ const AdminReceipts = () => {
             >
               {qzStatus === "online" ? "● Online" : qzStatus === "offline" ? "● Offline" : "○ Não verificado"}
             </span>
+            <button
+              type="button"
+              onClick={applyThermalSettings}
+              className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-all active:scale-[0.98]"
+            >
+              Salvar e aplicar real
+            </button>
             <button
               type="button"
               onClick={detectQz}
@@ -482,6 +499,49 @@ const AdminReceipts = () => {
               onChange={(e) => updateThermalSetting("printGapMs", Number(e.target.value))}
             />
           </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Colunas QZ/POS-80</Label>
+            <Input
+              type="number"
+              min={24}
+              max={64}
+              value={thermalSettings.qzColumns}
+              onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Use 42 quando a POS-80 estiver cortando a margem direita. Use 48 só se a impressora aceitar a largura
+              total.
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Linhas antes do corte QZ</Label>
+            <Input
+              type="number"
+              min={0}
+              max={10}
+              value={thermalSettings.qzFeedLines}
+              onChange={(e) => updateThermalSetting("qzFeedLines", Number(e.target.value))}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs font-semibold">Codepage QZ</Label>
+            <Input
+              type="number"
+              min={0}
+              max={255}
+              value={thermalSettings.qzCodepage}
+              onChange={(e) => updateThermalSetting("qzCodepage", Number(e.target.value))}
+            />
+            <p className="text-[11px] text-muted-foreground">Padrão recomendado: 16.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          Para POS-80 cortando a direita, use: largura 72mm, janela 280px e colunas QZ 42. Depois clique em
+          <strong> Salvar e aplicar real</strong>.
         </div>
       </div>
 

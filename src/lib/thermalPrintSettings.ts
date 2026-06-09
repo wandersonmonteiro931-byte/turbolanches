@@ -91,12 +91,26 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   ),
 });
 
+const migrateThermalPrintSettings = (settings: ThermalPrintSettings): ThermalPrintSettings => {
+  // Configurações antigas salvas no navegador ficavam com 48 colunas.
+  // Em muitas POS-80 isso corta a margem direita. Migra automaticamente para 42.
+  if (settings.qzColumns === 48) {
+    return { ...settings, qzColumns: 42 };
+  }
+  return settings;
+};
+
 export const getThermalPrintSettings = (): ThermalPrintSettings => {
   if (typeof window === "undefined") return DEFAULT_THERMAL_PRINT_SETTINGS;
 
   try {
     const raw = window.localStorage.getItem(THERMAL_PRINT_SETTINGS_KEY);
-    return normalizeThermalPrintSettings(raw ? JSON.parse(raw) : null);
+    const normalized = normalizeThermalPrintSettings(raw ? JSON.parse(raw) : null);
+    const migrated = migrateThermalPrintSettings(normalized);
+    if (migrated !== normalized) {
+      window.localStorage.setItem(THERMAL_PRINT_SETTINGS_KEY, JSON.stringify(migrated));
+    }
+    return migrated;
   } catch {
     return DEFAULT_THERMAL_PRINT_SETTINGS;
   }
