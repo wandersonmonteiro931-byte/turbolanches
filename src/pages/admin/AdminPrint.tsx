@@ -311,6 +311,11 @@ const AdminPrint = () => {
     const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
     const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
+    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
+    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
+    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
+    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
+    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
 
     const varMap: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
@@ -387,22 +392,18 @@ const AdminPrint = () => {
     const itemsHtml = buildItemsTableHtml();
 
     const rawTemplate = tpl?.body_template || getDefaultTemplate(resolvedType);
-    const expandedTemplate = rawTemplate
+    const templateHasImageToken =
+      rawTemplate.includes("[IMAGEMPANFLETO]") || rawTemplate.includes("[IMAGEM]") || rawTemplate.includes("[LOGOLOJA]");
+    const expandedTemplateWithImage =
+      templateImageUrl && !templateHasImageToken && templateImageMode === "full"
+        ? `[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n${rawTemplate}`
+        : templateImageUrl && !templateHasImageToken && templateImageMode === "logo"
+          ? `[CENTRO][LOGOLOJA][/CENTRO]\n${rawTemplate}`
+          : rawTemplate;
+    const expandedTemplate = expandedTemplateWithImage
       .split("\n")
       .flatMap((rawLine) => {
         if (!hasItemTemplateTokens(rawLine)) return [rawLine];
-
-        const templateHasImageToken =
-          expandedTemplate.includes("[IMAGEMPANFLETO]") ||
-          expandedTemplate.includes("[IMAGEM]") ||
-          expandedTemplate.includes("[LOGOLOJA]");
-
-        const expandedTemplateWithImage =
-          templateImageUrl && !templateHasImageToken && templateImageMode === "full"
-            ? `[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n${expandedTemplate}`
-            : templateImageUrl && !templateHasImageToken && templateImageMode === "logo"
-              ? `[CENTRO][LOGOLOJA][/CENTRO]\n${expandedTemplate}`
-              : expandedTemplate;
 
         if (items.length === 0) return [];
 
@@ -448,17 +449,11 @@ const AdminPrint = () => {
       "[__ITEMS_TABLE_BLOCK__]": itemsHtml,
     };
 
-    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
-    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
-    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
-    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
-    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
-
     const bodyFontSize = (tpl as any)?.body_font_size ?? 11;
 
     return buildAdminPrintDocument({
       title: `${tipoLabel} ${String(order.order_number).padStart(5, "0")}`,
-      template: expandedTemplateWithImage,
+      template: expandedTemplate,
       variables: varMap,
       blocks: blocksMap,
       pageWidthMm: safeThermalWidthMm,
@@ -488,9 +483,6 @@ const AdminPrint = () => {
     thermalWidthMm,
     tipo,
     tpl,
-    templateImageUrl,
-    templateImageMode,
-    templateImageWidthMm,
   ]);
 
   useEffect(() => {
