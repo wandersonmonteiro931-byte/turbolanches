@@ -441,11 +441,6 @@ const AdminPrint = () => {
       "[__ITEMS_TABLE_BLOCK__]": itemsHtml,
     };
 
-    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
-    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
-    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
-    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
-    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
 
     const bodyFontSize = (tpl as any)?.body_font_size ?? 11;
 
