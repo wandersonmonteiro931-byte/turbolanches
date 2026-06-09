@@ -65,7 +65,7 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   qzEnabled: Boolean(value?.qzEnabled ?? DEFAULT_THERMAL_PRINT_SETTINGS.qzEnabled),
   qzPrinterName:
     typeof value?.qzPrinterName === "string" ? value!.qzPrinterName : DEFAULT_THERMAL_PRINT_SETTINGS.qzPrinterName,
-  qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 64),
+  qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 42),
   qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
   qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
   pedidoHighlightOrderNumber: Boolean(
@@ -92,9 +92,7 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
 });
 
 const migrateThermalPrintSettings = (settings: ThermalPrintSettings): ThermalPrintSettings => {
-  // Configurações antigas salvas no navegador ficavam com 48 colunas.
-  // Em muitas POS-80 isso corta a margem direita. Migra automaticamente para 42.
-  if (settings.qzColumns === 48) {
+  if (settings.qzColumns > 42) {
     return { ...settings, qzColumns: 42 };
   }
   return settings;

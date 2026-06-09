@@ -106,12 +106,25 @@ const AdminReceipts = () => {
   const [qzBusy, setQzBusy] = useState(false);
 
   const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
-    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
+    let safeValue = value;
+
+    // POS-80 real costuma cortar a direita com 48 colunas.
+    // Forçamos 42 para as comandas não ultrapassarem a largura útil da impressora.
+    if (field === "qzColumns") {
+      safeValue = Math.min(42, Math.max(24, Number(value) || 42));
+    }
+
+    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: safeValue as never });
     setThermalSettings(next);
   };
 
   const applyThermalSettings = () => {
-    const next = saveThermalPrintSettings(thermalSettings);
+    const next = saveThermalPrintSettings({
+      ...thermalSettings,
+      qzColumns: Math.min(42, Math.max(24, Number(thermalSettings.qzColumns) || 42)),
+      paperWidthMm: Math.min(72, Math.max(40, Number(thermalSettings.paperWidthMm) || 72)),
+      popupWidthPx: Math.min(280, Math.max(180, Number(thermalSettings.popupWidthPx) || 280)),
+    });
     setThermalSettings(next);
 
     try {
@@ -385,10 +398,10 @@ const AdminReceipts = () => {
               type="number"
               min={24}
               max={64}
-              value={thermalSettings.qzColumns}
+              value={Math.min(42, Number(thermalSettings.qzColumns) || 42)}
               onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
             />
-            <p className="text-[11px] text-muted-foreground">48 = 80mm/72mm · 32 = 58mm</p>
+            <p className="text-[11px] text-muted-foreground">42 = POS-80 segura sem cortar · 32 = 58mm</p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Linhas antes do corte</Label>
@@ -519,12 +532,11 @@ const AdminReceipts = () => {
               type="number"
               min={24}
               max={64}
-              value={thermalSettings.qzColumns}
+              value={Math.min(42, Number(thermalSettings.qzColumns) || 42)}
               onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
             />
             <p className="text-[11px] text-muted-foreground">
-              Use 42 quando a POS-80 estiver cortando a margem direita. Use 48 só se a impressora aceitar a largura
-              total.
+              Use 42. A POS-80 real corta a direita com 48 na maioria dos drivers.
             </p>
           </div>
 

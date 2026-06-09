@@ -200,6 +200,11 @@ const AdminPrint = () => {
   const thermalWidthMm = Math.max(40, Math.min(110, Number(searchParams.get("thermal_width_mm") || "72") || 72));
   const thermalHeightMm = Math.max(0, Math.min(500, Number(searchParams.get("thermal_height_mm") || "0") || 0));
   const thermalCutOffsetMm = Math.max(0, Math.min(80, Number(searchParams.get("thermal_cut_offset_mm") || "0") || 0));
+
+  // POS-80 quase nunca imprime os 72/80mm inteiros. A área útil real costuma ser menor.
+  // Para impedir corte da margem direita no PDF/popup, o documento é renderizado com largura segura.
+  const safeThermalWidthMm = Math.max(58, Math.min(66, thermalWidthMm - 6));
+
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -432,7 +437,7 @@ const AdminPrint = () => {
       template: expandedTemplate,
       variables: varMap,
       blocks: blocksMap,
-      pageWidthMm: thermalWidthMm,
+      pageWidthMm: safeThermalWidthMm,
       pageHeightMm: thermalHeightMm > 0 ? thermalHeightMm : "auto",
       pageMarginMm: 0,
       repeatCount,
@@ -441,9 +446,25 @@ const AdminPrint = () => {
       labelFontSizePx: tpl?.label_font_size ?? 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,
-      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
+      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-root,.print-document,.print-section{max-width:100%!important;overflow:hidden!important;}
+.print-document{box-sizing:border-box!important;}
+.print-section{box-sizing:border-box!important;}
+.txt-borda-preta,.inline-border,.box-highlight,.print-frame,.print-frame-strong,.print-frame-rect{max-width:100%!important;width:100%!important;box-sizing:border-box!important;overflow:hidden!important;}
+.info,.grand-total,.center,.txt-grande,.txt-medio,.txt-pequeno,.txt-gigante,.pedido-destaque{max-width:100%!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
     });
-  }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
+  }, [
+    items,
+    order,
+    profile,
+    ready,
+    repeatCount,
+    thermalCutOffsetMm,
+    safeThermalWidthMm,
+    thermalHeightMm,
+    thermalWidthMm,
+    tipo,
+    tpl,
+  ]);
 
   useEffect(() => {
     if (!printableDocument || !ready) return;

@@ -211,14 +211,12 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
 };
 
 const findNextInlineTag = (input: string, startIndex: number) => {
-  let nextMatch:
-    | {
-        index: number;
-        token: string;
-        kind: "open" | "close";
-        rule: (typeof TAG_RULES)[number];
-      }
-    | null = null;
+  let nextMatch: {
+    index: number;
+    token: string;
+    kind: "open" | "close";
+    rule: (typeof TAG_RULES)[number];
+  } | null = null;
 
   TAG_RULES.forEach((rule) => {
     const openIndex = input.indexOf(rule.open, startIndex);
@@ -236,14 +234,12 @@ const findNextInlineTag = (input: string, startIndex: number) => {
 };
 
 const findNextWrapperToken = (template: string, startIndex: number) => {
-  let nextMatch:
-    | {
-        index: number;
-        token: string;
-        kind: "toggle" | "close";
-        rule: (typeof WRAPPER_RULES)[number];
-      }
-    | null = null;
+  let nextMatch: {
+    index: number;
+    token: string;
+    kind: "toggle" | "close";
+    rule: (typeof WRAPPER_RULES)[number];
+  } | null = null;
 
   WRAPPER_RULES.forEach((rule) => {
     rule.tokens.forEach((token) => {
@@ -400,10 +396,7 @@ export const renderInlineTemplateMarkup = (input: string) => {
   return markup;
 };
 
-const shouldHideOptionalLine = (
-  rawLine: string,
-  variables: Record<string, string | number | null | undefined>,
-) => {
+const shouldHideOptionalLine = (rawLine: string, variables: Record<string, string | number | null | undefined>) => {
   if (!rawLine.includes("[MARCA]")) return false;
 
   const brandValue = variables["[MARCA]"];
@@ -518,7 +511,8 @@ export const renderAdminTemplateMarkup = (
 
       // Preserve empty lines as spacing
       if (!trimmed) return '<div class="info">&nbsp;</div>';
-      if (trimmed === "---") return '<div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true"></div>';
+      if (trimmed === "---")
+        return '<div class="separator thermal-cut-marker" data-thermal-cut="true" data-thermal-user-cut="true"></div>';
       if (blocks[trimmed]) return blocks[trimmed] ?? "";
 
       return renderLineWithBlocks(line);
@@ -1070,7 +1064,7 @@ export const buildAdminPrintDocument = ({
     .filter(Boolean)
     .join("");
 
-  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;">${singleContent}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
+  const documents = `<article class="print-document" style="width:${pageWidthMm}mm;max-width:${pageWidthMm}mm;box-sizing:border-box;overflow:hidden;">${singleContent}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
 
   return `<!DOCTYPE html>
   <html lang="pt-BR">
@@ -1121,10 +1115,10 @@ export const buildBatchPrintDocument = (
     bodyFontSizePx,
     labelFontSizePx,
     bodyPaddingMm,
-      frameCss,
-      extraCss,
-      labelGapMm: base.labelGapMm,
-    });
+    frameCss,
+    extraCss,
+    labelGapMm: base.labelGapMm,
+  });
 
   const documents = items
     .map((item) => {
@@ -1141,7 +1135,7 @@ export const buildBatchPrintDocument = (
         .filter(Boolean)
         .join("");
 
-      return `<article class="print-document" style="width:${pageWidthMm}mm;">${content}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
+      return `<article class="print-document" style="width:${pageWidthMm}mm;max-width:${pageWidthMm}mm;box-sizing:border-box;overflow:hidden;">${content}${INVISIBLE_THERMAL_CUT_MARKER}</article>`;
     })
     .join("");
 
