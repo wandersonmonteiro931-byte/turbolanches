@@ -1028,9 +1028,14 @@ const getSharedPrintStyles = ({
           max-width: 100%;
           height: auto;
           object-fit: contain;
-          image-rendering: auto;
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: crisp-edges;
+          /* Forçar PRETO E BRANCO puro com qualidade máxima na impressão térmica */
+          filter: grayscale(1) brightness(1.05) contrast(1000%);
+          -webkit-filter: grayscale(1) brightness(1.05) contrast(1000%);
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
+          color-adjust: exact;
         }
         .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
         .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
