@@ -23,6 +23,9 @@ import {
   Zap,
   RefreshCw,
   FileText,
+  Image as ImageIcon,
+  Upload,
+  X,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,6 +91,10 @@ const buildTemplateDraft = (type: string, source?: Partial<ReceiptTemplate>) => 
   items_font_size: source?.items_font_size ?? (type === "etiquetas" ? 10 : 14),
   label_font_size: source?.label_font_size ?? (type === "etiquetas" ? 14 : 24),
   body_font_size: source?.body_font_size ?? 11,
+  print_image_url: (source as any)?.print_image_url ?? "",
+  print_image_mode: ((source as any)?.print_image_mode as any) ?? "none",
+  print_image_width_mm: (source as any)?.print_image_width_mm ?? (type === "panfleto" ? 64 : 32),
+  print_image_quality: ((source as any)?.print_image_quality as any) ?? "high",
 });
 
 const AdminReceipts = () => {
@@ -268,6 +275,43 @@ const AdminReceipts = () => {
       ...prev,
       [type]: { ...prev[type], [field]: value },
     }));
+  };
+
+  const handleTemplateImageFile = (type: string, file?: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem válida.");
+      return;
+    }
+
+    const maxMb = 8;
+    if (file.size > maxMb * 1024 * 1024) {
+      toast.error(`Imagem muito grande. Use até ${maxMb}MB para salvar no modelo.`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || "");
+      updateField(type, "print_image_url", dataUrl);
+      updateField(type, "print_image_mode", type === "panfleto" ? "full" : "logo");
+      updateField(type, "print_image_quality", "high");
+      if (
+        !getField(type)
+          .body_template?.toString()
+          .includes(type === "panfleto" ? "[IMAGEMPANFLETO]" : "[LOGOLOJA]")
+      ) {
+        updateField(
+          type,
+          "body_template",
+          `${type === "panfleto" ? "[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n" : "[CENTRO][LOGOLOJA][/CENTRO]\n"}${getField(type).body_template || getDefaultTemplate(type)}`,
+        );
+      }
+      toast.success("Imagem adicionada ao modelo.");
+    };
+    reader.onerror = () => toast.error("Não foi possível carregar a imagem.");
+    reader.readAsDataURL(file);
   };
 
   const handleSave = (type: string) => {
@@ -757,6 +801,105 @@ const AdminReceipts = () => {
                   />
                 </div>
               </div>
+
+              {tab.type === "panfleto" && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
+                  <div className="mb-3 flex items-start gap-2">
+                    <ImageIcon size={18} className="mt-0.5 text-primary" />
+                    <div>
+                      <h3 className="text-sm font-bold text-foreground">Imagem ou logotipo no panfleto</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Imprima um panfleto como imagem inteira em alta qualidade ou coloque o logotipo dentro do
+                        modelo. Use as variáveis [IMAGEMPANFLETO], [IMAGEM] ou [LOGOLOJA].
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Modo da imagem</Label>
+                      <select
+                        value={String((fields as any).print_image_mode || "none")}
+                        onChange={(e) => updateField(tab.type, "print_image_mode", e.target.value)}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="none">Não usar imagem</option>
+                        <option value="logo">Inserir logotipo no modelo</option>
+                        <option value="full">Imprimir imagem/panfleto inteiro</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Largura da imagem (mm)</Label>
+                      <Input
+                        type="number"
+                        min={18}
+                        max={66}
+                        value={Number((fields as any).print_image_width_mm || (tab.type === "panfleto" ? 64 : 32))}
+                        onChange={(e) => updateField(tab.type, "print_image_width_mm", Number(e.target.value))}
+                      />
+                      <p className="text-[11px] text-muted-foreground">POS-80: use no máximo 64mm para não cortar.</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Qualidade</Label>
+                      <select
+                        value={String((fields as any).print_image_quality || "high")}
+                        onChange={(e) => updateField(tab.type, "print_image_quality", e.target.value)}
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                      >
+                        <option value="high">Alta qualidade</option>
+                        <option value="normal">Normal</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Enviar imagem</Label>
+                      <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-primary/60 bg-background px-3 text-sm font-bold text-primary hover:bg-primary/5">
+                        <Upload size={16} />
+                        Escolher imagem
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="hidden"
+                          onChange={(e) => handleTemplateImageFile(tab.type, e.target.files?.[0])}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {(fields as any).print_image_url ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr]">
+                      <div className="rounded-md border bg-white p-2">
+                        <img
+                          src={String((fields as any).print_image_url)}
+                          alt="Prévia da imagem"
+                          className="max-h-32 w-full object-contain"
+                        />
+                      </div>
+                      <div className="space-y-2 text-xs text-muted-foreground">
+                        <p>
+                          Para imagem inteira, coloque no modelo: <strong>[CENTRO][IMAGEMPANFLETO][/CENTRO]</strong>
+                        </p>
+                        <p>
+                          Para logotipo, coloque no modelo: <strong>[CENTRO][LOGOLOJA][/CENTRO]</strong>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateField(tab.type, "print_image_url", "");
+                            updateField(tab.type, "print_image_mode", "none");
+                          }}
+                          className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive"
+                        >
+                          <X size={14} />
+                          Remover imagem
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               {/* Full body template */}
               <div className="space-y-1.5">

@@ -342,6 +342,11 @@ const AdminPrint = () => {
       "[RODAPÉ]": rodape,
       "[DIVULGAÇÃO]": divulgacao,
       "[NOMEENTREGADOR]": courierName || "",
+      "[LOGOLOJA]": logoUrl,
+      "[LOGOLOJA_LARGURA]": String(templateImageWidthMm),
+      "[IMAGEM]": fullImageUrl,
+      "[IMAGEMPANFLETO]": fullImageUrl,
+      "[IMAGEM_LARGURA]": String(templateImageWidthMm),
     };
 
     const formatCode = () => "";
@@ -429,6 +434,12 @@ const AdminPrint = () => {
     const blocksMap: Record<string, string | undefined> = {
       "[__ITEMS_TABLE_BLOCK__]": itemsHtml,
     };
+
+    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
+    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
+    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
+    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
+    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
 
     const bodyFontSize = (tpl as any)?.body_font_size ?? 11;
 

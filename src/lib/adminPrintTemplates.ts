@@ -465,6 +465,26 @@ export const renderAdminTemplateMarkup = (
 
     const classes = resolveTemplateLineClasses(rawLine);
     const replaced = replaceVariables(rawLine, variables);
+
+    const renderImageToken = (token: string, defaultWidthMm = 42) => {
+      const src = variables[token] == null ? "" : String(variables[token]).trim();
+      if (!src) return "";
+      const widthToken = token === "[LOGOLOJA]" ? "[LOGOLOJA_LARGURA]" : "[IMAGEM_LARGURA]";
+      const width = Number(variables[widthToken] || defaultWidthMm);
+      const safeWidth = Math.max(18, Math.min(66, Number.isFinite(width) ? width : defaultWidthMm));
+      return `<div class="print-template-image-wrap"><img class="print-template-image" src="${escapeHtml(src)}" style="width:${safeWidth}mm;" /></div>`;
+    };
+
+    if (replaced.includes("[LOGOLOJA]")) {
+      const html = renderImageToken("[LOGOLOJA]", 32);
+      return html ? `<div class="${classes}">${html}</div>` : "";
+    }
+
+    if (replaced.includes("[IMAGEM]") || replaced.includes("[IMAGEMPANFLETO]")) {
+      const html = renderImageToken(replaced.includes("[IMAGEMPANFLETO]") ? "[IMAGEMPANFLETO]" : "[IMAGEM]", 64);
+      return html ? `<div class="${classes}">${html}</div>` : "";
+    }
+
     const content = stripFormattingTags(replaced);
     // Allow lines that are entirely formatting (boxes, etc.) with empty content
     const markup = renderInlineTemplateMarkup(replaced);
@@ -987,6 +1007,16 @@ const getSharedPrintStyles = ({
           font-weight: 900;
           line-height: 1.2;
           text-align: inherit;
+        }
+        .print-template-image-wrap { display: block; width: 100%; text-align: center; margin: 1.5mm 0; overflow: hidden; }
+        .print-template-image {
+          display: inline-block;
+          max-width: 100%;
+          height: auto;
+          object-fit: contain;
+          image-rendering: auto;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
         .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
         .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
