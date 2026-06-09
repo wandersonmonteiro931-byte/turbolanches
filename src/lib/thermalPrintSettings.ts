@@ -9,7 +9,7 @@ export interface ThermalPrintSettings {
   qzEnabled: boolean;
   /** Nome exato da impressora térmica registrada no Windows/macOS para envio raw. */
   qzPrinterName: string;
-  /** Largura útil em colunas (caracteres) — 32 para 58mm, 48 para 80mm/72mm. */
+  /** Largura útil em colunas (caracteres) — 32 para 58mm, 42 para POS-80 com margem segura; 48 para 80mm/72mm quando não cortar. */
   qzColumns: number;
   /** Quantidade de linhas em branco antes do corte (alimentação). */
   qzFeedLines: number;
@@ -37,7 +37,7 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   printGapMs: 1200,
   qzEnabled: false,
   qzPrinterName: "",
-  qzColumns: 48,
+  qzColumns: 42,
   qzFeedLines: 3,
   qzCodepage: 16,
   pedidoHighlightOrderNumber: true,
