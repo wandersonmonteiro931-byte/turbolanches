@@ -1791,6 +1791,10 @@ export type Database = {
           items_font_size: number
           label: string
           label_font_size: number
+          print_image_mode: string
+          print_image_quality: string
+          print_image_url: string | null
+          print_image_width_mm: number
           show_customer_code: boolean
           show_driver_field: boolean
           show_max_delivery_time: boolean
@@ -1812,6 +1816,10 @@ export type Database = {
           items_font_size?: number
           label?: string
           label_font_size?: number
+          print_image_mode?: string
+          print_image_quality?: string
+          print_image_url?: string | null
+          print_image_width_mm?: number
           show_customer_code?: boolean
           show_driver_field?: boolean
           show_max_delivery_time?: boolean
@@ -1833,6 +1841,10 @@ export type Database = {
           items_font_size?: number
           label?: string
           label_font_size?: number
+          print_image_mode?: string
+          print_image_quality?: string
+          print_image_url?: string | null
+          print_image_width_mm?: number
           show_customer_code?: boolean
           show_driver_field?: boolean
           show_max_delivery_time?: boolean

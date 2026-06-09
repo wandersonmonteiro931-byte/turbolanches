@@ -312,6 +312,12 @@ const AdminPrint = () => {
 
     const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
 
+    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
+    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
+    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
+    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
+    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
+
     const varMap: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
       "[MESA]": tableCode,
