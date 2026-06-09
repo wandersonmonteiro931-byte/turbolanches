@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
+import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -286,6 +287,18 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       {/* ============ PAINEL QZ TRAY (ESC/POS) ============ */}
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground">Modo de impressão das comandas</h3>
+            <p className="text-xs text-muted-foreground">
+              Mesmo atalho do Dashboard. Escolha se os testes e comandas vão sair em Auto, QZ Tray ou PDF.
+            </p>
+          </div>
+          <PrintModeSelector />
+        </div>
+      </div>
+
       <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">

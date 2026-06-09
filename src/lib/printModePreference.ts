@@ -1,13 +1,9 @@
 /**
- * Preferência de modo de impressão para comandas do Dashboard.
- * - "auto": usa QZ Tray (sistema atual) e cai no popup HTML se indisponível.
- * - "qz": força QZ Tray (ESC/POS) — sistema atual.
- * - "pdf": força o popup HTML (modo antigo).
- *
- * Aplica-se SOMENTE às comandas do Dashboard:
- *   - "pedido"      (comanda)
- *   - "entregador"  (fechamento de rota)
- *   - "obrigado"    (comanda do cliente)
+ * Preferência global do modo de impressão das comandas.
+ * Usado no Dashboard e também na tela de modelos de Comandas.
+ * - "auto": tenta QZ Tray e cai no PDF/popup se indisponível.
+ * - "qz": força QZ Tray (ESC/POS).
+ * - "pdf": força PDF/popup do navegador.
  */
 
 export type PrintMode = "auto" | "qz" | "pdf";
