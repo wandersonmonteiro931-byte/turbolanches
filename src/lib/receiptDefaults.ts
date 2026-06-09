@@ -173,6 +173,17 @@ TOTAL GASTOS: [TOTALGASTOS]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_PANFLETO = `[CENTRO][NOMELOJA][/CENTRO]
+[GRANDE][TIPOCOMANDA][/GRANDE]
+---
+[CENTRO][DIVULGAÇÃO][/CENTRO]
+---
+[CENTRO]WhatsApp: (62) 99475-3582[/CENTRO]
+[CENTRO]Instagram: @turboolanches[/CENTRO]
+[CENTRO]Nos acompanhe pelo Instagram![/CENTRO]
+---
+[CENTRO][RODAPÉ][/CENTRO]`;
+
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
     case "fechamento_rota":
@@ -197,8 +208,8 @@ export const getDefaultTemplate = (type: string): string => {
       return DEFAULT_ETIQUETA_PRECO;
     case "reposicao":
       return DEFAULT_REPOSICAO;
-    case "entregador":
-      return DEFAULT_FECHAMENTO_ROTA;
+    case "panfleto":
+      return DEFAULT_PANFLETO;
     case "relatorio_entregas":
       return DEFAULT_RELATORIO_ENTREGAS;
     case "relatorio_periodo":
