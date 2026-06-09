@@ -884,6 +884,36 @@ const AdminReceipts = () => {
                         <p>
                           Para logotipo, coloque no modelo: <strong>[CENTRO][LOGOLOJA][/CENTRO]</strong>
                         </p>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateField(
+                                tab.type,
+                                "body_template",
+                                `[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n${fields.body_template || getDefaultTemplate(tab.type)}`,
+                              )
+                            }
+                            className="rounded-md border border-primary/40 px-3 py-1.5 text-xs font-bold text-primary"
+                          >
+                            Inserir [IMAGEMPANFLETO]
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateField(
+                                tab.type,
+                                "body_template",
+                                `[CENTRO][LOGOLOJA][/CENTRO]\n${fields.body_template || getDefaultTemplate(tab.type)}`,
+                              )
+                            }
+                            className="rounded-md border border-primary/40 px-3 py-1.5 text-xs font-bold text-primary"
+                          >
+                            Inserir [LOGOLOJA]
+                          </button>
+                        </div>
+
                         <button
                           type="button"
                           onClick={() => {

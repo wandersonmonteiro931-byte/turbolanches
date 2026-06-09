@@ -464,27 +464,37 @@ export const renderAdminTemplateMarkup = (
     }
 
     const classes = resolveTemplateLineClasses(rawLine);
-    const replaced = replaceVariables(rawLine, variables);
 
     const renderImageToken = (token: string, defaultWidthMm = 42) => {
       const src = variables[token] == null ? "" : String(variables[token]).trim();
       if (!src) return "";
+
       const widthToken = token === "[LOGOLOJA]" ? "[LOGOLOJA_LARGURA]" : "[IMAGEM_LARGURA]";
       const width = Number(variables[widthToken] || defaultWidthMm);
       const safeWidth = Math.max(18, Math.min(66, Number.isFinite(width) ? width : defaultWidthMm));
-      return `<div class="print-template-image-wrap"><img class="print-template-image" src="${escapeHtml(src)}" style="width:${safeWidth}mm;" /></div>`;
+
+      return `<div class="print-template-image-wrap"><img class="print-template-image" src="${escapeHtml(src)}" style="width:${safeWidth}mm;max-width:100%;height:auto;" /></div>`;
     };
 
-    if (replaced.includes("[LOGOLOJA]")) {
+    // IMPORTANTE:
+    // A detecção precisa ser feita pelo rawLine, antes de substituir variáveis.
+    // Se substituir primeiro, [IMAGEMPANFLETO] vira base64/URL e o sistema não sabe que precisa criar <img>.
+    if (rawLine.includes("[LOGOLOJA]")) {
       const html = renderImageToken("[LOGOLOJA]", 32);
       return html ? `<div class="${classes}">${html}</div>` : "";
     }
 
-    if (replaced.includes("[IMAGEM]") || replaced.includes("[IMAGEMPANFLETO]")) {
-      const html = renderImageToken(replaced.includes("[IMAGEMPANFLETO]") ? "[IMAGEMPANFLETO]" : "[IMAGEM]", 64);
+    if (rawLine.includes("[IMAGEMPANFLETO]")) {
+      const html = renderImageToken("[IMAGEMPANFLETO]", 64);
       return html ? `<div class="${classes}">${html}</div>` : "";
     }
 
+    if (rawLine.includes("[IMAGEM]")) {
+      const html = renderImageToken("[IMAGEM]", 64);
+      return html ? `<div class="${classes}">${html}</div>` : "";
+    }
+
+    const replaced = replaceVariables(rawLine, variables);
     const content = stripFormattingTags(replaced);
     // Allow lines that are entirely formatting (boxes, etc.) with empty content
     const markup = renderInlineTemplateMarkup(replaced);
