@@ -483,9 +483,6 @@ const AdminPrint = () => {
     thermalWidthMm,
     tipo,
     tpl,
-    templateImageUrl,
-    templateImageMode,
-    templateImageWidthMm,
   ]);
 
   useEffect(() => {
