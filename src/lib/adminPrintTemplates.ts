@@ -210,15 +210,24 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
   return html.includes("__TURBO_TIGHT_THERMAL_INSTALLED__") ? html : html.replace("</body>", `${markerScript}</body>`);
 };
 
-const findNextInlineTag = (input: string, startIndex: number) => {
-  let nextMatch: {
-    index: number;
-    token: string;
-    kind: "open" | "close";
-    rule: (typeof TAG_RULES)[number];
-  } | null = null;
+type InlineTagMatch = {
+  index: number;
+  token: string;
+  kind: "open" | "close";
+  rule: (typeof TAG_RULES)[number];
+};
 
-  TAG_RULES.forEach((rule) => {
+type WrapperTokenMatch = {
+  index: number;
+  token: string;
+  kind: "toggle" | "close";
+  rule: (typeof WRAPPER_RULES)[number];
+};
+
+const findNextInlineTag = (input: string, startIndex: number): InlineTagMatch | null => {
+  let nextMatch: InlineTagMatch | null = null;
+
+  for (const rule of TAG_RULES) {
     const openIndex = input.indexOf(rule.open, startIndex);
     if (openIndex !== -1 && (!nextMatch || openIndex < nextMatch.index)) {
       nextMatch = { index: openIndex, token: rule.open, kind: "open", rule };
@@ -228,34 +237,29 @@ const findNextInlineTag = (input: string, startIndex: number) => {
     if (closeIndex !== -1 && (!nextMatch || closeIndex < nextMatch.index)) {
       nextMatch = { index: closeIndex, token: rule.close, kind: "close", rule };
     }
-  });
+  }
 
   return nextMatch;
 };
 
-const findNextWrapperToken = (template: string, startIndex: number) => {
-  let nextMatch: {
-    index: number;
-    token: string;
-    kind: "toggle" | "close";
-    rule: (typeof WRAPPER_RULES)[number];
-  } | null = null;
+const findNextWrapperToken = (template: string, startIndex: number): WrapperTokenMatch | null => {
+  let nextMatch: WrapperTokenMatch | null = null;
 
-  WRAPPER_RULES.forEach((rule) => {
-    rule.tokens.forEach((token) => {
+  for (const rule of WRAPPER_RULES) {
+    for (const token of rule.tokens) {
       const index = template.indexOf(token, startIndex);
       if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
         nextMatch = { index, token, kind: "toggle", rule };
       }
-    });
+    }
 
-    rule.closeTokens.forEach((token) => {
+    for (const token of rule.closeTokens) {
       const index = template.indexOf(token, startIndex);
       if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
         nextMatch = { index, token, kind: "close", rule };
       }
-    });
-  });
+    }
+  }
 
   return nextMatch;
 };
@@ -300,10 +304,10 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
-      if (activeRule?.className === nextMatch.rule.className) {
+      if ((activeRule as (typeof WRAPPER_RULES)[number] | null)?.className === nextMatch.rule.className) {
         activeRule = null;
       }
-    } else if (activeRule?.className === nextMatch.rule.className) {
+    } else if ((activeRule as (typeof WRAPPER_RULES)[number] | null)?.className === nextMatch.rule.className) {
       activeRule = null;
     } else {
       activeRule = nextMatch.rule;
