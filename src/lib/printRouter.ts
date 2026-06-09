@@ -69,6 +69,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   mesa_cobrar: "COBRAR MESA",
   obrigado: "OBRIGADO!",
   entregador: "FECHAMENTO DE ROTA",
+  panfleto: "PANFLETO",
 };
 
 const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");

@@ -21,6 +21,7 @@ import {
   DollarSign,
   Zap,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
