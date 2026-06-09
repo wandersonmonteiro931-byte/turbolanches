@@ -1028,14 +1028,10 @@ const getSharedPrintStyles = ({
           max-width: 100%;
           height: auto;
           object-fit: contain;
-          image-rendering: -webkit-optimize-contrast;
-          image-rendering: crisp-edges;
-          /* Forçar PRETO E BRANCO puro com qualidade máxima na impressão térmica */
-          filter: grayscale(1) contrast(1.6) brightness(0.92);
-          -webkit-filter: grayscale(1) contrast(1.6) brightness(0.92);
+          image-rendering: auto;
+          filter: none;
+          -webkit-filter: none;
           -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          color-adjust: exact;
           print-color-adjust: exact;
           color-adjust: exact;
         }
