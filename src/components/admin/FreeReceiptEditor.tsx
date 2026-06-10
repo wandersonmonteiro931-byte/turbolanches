@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import { Image as ImageIcon, Move, Plus, Save, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
@@ -268,7 +267,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     updateSelected({ zIndex: nextZ });
   };
 
-  const getPointMm = (event: ReactMouseEvent | MouseEvent) => {
+  const getPointMm = (event: any) => {
     const stage = stageRef.current;
     if (!stage) return { x: 0, y: 0 };
     const rect = stage.getBoundingClientRect();
@@ -278,7 +277,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     };
   };
 
-  const startDrag = (event: ReactMouseEvent, el: FreeReceiptElement) => {
+  const startDrag = (event: any, el: FreeReceiptElement) => {
     event.preventDefault();
     event.stopPropagation();
     setSelectedId(el.id);
@@ -330,7 +329,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
 
   const renderElement = (el: FreeReceiptElement) => {
     const selectedClass = selectedId === el.id ? "ring-2 ring-primary ring-offset-1" : "ring-1 ring-transparent";
-    const commonStyle: CSSProperties = {
+    const commonStyle = {
       position: "absolute",
       left: `${el.x}mm`,
       top: `${el.y}mm`,

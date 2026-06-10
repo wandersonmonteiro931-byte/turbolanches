@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   parseFreeReceiptLayout,
@@ -7,7 +6,7 @@ import {
   type FreeReceiptLayout,
 } from "@/components/admin/FreeReceiptEditor";
 
-const renderElementStyle = (el: FreeReceiptElement): CSSProperties => ({
+const renderElementStyle = (el: FreeReceiptElement) => ({
   position: "absolute",
   left: `${el.x}mm`,
   top: `${el.y}mm`,
