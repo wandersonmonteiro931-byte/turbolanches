@@ -255,18 +255,36 @@ const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
   const imageData = ctx.getImageData(0, 0, width, height).data;
   const raster = new Uint8Array(bytesPerRow * height);
 
+  // 1) Construir buffer de luminância em float (0=preto, 255=branco)
+  const lum = new Float32Array(width * height);
+  for (let i = 0, p = 0; i < lum.length; i += 1, p += 4) {
+    const r = imageData[p];
+    const g = imageData[p + 1];
+    const b = imageData[p + 2];
+    const a = imageData[p + 3];
+    lum[i] = a < 30 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  // 2) Floyd–Steinberg dithering — texto fica nítido (pixels preto puro)
+  //    e imagens com tom de cinza viram padrão de pontos sem borrar.
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
-      const idx = (y * width + x) * 4;
-      const r = imageData[idx];
-      const g = imageData[idx + 1];
-      const b = imageData[idx + 2];
-      const a = imageData[idx + 3];
-      const luminance = a < 30 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+      const i = y * width + x;
+      const old = lum[i];
+      const neu = old < 128 ? 0 : 255;
+      const err = old - neu;
+      lum[i] = neu;
 
-      if (luminance < 170) {
-        const byteIndex = y * bytesPerRow + Math.floor(x / 8);
-        raster[byteIndex] |= 0x80 >> (x % 8);
+      if (neu === 0) {
+        const byteIndex = y * bytesPerRow + (x >> 3);
+        raster[byteIndex] |= 0x80 >> (x & 7);
+      }
+
+      if (x + 1 < width) lum[i + 1] += (err * 7) / 16;
+      if (y + 1 < height) {
+        if (x > 0) lum[i + width - 1] += (err * 3) / 16;
+        lum[i + width] += (err * 5) / 16;
+        if (x + 1 < width) lum[i + width + 1] += (err * 1) / 16;
       }
     }
   }
