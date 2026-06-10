@@ -337,6 +337,7 @@ const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
 const AdminFreePrint = () => {
   const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
   const [rasterUrl, setRasterUrl] = useState("");
+  const [printReady, setPrintReady] = useState(false);
   const [error, setError] = useState("");
   const [printed, setPrinted] = useState(false);
   const jobStartedRef = useRef(false);
@@ -386,21 +387,13 @@ const AdminFreePrint = () => {
       if (!layout || jobStartedRef.current) return;
       jobStartedRef.current = true;
 
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await renderLayoutToCanvas(layout, printHeightMm);
-      } catch (err: unknown) {
-        console.error("[Comanda LIVRE] Falha ao renderizar a impressão:", err);
-        setError(err instanceof Error ? err.message : "Falha ao gerar a imagem da comanda livre para impressão.");
-        return;
-      }
-
       if (mode !== "pdf") {
         try {
           const settings = getThermalPrintSettings();
           const available = await isQzAvailable();
 
           if (available && settings.qzPrinterName) {
+            const canvas = await renderLayoutToCanvas(layout, printHeightMm);
             const bytes = canvasToEscPosRaster(canvas);
             await printRawEscPos(settings.qzPrinterName, bytes, copies);
             setPrinted(true);
@@ -413,14 +406,14 @@ const AdminFreePrint = () => {
         }
       }
 
-      setRasterUrl(canvas.toDataURL("image/png"));
+      setPrintReady(true);
     };
 
     runPrint();
   }, [layout, mode, copies, printHeightMm]);
 
   useEffect(() => {
-    if (!layout || !rasterUrl || printFiredRef.current) return;
+    if (!layout || !printReady || printFiredRef.current) return;
     printFiredRef.current = true;
 
     const firePrint = async () => {
@@ -434,7 +427,7 @@ const AdminFreePrint = () => {
     };
 
     firePrint();
-  }, [layout, rasterUrl]);
+  }, [layout, printReady]);
 
   if (error) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
