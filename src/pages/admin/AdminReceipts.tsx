@@ -105,6 +105,18 @@ const IMAGE_SIZE_OPTIONS = [
   { value: "xlarge", label: "Muito grande" },
 ] as const;
 
+const FREE_RECEIPT_STORAGE_KEY = "turbo_comanda_livre_layout";
+const FREE_RECEIPT_PRINT_PAYLOAD_KEY = "turbo_comanda_livre_print_payload";
+
+const persistFreeReceiptLayoutForPrint = (layout: string) => {
+  if (typeof window === "undefined" || !layout) return;
+
+  try {
+    window.sessionStorage.setItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY, layout);
+    window.localStorage.setItem(FREE_RECEIPT_STORAGE_KEY, layout);
+  } catch {}
+};
+
 const AdminReceipts = () => {
   const { data: templates, isLoading } = useReceiptTemplates();
   const updateMutation = useUpdateReceiptTemplate();
@@ -119,8 +131,8 @@ const AdminReceipts = () => {
   const [qzPrinters, setQzPrinters] = useState<string[]>([]);
   const [qzStatus, setQzStatus] = useState<"unknown" | "online" | "offline">("unknown");
   const [qzBusy, setQzBusy] = useState(false);
-  const freeReceiptFlushRef = useRef<() => void>(() => undefined);
   const freeReceiptBodyRef = useRef<string>(getDefaultTemplate("livre"));
+  const freeReceiptFlushRef = useRef<() => string>(() => freeReceiptBodyRef.current);
 
   const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
     const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
@@ -195,11 +207,14 @@ const AdminReceipts = () => {
 
     if (type === "livre") {
       // Sincroniza qualquer edição pendente antes de salvar/imprimir.
-      freeReceiptFlushRef.current();
+      const flushedLayout = freeReceiptFlushRef.current();
+      const bodyTemplate = flushedLayout || freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre");
+      freeReceiptBodyRef.current = String(bodyTemplate);
+      persistFreeReceiptLayoutForPrint(String(bodyTemplate));
       const data = {
         ...editData[type],
         template_type: "livre",
-        body_template: freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre"),
+        body_template: String(bodyTemplate),
       };
       if (data) {
         try {
@@ -213,7 +228,7 @@ const AdminReceipts = () => {
       }
 
       const win = openPrintUrl(
-        `/admin/imprimir-livre?copies=${qty}&delay_ms=100&t=${Date.now()}`,
+        `/admin/imprimir-livre?copies=${qty}&delay_ms=100&mode=${mode}&draft=1&t=${Date.now()}`,
         "comanda_livre",
         "width=360,height=760",
       );
@@ -300,7 +315,11 @@ const AdminReceipts = () => {
   };
 
   const handleSave = (type: string) => {
-    if (type === "livre") freeReceiptFlushRef.current();
+    const flushedLayout = type === "livre" ? freeReceiptFlushRef.current() : "";
+    if (type === "livre" && flushedLayout) {
+      freeReceiptBodyRef.current = flushedLayout;
+      persistFreeReceiptLayoutForPrint(flushedLayout);
+    }
     const data =
       type === "livre"
         ? {

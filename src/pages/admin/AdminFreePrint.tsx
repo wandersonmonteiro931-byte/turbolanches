@@ -9,6 +9,7 @@ import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
 import { isQzAvailable, printRawEscPos } from "@/lib/qzTray";
 
 const FREE_RECEIPT_STORAGE_KEY = "turbo_comanda_livre_layout";
+const FREE_RECEIPT_PRINT_PAYLOAD_KEY = "turbo_comanda_livre_print_payload";
 
 const renderElementStyle = (el: FreeReceiptElement) => {
   const borderWidth = Number(el.borderWidth ?? 0) || 0;
@@ -37,10 +38,34 @@ const renderElementStyle = (el: FreeReceiptElement) => {
 
 const readLocalLayout = () => {
   try {
+    const sessionLayout = window.sessionStorage.getItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY) || "";
+    if (sessionLayout) return sessionLayout;
     return window.localStorage.getItem(FREE_RECEIPT_STORAGE_KEY) || "";
   } catch {
     return "";
   }
+};
+
+const clearPrintPayload = () => {
+  try {
+    window.sessionStorage.removeItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY);
+  } catch {}
+};
+
+const waitForPrintImages = async () => {
+  if (typeof document === "undefined") return;
+
+  const images = Array.from(document.images || []);
+  await Promise.all(
+    images.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    }),
+  );
 };
 
 const loadImageSafe = async (src: string): Promise<HTMLImageElement | null> => {
@@ -260,9 +285,11 @@ const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
 
 const AdminFreePrint = () => {
   const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
+  const [rasterUrl, setRasterUrl] = useState("");
   const [error, setError] = useState("");
   const [printed, setPrinted] = useState(false);
-  const printedRef = useRef(false);
+  const jobStartedRef = useRef(false);
+  const printFiredRef = useRef(false);
 
   const searchParams = new URLSearchParams(window.location.search);
   const mode = searchParams.get("mode") || "pdf";
@@ -305,8 +332,17 @@ const AdminFreePrint = () => {
 
   useEffect(() => {
     const runPrint = async () => {
-      if (!layout || printedRef.current) return;
-      printedRef.current = true;
+      if (!layout || jobStartedRef.current) return;
+      jobStartedRef.current = true;
+
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await renderLayoutToCanvas(layout, printHeightMm);
+      } catch (err: any) {
+        console.error("[Comanda LIVRE] Falha ao renderizar a impressão:", err);
+        setError(err?.message || "Falha ao gerar a imagem da comanda livre para impressão.");
+        return;
+      }
 
       if (mode !== "pdf") {
         try {
@@ -314,10 +350,10 @@ const AdminFreePrint = () => {
           const available = await isQzAvailable();
 
           if (available && settings.qzPrinterName) {
-            const canvas = await renderLayoutToCanvas(layout, printHeightMm);
             const bytes = canvasToEscPosRaster(canvas);
             await printRawEscPos(settings.qzPrinterName, bytes, copies);
             setPrinted(true);
+            clearPrintPayload();
             setTimeout(() => window.close(), 800);
             return;
           }
@@ -326,14 +362,28 @@ const AdminFreePrint = () => {
         }
       }
 
-      setTimeout(() => {
-        window.print();
-        setPrinted(true);
-      }, 450);
+      setRasterUrl(canvas.toDataURL("image/png"));
     };
 
     runPrint();
   }, [layout, mode, copies, printHeightMm]);
+
+  useEffect(() => {
+    if (!layout || !rasterUrl || printFiredRef.current) return;
+    printFiredRef.current = true;
+
+    const firePrint = async () => {
+      document.body.dataset.printDocument = "ready";
+      await waitForPrintImages();
+      setTimeout(() => {
+        window.print();
+        setPrinted(true);
+        clearPrintPayload();
+      }, 220);
+    };
+
+    firePrint();
+  }, [layout, rasterUrl]);
 
   if (error) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
@@ -384,6 +434,15 @@ const AdminFreePrint = () => {
           print-color-adjust: exact !important;
         }
 
+        .free-print-raster {
+          display: block !important;
+          width: ${layout.paperWidthMm}mm !important;
+          height: ${printHeightMm}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          object-fit: fill !important;
+        }
+
         @media screen {
           body {
             background: #e5e5e5 !important;
@@ -411,50 +470,54 @@ const AdminFreePrint = () => {
       `}</style>
 
       <div className="free-print-stage">
-        {layout.elements
-          .slice()
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((el) => (
-            <div key={el.id} style={renderElementStyle(el)}>
-              {el.type === "image" ? (
-                <img
-                  src={el.imageUrl}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-                    display: "block",
-                    padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
-                    boxSizing: "border-box",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent:
-                      el.textAlign === "right" ? "flex-end" : el.textAlign === "left" ? "flex-start" : "center",
-                    textAlign: el.textAlign || "center",
-                    fontFamily: "Arial, Helvetica, sans-serif",
-                    fontSize: `${el.fontSize || 12}px`,
-                    fontWeight: el.fontWeight || "bold",
-                    lineHeight: 1.15,
-                    color: el.color || "#000000",
-                    padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {el.text}
-                </div>
-              )}
-            </div>
-          ))}
+        {rasterUrl ? (
+          <img src={rasterUrl} alt="Comanda livre" className="free-print-raster" />
+        ) : (
+          layout.elements
+            .slice()
+            .sort((a, b) => a.zIndex - b.zIndex)
+            .map((el) => (
+              <div key={el.id} style={renderElementStyle(el)}>
+                {el.type === "image" ? (
+                  <img
+                    src={el.imageUrl}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
+                      display: "block",
+                      padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent:
+                        el.textAlign === "right" ? "flex-end" : el.textAlign === "left" ? "flex-start" : "center",
+                      textAlign: el.textAlign || "center",
+                      fontFamily: "Arial, Helvetica, sans-serif",
+                      fontSize: `${el.fontSize || 12}px`,
+                      fontWeight: el.fontWeight || "bold",
+                      lineHeight: 1.15,
+                      color: el.color || "#000000",
+                      padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {el.text}
+                  </div>
+                )}
+              </div>
+            ))
+        )}
       </div>
 
       <div className="no-print" style={{ padding: 12, fontFamily: "monospace", textAlign: "center" }}>
