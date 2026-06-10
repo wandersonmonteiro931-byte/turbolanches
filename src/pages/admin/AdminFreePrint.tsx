@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   parseFreeReceiptLayout,
@@ -6,20 +6,30 @@ import {
   type FreeReceiptLayout,
 } from "@/components/admin/FreeReceiptEditor";
 
-const renderElementStyle = (el: FreeReceiptElement): CSSProperties => ({
-  position: "absolute",
-  left: `${el.x}mm`,
-  top: `${el.y}mm`,
-  width: `${el.width}mm`,
-  height: `${el.height}mm`,
-  transform: `rotate(${el.rotation}deg)`,
-  transformOrigin: "center center",
-  zIndex: el.zIndex,
-  overflow: "hidden",
-  background: el.background || "transparent",
-  color: el.color || "#000000",
-  boxSizing: "border-box",
-});
+const renderElementStyle = (el: FreeReceiptElement) => {
+  const borderWidth = Number(el.borderWidth ?? 0) || 0;
+
+  return {
+    position: "absolute" as const,
+    left: `${el.x}mm`,
+    top: `${el.y}mm`,
+    width: `${el.width}mm`,
+    height: `${el.height}mm`,
+    transform: `rotate(${el.rotation}deg)`,
+    transformOrigin: "center center",
+    zIndex: el.zIndex,
+    overflow: "hidden",
+    background: el.background || "transparent",
+    color: el.color || "#000000",
+    boxSizing: "border-box" as const,
+    border:
+      borderWidth > 0 && el.borderStyle !== "none"
+        ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
+        : "none",
+    borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+    opacity: Number(el.opacity ?? 1) || 1,
+  };
+};
 
 const AdminFreePrint = () => {
   const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
@@ -156,6 +166,8 @@ const AdminFreePrint = () => {
                     height: "100%",
                     objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
                     display: "block",
+                    padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+                    boxSizing: "border-box",
                   }}
                 />
               ) : (
@@ -175,7 +187,7 @@ const AdminFreePrint = () => {
                     fontWeight: el.fontWeight || "bold",
                     lineHeight: 1.15,
                     color: el.color || "#000000",
-                    padding: "0.8mm",
+                    padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
                     boxSizing: "border-box",
                   }}
                 >

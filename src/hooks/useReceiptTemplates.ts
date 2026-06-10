@@ -31,37 +31,52 @@ export interface ReceiptTemplate {
   updated_at: string;
 }
 
+const normalizeImageSize = (value: unknown, fallback: ReceiptImageSize = "medium"): ReceiptImageSize => {
+  return value === "small" || value === "medium" || value === "large" || value === "xlarge" ? value : fallback;
+};
+
+const normalizeTemplateRow = (row: ReceiptTemplate): ReceiptTemplate => ({
+  ...row,
+  logo_image_url: row.logo_image_url ?? null,
+  logo_image_size: normalizeImageSize(row.logo_image_size, "medium"),
+  panfleto_image_url: row.panfleto_image_url ?? null,
+  panfleto_image_size: normalizeImageSize(row.panfleto_image_size, "large"),
+});
+
 export const useReceiptTemplates = () => {
   const { storeId } = useStore();
 
   return useQuery({
     queryKey: ["receipt_templates", storeId],
     queryFn: async () => {
-      let query = supabase.from("receipt_templates").select("*").order("template_type");
+      const { data, error } = await supabase.from("receipt_templates").select("*").order("template_type");
 
-      if (storeId) {
-        query = query.or(`store_id.eq.${storeId},store_id.is.null`);
-      } else {
-        query = query.is("store_id", null);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
 
       const rows = ((data as unknown as ReceiptTemplate[]) || []).reduce<Record<string, ReceiptTemplate>>(
         (acc, row) => {
-          const current = acc[row.template_type];
-          const isStoreSpecific = row.store_id === storeId;
-          const currentIsStoreSpecific = current?.store_id === storeId;
+          const normalized = normalizeTemplateRow(row);
+          const current = acc[normalized.template_type];
 
-          if (!current || (isStoreSpecific && !currentIsStoreSpecific)) {
-            acc[row.template_type] = {
-              ...row,
-              logo_image_url: row.logo_image_url ?? null,
-              logo_image_size: normalizeImageSize(row.logo_image_size, "medium"),
-              panfleto_image_url: row.panfleto_image_url ?? null,
-              panfleto_image_size: normalizeImageSize(row.panfleto_image_size, "large"),
-            };
+          /*
+            Correção importante:
+            No seu banco existe UNIQUE em template_type:
+            receipt_templates_template_type_key
+
+            Então NÃO pode tentar criar outro registro "livre" por loja.
+            A tela pode filtrar por store_id, mas na hora de salvar precisa atualizar
+            o registro já existente daquele template_type.
+          */
+          if (!current) {
+            acc[normalized.template_type] = normalized;
+            return acc;
+          }
+
+          const rowIsStore = storeId && normalized.store_id === storeId;
+          const currentIsStore = storeId && current.store_id === storeId;
+
+          if (rowIsStore && !currentIsStore) {
+            acc[normalized.template_type] = normalized;
           }
 
           return acc;
@@ -96,55 +111,72 @@ const EDITABLE_FIELDS = [
   "panfleto_image_size",
 ] as const;
 
-const normalizeImageSize = (value: unknown, fallback: ReceiptImageSize = "medium"): ReceiptImageSize => {
-  return value === "small" || value === "medium" || value === "large" || value === "xlarge" ? value : fallback;
+const buildPayload = (template: Partial<ReceiptTemplate> & { template_type: string; id?: string }) => {
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+  for (const key of EDITABLE_FIELDS) {
+    if (key in template) {
+      payload[key] = (template as any)[key];
+    }
+  }
+
+  if ("logo_image_url" in template) {
+    payload.logo_image_url = template.logo_image_url || null;
+  }
+
+  if ("panfleto_image_url" in template) {
+    payload.panfleto_image_url = template.panfleto_image_url || null;
+  }
+
+  if ("logo_image_size" in template) {
+    payload.logo_image_size = normalizeImageSize(template.logo_image_size, "medium");
+  }
+
+  if ("panfleto_image_size" in template) {
+    payload.panfleto_image_size = normalizeImageSize(template.panfleto_image_size, "large");
+  }
+
+  return payload;
 };
 
 export const useUpdateReceiptTemplate = () => {
   const queryClient = useQueryClient();
-  const { storeId } = useStore();
 
   return useMutation({
     mutationFn: async (template: Partial<ReceiptTemplate> & { template_type: string; id?: string }) => {
-      const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+      const payload = buildPayload(template);
 
-      for (const key of EDITABLE_FIELDS) {
-        if (key in template) {
-          payload[key] = (template as any)[key];
-        }
-      }
+      /*
+        Correção do erro:
+        duplicate key value violates unique constraint "receipt_templates_template_type_key"
 
-      if ("logo_image_url" in template) {
-        payload.logo_image_url = template.logo_image_url || null;
-      }
-      if ("panfleto_image_url" in template) {
-        payload.panfleto_image_url = template.panfleto_image_url || null;
-      }
-      if ("logo_image_size" in template) {
-        payload.logo_image_size = normalizeImageSize(template.logo_image_size, "medium");
-      }
-      if ("panfleto_image_size" in template) {
-        payload.panfleto_image_size = normalizeImageSize(template.panfleto_image_size, "large");
-      }
+        Seu banco só permite 1 registro por template_type.
+        Então, ao salvar LIVRE, PEDIDO, PANFLETO etc., o correto é:
+        1) tentar atualizar pelo id, se houver;
+        2) se não tiver id, procurar pelo template_type;
+        3) atualizar esse registro existente;
+        4) só inserir se realmente não existir.
+      */
 
       if (template.id) {
         const { error } = await supabase
           .from("receipt_templates")
           .update(payload as any)
           .eq("id", template.id);
-        if (error) throw error;
-        return;
+
+        if (!error) return;
+
+        // Se o id ficou antigo/inválido, tenta corrigir pelo template_type abaixo.
+        console.warn("[receipt_templates] update by id failed, retrying by template_type:", error);
       }
 
-      let existingQuery = supabase
+      const { data: existing, error: existingError } = await supabase
         .from("receipt_templates")
         .select("id")
         .eq("template_type", template.template_type)
-        .limit(1);
+        .limit(1)
+        .maybeSingle();
 
-      existingQuery = storeId ? existingQuery.eq("store_id", storeId) : existingQuery.is("store_id", null);
-
-      const { data: existing, error: existingError } = await existingQuery.maybeSingle();
       if (existingError) throw existingError;
 
       if (existing?.id) {
@@ -152,6 +184,7 @@ export const useUpdateReceiptTemplate = () => {
           .from("receipt_templates")
           .update(payload as any)
           .eq("id", existing.id);
+
         if (error) throw error;
         return;
       }
@@ -159,7 +192,7 @@ export const useUpdateReceiptTemplate = () => {
       const insertPayload = {
         ...payload,
         template_type: template.template_type,
-        store_id: storeId ?? null,
+        store_id: null,
         store_name: template.store_name ?? "TURBO LANCHES",
         label: template.label ?? template.template_type.toUpperCase(),
         custom_message: template.custom_message ?? "",
@@ -182,7 +215,21 @@ export const useUpdateReceiptTemplate = () => {
       };
 
       const { error } = await supabase.from("receipt_templates").insert(insertPayload as any);
-      if (error) throw error;
+
+      if (!error) return;
+
+      // Última proteção: se outro registro apareceu entre a busca e o insert, atualiza pelo template_type.
+      if (String(error.message || "").includes("duplicate key")) {
+        const { error: updateError } = await supabase
+          .from("receipt_templates")
+          .update(payload as any)
+          .eq("template_type", template.template_type);
+
+        if (updateError) throw updateError;
+        return;
+      }
+
+      throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["receipt_templates"] });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Image as ImageIcon, Move, Plus, Save, Trash2, Type, Upload } from "lucide-react";
+import { Image as ImageIcon, Move, Plus, RotateCcw, Save, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
 
@@ -22,6 +22,12 @@ export interface FreeReceiptElement {
   color?: string;
   background?: string;
   objectFit?: "contain" | "cover" | "fill";
+  borderWidth?: number;
+  borderColor?: string;
+  borderStyle?: "none" | "solid" | "dashed";
+  borderRadius?: number;
+  paddingMm?: number;
+  opacity?: number;
 }
 
 export interface FreeReceiptLayout {
@@ -55,6 +61,12 @@ const DEFAULT_LAYOUT: FreeReceiptLayout = {
       textAlign: "center",
       color: "#000000",
       background: "transparent",
+      borderWidth: 0,
+      borderColor: "#000000",
+      borderStyle: "solid",
+      borderRadius: 0,
+      paddingMm: 1,
+      opacity: 1,
     },
     {
       id: "line",
@@ -71,6 +83,12 @@ const DEFAULT_LAYOUT: FreeReceiptLayout = {
       textAlign: "center",
       color: "#000000",
       background: "transparent",
+      borderWidth: 0,
+      borderColor: "#000000",
+      borderStyle: "solid",
+      borderRadius: 0,
+      paddingMm: 0.8,
+      opacity: 1,
     },
   ],
 };
@@ -110,6 +128,15 @@ export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout
             el.objectFit === "cover" || el.objectFit === "fill" || el.objectFit === "contain"
               ? el.objectFit
               : "contain",
+          borderWidth: clamp(Number(el.borderWidth ?? 0) || 0, 0, 12),
+          borderColor: String(el.borderColor || "#000000"),
+          borderStyle:
+            el.borderStyle === "dashed" || el.borderStyle === "none" || el.borderStyle === "solid"
+              ? el.borderStyle
+              : "solid",
+          borderRadius: clamp(Number(el.borderRadius ?? 0) || 0, 0, 20),
+          paddingMm: clamp(Number(el.paddingMm ?? 0.8) || 0.8, 0, 10),
+          opacity: clamp(Number(el.opacity ?? 1) || 1, 0.05, 1),
         })),
       };
     }
@@ -118,7 +145,6 @@ export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout
 };
 
 const serializeLayout = (layout: FreeReceiptLayout) => JSON.stringify(layout, null, 2);
-
 const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
 interface FreeReceiptEditorProps {
@@ -168,6 +194,12 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     }));
   };
 
+  const changeSelectedNumber = (key: keyof FreeReceiptElement, delta: number, min = -999, max = 999) => {
+    if (!selected) return;
+    const currentValue = Number((selected as any)[key] ?? 0);
+    updateSelected({ [key]: clamp(currentValue + delta, min, max) } as Partial<FreeReceiptElement>);
+  };
+
   const addText = () => {
     const id = newId();
     updateLayout((current) => ({
@@ -189,6 +221,12 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
           textAlign: "center",
           color: "#000000",
           background: "transparent",
+          borderWidth: 0,
+          borderColor: "#000000",
+          borderStyle: "solid",
+          borderRadius: 0,
+          paddingMm: 0.8,
+          opacity: 1,
         },
       ],
     }));
@@ -221,6 +259,12 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
             imageUrl: url,
             objectFit: "contain",
             background: "transparent",
+            borderWidth: 0,
+            borderColor: "#000000",
+            borderStyle: "solid",
+            borderRadius: 0,
+            paddingMm: 0,
+            opacity: 1,
           },
         ],
       }));
@@ -329,8 +373,9 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
 
   const renderElement = (el: FreeReceiptElement) => {
     const selectedClass = selectedId === el.id ? "ring-2 ring-primary ring-offset-1" : "ring-1 ring-transparent";
-    const commonStyle: React.CSSProperties = {
-      position: "absolute",
+    const borderWidth = Number(el.borderWidth ?? 0) || 0;
+    const commonStyle = {
+      position: "absolute" as const,
       left: `${el.x}mm`,
       top: `${el.y}mm`,
       width: `${el.width}mm`,
@@ -342,6 +387,13 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
       overflow: "hidden",
       background: el.background || "transparent",
       color: el.color || "#000",
+      boxSizing: "border-box" as const,
+      border:
+        borderWidth > 0 && el.borderStyle !== "none"
+          ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
+          : "none",
+      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+      opacity: Number(el.opacity ?? 1) || 1,
     };
 
     return (
@@ -361,7 +413,11 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
             alt=""
             draggable={false}
             className="h-full w-full select-none"
-            style={{ objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain" }}
+            style={{
+              objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
+              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+              boxSizing: "border-box",
+            }}
           />
         ) : (
           <div
@@ -373,7 +429,8 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: "0.8mm",
+              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+              boxSizing: "border-box",
             }}
           >
             {el.text}
@@ -438,7 +495,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="overflow-auto rounded-xl bg-muted p-4">
           <div className="mx-auto w-fit">
             <div
@@ -541,18 +598,128 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                 </label>
               </div>
 
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("width", -2, 5, 300)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Largura -
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("width", 2, 5, 300)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Largura +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("height", -2, 5, 300)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Altura -
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("height", 2, 5, 300)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Altura +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("rotation", -5, -360, 360)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Girar -5°
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeSelectedNumber("rotation", 5, -360, 360)}
+                  className="rounded border px-2 py-2 text-xs font-bold"
+                >
+                  Girar +5°
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="space-y-1 text-xs font-semibold">
+                  Borda px
+                  <input
+                    type="number"
+                    value={Number(selected.borderWidth ?? 0)}
+                    onChange={(e) => updateSelected({ borderWidth: clamp(Number(e.target.value), 0, 12) })}
+                    className="h-9 w-full rounded border bg-background px-2"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-semibold">
+                  Raio da borda mm
+                  <input
+                    type="number"
+                    value={Number(selected.borderRadius ?? 0)}
+                    onChange={(e) => updateSelected({ borderRadius: clamp(Number(e.target.value), 0, 20) })}
+                    className="h-9 w-full rounded border bg-background px-2"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-semibold">
+                  Estilo da borda
+                  <select
+                    value={selected.borderStyle || "solid"}
+                    onChange={(e) =>
+                      updateSelected({ borderStyle: e.target.value as FreeReceiptElement["borderStyle"] })
+                    }
+                    className="h-9 w-full rounded border bg-background px-2"
+                  >
+                    <option value="none">Sem borda</option>
+                    <option value="solid">Contínua</option>
+                    <option value="dashed">Tracejada</option>
+                  </select>
+                </label>
+                <label className="space-y-1 text-xs font-semibold">
+                  Cor da borda
+                  <input
+                    type="color"
+                    value={selected.borderColor || "#000000"}
+                    onChange={(e) => updateSelected({ borderColor: e.target.value })}
+                    className="h-9 w-full rounded border bg-background"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-semibold">
+                  Espaço interno mm
+                  <input
+                    type="number"
+                    value={Number(selected.paddingMm ?? (selected.type === "image" ? 0 : 0.8))}
+                    onChange={(e) => updateSelected({ paddingMm: clamp(Number(e.target.value), 0, 10) })}
+                    className="h-9 w-full rounded border bg-background px-2"
+                  />
+                </label>
+                <label className="space-y-1 text-xs font-semibold">
+                  Opacidade
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.05"
+                    max="1"
+                    value={Number(selected.opacity ?? 1)}
+                    onChange={(e) => updateSelected({ opacity: clamp(Number(e.target.value), 0.05, 1) })}
+                    className="h-9 w-full rounded border bg-background px-2"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => moveLayer("front")}
-                  className="flex-1 rounded border px-2 py-2 text-xs font-bold"
+                  className="rounded border px-2 py-2 text-xs font-bold"
                 >
                   Frente
                 </button>
                 <button
                   type="button"
                   onClick={() => moveLayer("back")}
-                  className="flex-1 rounded border px-2 py-2 text-xs font-bold"
+                  className="rounded border px-2 py-2 text-xs font-bold"
                 >
                   Fundo
                 </button>
@@ -607,11 +774,22 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                       </select>
                     </label>
                     <label className="space-y-1 text-xs font-semibold">
-                      Cor
+                      Cor do texto
                       <input
                         type="color"
                         value={selected.color || "#000000"}
                         onChange={(e) => updateSelected({ color: e.target.value })}
+                        className="h-9 w-full rounded border bg-background"
+                      />
+                    </label>
+                    <label className="space-y-1 text-xs font-semibold col-span-2">
+                      Fundo do item
+                      <input
+                        type="color"
+                        value={
+                          selected.background && selected.background !== "transparent" ? selected.background : "#ffffff"
+                        }
+                        onChange={(e) => updateSelected({ background: e.target.value })}
                         className="h-9 w-full rounded border bg-background"
                       />
                     </label>
@@ -638,17 +816,28 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                   >
                     <Upload size={14} /> Trocar
                   </button>
+                  <label className="space-y-1 text-xs font-semibold col-span-2">
+                    Fundo da imagem
+                    <input
+                      type="color"
+                      value={
+                        selected.background && selected.background !== "transparent" ? selected.background : "#ffffff"
+                      }
+                      onChange={(e) => updateSelected({ background: e.target.value })}
+                      className="h-9 w-full rounded border bg-background"
+                    />
+                  </label>
                 </div>
               )}
             </>
           ) : (
             <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              Clique em um texto ou imagem para editar tamanho, posição, rotação e camada.
+              Clique em um texto ou imagem para editar tamanho, posição, rotação, borda, fundo e camada.
             </div>
           )}
 
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-            <b>Importante:</b> para sair nítido na térmica, use imagens com texto/ícones pretos e fundo branco.
+            <b>Importante:</b> agora cada item pode ter borda, raio, espaço interno, fundo, ajuste de tamanho e rotação.
           </div>
         </div>
       </div>
