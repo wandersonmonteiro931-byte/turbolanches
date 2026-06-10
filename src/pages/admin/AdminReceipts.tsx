@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
+import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -787,7 +788,7 @@ const AdminReceipts = () => {
                   {updateMutation.isPending ? "Salvando..." : "Salvar"}
                 </button>
 
-                <div className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5">
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Cópias</Label>
                   <Input
                     type="number"
@@ -797,6 +798,9 @@ const AdminReceipts = () => {
                     onChange={(e) => setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))}
                     className="h-9 w-16 text-center"
                   />
+
+                  <PrintModeSelector />
+
                   <button
                     type="button"
                     onClick={(e) => handlePrintTest(e, tab.type)}
@@ -805,7 +809,7 @@ const AdminReceipts = () => {
                     title="Imprime cópias separadas (uma por vez)"
                   >
                     <Printer size={16} />
-                    Imprimir Teste
+                    Imprimir
                   </button>
                 </div>
               </div>
