@@ -1,5 +1,5 @@
 import TurboLoader from "@/components/TurboLoader";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
@@ -119,6 +119,8 @@ const AdminReceipts = () => {
   const [qzPrinters, setQzPrinters] = useState<string[]>([]);
   const [qzStatus, setQzStatus] = useState<"unknown" | "online" | "offline">("unknown");
   const [qzBusy, setQzBusy] = useState(false);
+  const freeReceiptFlushRef = useRef<() => void>(() => undefined);
+  const freeReceiptBodyRef = useRef<string>(getDefaultTemplate("livre"));
 
   const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
     const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
@@ -192,8 +194,13 @@ const AdminReceipts = () => {
     const mode: PrintMode = getPrintMode();
 
     if (type === "livre") {
-      // Salva antes de imprimir para garantir que o popup leia o JSON atual do editor.
-      const data = editData[type];
+      // Sincroniza qualquer edição pendente antes de salvar/imprimir.
+      freeReceiptFlushRef.current();
+      const data = {
+        ...editData[type],
+        template_type: "livre",
+        body_template: freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre"),
+      };
       if (data) {
         try {
           await updateMutation.mutateAsync(
