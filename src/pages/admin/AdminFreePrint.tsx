@@ -146,6 +146,10 @@ const renderLayoutToCanvas = async (layout: FreeReceiptLayout, heightMm: number)
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas não suportado neste navegador.");
 
+  // Desativar suavização para texto e bordas nítidos na térmica
+  ctx.imageSmoothingEnabled = false;
+  (ctx as any).textRendering = "geometricPrecision";
+
   ctx.fillStyle = layout.background || "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
