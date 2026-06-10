@@ -622,17 +622,6 @@ const wrapAddressFullLines = (value: string, cols: number) => {
 const normalizeAddressUppercase = (value: string) =>
   normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
 
-const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
-  renderContinuousBlackBlock(
-    b,
-    { ...DEFAULT_STYLE, bold: true, medium: true, invertFull: true },
-    text,
-    cols,
-    align,
-    true,
-  );
-};
-
 const renderContinuousBlackBlock = (
   b: EscPosBuilder,
   style: LineStyle,
@@ -659,11 +648,31 @@ const renderContinuousBlackBlock = (
   resetStyle(b);
 };
 
+const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
+  renderContinuousBlackBlock(
+    b,
+    { ...DEFAULT_STYLE, bold: true, medium: true, invertFull: true },
+    text,
+    cols,
+    align,
+    true,
+  );
+};
+
 const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   // Endereço do pedido: igual TOTAL A RECEBER.
   // Caixa alta, quebra linha, fundo preto ponta-a-ponta e alinhamento uniforme.
   renderAddressBlackLines(b, text, cols, style.align || "center");
 };
+
+const normalizeDeliveryReportTextForEscPos = (value: string) =>
+  normalizeHtmlForEscPos(value)
+    .replace(/\s+\|\s+/g, " | ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+
+const isSignatureLine = (value: string) =>
+  /^_+\s*(?:ASSINATURA|ASSINATURA DO FUNCIONARIO|ASSINATURA DO FUNCIONÁRIO)?$/i.test(String(value || "").trim());
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
   const rawFinalText = normalizeDeliveryReportTextForEscPos(normalizeItemMarker(removeInternalPrintMarkers(text)));
