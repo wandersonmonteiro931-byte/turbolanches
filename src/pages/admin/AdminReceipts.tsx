@@ -192,8 +192,21 @@ const AdminReceipts = () => {
     const mode: PrintMode = getPrintMode();
 
     if (type === "livre") {
+      // Salva antes de imprimir para garantir que o popup leia o JSON atual do editor.
+      const data = editData[type];
+      if (data) {
+        try {
+          await updateMutation.mutateAsync(
+            data as Partial<ReceiptTemplate> & { template_type: string; id?: string },
+          );
+        } catch (err: any) {
+          toast.error(`Não foi possível salvar antes de imprimir: ${err?.message || "erro desconhecido"}`);
+          return;
+        }
+      }
+
       const win = openPrintUrl(
-        `/admin/imprimir-livre?copies=${qty}&delay_ms=100`,
+        `/admin/imprimir-livre?copies=${qty}&delay_ms=100&t=${Date.now()}`,
         "comanda_livre",
         "width=360,height=760",
       );
