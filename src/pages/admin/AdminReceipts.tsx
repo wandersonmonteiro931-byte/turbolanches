@@ -299,7 +299,15 @@ const AdminReceipts = () => {
   };
 
   const handleSave = (type: string) => {
-    const data = editData[type];
+    if (type === "livre") freeReceiptFlushRef.current();
+    const data =
+      type === "livre"
+        ? {
+            ...editData[type],
+            template_type: "livre",
+            body_template: freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre"),
+          }
+        : editData[type];
     if (!data) return;
     updateMutation.mutate(data as Partial<ReceiptTemplate> & { template_type: string; id?: string });
   };
@@ -677,7 +685,13 @@ const AdminReceipts = () => {
 
                   <FreeReceiptEditor
                     value={bodyTemplate || getDefaultTemplate(tab.type)}
-                    onChange={(next) => updateField(tab.type, "body_template", next)}
+                    onChange={(next) => {
+                      freeReceiptBodyRef.current = next;
+                      updateField(tab.type, "body_template", next);
+                    }}
+                    onFlushReady={(flush) => {
+                      freeReceiptFlushRef.current = flush;
+                    }}
                   />
                 </div>
 
