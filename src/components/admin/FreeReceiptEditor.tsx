@@ -329,7 +329,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
 
   const renderElement = (el: FreeReceiptElement) => {
     const selectedClass = selectedId === el.id ? "ring-2 ring-primary ring-offset-1" : "ring-1 ring-transparent";
-    const commonStyle = {
+    const commonStyle: React.CSSProperties = {
       position: "absolute",
       left: `${el.x}mm`,
       top: `${el.y}mm`,
