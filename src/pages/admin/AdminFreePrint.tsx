@@ -213,7 +213,10 @@ const renderLayoutToCanvas = async (layout: FreeReceiptLayout, heightMm: number)
           dy = contentY + (contentH - dh) / 2;
         }
 
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, dx, dy, dw, dh);
+        ctx.imageSmoothingEnabled = false;
       }
     } else {
       const fontSize = Math.max(4, Number(el.fontSize || 12));
@@ -245,6 +248,36 @@ const renderLayoutToCanvas = async (layout: FreeReceiptLayout, heightMm: number)
   return canvas;
 };
 
+const getOtsuThreshold = (histogram: Uint32Array, total: number) => {
+  let sum = 0;
+  for (let i = 0; i < 256; i += 1) sum += i * histogram[i];
+
+  let sumB = 0;
+  let wB = 0;
+  let maxVariance = 0;
+  let threshold = 170;
+
+  for (let i = 0; i < 256; i += 1) {
+    wB += histogram[i];
+    if (wB === 0) continue;
+
+    const wF = total - wB;
+    if (wF === 0) break;
+
+    sumB += i * histogram[i];
+    const mB = sumB / wB;
+    const mF = (sum - sumB) / wF;
+    const variance = wB * wF * (mB - mF) * (mB - mF);
+
+    if (variance > maxVariance) {
+      maxVariance = variance;
+      threshold = i;
+    }
+  }
+
+  return Math.max(150, Math.min(210, threshold + 18));
+};
+
 const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas inválido.");
@@ -255,36 +288,30 @@ const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
   const imageData = ctx.getImageData(0, 0, width, height).data;
   const raster = new Uint8Array(bytesPerRow * height);
 
-  // 1) Construir buffer de luminância em float (0=preto, 255=branco)
-  const lum = new Float32Array(width * height);
+  // 1) Converter para luminância e calcular corte automático.
+  // Para térmica, pontilhado/dither deixa arte preto-e-branco com aspecto borrado;
+  // limiar puro preserva letras, logos e bordas como a imagem real.
+  const lum = new Uint8ClampedArray(width * height);
+  const histogram = new Uint32Array(256);
   for (let i = 0, p = 0; i < lum.length; i += 1, p += 4) {
     const r = imageData[p];
     const g = imageData[p + 1];
     const b = imageData[p + 2];
     const a = imageData[p + 3];
-    lum[i] = a < 30 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+    const value = a < 30 ? 255 : Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+    lum[i] = value;
+    histogram[value] += 1;
   }
 
-  // 2) Floyd–Steinberg dithering — texto fica nítido (pixels preto puro)
-  //    e imagens com tom de cinza viram padrão de pontos sem borrar.
+  const threshold = getOtsuThreshold(histogram, lum.length);
+
+  // 2) Preto/branco direto, sem difusão de erro: mais nítido em térmica.
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const i = y * width + x;
-      const old = lum[i];
-      const neu = old < 128 ? 0 : 255;
-      const err = old - neu;
-      lum[i] = neu;
-
-      if (neu === 0) {
+      if (lum[i] < threshold) {
         const byteIndex = y * bytesPerRow + (x >> 3);
         raster[byteIndex] |= 0x80 >> (x & 7);
-      }
-
-      if (x + 1 < width) lum[i + 1] += (err * 7) / 16;
-      if (y + 1 < height) {
-        if (x > 0) lum[i + width - 1] += (err * 3) / 16;
-        lum[i + width] += (err * 5) / 16;
-        if (x + 1 < width) lum[i + width + 1] += (err * 1) / 16;
       }
     }
   }
