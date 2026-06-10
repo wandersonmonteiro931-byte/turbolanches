@@ -335,7 +335,14 @@ const AdminFreePrint = () => {
       if (!layout || jobStartedRef.current) return;
       jobStartedRef.current = true;
 
-      const canvas = await renderLayoutToCanvas(layout, printHeightMm);
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await renderLayoutToCanvas(layout, printHeightMm);
+      } catch (err: any) {
+        console.error("[Comanda LIVRE] Falha ao renderizar a impressão:", err);
+        setError(err?.message || "Falha ao gerar a imagem da comanda livre para impressão.");
+        return;
+      }
 
       if (mode !== "pdf") {
         try {
