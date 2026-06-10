@@ -315,7 +315,7 @@ const DEFAULT_STYLE: LineStyle = {
 };
 
 const ALL_TAGS_RE =
-  /\[\/?(?:CENTRO|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|BORDA|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
+  /\[\/?(?:CENTRO|DIREITA|NEGRITO|GRANDE|TXTGIGANTE|TXTMEDIO|TXTPEQUENO|CAIXA|TZTBORDA|TXTBORDA|TXTBORDATXT|FUNDPRETO|DESTAQUE|BORDA|QUADRADONEGRITO|QUADRADO|RETANGULO)\]/gi;
 
 const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => {
   const style: LineStyle = { ...DEFAULT_STYLE };
@@ -325,6 +325,7 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 
   // Alinhamento
   if (/\[CENTRO\]/i.test(line)) style.align = "center";
+  if (/\[DIREITA\]/i.test(line)) style.align = "right";
 
   // Tamanhos/estilos — respeita tags mesmo com várias variáveis na mesma linha.
   if (/\[TXTPEQUENO\]/i.test(line)) style.small = true;
@@ -341,11 +342,10 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   }
   if (/\[DESTAQUE\]/i.test(line)) {
     style.bold = true;
-    style.big = false;
+    style.big = true;
     style.medium = false;
     style.small = false;
-    // Destaque deve ser uma faixa preta retangular na linha toda,
-    // e não apenas fundo preto atrás da palavra.
+    // Destaque: grande + fundo preto ponta a ponta.
     style.invertFull = true;
   }
   if (/\[TXTGIGANTE\]/i.test(line)) {
@@ -375,10 +375,10 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(line)) {
-    // Agora também vira faixa preta retangular na linha toda.
-    // Antes ficava preto apenas atrás das letras.
-    style.invertFull = true;
-    style.invert = false;
+    // Fundo preto apenas no bloco do texto.
+    // [TZTBORDA]/[TXTBORDA] continuam ponta a ponta.
+    style.invert = true;
+    style.invertFull = false;
     style.bold = true;
   }
 
@@ -611,27 +611,29 @@ const normalizeAddressUppercase = (value: string) =>
 const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
   // Endereço usa o mesmo fundo preto contínuo do TOTAL A RECEBER,
   // sempre em CAIXA ALTA e sem corte transparente entre linhas.
-  renderContinuousBlackBlock(b, text, cols, align, true);
+  renderContinuousBlackBlock(b, { ...DEFAULT_STYLE, bold: true, invertFull: true }, text, cols, align, true);
 };
 
 const renderContinuousBlackBlock = (
   b: EscPosBuilder,
+  style: LineStyle,
   text: string,
   cols: number,
   align: Align = "center",
   uppercase = false,
 ) => {
-  const innerCols = Math.max(8, cols);
+  const styled = safeThermalBoxStyle({ ...style, invert: true, invertFull: true });
+  const innerCols = effectiveColumns(cols, styled);
   const value = uppercase ? normalizeAddressUppercase(text) : normalizeHtmlForEscPos(text).replace(/\s+/g, " ").trim();
   const lines = wrapAddressFullLines(value, innerCols);
 
   resetStyle(b);
-  b.align("left").font("A").bold(true).size(0, 0).invert(true);
+  applyStyleToBuilder(b, styled);
   b.lineSpacing(0);
 
   for (const line of lines) {
-    // Linha SEMPRE preenchida até o fim da largura.
-    // Assim, quando quebra em 2+ linhas, o fundo preto não fica com corte transparente no meio.
+    // Linha SEMPRE preenchida até o fim da largura efetiva.
+    // Com fonte grande/gigante, a largura efetiva é menor, mas fisicamente ocupa a largura total.
     b.rawText(fixedLine(line, innerCols, align).slice(0, innerCols));
   }
 
@@ -646,15 +648,33 @@ const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: str
 };
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const rawFinalText = removeInternalPrintMarkers(text);
+  const rawFinalText = normalizeDeliveryReportTextForEscPos(normalizeItemMarker(removeInternalPrintMarkers(text)));
   const finalText = style.address ? normalizeAddressUppercase(rawFinalText) : rawFinalText;
-  if (!finalText.replace(/\s/g, "")) return;
 
-  const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
+  if (!finalText.replace(/\s/g, "")) {
+    // Preserva linhas vazias digitadas no editor da comanda.
+    b.rawText("");
+    return;
+  }
+
+  if (isSignatureLine(finalText)) {
+    const line = truncateLineToCols(finalText.trim(), cols);
+    b.rawText(paddedFullLine(line, cols, style.align));
+    resetStyle(b);
+    return;
+  }
+
+  // NÃO reduzir fonte automaticamente.
+  // Antes o sistema diminuía [GRANDE], [TXTMEDIO] e [TXTGIGANTE] para tentar caber em uma linha.
+  // Agora a formatação funciona de verdade: texto grande continua grande e quebra linha se precisar.
+  const fittedStyle = style;
+  const textCols = effectiveColumns(cols, fittedStyle);
+  const outputLines = fittedStyle.address
+    ? wrapAddressLines(finalText, textCols)
+    : wrapAddressFullLines(finalText, textCols);
 
   // [CAIXA], [BORDA] e molduras inline.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
-    // Endereço não pode ser cortado. Quebra em várias linhas.
     if (fittedStyle.address) {
       renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
       return;
@@ -662,39 +682,54 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
     const frame = fittedStyle.frame !== "none" ? fittedStyle.frame : "strong";
     const safeStyle = safeThermalBoxStyle(fittedStyle);
+    const boxedCols = effectiveColumns(cols, safeStyle);
+
     resetStyle(b);
     renderFrameLine(b, frame, cols);
     applyStyleToBuilder(b, safeStyle);
-    b.rawText(boxedLineNoWrap(finalText, cols, safeStyle.align));
+
+    for (const line of wrapAddressFullLines(finalText, Math.max(8, boxedCols - 4))) {
+      b.rawText(boxedLineNoWrap(line, boxedCols, safeStyle.align));
+    }
+
     resetStyle(b);
     renderFrameLine(b, frame, cols);
     return;
   }
 
-  const outputLines = fittedStyle.address
-    ? wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle))
-    : [truncateLineToCols(finalText, effectiveColumns(cols, fittedStyle))];
-
-  // [TZTBORDA]/[TXTBORDA]/[FUNDPRETO]:
-  // fundo preto ponta-a-ponta, com quebra de linha e SEM corte transparente no meio.
-  // Essa regra vale para qualquer lugar que usar [TZTBORDA].
+  // [TZTBORDA]/[TXTBORDA]/[DESTAQUE]:
+  // fundo preto ponta-a-ponta, quebra linha e sem corte transparente no meio.
   if (fittedStyle.invertFull) {
-    renderContinuousBlackBlock(b, finalText, cols, fittedStyle.align || "center", Boolean(fittedStyle.address));
+    renderContinuousBlackBlock(
+      b,
+      fittedStyle,
+      finalText,
+      cols,
+      fittedStyle.align || "center",
+      Boolean(fittedStyle.address),
+    );
     return;
   }
 
-  // Segurança: qualquer fundo preto também usa bloco contínuo.
+  // [TXTBORDATXT]/[FUNDPRETO]: fundo preto no bloco do texto.
   if (fittedStyle.invert) {
-    renderContinuousBlackBlock(b, finalText, cols, fittedStyle.align || "center", Boolean(fittedStyle.address));
+    const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true });
+    const invCols = effectiveColumns(cols, safeStyle);
+    applyStyleToBuilder(b, safeStyle);
+    b.lineSpacing(0);
+
+    for (const line of outputLines) {
+      b.rawText(paddedFullLine(line, invCols, safeStyle.align));
+    }
+
+    b.defaultLineSpacing();
+    resetStyle(b);
     return;
   }
 
   applyStyleToBuilder(b, fittedStyle);
   for (const line of outputLines) {
-    if (fittedStyle.align === "center") b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center"));
-    else if (fittedStyle.align === "right")
-      b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "right"));
-    else b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "left"));
+    b.rawText(paddedFullLine(line, textCols, fittedStyle.align));
   }
   resetStyle(b);
 };
