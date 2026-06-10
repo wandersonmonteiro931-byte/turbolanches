@@ -58,8 +58,28 @@ const normalizeItemMarker = (value: string) =>
     .replace(/\bitem_(\d+)\b/gi, "$1 - ")
     .replace(/_{2,}/g, "_");
 
+const normalizeReceiptFormattingTagsFinal = (value: string) =>
+  String(value || "")
+    .replace(/\[CENTRO\]([^\n]*?)\[CENTRO\]/gi, "[CENTRO]$1[/CENTRO]")
+    .replace(/\[DIREITA\]([^\n]*?)\[DIREITA\]/gi, "[DIREITA]$1[/DIREITA]")
+    .replace(/\[TXTMEDIO\]([^\n]*?)\[TXTMEDIO\]/gi, "[TXTMEDIO]$1[/TXTMEDIO]")
+    .replace(/\[TXTPEQUENO\]([^\n]*?)\[TXTPEQUENO\]/gi, "[TXTPEQUENO]$1[/TXTPEQUENO]")
+    .replace(/\[TXTGIGANTE\]([^\n]*?)\[TXTGIGANTE\]/gi, "[TXTGIGANTE]$1[/TXTGIGANTE]")
+    .replace(/\[GRANDE\]([^\n]*?)\[GRANDE\]/gi, "[GRANDE]$1[/GRANDE]")
+    .replace(/\[NEGRITO\]([^\n]*?)\[NEGRITO\]/gi, "[NEGRITO]$1[/NEGRITO]")
+    .replace(/\[TZTBORDA\]([^\n]*?)\[TZTBORDA\]/gi, "[TZTBORDA]$1[/TZTBORDA]")
+    .replace(/\[TXTBORDA\]([^\n]*?)\[TXTBORDA\]/gi, "[TXTBORDA]$1[/TXTBORDA]")
+    .replace(/\[TXTBORDATXT\]([^\n]*?)\[TXTBORDATXT\]/gi, "[TXTBORDATXT]$1[/TXTBORDATXT]")
+    .replace(/\[FUNDPRETO\]([^\n]*?)\[FUNDPRETO\]/gi, "[FUNDPRETO]$1[/FUNDPRETO]")
+    .replace(/\[DESTAQUE\]([^\n]*?)\[DESTAQUE\]/gi, "[DESTAQUE]$1[/DESTAQUE]")
+    .replace(/\[BORDA\]([^\n]*?)\[BORDA\]/gi, "[BORDA]$1[/BORDA]")
+    .replace(/\[CAIXA\]([^\n]*?)\[CAIXA\]/gi, "[CAIXA]$1[/CAIXA]")
+    // Erro comum: [TXTMEDIO][TZTBORDA][ENDEREÇO][/TZTBORDA][/TXTMEDIO]
+    // deve manter as duas formatações ao mesmo tempo.
+    .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]");
+
 const normalizeHtmlForEscPos = (value: string) => {
-  let out = String(value || "");
+  let out = normalizeReceiptFormattingTagsFinal(String(value || ""));
 
   out = out.replace(
     /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
@@ -321,13 +341,13 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
   const style: LineStyle = { ...DEFAULT_STYLE };
   if (rawLine.includes(ADDRESS_OPEN)) style.address = true;
 
-  const line = rawLine || "";
+  const line = normalizeReceiptFormattingTagsFinal(rawLine || "");
 
   // Alinhamento
   if (/\[CENTRO\]/i.test(line)) style.align = "center";
   if (/\[DIREITA\]/i.test(line)) style.align = "right";
 
-  // Tamanhos/estilos — respeita tags mesmo com várias variáveis na mesma linha.
+  // Tamanhos reais. Não reduzir automaticamente depois.
   if (/\[TXTPEQUENO\]/i.test(line)) style.small = true;
   if (/\[TXTMEDIO\]/i.test(line)) style.medium = true;
   if (/\[NEGRITO\]/i.test(line)) {
@@ -340,20 +360,19 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.medium = false;
     style.small = false;
   }
-  if (/\[DESTAQUE\]/i.test(line)) {
-    style.bold = true;
-    style.big = true;
-    style.medium = false;
-    style.small = false;
-    // Destaque: grande + fundo preto ponta a ponta.
-    style.invertFull = true;
-  }
   if (/\[TXTGIGANTE\]/i.test(line)) {
     style.bold = true;
     style.giant = true;
     style.big = false;
     style.medium = false;
     style.small = false;
+  }
+  if (/\[DESTAQUE\]/i.test(line)) {
+    style.bold = true;
+    style.big = true;
+    style.medium = false;
+    style.small = false;
+    style.invertFull = true;
   }
 
   // Caixa/moldura
@@ -375,8 +394,6 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
   if (/\[TXTBORDATXT\]|\[FUNDPRETO\]/i.test(line)) {
-    // Fundo preto apenas no bloco do texto.
-    // [TZTBORDA]/[TXTBORDA] continuam ponta a ponta.
     style.invert = true;
     style.invertFull = false;
     style.bold = true;
@@ -387,11 +404,8 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
 };
 
 const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
-  // IMPORTANTE QZ/JP80H:
-  // Nunca usar alinhamento físico ESC/POS para centro/direita aqui.
-  // O alinhamento físico da impressora usa a área interna do firmware e pode
-  // ficar diferente das linhas à esquerda. Fazemos tudo com espaços dentro das
-  // mesmas colunas, deixando margens retas em todas as linhas.
+  // QZ/JP80H: alinhamento físico da impressora fica torto.
+  // Mantemos a impressora em LEFT e centralizamos/direitamos com espaços calculados.
   b.align("left");
   b.font(style.small ? "B" : "A");
   b.bold(style.bold);
@@ -446,12 +460,12 @@ const safeThermalBoxStyle = (style: LineStyle): LineStyle => ({
   ...DEFAULT_STYLE,
   align: style.align,
   bold: style.bold || style.big || style.giant || style.medium,
+  small: style.small,
+  medium: style.medium,
+  big: style.big,
+  giant: style.giant,
   invert: style.invert || style.invertFull,
   invertFull: style.invertFull,
-  small: false,
-  medium: false,
-  big: false,
-  giant: false,
   frame: "none",
   box: false,
 });
@@ -484,11 +498,6 @@ const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
   b.twoCols(pair.left, pair.right);
   return true;
 };
-
-const normalizeDeliveryReportTextForEscPos = (value: string) =>
-  normalizeHtmlForEscPos(String(value || ""));
-
-const isSignatureLine = (value: string) => /^_{3,}\s*$/.test(String(value || "").trim());
 
 const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
   const value = normalizeItemMarker(String(text || "").trim());
@@ -614,9 +623,14 @@ const normalizeAddressUppercase = (value: string) =>
   normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
 
 const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
-  // Endereço usa o mesmo fundo preto contínuo do TOTAL A RECEBER,
-  // sempre em CAIXA ALTA e sem corte transparente entre linhas.
-  renderContinuousBlackBlock(b, { ...DEFAULT_STYLE, bold: true, invertFull: true }, text, cols, align, true);
+  renderContinuousBlackBlock(
+    b,
+    { ...DEFAULT_STYLE, bold: true, medium: true, invertFull: true },
+    text,
+    cols,
+    align,
+    true,
+  );
 };
 
 const renderContinuousBlackBlock = (
@@ -637,8 +651,7 @@ const renderContinuousBlackBlock = (
   b.lineSpacing(0);
 
   for (const line of lines) {
-    // Linha SEMPRE preenchida até o fim da largura efetiva.
-    // Com fonte grande/gigante, a largura efetiva é menor, mas fisicamente ocupa a largura total.
+    // Fundo preto contínuo: cada linha é preenchida até a largura efetiva.
     b.rawText(fixedLine(line, innerCols, align).slice(0, innerCols));
   }
 
@@ -657,31 +670,26 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
   const finalText = style.address ? normalizeAddressUppercase(rawFinalText) : rawFinalText;
 
   if (!finalText.replace(/\s/g, "")) {
-    // Preserva linhas vazias digitadas no editor da comanda.
     b.rawText("");
     return;
   }
 
   if (isSignatureLine(finalText)) {
-    const line = truncateLineToCols(finalText.trim(), cols);
-    b.rawText(paddedFullLine(line, cols, style.align));
+    b.rawText(paddedFullLine(truncateLineToCols(finalText.trim(), cols), cols, style.align));
     resetStyle(b);
     return;
   }
 
-  // NÃO reduzir fonte automaticamente.
-  // Antes o sistema diminuía [GRANDE], [TXTMEDIO] e [TXTGIGANTE] para tentar caber em uma linha.
-  // Agora a formatação funciona de verdade: texto grande continua grande e quebra linha se precisar.
+  // Formatação real: não reduz tamanho automaticamente.
   const fittedStyle = style;
   const textCols = effectiveColumns(cols, fittedStyle);
   const outputLines = fittedStyle.address
     ? wrapAddressLines(finalText, textCols)
     : wrapAddressFullLines(finalText, textCols);
 
-  // [CAIXA], [BORDA] e molduras inline.
   if (fittedStyle.box || fittedStyle.frame !== "none") {
     if (fittedStyle.address) {
-      renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
+      renderAddressBlackLines(b, finalText, cols, fittedStyle.align || "center");
       return;
     }
 
@@ -702,8 +710,6 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
-  // [TZTBORDA]/[TXTBORDA]/[DESTAQUE]:
-  // fundo preto ponta-a-ponta, quebra linha e sem corte transparente no meio.
   if (fittedStyle.invertFull) {
     renderContinuousBlackBlock(
       b,
@@ -716,7 +722,6 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     return;
   }
 
-  // [TXTBORDATXT]/[FUNDPRETO]: fundo preto no bloco do texto.
   if (fittedStyle.invert) {
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true });
     const invCols = effectiveColumns(cols, safeStyle);
