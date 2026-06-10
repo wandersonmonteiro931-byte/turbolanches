@@ -533,10 +533,10 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
     const borderWidth = Number(el.borderWidth ?? 0) || 0;
     const commonStyle = {
       position: "absolute" as const,
-      left: `${el.x}mm`,
-      top: `${el.y}mm`,
-      width: `${el.width}mm`,
-      height: `${el.height}mm`,
+      left: mmToPx(el.x),
+      top: mmToPx(el.y),
+      width: mmToPx(el.width),
+      height: mmToPx(el.height),
       transform: `rotate(${el.rotation}deg)`,
       transformOrigin: "center center",
       zIndex: el.zIndex,
@@ -549,7 +549,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
         borderWidth > 0 && el.borderStyle !== "none"
           ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
           : "none",
-      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+      borderRadius: mmToPx(Number(el.borderRadius ?? 0) || 0),
       opacity: Number(el.opacity ?? 1) || 1,
     };
 
@@ -572,7 +572,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
             className="h-full w-full select-none"
             style={{
               objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+              padding: mmToPx(Number(el.paddingMm ?? 0) || 0),
               boxSizing: "border-box",
             }}
           />
@@ -586,7 +586,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+              padding: mmToPx(Number(el.paddingMm ?? 0.8) || 0.8),
               boxSizing: "border-box",
             }}
           >
@@ -696,7 +696,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
                   setDraggingCut(true);
                 }}
                 className="pointer-events-none absolute left-0 right-0 z-[9999] flex items-center"
-                style={{ top: `${layout.cutYmm}mm` }}
+                style={{ top: mmToPx(layout.cutYmm) }}
                 title="Arraste pelo botão CORTE para definir onde o papel será cortado"
               >
                 <div className="h-[2px] flex-1 bg-red-600" />
