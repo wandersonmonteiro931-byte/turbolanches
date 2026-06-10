@@ -411,7 +411,9 @@ const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
   b.bold(style.bold);
   if (style.giant) b.size(2, 2);
   else if (style.big) b.size(1, 1);
-  else if (style.medium) b.size(1, 1);
+  // [TXTMEDIO] não pode ficar gigante/ilegível na térmica.
+  // Usa altura maior, largura normal: destaca sem estourar a linha.
+  else if (style.medium) b.size(0, 1);
   else b.size(0, 0);
   b.underline(style.underline);
   b.invert(style.invert || style.invertFull);
@@ -511,7 +513,9 @@ const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
 
 const effectiveColumns = (cols: number, style: LineStyle) => {
   if (style.giant) return Math.max(8, Math.floor(cols / 3));
-  if (style.big || style.medium) return Math.max(8, Math.floor(cols / 2));
+  if (style.big) return Math.max(8, Math.floor(cols / 2));
+  // [TXTMEDIO] agora só aumenta a altura, então mantém a largura completa.
+  if (style.medium) return cols;
   if (style.small) return Math.max(cols, Math.floor(cols * 1.25));
   return cols;
 };
@@ -622,6 +626,10 @@ const wrapAddressFullLines = (value: string, cols: number) => {
 const normalizeAddressUppercase = (value: string) =>
   normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
 
+const isItemQuantityLikeLine = (value: string) =>
+  /^\s*\d+\s*[xX]\b/.test(String(value || "").trim()) ||
+  /^\s*(?:\d+\s*[xX]\s*[;:,.-]?|[;:,.-]\s*\d+\s*[xX])/i.test(String(value || "").trim());
+
 const renderContinuousBlackBlock = (
   b: EscPosBuilder,
   style: LineStyle,
@@ -630,9 +638,19 @@ const renderContinuousBlackBlock = (
   align: Align = "center",
   uppercase = false,
 ) => {
-  const styled = safeThermalBoxStyle({ ...style, invert: true, invertFull: true });
+  const rawValue = uppercase
+    ? normalizeAddressUppercase(text)
+    : normalizeHtmlForEscPos(text).replace(/\s+/g, " ").trim();
+
+  // Em itens do pedido, "1x", "2x", "3x" com fundo preto precisa ficar legível.
+  // Então, se for linha de quantidade/item, removemos o médio/grande do bloco preto.
+  const readableBlackStyle = isItemQuantityLikeLine(rawValue)
+    ? { ...style, medium: false, big: false, giant: false, small: false, bold: true }
+    : style;
+
+  const styled = safeThermalBoxStyle({ ...readableBlackStyle, invert: true, invertFull: true });
   const innerCols = effectiveColumns(cols, styled);
-  const value = uppercase ? normalizeAddressUppercase(text) : normalizeHtmlForEscPos(text).replace(/\s+/g, " ").trim();
+  const value = rawValue;
   const lines = wrapAddressFullLines(value, innerCols);
 
   resetStyle(b);
@@ -800,7 +818,8 @@ const renderItemQuantityHighlighted = (
   const gap = 1;
   const productWidth = Math.max(1, cols - qtyWidth - priceWidth - gap * 2);
 
-  b.align("left").font("A").bold(true).size(0, 1).invert(true);
+  // Quantidade do item precisa ser legível: fundo preto normal, sem aumentar altura.
+  b.align("left").font("A").bold(true).size(0, 0).invert(true);
   b.text(fixedLine(qty, qtyWidth, "center"));
 
   b.invert(false).size(0, 0).bold(true);
