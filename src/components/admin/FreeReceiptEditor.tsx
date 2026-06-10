@@ -682,7 +682,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
             <div
               ref={stageRef}
               onClick={() => setSelectedId(null)}
-              className="relative bg-white shadow-2xl"
+              className="relative overflow-hidden bg-white shadow-2xl"
               style={{
                 width: `${layout.paperWidthMm * 5}px`,
                 height: `${layout.designHeightMm * 5}px`,
