@@ -9,6 +9,7 @@ import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
 import { isQzAvailable, printRawEscPos } from "@/lib/qzTray";
 
 const FREE_RECEIPT_STORAGE_KEY = "turbo_comanda_livre_layout";
+const FREE_RECEIPT_PRINT_PAYLOAD_KEY = "turbo_comanda_livre_print_payload";
 
 const renderElementStyle = (el: FreeReceiptElement) => {
   const borderWidth = Number(el.borderWidth ?? 0) || 0;
@@ -37,10 +38,18 @@ const renderElementStyle = (el: FreeReceiptElement) => {
 
 const readLocalLayout = () => {
   try {
+    const sessionLayout = window.sessionStorage.getItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY) || "";
+    if (sessionLayout) return sessionLayout;
     return window.localStorage.getItem(FREE_RECEIPT_STORAGE_KEY) || "";
   } catch {
     return "";
   }
+};
+
+const clearPrintPayload = () => {
+  try {
+    window.sessionStorage.removeItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY);
+  } catch {}
 };
 
 const loadImageSafe = async (src: string): Promise<HTMLImageElement | null> => {
