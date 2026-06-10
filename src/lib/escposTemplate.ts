@@ -485,6 +485,11 @@ const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
   return true;
 };
 
+const normalizeDeliveryReportTextForEscPos = (value: string) =>
+  normalizeHtmlForEscPos(String(value || ""));
+
+const isSignatureLine = (value: string) => /^_{3,}\s*$/.test(String(value || "").trim());
+
 const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
   const value = normalizeItemMarker(String(text || "").trim());
   const width = Math.max(1, cols);
