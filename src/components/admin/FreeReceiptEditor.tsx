@@ -146,6 +146,8 @@ export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout
 
 const serializeLayout = (layout: FreeReceiptLayout) => JSON.stringify(layout, null, 2);
 const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const PREVIEW_PX_PER_MM = 5;
+const mmToPx = (value: number) => `${value * PREVIEW_PX_PER_MM}px`;
 
 const RESIZE_HANDLES = [
   { handle: "nw", className: "-left-2 -top-2 cursor-nwse-resize" },
@@ -177,26 +179,70 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const layoutRef = useRef<FreeReceiptLayout>(initialLayout);
+  const onChangeRef = useRef(onChange);
+  const emittedSerializedRef = useRef(serializeLayout(initialLayout));
+  const changeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushPendingChange = () => {
+    if (changeTimerRef.current) {
+      clearTimeout(changeTimerRef.current);
+      changeTimerRef.current = null;
+    }
+
+    const serialized = serializeLayout(layoutRef.current);
+    if (serialized !== emittedSerializedRef.current) {
+      emittedSerializedRef.current = serialized;
+      onChangeRef.current(serialized);
+    }
+    return serialized;
+  };
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     const parsed = parseFreeReceiptLayout(value);
-    setLayout(parsed);
+    const serialized = serializeLayout(parsed);
+    emittedSerializedRef.current = serialized;
+    if (changeTimerRef.current) {
+      clearTimeout(changeTimerRef.current);
+      changeTimerRef.current = null;
+    }
+    if (serialized !== serializeLayout(layoutRef.current)) {
+      layoutRef.current = parsed;
+      setLayout(parsed);
+    }
     setSelectedId((current) => current || parsed.elements[0]?.id || null);
   }, [value]);
 
   useEffect(() => {
     layoutRef.current = layout;
-    onChange(serializeLayout(layout));
-  }, [layout, onChange]);
+    const serialized = serializeLayout(layout);
+    if (serialized === emittedSerializedRef.current) return;
+
+    if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
+    changeTimerRef.current = setTimeout(() => {
+      changeTimerRef.current = null;
+      const latest = serializeLayout(layoutRef.current);
+      if (latest !== emittedSerializedRef.current) {
+        emittedSerializedRef.current = latest;
+        onChangeRef.current(latest);
+      }
+    }, 160);
+
+    return () => {
+      if (changeTimerRef.current) {
+        clearTimeout(changeTimerRef.current);
+        changeTimerRef.current = null;
+      }
+    };
+  }, [layout]);
 
   useEffect(() => {
     if (!onFlushReady) return;
-    onFlushReady(() => {
-      const serialized = serializeLayout(layoutRef.current);
-      onChange(serialized);
-      return serialized;
-    });
-  }, [onFlushReady, onChange]);
+    onFlushReady(flushPendingChange);
+  }, [onFlushReady]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
 
