@@ -285,9 +285,11 @@ const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
 
 const AdminFreePrint = () => {
   const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
+  const [rasterUrl, setRasterUrl] = useState("");
   const [error, setError] = useState("");
   const [printed, setPrinted] = useState(false);
-  const printedRef = useRef(false);
+  const jobStartedRef = useRef(false);
+  const printFiredRef = useRef(false);
 
   const searchParams = new URLSearchParams(window.location.search);
   const mode = searchParams.get("mode") || "pdf";
@@ -330,8 +332,10 @@ const AdminFreePrint = () => {
 
   useEffect(() => {
     const runPrint = async () => {
-      if (!layout || printedRef.current) return;
-      printedRef.current = true;
+      if (!layout || jobStartedRef.current) return;
+      jobStartedRef.current = true;
+
+      const canvas = await renderLayoutToCanvas(layout, printHeightMm);
 
       if (mode !== "pdf") {
         try {
@@ -339,10 +343,10 @@ const AdminFreePrint = () => {
           const available = await isQzAvailable();
 
           if (available && settings.qzPrinterName) {
-            const canvas = await renderLayoutToCanvas(layout, printHeightMm);
             const bytes = canvasToEscPosRaster(canvas);
             await printRawEscPos(settings.qzPrinterName, bytes, copies);
             setPrinted(true);
+            clearPrintPayload();
             setTimeout(() => window.close(), 800);
             return;
           }
@@ -351,14 +355,28 @@ const AdminFreePrint = () => {
         }
       }
 
-      setTimeout(() => {
-        window.print();
-        setPrinted(true);
-      }, 450);
+      setRasterUrl(canvas.toDataURL("image/png"));
     };
 
     runPrint();
   }, [layout, mode, copies, printHeightMm]);
+
+  useEffect(() => {
+    if (!layout || !rasterUrl || printFiredRef.current) return;
+    printFiredRef.current = true;
+
+    const firePrint = async () => {
+      document.body.dataset.printDocument = "ready";
+      await waitForPrintImages();
+      setTimeout(() => {
+        window.print();
+        setPrinted(true);
+        clearPrintPayload();
+      }, 220);
+    };
+
+    firePrint();
+  }, [layout, rasterUrl]);
 
   if (error) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
