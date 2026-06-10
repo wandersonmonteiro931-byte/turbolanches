@@ -146,6 +146,8 @@ export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout
 
 const serializeLayout = (layout: FreeReceiptLayout) => JSON.stringify(layout, null, 2);
 const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+const PREVIEW_PX_PER_MM = 5;
+const mmToPx = (value: number) => `${value * PREVIEW_PX_PER_MM}px`;
 
 const RESIZE_HANDLES = [
   { handle: "nw", className: "-left-2 -top-2 cursor-nwse-resize" },
@@ -177,26 +179,70 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const layoutRef = useRef<FreeReceiptLayout>(initialLayout);
+  const onChangeRef = useRef(onChange);
+  const emittedSerializedRef = useRef(serializeLayout(initialLayout));
+  const changeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushPendingChange = () => {
+    if (changeTimerRef.current) {
+      clearTimeout(changeTimerRef.current);
+      changeTimerRef.current = null;
+    }
+
+    const serialized = serializeLayout(layoutRef.current);
+    if (serialized !== emittedSerializedRef.current) {
+      emittedSerializedRef.current = serialized;
+      onChangeRef.current(serialized);
+    }
+    return serialized;
+  };
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     const parsed = parseFreeReceiptLayout(value);
-    setLayout(parsed);
+    const serialized = serializeLayout(parsed);
+    emittedSerializedRef.current = serialized;
+    if (changeTimerRef.current) {
+      clearTimeout(changeTimerRef.current);
+      changeTimerRef.current = null;
+    }
+    if (serialized !== serializeLayout(layoutRef.current)) {
+      layoutRef.current = parsed;
+      setLayout(parsed);
+    }
     setSelectedId((current) => current || parsed.elements[0]?.id || null);
   }, [value]);
 
   useEffect(() => {
     layoutRef.current = layout;
-    onChange(serializeLayout(layout));
-  }, [layout, onChange]);
+    const serialized = serializeLayout(layout);
+    if (serialized === emittedSerializedRef.current) return;
+
+    if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
+    changeTimerRef.current = setTimeout(() => {
+      changeTimerRef.current = null;
+      const latest = serializeLayout(layoutRef.current);
+      if (latest !== emittedSerializedRef.current) {
+        emittedSerializedRef.current = latest;
+        onChangeRef.current(latest);
+      }
+    }, 160);
+
+    return () => {
+      if (changeTimerRef.current) {
+        clearTimeout(changeTimerRef.current);
+        changeTimerRef.current = null;
+      }
+    };
+  }, [layout]);
 
   useEffect(() => {
     if (!onFlushReady) return;
-    onFlushReady(() => {
-      const serialized = serializeLayout(layoutRef.current);
-      onChange(serialized);
-      return serialized;
-    });
-  }, [onFlushReady, onChange]);
+    onFlushReady(flushPendingChange);
+  }, [onFlushReady]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
 
@@ -487,10 +533,10 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
     const borderWidth = Number(el.borderWidth ?? 0) || 0;
     const commonStyle = {
       position: "absolute" as const,
-      left: `${el.x}mm`,
-      top: `${el.y}mm`,
-      width: `${el.width}mm`,
-      height: `${el.height}mm`,
+      left: mmToPx(el.x),
+      top: mmToPx(el.y),
+      width: mmToPx(el.width),
+      height: mmToPx(el.height),
       transform: `rotate(${el.rotation}deg)`,
       transformOrigin: "center center",
       zIndex: el.zIndex,
@@ -503,7 +549,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
         borderWidth > 0 && el.borderStyle !== "none"
           ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
           : "none",
-      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+      borderRadius: mmToPx(Number(el.borderRadius ?? 0) || 0),
       opacity: Number(el.opacity ?? 1) || 1,
     };
 
@@ -526,7 +572,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
             className="h-full w-full select-none"
             style={{
               objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+              padding: mmToPx(Number(el.paddingMm ?? 0) || 0),
               boxSizing: "border-box",
             }}
           />
@@ -540,7 +586,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+              padding: mmToPx(Number(el.paddingMm ?? 0.8) || 0.8),
               boxSizing: "border-box",
             }}
           >
@@ -650,7 +696,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
                   setDraggingCut(true);
                 }}
                 className="pointer-events-none absolute left-0 right-0 z-[9999] flex items-center"
-                style={{ top: `${layout.cutYmm}mm` }}
+                style={{ top: mmToPx(layout.cutYmm) }}
                 title="Arraste pelo botão CORTE para definir onde o papel será cortado"
               >
                 <div className="h-[2px] flex-1 bg-red-600" />
