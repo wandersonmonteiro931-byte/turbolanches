@@ -210,24 +210,15 @@ export const makeTightThermalPrintHtml = (html: string, pageWidthMm = 72) => {
   return html.includes("__TURBO_TIGHT_THERMAL_INSTALLED__") ? html : html.replace("</body>", `${markerScript}</body>`);
 };
 
-type InlineTagMatch = {
-  index: number;
-  token: string;
-  kind: "open" | "close";
-  rule: (typeof TAG_RULES)[number];
-};
+const findNextInlineTag = (input: string, startIndex: number) => {
+  let nextMatch: {
+    index: number;
+    token: string;
+    kind: "open" | "close";
+    rule: (typeof TAG_RULES)[number];
+  } | null = null;
 
-type WrapperTokenMatch = {
-  index: number;
-  token: string;
-  kind: "toggle" | "close";
-  rule: (typeof WRAPPER_RULES)[number];
-};
-
-const findNextInlineTag = (input: string, startIndex: number): InlineTagMatch | null => {
-  let nextMatch: InlineTagMatch | null = null;
-
-  for (const rule of TAG_RULES) {
+  TAG_RULES.forEach((rule) => {
     const openIndex = input.indexOf(rule.open, startIndex);
     if (openIndex !== -1 && (!nextMatch || openIndex < nextMatch.index)) {
       nextMatch = { index: openIndex, token: rule.open, kind: "open", rule };
@@ -237,29 +228,34 @@ const findNextInlineTag = (input: string, startIndex: number): InlineTagMatch | 
     if (closeIndex !== -1 && (!nextMatch || closeIndex < nextMatch.index)) {
       nextMatch = { index: closeIndex, token: rule.close, kind: "close", rule };
     }
-  }
+  });
 
   return nextMatch;
 };
 
-const findNextWrapperToken = (template: string, startIndex: number): WrapperTokenMatch | null => {
-  let nextMatch: WrapperTokenMatch | null = null;
+const findNextWrapperToken = (template: string, startIndex: number) => {
+  let nextMatch: {
+    index: number;
+    token: string;
+    kind: "toggle" | "close";
+    rule: (typeof WRAPPER_RULES)[number];
+  } | null = null;
 
-  for (const rule of WRAPPER_RULES) {
-    for (const token of rule.tokens) {
+  WRAPPER_RULES.forEach((rule) => {
+    rule.tokens.forEach((token) => {
       const index = template.indexOf(token, startIndex);
       if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
         nextMatch = { index, token, kind: "toggle", rule };
       }
-    }
+    });
 
-    for (const token of rule.closeTokens) {
+    rule.closeTokens.forEach((token) => {
       const index = template.indexOf(token, startIndex);
       if (index !== -1 && (!nextMatch || index < nextMatch.index)) {
         nextMatch = { index, token, kind: "close", rule };
       }
-    }
-  }
+    });
+  });
 
   return nextMatch;
 };
@@ -304,10 +300,10 @@ export const extractTemplateSections = (template: string): TemplateSection[] => 
     pushBuffer(!!activeRule);
 
     if (nextMatch.kind === "close") {
-      if ((activeRule as (typeof WRAPPER_RULES)[number] | null)?.className === nextMatch.rule.className) {
+      if (activeRule?.className === nextMatch.rule.className) {
         activeRule = null;
       }
-    } else if ((activeRule as (typeof WRAPPER_RULES)[number] | null)?.className === nextMatch.rule.className) {
+    } else if (activeRule?.className === nextMatch.rule.className) {
       activeRule = null;
     } else {
       activeRule = nextMatch.rule;
@@ -761,12 +757,14 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     function hasPrintableContent(el) {
       if (!el || !el.getBoundingClientRect) return false;
       var txt = (el.textContent || "").replace(/\u00a0|\s/g, "");
+      var tag = (el.tagName || "").toLowerCase();
+      var hasImage = tag === "img" && ((el.naturalWidth || 0) > 0 || (el.getAttribute("src") || "").length > 0);
       var hasInk = false;
       try {
         var cs = window.getComputedStyle(el);
         hasInk = !!(cs && (cs.borderTopWidth !== "0px" || cs.borderBottomWidth !== "0px" || cs.borderLeftWidth !== "0px" || cs.borderRightWidth !== "0px" || (cs.backgroundColor && cs.backgroundColor !== "rgba(0, 0, 0, 0)" && cs.backgroundColor !== "transparent")));
       } catch (e) {}
-      return !!(txt || hasInk);
+      return !!(txt || hasImage || hasInk);
     }
     function lockExactPrintHeight(heightPx, heightMm) {
       var h = heightMm + "mm";
@@ -823,7 +821,14 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
           break;
         }
       }
-      if (cutMarker) bottomPx = measureBottom(cutMarker);
+      try {
+        var imgs = lastDoc.querySelectorAll("img");
+        for (var imgIndex = 0; imgIndex < imgs.length; imgIndex++) {
+          bottomPx = Math.max(bottomPx, measureBottom(imgs[imgIndex]));
+        }
+      } catch (error) {}
+
+      if (cutMarker) bottomPx = Math.max(bottomPx, measureBottom(cutMarker));
       if (!bottomPx) bottomPx = measureBottom(lastDoc);
     } else {
       bottomPx = measureBottom(root);
@@ -852,31 +857,62 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     } catch (error) {}
   }
 
-  function waitForImages(cb) {
+  function waitForImagesReady(callback) {
     try {
-      var imgs = document.images ? Array.prototype.slice.call(document.images) : [];
-      if (!imgs.length) { cb(); return; }
-      var remaining = imgs.length;
-      var done = false;
-      var finish = function () { if (done) return; done = true; cb(); };
-      var tick = function () { remaining -= 1; if (remaining <= 0) finish(); };
+      var imgs = Array.prototype.slice.call(document.images || []);
+      if (!imgs.length) {
+        callback();
+        return;
+      }
+
+      var pending = 0;
+      var finished = false;
+
+      function doneOne() {
+        if (finished) return;
+        pending -= 1;
+        if (pending <= 0) {
+          finished = true;
+          setTimeout(callback, 120);
+        }
+      }
+
       imgs.forEach(function (img) {
-        if (img.complete && img.naturalWidth > 0) { tick(); return; }
-        var onAny = function () {
-          img.removeEventListener("load", onAny);
-          img.removeEventListener("error", onAny);
-          tick();
-        };
-        img.addEventListener("load", onAny);
-        img.addEventListener("error", onAny);
-        if (img.decode) { try { img.decode().then(onAny).catch(onAny); } catch (e) {} }
+        try {
+          if (img.complete && img.naturalWidth > 0) return;
+          pending += 1;
+          img.addEventListener("load", doneOne, { once: true });
+          img.addEventListener("error", doneOne, { once: true });
+        } catch (error) {}
       });
-      // Hard safety net so we never block forever
-      setTimeout(finish, 4000);
-    } catch (e) { cb(); }
+
+      if (pending <= 0) {
+        finished = true;
+        setTimeout(callback, 120);
+        return;
+      }
+
+      setTimeout(function () {
+        if (!finished) {
+          finished = true;
+          callback();
+        }
+      }, 2500);
+    } catch (error) {
+      callback();
+    }
   }
 
   function firePrint() {
+    if (!window.__TURBO_PRINT_IMAGES_READY__) {
+      window.__TURBO_PRINT_IMAGES_READY__ = true;
+      waitForImagesReady(function () {
+        try { prepareTightPrintPage(); } catch (error) {}
+        setTimeout(firePrint, 80);
+      });
+      return;
+    }
+
     var run = function () {
       if (printFinished) return;
       runPrint();
@@ -887,29 +923,19 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     if (started) { run(); return; }
     started = true;
 
-    var startWhenReady = function () {
-      waitForImages(function () {
-        try {
-          requestAnimationFrame(function () {
-            requestAnimationFrame(run);
-          });
-        } catch (e) { run(); }
-      });
-    };
-
     if (document.fonts && document.fonts.ready) {
       var fontsReadyResolved = false;
       var runWhenReady = function () {
         if (fontsReadyResolved) return;
         fontsReadyResolved = true;
-        startWhenReady();
+        run();
       };
       document.fonts.ready.then(runWhenReady).catch(runWhenReady);
-      setTimeout(runWhenReady, 600);
+      setTimeout(runWhenReady, 220);
       return;
     }
 
-    setTimeout(startWhenReady, 60);
+    setTimeout(run, 60);
   }
 
   if (document.readyState === "complete") {
@@ -1063,11 +1089,8 @@ const getSharedPrintStyles = ({
           height: auto;
           object-fit: contain;
           image-rendering: auto;
-          filter: none;
-          -webkit-filter: none;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
-          color-adjust: exact;
         }
         .items-table { width: 100%; border-collapse: collapse; margin: 2px 0; }
         .items-table td { padding: 1px 0; vertical-align: top; font-weight: 900; }
