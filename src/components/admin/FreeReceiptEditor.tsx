@@ -164,6 +164,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
   const [rotating, setRotating] = useState<any>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; elX: number; elY: number } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const layoutRef = useRef(layout);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lastSerializedRef = useRef<string>(serializeLayout(layout));
@@ -174,7 +175,15 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  layoutRef.current = layout;
+
   const flushPendingChange = useCallback(() => {
+    const currentSerialized = serializeLayout(layoutRef.current);
+    if (currentSerialized !== lastSerializedRef.current) {
+      lastSerializedRef.current = currentSerialized;
+      pendingSerializedRef.current = currentSerialized;
+    }
+
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
