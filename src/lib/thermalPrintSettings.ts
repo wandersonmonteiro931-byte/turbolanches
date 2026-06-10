@@ -9,7 +9,7 @@ export interface ThermalPrintSettings {
   qzEnabled: boolean;
   /** Nome exato da impressora térmica registrada no Windows/macOS para envio raw. */
   qzPrinterName: string;
-  /** Largura útil em colunas (caracteres) — 32 para 58mm, 42 para POS-80 com margem segura; 48 para 80mm/72mm quando não cortar. */
+  /** Largura útil em colunas (caracteres) — 32 para 58mm, 48 para JP80H/POS-80 em largura total; 42 apenas se o firmware cortar a direita. */
   qzColumns: number;
   /** Quantidade de linhas em branco antes do corte (alimentação). */
   qzFeedLines: number;
@@ -37,7 +37,7 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   printGapMs: 1200,
   qzEnabled: false,
   qzPrinterName: "",
-  qzColumns: 42,
+  qzColumns: 48,
   qzFeedLines: 3,
   qzCodepage: 16,
   pedidoHighlightOrderNumber: true,
@@ -65,7 +65,7 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   qzEnabled: Boolean(value?.qzEnabled ?? DEFAULT_THERMAL_PRINT_SETTINGS.qzEnabled),
   qzPrinterName:
     typeof value?.qzPrinterName === "string" ? value!.qzPrinterName : DEFAULT_THERMAL_PRINT_SETTINGS.qzPrinterName,
-  qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 42),
+  qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 48),
   qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
   qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
   pedidoHighlightOrderNumber: Boolean(
@@ -92,8 +92,10 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
 });
 
 const migrateThermalPrintSettings = (settings: ThermalPrintSettings): ThermalPrintSettings => {
-  if (settings.qzColumns > 42) {
-    return { ...settings, qzColumns: 42 };
+  // JP80H/POS-80 deve usar 48 colunas para ocupar a largura útil.
+  // Se o usuário já salvou 42 por correções antigas, atualiza para 48.
+  if (settings.qzColumns < 48) {
+    return { ...settings, qzColumns: 48 };
   }
   return settings;
 };

@@ -118,7 +118,7 @@ const AdminReceipts = () => {
     // POS-80 real costuma cortar a direita com 48 colunas.
     // Forçamos 42 para as comandas não ultrapassarem a largura útil da impressora.
     if (field === "qzColumns") {
-      safeValue = Math.min(42, Math.max(24, Number(value) || 42));
+      safeValue = Math.min(48, Math.max(24, Number(value) || 48));
     }
 
     const next = saveThermalPrintSettings({ ...thermalSettings, [field]: safeValue as never });
@@ -128,7 +128,7 @@ const AdminReceipts = () => {
   const applyThermalSettings = () => {
     const next = saveThermalPrintSettings({
       ...thermalSettings,
-      qzColumns: Math.min(42, Math.max(24, Number(thermalSettings.qzColumns) || 42)),
+      qzColumns: Math.min(48, Math.max(24, Number(thermalSettings.qzColumns) || 48)),
       paperWidthMm: Math.min(72, Math.max(40, Number(thermalSettings.paperWidthMm) || 72)),
       popupWidthPx: Math.min(280, Math.max(180, Number(thermalSettings.popupWidthPx) || 280)),
     });
@@ -442,10 +442,10 @@ const AdminReceipts = () => {
               type="number"
               min={24}
               max={64}
-              value={Math.min(42, Number(thermalSettings.qzColumns) || 42)}
+              value={Math.min(48, Number(thermalSettings.qzColumns) || 48)}
               onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
             />
-            <p className="text-[11px] text-muted-foreground">42 = POS-80 segura sem cortar · 32 = 58mm</p>
+            <p className="text-[11px] text-muted-foreground">48 = JP80H/POS-80 largura total · 42 = reduzido</p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Linhas antes do corte</Label>
@@ -576,11 +576,11 @@ const AdminReceipts = () => {
               type="number"
               min={24}
               max={64}
-              value={Math.min(42, Number(thermalSettings.qzColumns) || 42)}
+              value={Math.min(48, Number(thermalSettings.qzColumns) || 48)}
               onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
             />
             <p className="text-[11px] text-muted-foreground">
-              Use 42. A POS-80 real corta a direita com 48 na maioria dos drivers.
+              Use 48 para JP80H/POS-80 ocupar toda a largura. Use 42 somente se cortar a direita.
             </p>
           </div>
 
@@ -609,7 +609,7 @@ const AdminReceipts = () => {
         </div>
 
         <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-          Para POS-80 cortando a direita, use: largura 72mm, janela 280px e colunas QZ 42. Depois clique em
+          Para POS-80 cortando a direita, use: largura 72mm, janela 280px e colunas QZ 48. Depois clique em
           <strong> Salvar e aplicar real</strong>.
         </div>
       </div>
@@ -884,36 +884,6 @@ const AdminReceipts = () => {
                         <p>
                           Para logotipo, coloque no modelo: <strong>[CENTRO][LOGOLOJA][/CENTRO]</strong>
                         </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateField(
-                                tab.type,
-                                "body_template",
-                                `[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n${fields.body_template || getDefaultTemplate(tab.type)}`,
-                              )
-                            }
-                            className="rounded-md border border-primary/40 px-3 py-1.5 text-xs font-bold text-primary"
-                          >
-                            Inserir [IMAGEMPANFLETO]
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateField(
-                                tab.type,
-                                "body_template",
-                                `[CENTRO][LOGOLOJA][/CENTRO]\n${fields.body_template || getDefaultTemplate(tab.type)}`,
-                              )
-                            }
-                            className="rounded-md border border-primary/40 px-3 py-1.5 text-xs font-bold text-primary"
-                          >
-                            Inserir [LOGOLOJA]
-                          </button>
-                        </div>
-
                         <button
                           type="button"
                           onClick={() => {

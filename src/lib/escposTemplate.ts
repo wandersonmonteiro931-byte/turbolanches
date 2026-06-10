@@ -58,34 +58,8 @@ const normalizeItemMarker = (value: string) =>
     .replace(/\bitem_(\d+)\b/gi, "$1 - ")
     .replace(/_{2,}/g, "_");
 
-const stripReceiptTags = (value: string) => String(value || "").replace(/\[[^\]\n]+\]/g, "");
-
-const normalizeReceiptTagsStrict = (value: string) =>
-  String(value || "")
-    // Corrige linhas onde a pessoa repetiu a tag em vez de fechar com "/".
-    .replace(/\[CENTRO\]([^\n]*?)\[CENTRO\]/gi, "[CENTRO]$1[/CENTRO]")
-    .replace(/\[TXTMEDIO\]([^\n]*?)\[TXTMEDIO\]/gi, "[TXTMEDIO]$1[/TXTMEDIO]")
-    .replace(/\[TZTBORDA\]([^\n]*?)\[TZTBORDA\]/gi, "[TZTBORDA]$1[/TZTBORDA]")
-    .replace(/\[GRANDE\]([^\n]*?)\[GRANDE\]/gi, "[GRANDE]$1[/GRANDE]")
-    .replace(/\[NEGRITO\]([^\n]*?)\[NEGRITO\]/gi, "[NEGRITO]$1[/NEGRITO]")
-    // Corrige endereço fechado errado.
-    .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]")
-    // Corrige total fechado errado.
-    .replace(/\[\/CENTRO\]\[TZTBORDA\]\[TXTMEDIO\]/gi, "[/CENTRO][/TZTBORDA][/TXTMEDIO]");
-
-const normalizeReceiptTags = (value: string) =>
-  String(value || "")
-    // Corrige fechamentos escritos sem "/" por engano.
-    .replace(/\[TZTBORDA\](?![\s\S]*?\[\/TZTBORDA\])/gi, "[TZTBORDA]")
-    // Corrige casos comuns em que a tag foi fechada com ela mesma no fim da linha.
-    .replace(/\[CENTRO\]([^\n]*?)\[CENTRO\]/gi, "[CENTRO]$1[/CENTRO]")
-    .replace(/\[TXTMEDIO\]([^\n]*?)\[TXTMEDIO\]/gi, "[TXTMEDIO]$1[/TXTMEDIO]")
-    .replace(/\[TZTBORDA\]([^\n]*?)\[TZTBORDA\]/gi, "[TZTBORDA]$1[/TZTBORDA]")
-    // Corrige endereço que veio com fechamento errado: [CENTRO][ENDEREÇO][/TXTMEDIO]
-    .replace(/\[CENTRO\](\[(?:ENDEREÇO|ENDERECO)\])\[\/TXTMEDIO\]/gi, "[CENTRO]$1[/CENTRO]");
-
 const normalizeHtmlForEscPos = (value: string) => {
-  let out = normalizeReceiptTagsStrict(normalizeReceiptTags(String(value || "")));
+  let out = String(value || "");
 
   out = out.replace(
     /<div[^>]*class=["'][^"']*report-row[^"']*["'][^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<span[^>]*>([\s\S]*?)<\/span>\s*<\/div>/gi,
@@ -108,40 +82,13 @@ const normalizeHtmlForEscPos = (value: string) => {
   return normalizeItemMarker(out)
     .split("\n")
     .map((line) => line.replace(/[ \t]{2,}/g, " ").trimEnd())
-    .join("\n");
-};
-
-const isDeliveryReportLine = (value: string) =>
-  /^\s*\d+\s*[-–—]\s*(?:#\d+|RUA|AV|ALAMEDA|TRAVESSA|ROD|ESTRADA|LOTE|QD|CASA)/i.test(
-    normalizeItemMarker(String(value || "")).trim(),
-  );
-
-const isReportSummaryLine = (value: string) =>
-  /^\s*(TOTAL DE ENTREGAS|TOTAL TAXAS DE ENTREGA|TAXA FIXA DIÁRIA|TOTAL ENTREGADOR)/i.test(String(value || "").trim());
-
-const compactDeliveryReportBlankLines = (value: string) => {
-  const lines = String(value || "").split("\n");
-  const out: string[] = [];
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const cur = normalizeItemMarker(lines[i]);
-    const prev = out.length > 0 ? out[out.length - 1] : "";
-    const next = i + 1 < lines.length ? normalizeItemMarker(lines[i + 1]) : "";
-
-    // Remove linha vazia entre duas entregas ou antes do resumo do relatório.
-    if (cur.trim() === "" && (isDeliveryReportLine(prev) || isDeliveryReportLine(next) || isReportSummaryLine(next))) {
-      continue;
-    }
-
-    out.push(cur);
-  }
-
-  return out.join("\n");
+    .join("\n")
+    .replace(/\n{4,}/g, "\n\n");
 };
 
 const isAddressToken = (token: string) => /^\[(ENDEREÇO|ENDERECO)\]$/i.test(token);
 const formatAddressValue = (value: string) => value.toLocaleUpperCase("pt-BR");
-const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(value);
+const formatPrintAddressForEscPos = (value: string) => normalizeHtmlForEscPos(value).toLocaleUpperCase("pt-BR");
 
 const ALL_KNOWN_VARIABLES = [
   "[NUMEROPEDIDO]",
@@ -435,14 +382,17 @@ const parseLineStyle = (rawLine: string): { style: LineStyle; text: string } => 
     style.bold = true;
   }
 
-  const text = stripReceiptTags(
-    line.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join(""),
-  );
+  const text = line.replace(ALL_TAGS_RE, "").split(ADDRESS_OPEN).join("").split(ADDRESS_CLOSE).join("");
   return { style, text };
 };
 
 const applyStyleToBuilder = (b: EscPosBuilder, style: LineStyle) => {
-  b.align(style.align);
+  // IMPORTANTE QZ/JP80H:
+  // Nunca usar alinhamento físico ESC/POS para centro/direita aqui.
+  // O alinhamento físico da impressora usa a área interna do firmware e pode
+  // ficar diferente das linhas à esquerda. Fazemos tudo com espaços dentro das
+  // mesmas colunas, deixando margens retas em todas as linhas.
+  b.align("left");
   b.font(style.small ? "B" : "A");
   b.bold(style.bold);
   if (style.giant) b.size(2, 2);
@@ -529,16 +479,17 @@ const removeInternalPrintMarkers = (value: string) =>
     .replace(/@@SEP@@/g, " ");
 
 const renderFixedMoneyLine = (b: EscPosBuilder, line: string, cols: number) => {
-  const pair = splitValueAtRight(normalizeItemMarker(removeInternalPrintMarkers(line)));
+  const pair = splitValueAtRight(removeInternalPrintMarkers(line));
   if (!pair) return false;
   b.twoCols(pair.left, pair.right);
   return true;
 };
 
 const paddedFullLine = (text: string, cols: number, align: Align = "left") => {
-  const value = text.trim();
-  if (value.length >= cols) return value;
-  const remaining = cols - value.length;
+  const value = normalizeItemMarker(String(text || "").trim());
+  const width = Math.max(1, cols);
+  if (value.length >= width) return value.slice(0, width);
+  const remaining = width - value.length;
   const left = align === "center" ? Math.floor(remaining / 2) : align === "right" ? remaining : 0;
   const right = remaining - left;
   return `${" ".repeat(left)}${value}${" ".repeat(right)}`;
@@ -655,15 +606,15 @@ const wrapAddressFullLines = (value: string, cols: number) => {
 };
 
 const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "left") => {
-  // Mesmo visual do [TZTBORDA]: fundo preto na linha inteira.
-  // A diferença é que endereço pode quebrar em várias linhas sem cortar.
-  const lines = wrapAddressFullLines(text, cols);
+  // Margem reta ponta-a-ponta: usa a largura inteira configurada.
+  const innerCols = Math.max(8, cols);
+  const lines = wrapAddressFullLines(text, innerCols);
 
   resetStyle(b);
-  b.align("left").font("A").bold(true).size(0, 1).invert(true);
+  b.align("left").font("A").bold(true).size(0, 0).invert(true);
 
   for (const line of lines) {
-    b.rawText(fixedLine(line, cols, align));
+    b.rawText(fixedLine(line, innerCols, align));
   }
 
   resetStyle(b);
@@ -675,22 +626,9 @@ const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: str
   renderAddressBlackLines(b, text, cols, style.align || "left");
 };
 
-const isSignatureLine = (value: string) => /^_+$/.test(String(value || "").trim());
-
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const finalText = normalizeDeliveryReportTextForEscPos(normalizeItemMarker(removeInternalPrintMarkers(text)));
-  if (!finalText.replace(/\s/g, "")) {
-    // Preserva linhas vazias digitadas no editor da comanda.
-    b.rawText("");
-    return;
-  }
-
-  if (isSignatureLine(finalText)) {
-    const line = truncateLineToCols(finalText.trim(), cols);
-    b.rawText(paddedFullLine(line, cols, style.align));
-    resetStyle(b);
-    return;
-  }
+  const finalText = removeInternalPrintMarkers(text);
+  if (!finalText.replace(/\s/g, "")) return;
 
   const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
 
@@ -719,6 +657,8 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
   // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
   if (fittedStyle.invertFull) {
+    // Regra especial para [TZTBORDA][ENDEREÇO][/TZTBORDA]:
+    // endereço nunca pode ser cortado; deve quebrar em várias linhas com fundo preto.
     if (fittedStyle.address) {
       renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
       return;
@@ -726,8 +666,11 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
 
     const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
     applyStyleToBuilder(b, safeStyle);
+
+    // Fundo preto alto em uma única linha, sem linha vazia em cima/baixo.
     b.size(0, 1);
     b.rawText(fixedLine(finalText.trim(), cols, safeStyle.align));
+
     resetStyle(b);
     return;
   }
@@ -746,7 +689,7 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     if (fittedStyle.align === "center") b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "center"));
     else if (fittedStyle.align === "right")
       b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "right"));
-    else b.rawText(truncateLineToCols(line, effectiveColumns(cols, fittedStyle)));
+    else b.rawText(paddedFullLine(line, effectiveColumns(cols, fittedStyle), "left"));
   }
   resetStyle(b);
 };
@@ -815,39 +758,6 @@ const renderItemQuantityHighlighted = (
 // Renderização
 // =============================================================================
 
-const normalizeDeliveryReportTextForEscPos = (value: string) => {
-  let out = String(value || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n");
-
-  out = out.replace(/(^|\n)(\s*\d+)\s*[-–—]+\s*[-–—]+\s*/g, "$1$2 - ");
-  out = out.replace(/(^|\n)(\s*\d+)\s*-\s*-\s*/g, "$1$2 - ");
-  out = out.replace(/(^|\n)(\s*\d+)\s*[-–—]\s*/g, "$1$2 - ");
-
-  const lines = out.split("\n");
-  const cleaned: string[] = [];
-
-  const isDeliveryLine = (line: string) =>
-    /^\s*\d+\s*[-–—]\s*(?:#\d+|RUA|AV|ALAMEDA|TRAVESSA|ROD|ESTRADA|LOTE|QD|CASA|[A-ZÀ-Ú0-9])/i.test(line.trim());
-
-  const isSummaryLine = (line: string) =>
-    /^\s*(TOTAL DE ENTREGAS|TOTAL TAXAS DE ENTREGA|TAXA FIXA DIÁRIA|TOTAL ENTREGADOR)/i.test(line.trim());
-
-  for (let i = 0; i < lines.length; i += 1) {
-    const cur = lines[i];
-    const prev = cleaned.length ? cleaned[cleaned.length - 1] : "";
-    const next = i + 1 < lines.length ? lines[i + 1] : "";
-
-    if (cur.trim() === "" && (isDeliveryLine(prev) || isDeliveryLine(next) || isSummaryLine(next))) {
-      continue;
-    }
-
-    cleaned.push(cur);
-  }
-
-  return cleaned.join("\n");
-};
-
 export const renderTemplateToEscPos = (
   input: RenderTemplateInput,
   opts: Partial<EscPosBuilderOptions> = {},
@@ -865,33 +775,38 @@ export const renderTemplateToEscPos = (
 
   resolved = normalizeHtmlForEscPos(resolved);
 
-  // 3. Preserva exatamente as quebras de linha do modelo.
-  // Não remover linhas vazias aqui.
-  // O usuário pode colocar espaços/linhas em branco antes de assinatura, carimbo etc.
-  // Também não colapsar separadores, porque a comanda deve respeitar o editor.
-  resolved = resolved.split("\n").join("\n");
+  // 3. Limpeza pós-substituição:
+  //   - Remove linhas que ficaram vazias por causa de variáveis sem valor
+  //     (ex: [OBS], [CUPOM], [NOMEENTREGADOR] vazios), MAS preserva linhas
+  //     em branco intencionais que existiam no template original.
+  //   - Colapsa separadores '---' duplicados/consecutivos para um único.
+  const originalLines = input.template.split("\n");
+  const resolvedLines = resolved.split("\n");
+  const cleaned: string[] = [];
+  for (let i = 0; i < resolvedLines.length; i += 1) {
+    const cur = resolvedLines[i];
+    const trimmedCur = cur.trim();
+    const original = (originalLines[i] ?? "").trim();
+    // Se a linha original tinha conteúdo (ex: variável) e agora ficou vazia,
+    // pulamos — evita "---\n\n---" virando 3 separadores grudados.
+    if (!trimmedCur && original && !/^\s*$/.test(original)) continue;
+    cleaned.push(cur);
+  }
+  // Colapsa separadores consecutivos
+  const finalLines: string[] = [];
+  for (const ln of cleaned) {
+    const t = ln.trim();
+    const prev = finalLines.length > 0 ? finalLines[finalLines.length - 1].trim() : null;
+    if (t === "---" && prev === "---") continue;
+    finalLines.push(ln);
+  }
+  resolved = finalLines.join("\n");
 
   // 4. Renderiza linha a linha
-  resolved = compactDeliveryReportBlankLines(resolved);
-  resolved = normalizeDeliveryReportTextForEscPos(resolved);
   const lines = resolved.split("\n");
   let activeBlockFrame: LineStyle["frame"] = "none";
 
   for (const rawLine of lines) {
-    // Preserva linhas totalmente vazias digitadas no editor.
-    if (rawLine === "") {
-      resetStyle(b);
-      b.newline();
-      continue;
-    }
-
-    // Preserva linhas que tenham apenas espaços.
-    if (rawLine.length > 0 && rawLine.trim() === "") {
-      resetStyle(b);
-      b.rawText(rawLine.slice(0, cols));
-      continue;
-    }
-
     const trimmed = rawLine.trim();
 
     const blockTag = getBlockFrameTag(trimmed);
