@@ -158,6 +158,8 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   const [selectedId, setSelectedId] = useState<string | null>(initialLayout.elements[0]?.id ?? null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingCut, setDraggingCut] = useState(false);
+  const [resizing, setResizing] = useState<any>(null);
+  const [rotating, setRotating] = useState<any>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; elX: number; elY: number } | null>(null);
   const [uploading, setUploading] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -330,8 +332,95 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     setDragStart({ x: p.x, y: p.y, elX: el.x, elY: el.y });
   };
 
+  const startResize = (event: any, el: FreeReceiptElement, handle: string) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedId(el.id);
+    const p = getPointMm(event);
+    setResizing({
+      id: el.id,
+      handle,
+      startX: p.x,
+      startY: p.y,
+      x: el.x,
+      y: el.y,
+      width: el.width,
+      height: el.height,
+    });
+  };
+
+  const startRotate = (event: any, el: FreeReceiptElement) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedId(el.id);
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const rect = stage.getBoundingClientRect();
+    const centerX = rect.left + ((el.x + el.width / 2) / layout.paperWidthMm) * rect.width;
+    const centerY = rect.top + ((el.y + el.height / 2) / layout.designHeightMm) * rect.height;
+    const startAngle = Math.atan2(event.clientY - centerY, event.clientX - centerX) * (180 / Math.PI);
+
+    setRotating({
+      id: el.id,
+      centerX,
+      centerY,
+      startAngle,
+      rotation: el.rotation || 0,
+    });
+  };
+
   useEffect(() => {
     const onMove = (event: MouseEvent) => {
+      if (resizing) {
+        const p = getPointMm(event);
+        const dx = p.x - resizing.startX;
+        const dy = p.y - resizing.startY;
+
+        updateLayout((current) => ({
+          ...current,
+          elements: current.elements.map((el) => {
+            if (el.id !== resizing.id) return el;
+
+            let nextX = resizing.x;
+            let nextY = resizing.y;
+            let nextW = resizing.width;
+            let nextH = resizing.height;
+
+            if (resizing.handle.includes("e")) nextW = resizing.width + dx;
+            if (resizing.handle.includes("s")) nextH = resizing.height + dy;
+            if (resizing.handle.includes("w")) {
+              nextX = resizing.x + dx;
+              nextW = resizing.width - dx;
+            }
+            if (resizing.handle.includes("n")) {
+              nextY = resizing.y + dy;
+              nextH = resizing.height - dy;
+            }
+
+            nextW = clamp(nextW, 4, current.paperWidthMm * 2);
+            nextH = clamp(nextH, 4, current.designHeightMm);
+            nextX = clamp(nextX, -20, current.paperWidthMm + 20);
+            nextY = clamp(nextY, -20, current.designHeightMm + 20);
+
+            return { ...el, x: nextX, y: nextY, width: nextW, height: nextH };
+          }),
+        }));
+        return;
+      }
+
+      if (rotating) {
+        const angle = Math.atan2(event.clientY - rotating.centerY, event.clientX - rotating.centerX) * (180 / Math.PI);
+        const delta = angle - rotating.startAngle;
+        updateLayout((current) => ({
+          ...current,
+          elements: current.elements.map((el) =>
+            el.id === rotating.id ? { ...el, rotation: Math.round(rotating.rotation + delta) } : el,
+          ),
+        }));
+        return;
+      }
+
       if (draggingCut) {
         const p = getPointMm(event);
         updateLayout((current) => ({ ...current, cutYmm: clamp(p.y, 20, current.designHeightMm) }));
@@ -360,6 +449,8 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     const onUp = () => {
       setDraggingId(null);
       setDraggingCut(false);
+      setResizing(null);
+      setRotating(null);
       setDragStart(null);
     };
 
@@ -369,7 +460,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [draggingId, dragStart, draggingCut, layout.paperWidthMm, layout.designHeightMm]);
+  }, [draggingId, dragStart, draggingCut, resizing, rotating, layout.paperWidthMm, layout.designHeightMm]);
 
   const renderElement = (el: FreeReceiptElement) => {
     const selectedClass = selectedId === el.id ? "ring-2 ring-primary ring-offset-1" : "ring-1 ring-transparent";
@@ -436,6 +527,38 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
             {el.text}
           </div>
         )}
+
+        {selectedId === el.id ? (
+          <>
+            <button
+              type="button"
+              onMouseDown={(event) => startRotate(event, el)}
+              className="absolute -top-7 left-1/2 z-[10000] h-5 w-5 -translate-x-1/2 rounded-full bg-red-600 text-[10px] font-black text-white shadow"
+              title="Arraste para girar"
+            >
+              ↻
+            </button>
+
+            {[
+              ["nw", "-left-2 -top-2 cursor-nwse-resize"],
+              ["n", "left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"],
+              ["ne", "-right-2 -top-2 cursor-nesw-resize"],
+              ["e", "-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+              ["se", "-right-2 -bottom-2 cursor-nwse-resize"],
+              ["s", "left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize"],
+              ["sw", "-left-2 -bottom-2 cursor-nesw-resize"],
+              ["w", "-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+            ].map(([handle, cls]) => (
+              <button
+                key={handle}
+                type="button"
+                onMouseDown={(event) => startResize(event, el, handle)}
+                className={`absolute z-[10000] h-4 w-4 rounded-sm border border-white bg-red-600 shadow ${cls}`}
+                title="Arraste para aumentar/diminuir"
+              />
+            ))}
+          </>
+        ) : null}
       </div>
     );
   };
@@ -581,7 +704,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                     {key === "rotation" ? "Girar" : key.toUpperCase()}
                     <input
                       type="number"
-                      value={Number(selected[key] || 0)}
+                      value={Number(Number(selected[key] || 0).toFixed(1))}
                       onChange={(e) => updateSelected({ [key]: Number(e.target.value) } as Partial<FreeReceiptElement>)}
                       className="h-9 w-full rounded border bg-background px-2"
                     />
@@ -591,7 +714,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                   Camada
                   <input
                     type="number"
-                    value={selected.zIndex}
+                    value={Number(selected.zIndex)}
                     onChange={(e) => updateSelected({ zIndex: Number(e.target.value) })}
                     className="h-9 w-full rounded border bg-background px-2"
                   />
