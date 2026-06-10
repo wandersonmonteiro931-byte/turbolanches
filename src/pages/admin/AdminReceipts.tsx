@@ -286,6 +286,7 @@ const AdminReceipts = () => {
       const existing = templates?.find((template) => template.template_type === tab.type);
       map[tab.type] = buildTemplateDraft(tab.type, existing);
     });
+    freeReceiptBodyRef.current = String(map.livre?.body_template || getDefaultTemplate("livre"));
     setEditData(map);
   }, [templates]);
 
