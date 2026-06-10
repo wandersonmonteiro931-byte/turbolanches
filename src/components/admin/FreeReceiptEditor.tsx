@@ -150,9 +150,10 @@ const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 interface FreeReceiptEditorProps {
   value?: string | null;
   onChange: (next: string) => void;
+  onFlushReady?: (flush: () => void) => void;
 }
 
-const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
+const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorProps) => {
   const [layout, setLayout] = useState<FreeReceiptLayout>(() => parseFreeReceiptLayout(value));
   const [selectedId, setSelectedId] = useState<string | null>(
     () => parseFreeReceiptLayout(value).elements[0]?.id ?? null,
@@ -184,6 +185,11 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     pendingSerializedRef.current = null;
     onChangeRef.current(next);
   }, []);
+
+  useEffect(() => {
+    onFlushReady?.(flushPendingChange);
+    return () => onFlushReady?.(() => undefined);
+  }, [flushPendingChange, onFlushReady]);
 
   // Push initial serialization to parent so the form's body_template is in sync
   // even if the user clicks Salvar without editing anything.
