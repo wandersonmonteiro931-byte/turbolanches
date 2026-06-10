@@ -796,7 +796,7 @@ const AdminReceipts = () => {
                 />
               </div>
 
-              ) : null}
+              
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
