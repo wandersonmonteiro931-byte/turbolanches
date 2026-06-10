@@ -52,6 +52,22 @@ const clearPrintPayload = () => {
   } catch {}
 };
 
+const waitForPrintImages = async () => {
+  if (typeof document === "undefined") return;
+
+  const images = Array.from(document.images || []);
+  await Promise.all(
+    images.map((img) => {
+      if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        const done = () => resolve();
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+      });
+    }),
+  );
+};
+
 const loadImageSafe = async (src: string): Promise<HTMLImageElement | null> => {
   if (!src) return null;
 
