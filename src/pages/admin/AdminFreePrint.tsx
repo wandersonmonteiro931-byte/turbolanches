@@ -427,6 +427,15 @@ const AdminFreePrint = () => {
           print-color-adjust: exact !important;
         }
 
+        .free-print-raster {
+          display: block !important;
+          width: ${layout.paperWidthMm}mm !important;
+          height: ${printHeightMm}mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          object-fit: fill !important;
+        }
+
         @media screen {
           body {
             background: #e5e5e5 !important;
@@ -454,50 +463,54 @@ const AdminFreePrint = () => {
       `}</style>
 
       <div className="free-print-stage">
-        {layout.elements
-          .slice()
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map((el) => (
-            <div key={el.id} style={renderElementStyle(el)}>
-              {el.type === "image" ? (
-                <img
-                  src={el.imageUrl}
-                  alt=""
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-                    display: "block",
-                    padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
-                    boxSizing: "border-box",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent:
-                      el.textAlign === "right" ? "flex-end" : el.textAlign === "left" ? "flex-start" : "center",
-                    textAlign: el.textAlign || "center",
-                    fontFamily: "Arial, Helvetica, sans-serif",
-                    fontSize: `${el.fontSize || 12}px`,
-                    fontWeight: el.fontWeight || "bold",
-                    lineHeight: 1.15,
-                    color: el.color || "#000000",
-                    padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  {el.text}
-                </div>
-              )}
-            </div>
-          ))}
+        {rasterUrl ? (
+          <img src={rasterUrl} alt="Comanda livre" className="free-print-raster" />
+        ) : (
+          layout.elements
+            .slice()
+            .sort((a, b) => a.zIndex - b.zIndex)
+            .map((el) => (
+              <div key={el.id} style={renderElementStyle(el)}>
+                {el.type === "image" ? (
+                  <img
+                    src={el.imageUrl}
+                    alt=""
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
+                      display: "block",
+                      padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+                      boxSizing: "border-box",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent:
+                        el.textAlign === "right" ? "flex-end" : el.textAlign === "left" ? "flex-start" : "center",
+                      textAlign: el.textAlign || "center",
+                      fontFamily: "Arial, Helvetica, sans-serif",
+                      fontSize: `${el.fontSize || 12}px`,
+                      fontWeight: el.fontWeight || "bold",
+                      lineHeight: 1.15,
+                      color: el.color || "#000000",
+                      padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+                      boxSizing: "border-box",
+                    }}
+                  >
+                    {el.text}
+                  </div>
+                )}
+              </div>
+            ))
+        )}
       </div>
 
       <div className="no-print" style={{ padding: 12, fontFamily: "monospace", textAlign: "center" }}>
