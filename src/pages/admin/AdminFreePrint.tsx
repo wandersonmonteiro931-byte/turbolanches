@@ -49,7 +49,9 @@ const readLocalLayout = () => {
 const clearPrintPayload = () => {
   try {
     window.sessionStorage.removeItem(FREE_RECEIPT_PRINT_PAYLOAD_KEY);
-  } catch {}
+  } catch {
+    // Ignora navegadores que bloqueiam sessionStorage.
+  }
 };
 
 const waitForPrintImages = async () => {
@@ -148,7 +150,7 @@ const renderLayoutToCanvas = async (layout: FreeReceiptLayout, heightMm: number)
 
   // Desativar suavização para texto e bordas nítidos na térmica
   ctx.imageSmoothingEnabled = false;
-  (ctx as any).textRendering = "geometricPrecision";
+  (ctx as CanvasRenderingContext2D & { textRendering?: string }).textRendering = "geometricPrecision";
 
   ctx.fillStyle = layout.background || "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -387,9 +389,9 @@ const AdminFreePrint = () => {
       let canvas: HTMLCanvasElement;
       try {
         canvas = await renderLayoutToCanvas(layout, printHeightMm);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("[Comanda LIVRE] Falha ao renderizar a impressão:", err);
-        setError(err?.message || "Falha ao gerar a imagem da comanda livre para impressão.");
+        setError(err instanceof Error ? err.message : "Falha ao gerar a imagem da comanda livre para impressão.");
         return;
       }
 
