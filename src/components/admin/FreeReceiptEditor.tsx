@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Image as ImageIcon, Move, Plus, RotateCcw, Save, Trash2, Type, Upload } from "lucide-react";
+import { Image as ImageIcon, Move, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
 
@@ -146,6 +146,17 @@ export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout
 
 const serializeLayout = (layout: FreeReceiptLayout) => JSON.stringify(layout, null, 2);
 const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+const RESIZE_HANDLES = [
+  { handle: "nw", className: "-left-2 -top-2 cursor-nwse-resize" },
+  { handle: "n", className: "left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize" },
+  { handle: "ne", className: "-right-2 -top-2 cursor-nesw-resize" },
+  { handle: "e", className: "-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize" },
+  { handle: "se", className: "-right-2 -bottom-2 cursor-nwse-resize" },
+  { handle: "s", className: "left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize" },
+  { handle: "sw", className: "-left-2 -bottom-2 cursor-nesw-resize" },
+  { handle: "w", className: "-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize" },
+];
 
 interface FreeReceiptEditorProps {
   value?: string | null;
@@ -400,9 +411,6 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
 
             nextW = Math.max(1, nextW);
             nextH = Math.max(1, nextH);
-            nextX = nextX;
-            nextY = nextY;
-
             return { ...el, x: nextX, y: nextY, width: nextW, height: nextH };
           }),
         }));
@@ -539,21 +547,12 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
               ↻
             </button>
 
-            {[
-              ["nw", "-left-2 -top-2 cursor-nwse-resize"],
-              ["n", "left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"],
-              ["ne", "-right-2 -top-2 cursor-nesw-resize"],
-              ["e", "-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-              ["se", "-right-2 -bottom-2 cursor-nwse-resize"],
-              ["s", "left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize"],
-              ["sw", "-left-2 -bottom-2 cursor-nesw-resize"],
-              ["w", "-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-            ].map(([handle, cls]) => (
+            {RESIZE_HANDLES.map((item) => (
               <button
-                key={handle}
+                key={item.handle}
                 type="button"
-                onMouseDown={(event) => startResize(event, el, handle)}
-                className={`absolute z-[10000] h-4 w-4 rounded-sm border border-white bg-red-600 shadow ${cls}`}
+                onMouseDown={(event) => startResize(event, el, item.handle)}
+                className={`absolute z-[10000] h-4 w-4 rounded-sm border border-white bg-red-600 shadow ${item.className}`}
                 title="Arraste para aumentar/diminuir"
               />
             ))}
