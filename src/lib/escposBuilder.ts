@@ -4,7 +4,7 @@
  * Gera um Uint8Array pronto para envio raw via QZ Tray, WebUSB ou WebSerial.
  * Cuidados:
  *  - Acentos: convertemos UTF-8 → CP1252 (codepage 16) por padrão.
- *  - Largura: 48 colunas para impressoras 80mm/72mm; 32 para 58mm.
+ *  - Largura: 48 colunas para POS-80/JP80H em largura total; 42 apenas se o driver cortar a margem.
  *  - Corte: enviamos GS V 0 (corte total) após FEED de algumas linhas.
  */
 
@@ -118,10 +118,23 @@ export class EscPosBuilder {
     // Init + selecionar codepage.
     this.push(ESC, 0x40); // ESC @ — initialize
     this.push(ESC, 0x74, this.opts.codepage); // ESC t n — codepage
+    this.setFullPaperWidth(576);
   }
 
   private push(...vals: number[]) {
     for (const v of vals) this.bytes.push(v & 0xff);
+  }
+
+  /**
+   * JP80H/POS-80: zera margem esquerda e libera largura útil máxima.
+   * 576 dots é o padrão mais comum em 80mm/203dpi.
+   * Isso evita impressão "puxada para um lado" e sobra grande na direita.
+   */
+  setFullPaperWidth(dots = 576): this {
+    const safeDots = Math.max(384, Math.min(640, Math.round(Number(dots) || 576)));
+    this.push(GS, 0x4c, 0, 0); // GS L nL nH = left margin 0
+    this.push(GS, 0x57, safeDots & 0xff, (safeDots >> 8) & 0xff); // GS W nL nH = print area width
+    return this;
   }
 
   align(a: Align): this {
@@ -145,6 +158,19 @@ export class EscPosBuilder {
   /** ESC - n — sublinhado: 0 off, 1 fino, 2 grosso */
   underline(level: 0 | 1 | 2): this {
     this.push(ESC, 0x2d, level);
+    return this;
+  }
+
+  /** ESC 3 n — define espaçamento entre linhas em dots. */
+  lineSpacing(dots: number): this {
+    const safe = Math.max(0, Math.min(255, Math.round(Number(dots) || 0)));
+    this.push(ESC, 0x33, safe);
+    return this;
+  }
+
+  /** ESC 2 — restaura espaçamento padrão da impressora. */
+  defaultLineSpacing(): this {
+    this.push(ESC, 0x32);
     return this;
   }
 
@@ -172,6 +198,13 @@ export class EscPosBuilder {
 
   line(value = ""): this {
     return this.text(value).newline();
+  }
+
+  /** Linha exatamente da largura configurada, preenchida com espaços. */
+  fullLine(value = ""): this {
+    const cols = Math.max(1, this.opts.columns);
+    const text = String(value || "");
+    return this.text(text.length >= cols ? text.slice(0, cols) : text.padEnd(cols, " ")).newline();
   }
 
   /** Linha completa de "-" ou "=" cobrindo as colunas. */

@@ -609,22 +609,33 @@ const normalizeAddressUppercase = (value: string) =>
   normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
 
 const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
-  // ENDEREÇO:
-  // 1) sempre CAIXA ALTA;
-  // 2) mesmo comportamento do TOTAL A RECEBER: fundo preto ponta-a-ponta;
-  // 3) quebra de linha sem cortar;
-  // 4) fundo único/contínuo, sem bordas desalinhadas e sem margem lateral sobrando.
+  // Endereço usa o mesmo fundo preto contínuo do TOTAL A RECEBER,
+  // sempre em CAIXA ALTA e sem corte transparente entre linhas.
+  renderContinuousBlackBlock(b, text, cols, align, true);
+};
+
+const renderContinuousBlackBlock = (
+  b: EscPosBuilder,
+  text: string,
+  cols: number,
+  align: Align = "center",
+  uppercase = false,
+) => {
   const innerCols = Math.max(8, cols);
-  const addressText = normalizeAddressUppercase(text);
-  const lines = wrapAddressFullLines(addressText, innerCols);
+  const value = uppercase ? normalizeAddressUppercase(text) : normalizeHtmlForEscPos(text).replace(/\s+/g, " ").trim();
+  const lines = wrapAddressFullLines(value, innerCols);
 
   resetStyle(b);
   b.align("left").font("A").bold(true).size(0, 0).invert(true);
+  b.lineSpacing(0);
 
   for (const line of lines) {
+    // Linha SEMPRE preenchida até o fim da largura.
+    // Assim, quando quebra em 2+ linhas, o fundo preto não fica com corte transparente no meio.
     b.rawText(fixedLine(line, innerCols, align).slice(0, innerCols));
   }
 
+  b.defaultLineSpacing();
   resetStyle(b);
 };
 
@@ -664,32 +675,17 @@ const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols
     ? wrapAddressLines(finalText, effectiveColumns(cols, fittedStyle))
     : [truncateLineToCols(finalText, effectiveColumns(cols, fittedStyle))];
 
-  // [TZTBORDA]/[TXTBORDA]: fundo preto ponta a ponta.
+  // [TZTBORDA]/[TXTBORDA]/[FUNDPRETO]:
+  // fundo preto ponta-a-ponta, com quebra de linha e SEM corte transparente no meio.
+  // Essa regra vale para qualquer lugar que usar [TZTBORDA].
   if (fittedStyle.invertFull) {
-    // Regra especial para [TZTBORDA][ENDEREÇO][/TZTBORDA]:
-    // endereço nunca pode ser cortado; deve quebrar em várias linhas com fundo preto.
-    if (fittedStyle.address) {
-      renderAddressBlackLines(b, finalText, cols, fittedStyle.align);
-      return;
-    }
-
-    const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true, invertFull: true });
-    applyStyleToBuilder(b, safeStyle);
-
-    // Fundo preto alto em uma única linha, sem linha vazia em cima/baixo.
-    b.size(0, 1);
-    b.rawText(fixedLine(finalText.trim(), cols, safeStyle.align));
-
-    resetStyle(b);
+    renderContinuousBlackBlock(b, finalText, cols, fittedStyle.align || "center", Boolean(fittedStyle.address));
     return;
   }
 
-  // [TXTBORDATXT]/[FUNDPRETO]/[DESTAQUE]: fundo preto só ao redor do texto.
+  // Segurança: qualquer fundo preto também usa bloco contínuo.
   if (fittedStyle.invert) {
-    const safeStyle = safeThermalBoxStyle({ ...fittedStyle, invert: true });
-    applyStyleToBuilder(b, safeStyle);
-    b.rawText(truncateLineToCols(finalText.trim(), cols));
-    resetStyle(b);
+    renderContinuousBlackBlock(b, finalText, cols, fittedStyle.align || "center", Boolean(fittedStyle.address));
     return;
   }
 
