@@ -155,10 +155,21 @@ const AdminReceipts = () => {
       if (ok) {
         const [printers, def] = await Promise.all([listQzPrinters(), getQzDefaultPrinter()]);
         setQzPrinters(printers);
-        if (!thermalSettings.qzPrinterName && def) {
-          updateThermalSetting("qzPrinterName", def);
+
+        const saved = String(thermalSettings.qzPrinterName || "").trim();
+        const savedExists = saved && printers.some((name) => name === saved);
+        const nextPrinter = savedExists ? saved : def || printers[0] || "";
+
+        if (nextPrinter && nextPrinter !== saved) {
+          updateThermalSetting("qzPrinterName", nextPrinter);
+          toast.warning(`Impressora antiga não encontrada. Selecionei: ${nextPrinter}`);
+        } else if (!printers.length) {
+          toast.error(
+            "QZ Tray está online, mas não retornou impressoras. Instale o driver JP80H e reinicie o QZ Tray.",
+          );
+        } else {
+          toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
         }
-        toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
       } else {
         toast.error("QZ Tray não está rodando neste computador. Instale e abra o QZ Tray.");
       }
@@ -412,28 +423,35 @@ const AdminReceipts = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs font-semibold">Impressora</Label>
-            {qzPrinters.length > 0 ? (
-              <select
-                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                value={thermalSettings.qzPrinterName}
-                onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
-              >
-                <option value="">— Selecione —</option>
-                {qzPrinters.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            ) : (
+            <div className="grid gap-2">
+              {qzPrinters.length > 0 ? (
+                <select
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  value={
+                    qzPrinters.includes(String(thermalSettings.qzPrinterName || ""))
+                      ? thermalSettings.qzPrinterName
+                      : ""
+                  }
+                  onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
+                >
+                  <option value="">— Selecione a impressora detectada —</option>
+                  {qzPrinters.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
+
               <Input
                 value={thermalSettings.qzPrinterName}
                 onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
-                placeholder='Ex: "EPSON TM-T20", "POS-58"'
+                placeholder='Digite o nome EXATO do Windows. Ex: "JP80H", "POS-80", "80mm Printer"'
               />
-            )}
+            </div>
             <p className="text-[11px] text-muted-foreground">
-              Clique em "Detectar" pra carregar a lista de impressoras do sistema.
+              Se aparecer erro "Cannot find printer", apague o nome antigo e clique em "Detectar". O nome precisa ser
+              igual ao nome da impressora no Windows.
             </p>
           </div>
           <div className="space-y-1">
