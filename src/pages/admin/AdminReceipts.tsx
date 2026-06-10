@@ -3,9 +3,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
-import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import ImageUpload from "@/components/admin/ImageUpload";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -23,9 +23,6 @@ import {
   Zap,
   RefreshCw,
   FileText,
-  Image as ImageIcon,
-  Upload,
-  X,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -91,11 +88,18 @@ const buildTemplateDraft = (type: string, source?: Partial<ReceiptTemplate>) => 
   items_font_size: source?.items_font_size ?? (type === "etiquetas" ? 10 : 14),
   label_font_size: source?.label_font_size ?? (type === "etiquetas" ? 14 : 24),
   body_font_size: source?.body_font_size ?? 11,
-  print_image_url: (source as any)?.print_image_url ?? "",
-  print_image_mode: ((source as any)?.print_image_mode as any) ?? "none",
-  print_image_width_mm: (source as any)?.print_image_width_mm ?? (type === "panfleto" ? 64 : 32),
-  print_image_quality: ((source as any)?.print_image_quality as any) ?? "high",
+  logo_image_url: (source as any)?.logo_image_url ?? "",
+  logo_image_size: (source as any)?.logo_image_size ?? "medium",
+  panfleto_image_url: (source as any)?.panfleto_image_url ?? "",
+  panfleto_image_size: (source as any)?.panfleto_image_size ?? "large",
 });
+
+const IMAGE_SIZE_OPTIONS = [
+  { value: "small", label: "Pequeno" },
+  { value: "medium", label: "Médio" },
+  { value: "large", label: "Grande" },
+  { value: "xlarge", label: "Muito grande" },
+] as const;
 
 const AdminReceipts = () => {
   const { data: templates, isLoading } = useReceiptTemplates();
@@ -113,32 +117,8 @@ const AdminReceipts = () => {
   const [qzBusy, setQzBusy] = useState(false);
 
   const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
-    let safeValue = value;
-
-    // POS-80 real costuma cortar a direita com 48 colunas.
-    // Forçamos 42 para as comandas não ultrapassarem a largura útil da impressora.
-    if (field === "qzColumns") {
-      safeValue = Math.min(48, Math.max(24, Number(value) || 48));
-    }
-
-    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: safeValue as never });
+    const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
     setThermalSettings(next);
-  };
-
-  const applyThermalSettings = () => {
-    const next = saveThermalPrintSettings({
-      ...thermalSettings,
-      qzColumns: Math.min(48, Math.max(24, Number(thermalSettings.qzColumns) || 48)),
-      paperWidthMm: Math.min(72, Math.max(40, Number(thermalSettings.paperWidthMm) || 72)),
-      popupWidthPx: Math.min(280, Math.max(180, Number(thermalSettings.popupWidthPx) || 280)),
-    });
-    setThermalSettings(next);
-
-    try {
-      window.dispatchEvent(new CustomEvent("turbo-thermal-settings-updated", { detail: next }));
-    } catch {}
-
-    toast.success("Configuração salva e aplicada neste computador.");
   };
 
   const resetThermalSettings = () => {
@@ -155,21 +135,10 @@ const AdminReceipts = () => {
       if (ok) {
         const [printers, def] = await Promise.all([listQzPrinters(), getQzDefaultPrinter()]);
         setQzPrinters(printers);
-
-        const saved = String(thermalSettings.qzPrinterName || "").trim();
-        const savedExists = saved && printers.some((name) => name === saved);
-        const nextPrinter = savedExists ? saved : def || printers[0] || "";
-
-        if (nextPrinter && nextPrinter !== saved) {
-          updateThermalSetting("qzPrinterName", nextPrinter);
-          toast.warning(`Impressora antiga não encontrada. Selecionei: ${nextPrinter}`);
-        } else if (!printers.length) {
-          toast.error(
-            "QZ Tray está online, mas não retornou impressoras. Instale o driver JP80H e reinicie o QZ Tray.",
-          );
-        } else {
-          toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
+        if (!thermalSettings.qzPrinterName && def) {
+          updateThermalSetting("qzPrinterName", def);
         }
+        toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
       } else {
         toast.error("QZ Tray não está rodando neste computador. Instale e abra o QZ Tray.");
       }
@@ -254,6 +223,7 @@ const AdminReceipts = () => {
       const win = openPrintUrl(
         `/admin/imprimir/${lastOrder.id}?tipo=${type}&copies=${qty}&delay_ms=100&teste=1`,
         `teste_${type}`,
+        "width=300,height=600",
       );
 
       if (!win || win.closed) {
@@ -288,43 +258,6 @@ const AdminReceipts = () => {
     }));
   };
 
-  const handleTemplateImageFile = (type: string, file?: File | null) => {
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("Selecione uma imagem válida.");
-      return;
-    }
-
-    const maxMb = 8;
-    if (file.size > maxMb * 1024 * 1024) {
-      toast.error(`Imagem muito grande. Use até ${maxMb}MB para salvar no modelo.`);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result || "");
-      updateField(type, "print_image_url", dataUrl);
-      updateField(type, "print_image_mode", type === "panfleto" ? "full" : "logo");
-      updateField(type, "print_image_quality", "high");
-      if (
-        !getField(type)
-          .body_template?.toString()
-          .includes(type === "panfleto" ? "[IMAGEMPANFLETO]" : "[LOGOLOJA]")
-      ) {
-        updateField(
-          type,
-          "body_template",
-          `${type === "panfleto" ? "[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n" : "[CENTRO][LOGOLOJA][/CENTRO]\n"}${getField(type).body_template || getDefaultTemplate(type)}`,
-        );
-      }
-      toast.success("Imagem adicionada ao modelo.");
-    };
-    reader.onerror = () => toast.error("Não foi possível carregar a imagem.");
-    reader.readAsDataURL(file);
-  };
-
   const handleSave = (type: string) => {
     const data = editData[type];
     if (!data) return;
@@ -355,18 +288,6 @@ const AdminReceipts = () => {
       <ReceiptVariableReference />
 
       {/* ============ PAINEL QZ TRAY (ESC/POS) ============ */}
-      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-foreground">Modo de impressão das comandas</h3>
-            <p className="text-xs text-muted-foreground">
-              Mesmo atalho do Dashboard. Escolha se os testes e comandas vão sair em Auto, QZ Tray ou PDF.
-            </p>
-          </div>
-          <PrintModeSelector />
-        </div>
-      </div>
-
       <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -390,13 +311,6 @@ const AdminReceipts = () => {
             >
               {qzStatus === "online" ? "● Online" : qzStatus === "offline" ? "● Offline" : "○ Não verificado"}
             </span>
-            <button
-              type="button"
-              onClick={applyThermalSettings}
-              className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground shadow-sm transition-all active:scale-[0.98]"
-            >
-              Salvar e aplicar real
-            </button>
             <button
               type="button"
               onClick={detectQz}
@@ -423,35 +337,28 @@ const AdminReceipts = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1 sm:col-span-2">
             <Label className="text-xs font-semibold">Impressora</Label>
-            <div className="grid gap-2">
-              {qzPrinters.length > 0 ? (
-                <select
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={
-                    qzPrinters.includes(String(thermalSettings.qzPrinterName || ""))
-                      ? thermalSettings.qzPrinterName
-                      : ""
-                  }
-                  onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
-                >
-                  <option value="">— Selecione a impressora detectada —</option>
-                  {qzPrinters.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              ) : null}
-
+            {qzPrinters.length > 0 ? (
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={thermalSettings.qzPrinterName}
+                onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
+              >
+                <option value="">— Selecione —</option>
+                {qzPrinters.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </select>
+            ) : (
               <Input
                 value={thermalSettings.qzPrinterName}
                 onChange={(e) => updateThermalSetting("qzPrinterName", e.target.value)}
-                placeholder='Digite o nome EXATO do Windows. Ex: "JP80H", "POS-80", "80mm Printer"'
+                placeholder='Ex: "EPSON TM-T20", "POS-58"'
               />
-            </div>
+            )}
             <p className="text-[11px] text-muted-foreground">
-              Se aparecer erro "Cannot find printer", apague o nome antigo e clique em "Detectar". O nome precisa ser
-              igual ao nome da impressora no Windows.
+              Clique em "Detectar" pra carregar a lista de impressoras do sistema.
             </p>
           </div>
           <div className="space-y-1">
@@ -460,10 +367,10 @@ const AdminReceipts = () => {
               type="number"
               min={24}
               max={64}
-              value={Math.min(48, Number(thermalSettings.qzColumns) || 48)}
+              value={thermalSettings.qzColumns}
               onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
             />
-            <p className="text-[11px] text-muted-foreground">48 = JP80H/POS-80 largura total · 42 = reduzido</p>
+            <p className="text-[11px] text-muted-foreground">48 = 80mm/72mm · 32 = 58mm</p>
           </div>
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Linhas antes do corte</Label>
@@ -587,48 +494,6 @@ const AdminReceipts = () => {
               onChange={(e) => updateThermalSetting("printGapMs", Number(e.target.value))}
             />
           </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Colunas QZ/POS-80</Label>
-            <Input
-              type="number"
-              min={24}
-              max={64}
-              value={Math.min(48, Number(thermalSettings.qzColumns) || 48)}
-              onChange={(e) => updateThermalSetting("qzColumns", Number(e.target.value))}
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Use 48 para JP80H/POS-80 ocupar toda a largura. Use 42 somente se cortar a direita.
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Linhas antes do corte QZ</Label>
-            <Input
-              type="number"
-              min={0}
-              max={10}
-              value={thermalSettings.qzFeedLines}
-              onChange={(e) => updateThermalSetting("qzFeedLines", Number(e.target.value))}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Codepage QZ</Label>
-            <Input
-              type="number"
-              min={0}
-              max={255}
-              value={thermalSettings.qzCodepage}
-              onChange={(e) => updateThermalSetting("qzCodepage", Number(e.target.value))}
-            />
-            <p className="text-[11px] text-muted-foreground">Padrão recomendado: 16.</p>
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-          Para POS-80 cortando a direita, use: largura 72mm, janela 280px e colunas QZ 48. Depois clique em
-          <strong> Salvar e aplicar real</strong>.
         </div>
       </div>
 
@@ -820,104 +685,74 @@ const AdminReceipts = () => {
                 </div>
               </div>
 
-              {tab.type === "panfleto" && (
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 shadow-sm">
-                  <div className="mb-3 flex items-start gap-2">
-                    <ImageIcon size={18} className="mt-0.5 text-primary" />
-                    <div>
-                      <h3 className="text-sm font-bold text-foreground">Imagem ou logotipo no panfleto</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Imprima um panfleto como imagem inteira em alta qualidade ou coloque o logotipo dentro do
-                        modelo. Use as variáveis [IMAGEMPANFLETO], [IMAGEM] ou [LOGOLOJA].
-                      </p>
-                    </div>
+              <div className="grid gap-4 rounded-xl border border-dashed border-border bg-muted/20 p-4 md:grid-cols-2">
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs font-semibold">
+                      Imagem inteira do panfleto — variável [IMAGEMPANFLETO]
+                    </Label>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Use no modelo: [CENTRO][IMAGEMPANFLETO][/CENTRO]
+                    </p>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Modo da imagem</Label>
-                      <select
-                        value={String((fields as any).print_image_mode || "none")}
-                        onChange={(e) => updateField(tab.type, "print_image_mode", e.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        <option value="none">Não usar imagem</option>
-                        <option value="logo">Inserir logotipo no modelo</option>
-                        <option value="full">Imprimir imagem/panfleto inteiro</option>
-                      </select>
-                    </div>
+                  <ImageUpload
+                    value={(fields as any).panfleto_image_url || ""}
+                    onChange={(url) => updateField(tab.type, "panfleto_image_url", url)}
+                    folder="receipt-panfletos"
+                  />
 
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Largura da imagem (mm)</Label>
-                      <Input
-                        type="number"
-                        min={18}
-                        max={66}
-                        value={Number((fields as any).print_image_width_mm || (tab.type === "panfleto" ? 64 : 32))}
-                        onChange={(e) => updateField(tab.type, "print_image_width_mm", Number(e.target.value))}
-                      />
-                      <p className="text-[11px] text-muted-foreground">POS-80: use no máximo 64mm para não cortar.</p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Qualidade</Label>
-                      <select
-                        value={String((fields as any).print_image_quality || "high")}
-                        onChange={(e) => updateField(tab.type, "print_image_quality", e.target.value)}
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        <option value="high">Alta qualidade</option>
-                        <option value="normal">Normal</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Enviar imagem</Label>
-                      <label className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-primary/60 bg-background px-3 text-sm font-bold text-primary hover:bg-primary/5">
-                        <Upload size={16} />
-                        Escolher imagem
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          className="hidden"
-                          onChange={(e) => handleTemplateImageFile(tab.type, e.target.files?.[0])}
-                        />
-                      </label>
-                    </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Tamanho da imagem do panfleto</Label>
+                    <select
+                      value={((fields as any).panfleto_image_size as string) || "large"}
+                      onChange={(e) => updateField(tab.type, "panfleto_image_size", e.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      {IMAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-
-                  {(fields as any).print_image_url ? (
-                    <div className="mt-3 grid gap-3 sm:grid-cols-[120px_1fr]">
-                      <div className="rounded-md border bg-white p-2">
-                        <img
-                          src={String((fields as any).print_image_url)}
-                          alt="Prévia da imagem"
-                          className="max-h-32 w-full object-contain"
-                        />
-                      </div>
-                      <div className="space-y-2 text-xs text-muted-foreground">
-                        <p>
-                          Para imagem inteira, coloque no modelo: <strong>[CENTRO][IMAGEMPANFLETO][/CENTRO]</strong>
-                        </p>
-                        <p>
-                          Para logotipo, coloque no modelo: <strong>[CENTRO][LOGOLOJA][/CENTRO]</strong>
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            updateField(tab.type, "print_image_url", "");
-                            updateField(tab.type, "print_image_mode", "none");
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-bold text-destructive"
-                        >
-                          <X size={14} />
-                          Remover imagem
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
-              )}
+
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs font-semibold">Logotipo da loja — variável [LOGOLOJA]</Label>
+                    <p className="mt-1 text-[11px] text-muted-foreground">Use no modelo: [CENTRO][LOGOLOJA][/CENTRO]</p>
+                  </div>
+
+                  <ImageUpload
+                    value={(fields as any).logo_image_url || ""}
+                    onChange={(url) => updateField(tab.type, "logo_image_url", url)}
+                    folder="receipt-logos"
+                  />
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-semibold">Tamanho do logotipo</Label>
+                    <select
+                      value={((fields as any).logo_image_size as string) || "medium"}
+                      onChange={(e) => updateField(tab.type, "logo_image_size", e.target.value)}
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    >
+                      {IMAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                  <div className="font-semibold">Aviso</div>
+                  <div className="mt-1">
+                    Sua imagem deve ser em texto/ícones pretos e fundo branco para boa qualidade.
+                  </div>
+                </div>
+              </div>
 
               {/* Full body template */}
               <div className="space-y-1.5">

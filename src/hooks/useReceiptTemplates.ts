@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStore } from "@/contexts/StoreContext";
 
+export type ReceiptImageSize = "small" | "medium" | "large" | "xlarge";
+
 export interface ReceiptTemplate {
   id: string;
   template_type: string;
@@ -22,10 +24,10 @@ export interface ReceiptTemplate {
   items_font_size: number;
   label_font_size: number;
   body_font_size: number;
-  print_image_url?: string | null;
-  print_image_mode?: "none" | "logo" | "full" | null;
-  print_image_width_mm?: number | null;
-  print_image_quality?: "normal" | "high" | null;
+  logo_image_url?: string | null;
+  logo_image_size?: ReceiptImageSize | null;
+  panfleto_image_url?: string | null;
+  panfleto_image_size?: ReceiptImageSize | null;
   updated_at: string;
 }
 
@@ -53,7 +55,13 @@ export const useReceiptTemplates = () => {
           const currentIsStoreSpecific = current?.store_id === storeId;
 
           if (!current || (isStoreSpecific && !currentIsStoreSpecific)) {
-            acc[row.template_type] = row;
+            acc[row.template_type] = {
+              ...row,
+              logo_image_url: row.logo_image_url ?? null,
+              logo_image_size: normalizeImageSize(row.logo_image_size, "medium"),
+              panfleto_image_url: row.panfleto_image_url ?? null,
+              panfleto_image_size: normalizeImageSize(row.panfleto_image_size, "large"),
+            };
           }
 
           return acc;
@@ -82,24 +90,14 @@ const EDITABLE_FIELDS = [
   "items_font_size",
   "label_font_size",
   "body_font_size",
-  "print_image_url",
-  "print_image_mode",
-  "print_image_width_mm",
-  "print_image_quality",
+  "logo_image_url",
+  "logo_image_size",
+  "panfleto_image_url",
+  "panfleto_image_size",
 ] as const;
 
-const normalizeImageMode = (value: unknown): "none" | "logo" | "full" => {
-  return value === "logo" || value === "full" || value === "none" ? value : "none";
-};
-
-const normalizeImageQuality = (value: unknown): "normal" | "high" => {
-  return value === "normal" || value === "high" ? value : "high";
-};
-
-const normalizeImageWidth = (value: unknown, fallback = 32) => {
-  const next = Number(value);
-  if (!Number.isFinite(next)) return fallback;
-  return Math.max(18, Math.min(66, next));
+const normalizeImageSize = (value: unknown, fallback: ReceiptImageSize = "medium"): ReceiptImageSize => {
+  return value === "small" || value === "medium" || value === "large" || value === "xlarge" ? value : fallback;
 };
 
 export const useUpdateReceiptTemplate = () => {
@@ -116,24 +114,24 @@ export const useUpdateReceiptTemplate = () => {
         }
       }
 
-      if ("print_image_mode" in template) {
-        payload.print_image_mode = normalizeImageMode(template.print_image_mode);
+      if ("logo_image_url" in template) {
+        payload.logo_image_url = template.logo_image_url || null;
       }
-
-      if ("print_image_quality" in template) {
-        payload.print_image_quality = normalizeImageQuality(template.print_image_quality);
+      if ("panfleto_image_url" in template) {
+        payload.panfleto_image_url = template.panfleto_image_url || null;
       }
-
-      if ("print_image_width_mm" in template) {
-        payload.print_image_width_mm = normalizeImageWidth(template.print_image_width_mm, 32);
+      if ("logo_image_size" in template) {
+        payload.logo_image_size = normalizeImageSize(template.logo_image_size, "medium");
       }
-
-      if ("print_image_url" in template) {
-        payload.print_image_url = template.print_image_url || null;
+      if ("panfleto_image_size" in template) {
+        payload.panfleto_image_size = normalizeImageSize(template.panfleto_image_size, "large");
       }
 
       if (template.id) {
-        const { error } = await supabase.from("receipt_templates").update(payload).eq("id", template.id);
+        const { error } = await supabase
+          .from("receipt_templates")
+          .update(payload as any)
+          .eq("id", template.id);
         if (error) throw error;
         return;
       }
@@ -150,12 +148,15 @@ export const useUpdateReceiptTemplate = () => {
       if (existingError) throw existingError;
 
       if (existing?.id) {
-        const { error } = await supabase.from("receipt_templates").update(payload).eq("id", existing.id);
+        const { error } = await supabase
+          .from("receipt_templates")
+          .update(payload as any)
+          .eq("id", existing.id);
         if (error) throw error;
         return;
       }
 
-      const { error } = await supabase.from("receipt_templates").insert({
+      const insertPayload = {
         ...payload,
         template_type: template.template_type,
         store_id: storeId ?? null,
@@ -174,15 +175,13 @@ export const useUpdateReceiptTemplate = () => {
         items_font_size: template.items_font_size ?? 14,
         label_font_size: template.label_font_size ?? 24,
         body_font_size: template.body_font_size ?? 11,
-        print_image_url: template.print_image_url || null,
-        print_image_mode: normalizeImageMode(template.print_image_mode),
-        print_image_width_mm: normalizeImageWidth(
-          template.print_image_width_mm,
-          template.template_type === "panfleto" ? 64 : 32,
-        ),
-        print_image_quality: normalizeImageQuality(template.print_image_quality),
-      });
+        logo_image_url: template.logo_image_url || null,
+        logo_image_size: normalizeImageSize(template.logo_image_size, "medium"),
+        panfleto_image_url: template.panfleto_image_url || null,
+        panfleto_image_size: normalizeImageSize(template.panfleto_image_size, "large"),
+      };
 
+      const { error } = await supabase.from("receipt_templates").insert(insertPayload as any);
       if (error) throw error;
     },
     onSuccess: () => {

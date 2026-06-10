@@ -43,6 +43,45 @@ const cleanSystemObservation = (value: string) =>
 
 const formatPrintAddress = (value: string) => value.toLocaleUpperCase("pt-BR");
 
+const getImageWidthBySize = (size: unknown, kind: "logo" | "panfleto") => {
+  const normalized = String(size || "").toLowerCase();
+
+  if (kind === "panfleto") {
+    switch (normalized) {
+      case "small":
+        return 36;
+      case "medium":
+        return 48;
+      case "large":
+        return 64;
+      case "xlarge":
+        return 72;
+      default:
+        return 64;
+    }
+  }
+
+  switch (normalized) {
+    case "small":
+      return 18;
+    case "medium":
+      return 28;
+    case "large":
+      return 40;
+    case "xlarge":
+      return 54;
+    default:
+      return 28;
+  }
+};
+
+const buildImageBlock = (url: string | null | undefined, widthMm: number, alt: string) => {
+  if (!url) return undefined;
+  const safeUrl = escapeHtml(url);
+  const safeAlt = escapeHtml(alt);
+  return `<div class="info center"><img src="${safeUrl}" alt="${safeAlt}" style="display:block;margin:0 auto;width:${widthMm}mm;max-width:100%;height:auto;object-fit:contain;image-rendering:auto;" /></div>`;
+};
+
 const getTemplateForItemsLine = (rawLine: string) => {
   let lineWithoutItems = rawLine;
 
@@ -200,11 +239,6 @@ const AdminPrint = () => {
   const thermalWidthMm = Math.max(40, Math.min(110, Number(searchParams.get("thermal_width_mm") || "72") || 72));
   const thermalHeightMm = Math.max(0, Math.min(500, Number(searchParams.get("thermal_height_mm") || "0") || 0));
   const thermalCutOffsetMm = Math.max(0, Math.min(80, Number(searchParams.get("thermal_cut_offset_mm") || "0") || 0));
-
-  // POS-80 quase nunca imprime os 72/80mm inteiros. A área útil real costuma ser menor.
-  // Para impedir corte da margem direita no PDF/popup, o documento é renderizado com largura segura.
-  const safeThermalWidthMm = Math.max(58, Math.min(66, thermalWidthMm - 6));
-
   const printedRef = useRef(false);
 
   const printableDocument = useMemo(() => {
@@ -311,11 +345,6 @@ const AdminPrint = () => {
     const fmt = (n: number) => `R$ ${n.toFixed(2).replace(".", ",")}`;
 
     const couponInfo = order.coupon_code ? `${order.coupon_code} (-${fmt(discount)})` : "Nenhum";
-    const templateImageUrl = String((tpl as any)?.print_image_url || "").trim();
-    const templateImageMode = String((tpl as any)?.print_image_mode || "none");
-    const templateImageWidthMm = Number((tpl as any)?.print_image_width_mm || (templateImageMode === "logo" ? 32 : 64));
-    const logoUrl = templateImageMode === "logo" ? templateImageUrl : "";
-    const fullImageUrl = templateImageMode === "full" ? templateImageUrl : "";
 
     const varMap: Record<string, string> = {
       "[NUMEROPEDIDO]": isTableOrder ? tableCode : `#${String(order.order_number).padStart(5, "0")}`,
@@ -347,11 +376,6 @@ const AdminPrint = () => {
       "[RODAPÉ]": rodape,
       "[DIVULGAÇÃO]": divulgacao,
       "[NOMEENTREGADOR]": courierName || "",
-      "[LOGOLOJA]": logoUrl,
-      "[LOGOLOJA_LARGURA]": String(templateImageWidthMm),
-      "[IMAGEM]": fullImageUrl,
-      "[IMAGEMPANFLETO]": fullImageUrl,
-      "[IMAGEM_LARGURA]": String(templateImageWidthMm),
     };
 
     const formatCode = () => "";
@@ -392,19 +416,10 @@ const AdminPrint = () => {
     const itemsHtml = buildItemsTableHtml();
 
     const rawTemplate = tpl?.body_template || getDefaultTemplate(resolvedType);
-    const templateHasImageToken =
-      rawTemplate.includes("[IMAGEMPANFLETO]") || rawTemplate.includes("[IMAGEM]") || rawTemplate.includes("[LOGOLOJA]");
-    const expandedTemplateWithImage =
-      templateImageUrl && !templateHasImageToken && templateImageMode === "full"
-        ? `[CENTRO][IMAGEMPANFLETO][/CENTRO]\n---\n${rawTemplate}`
-        : templateImageUrl && !templateHasImageToken && templateImageMode === "logo"
-          ? `[CENTRO][LOGOLOJA][/CENTRO]\n${rawTemplate}`
-          : rawTemplate;
-    const expandedTemplate = expandedTemplateWithImage
+    const expandedTemplate = rawTemplate
       .split("\n")
       .flatMap((rawLine) => {
         if (!hasItemTemplateTokens(rawLine)) return [rawLine];
-
         if (items.length === 0) return [];
 
         const itemTemplate = getTemplateForItemsLine(rawLine);
@@ -445,8 +460,23 @@ const AdminPrint = () => {
       })
       .join("\n");
 
+    const logoBlock = buildImageBlock(
+      (tpl as any)?.logo_image_url,
+      getImageWidthBySize((tpl as any)?.logo_image_size, "logo"),
+      "Logo da loja",
+    );
+    const panfletoBlock = buildImageBlock(
+      (tpl as any)?.panfleto_image_url,
+      getImageWidthBySize((tpl as any)?.panfleto_image_size, "panfleto"),
+      "Imagem do panfleto",
+    );
+
     const blocksMap: Record<string, string | undefined> = {
       "[__ITEMS_TABLE_BLOCK__]": itemsHtml,
+      "[LOGOLOJA]": logoBlock,
+      "[CENTRO][LOGOLOJA][/CENTRO]": logoBlock,
+      "[IMAGEMPANFLETO]": panfletoBlock,
+      "[CENTRO][IMAGEMPANFLETO][/CENTRO]": panfletoBlock,
     };
 
     const bodyFontSize = (tpl as any)?.body_font_size ?? 11;
@@ -456,7 +486,7 @@ const AdminPrint = () => {
       template: expandedTemplate,
       variables: varMap,
       blocks: blocksMap,
-      pageWidthMm: safeThermalWidthMm,
+      pageWidthMm: thermalWidthMm,
       pageHeightMm: thermalHeightMm > 0 ? thermalHeightMm : "auto",
       pageMarginMm: 0,
       repeatCount,
@@ -465,25 +495,9 @@ const AdminPrint = () => {
       labelFontSizePx: tpl?.label_font_size ?? 22,
       bodyPaddingMm: 0,
       sectionPaddingMm: 0,
-      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-root,.print-document,.print-section{max-width:100%!important;overflow:hidden!important;}
-.print-document{box-sizing:border-box!important;}
-.print-section{box-sizing:border-box!important;}
-.txt-borda-preta,.inline-border,.box-highlight,.print-frame,.print-frame-strong,.print-frame-rect{max-width:100%!important;width:100%!important;box-sizing:border-box!important;overflow:hidden!important;}
-.info,.grand-total,.center,.txt-grande,.txt-medio,.txt-pequeno,.txt-gigante,.pedido-destaque{max-width:100%!important;overflow:hidden!important;overflow-wrap:anywhere!important;word-break:break-word!important;}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
+      extraCss: `${LEGACY_RECEIPT_PRINT_CSS}\n.print-document::after{content:"";display:block;height:${thermalCutOffsetMm}mm;}`,
     });
-  }, [
-    items,
-    order,
-    profile,
-    ready,
-    repeatCount,
-    thermalCutOffsetMm,
-    safeThermalWidthMm,
-    thermalHeightMm,
-    thermalWidthMm,
-    tipo,
-    tpl,
-  ]);
+  }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
 
   useEffect(() => {
     if (!printableDocument || !ready) return;
