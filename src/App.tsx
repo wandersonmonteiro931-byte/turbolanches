@@ -31,6 +31,7 @@ import AdminFiados from "./pages/admin/AdminFiados";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminPrint from "./pages/admin/AdminPrint";
+import AdminFreePrint from "./pages/admin/AdminFreePrint";
 import AdminDeliveryZones from "./pages/admin/AdminDeliveryZones";
 import AdminManualOrder from "./pages/admin/AdminManualOrder";
 import AdminSchedule from "./pages/admin/AdminSchedule";
@@ -247,6 +248,7 @@ const AppInner = () => {
           <Route path="/tv" element={<TvDisplay />} />
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
           <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
+          <Route path="/admin/imprimir-livre" element={<AdminFreePrint />} />
           <Route
             path="/cozinha"
             element={

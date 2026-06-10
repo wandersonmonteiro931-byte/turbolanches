@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
+import FreeReceiptEditor from "@/components/admin/FreeReceiptEditor";
 import { PrintModeSelector } from "@/components/admin/PrintModeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ const tabConfig = [
   { type: "etiquetas", label: "Etiquetas", icon: Sticker },
   { type: "etiqueta_preco", label: "Etiqueta de Preço", icon: DollarSign },
   { type: "reposicao", label: "Reposição", icon: ShoppingBasket },
+  { type: "livre", label: "Livre", icon: FileText },
 ];
 
 const DEFAULT_LABELS: Record<string, string> = {
@@ -68,6 +70,7 @@ const DEFAULT_LABELS: Record<string, string> = {
   etiquetas: "ETIQUETA",
   etiqueta_preco: "PREÇO",
   reposicao: "LISTA DE COMPRAS",
+  livre: "LIVRE",
 };
 
 const buildTemplateDraft = (type: string, source?: Partial<ReceiptTemplate>) => ({
@@ -187,6 +190,22 @@ const AdminReceipts = () => {
 
     const qty = Math.max(1, Math.min(20, Number(printQty[type] || 1)));
     const mode: PrintMode = getPrintMode();
+
+    if (type === "livre") {
+      const win = openPrintUrl(
+        `/admin/imprimir-livre?copies=${qty}&delay_ms=100`,
+        "comanda_livre",
+        "width=360,height=760",
+      );
+
+      if (!win || win.closed) {
+        toast.error("Popup bloqueado. Permita popups neste site para imprimir a comanda LIVRE.");
+        return;
+      }
+
+      toast.success("Comanda LIVRE enviada para impressão.");
+      return;
+    }
 
     // Regra Turbo:
     // Todo teste, de qualquer tipo de comanda, usa SEMPRE o último pedido real do sistema como base.
@@ -686,12 +705,11 @@ const AdminReceipts = () => {
                 </div>
               </div>
 
+
               <div className="grid gap-4 rounded-xl border border-dashed border-border bg-muted/20 p-4 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs font-semibold">
-                      Imagem inteira do panfleto — variável [IMAGEMPANFLETO]
-                    </Label>
+                    <Label className="text-xs font-semibold">Imagem inteira do panfleto — variável [IMAGEMPANFLETO]</Label>
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       Use no modelo: [CENTRO][IMAGEMPANFLETO][/CENTRO]
                     </p>
@@ -722,7 +740,9 @@ const AdminReceipts = () => {
                 <div className="space-y-3">
                   <div>
                     <Label className="text-xs font-semibold">Logotipo da loja — variável [LOGOLOJA]</Label>
-                    <p className="mt-1 text-[11px] text-muted-foreground">Use no modelo: [CENTRO][LOGOLOJA][/CENTRO]</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Use no modelo: [CENTRO][LOGOLOJA][/CENTRO]
+                    </p>
                   </div>
 
                   <ImageUpload
@@ -775,6 +795,8 @@ const AdminReceipts = () => {
                   placeholder="Cole ou edite o modelo da comanda aqui..."
                 />
               </div>
+
+              ) : null}
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-3 pt-2">

@@ -1,165 +1,195 @@
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStore } from "@/contexts/StoreContext";
-import FreeReceiptEditor from "@/components/admin/FreeReceiptEditor";
-import { buildAdminPrintDocument } from "@/lib/adminPrintTemplates";
-import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
+import {
+  parseFreeReceiptLayout,
+  type FreeReceiptElement,
+  type FreeReceiptLayout,
+} from "@/components/admin/FreeReceiptEditor";
 
-const TEMPLATE_TYPE = "livre";
-
-const DEFAULT_LIVRE = `[CENTRO][NOMELOJA][/CENTRO]
-[CENTRO][GRANDE]IMPRESSÃO LIVRE[/GRANDE][/CENTRO]
----
-Digite aqui o conteúdo que você quer imprimir.
-Você pode usar todas as variáveis e formatações.
----
-[CENTRO][RODAPÉ][/CENTRO]`;
+const renderElementStyle = (el: FreeReceiptElement): React.CSSProperties => ({
+  position: "absolute",
+  left: `${el.x}mm`,
+  top: `${el.y}mm`,
+  width: `${el.width}mm`,
+  height: `${el.height}mm`,
+  transform: `rotate(${el.rotation}deg)`,
+  transformOrigin: "center center",
+  zIndex: el.zIndex,
+  overflow: "hidden",
+  background: el.background || "transparent",
+  color: el.color || "#000000",
+  boxSizing: "border-box",
+});
 
 const AdminFreePrint = () => {
-  const { storeId } = useStore();
-  const [value, setValue] = useState<string>(DEFAULT_LIVRE);
-  const [templateId, setTemplateId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
+  const [error, setError] = useState("");
+  const printedRef = useRef(false);
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
-      try {
-        let query = supabase
-          .from("receipt_templates" as any)
-          .select("id, body_template, store_id")
-          .eq("template_type", TEMPLATE_TYPE);
+      const { data, error } = await supabase
+        .from("receipt_templates")
+        .select("*")
+        .eq("template_type", "livre")
+        .maybeSingle();
 
-        query = storeId ? query.or(`store_id.eq.${storeId},store_id.is.null`) : query.is("store_id", null);
-
-        const { data, error } = await query.order("store_id", { ascending: false }).limit(1).maybeSingle();
-        if (error) throw error;
-
-        if (data) {
-          const row = data as any;
-          setTemplateId(row.id);
-          setValue(row.body_template || DEFAULT_LIVRE);
-        } else {
-          setTemplateId(null);
-          setValue(DEFAULT_LIVRE);
-        }
-      } catch (err: any) {
-        console.error(err);
-        toast.error(err.message || "Erro ao carregar modelo livre");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [storeId]);
-
-  const handleSave = async (next: string) => {
-    setSaving(true);
-    try {
-      const payload: Record<string, unknown> = {
-        body_template: next,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (templateId) {
-        const { error } = await supabase
-          .from("receipt_templates" as any)
-          .update(payload as any)
-          .eq("id", templateId);
-        if (error) throw error;
-      } else {
-        const insertPayload = {
-          ...payload,
-          template_type: TEMPLATE_TYPE,
-          store_id: storeId ?? null,
-          store_name: "TURBO LANCHES",
-          label: "IMPRESSÃO LIVRE",
-          custom_message: "",
-          footer_message: "",
-          show_customer_code: false,
-          show_max_delivery_time: false,
-          show_driver_field: false,
-          show_troco: false,
-          show_obs: false,
-          show_payment_info: false,
-          show_totals_detail: false,
-          items_font_size: 14,
-          label_font_size: 24,
-          body_font_size: 11,
-        };
-        const { data, error } = await supabase
-          .from("receipt_templates" as any)
-          .insert(insertPayload as any)
-          .select("id")
-          .single();
-        if (error) throw error;
-        setTemplateId((data as any).id);
-      }
-
-      setValue(next);
-      toast.success("Modelo livre salvo com sucesso!");
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Erro ao salvar modelo livre");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handlePrintTest = (next: string) => {
-    try {
-      const thermal = getThermalPrintSettings();
-      const html = buildAdminPrintDocument({
-        title: "Impressão Livre",
-        template: next,
-        variables: {
-          "[NOMELOJA]": "TURBO LANCHES",
-          "[DATAHORA]": new Date().toLocaleString("pt-BR"),
-          "[RODAPÉ]": "Obrigado pela preferência!",
-        },
-        pageWidthMm: thermal.paperWidthMm ?? 72,
-        pageMarginMm: 0,
-        bodyFontSizePx: 12,
-      });
-
-      const win = window.open("", "imprimir_livre", "width=380,height=640");
-      if (!win) {
-        toast.error("Popup bloqueado. Permita popups para imprimir o teste.");
+      if (error) {
+        setError(error.message || "Erro ao carregar comanda livre.");
         return;
       }
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Erro ao imprimir teste");
-    }
-  };
 
-  if (loading) {
-    return <div className="p-6 text-sm text-muted-foreground">Carregando modelo livre...</div>;
+      if (!data?.body_template) {
+        setError("Nenhum modelo LIVRE salvo. Volte em Comandas > LIVRE e clique em Salvar.");
+        return;
+      }
+
+      setLayout(parseFreeReceiptLayout(String(data.body_template || "")));
+    };
+
+    load();
+  }, []);
+
+  const printHeightMm = useMemo(() => {
+    if (!layout) return 100;
+    return Math.max(20, Math.min(layout.designHeightMm, layout.cutYmm));
+  }, [layout]);
+
+  useEffect(() => {
+    if (!layout || printedRef.current) return;
+    printedRef.current = true;
+
+    const timer = setTimeout(() => {
+      window.print();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [layout]);
+
+  if (error) {
+    return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
+  }
+
+  if (!layout) {
+    return <div style={{ padding: 20, fontFamily: "monospace" }}>Carregando comanda livre...</div>;
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Impressão Livre</h2>
-        <p className="text-sm text-muted-foreground">
-          Editor livre — digite qualquer conteúdo, use variáveis e tags de formatação, salve e imprima.
-        </p>
+    <>
+      <style>{`
+        @page {
+          size: ${layout.paperWidthMm}mm ${printHeightMm}mm;
+          margin: 0;
+        }
+
+        html, body, #root {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: ${layout.paperWidthMm}mm !important;
+          height: ${printHeightMm}mm !important;
+          min-height: ${printHeightMm}mm !important;
+          max-height: ${printHeightMm}mm !important;
+          overflow: hidden !important;
+          background: #fff !important;
+        }
+
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .free-print-stage {
+          position: relative;
+          width: ${layout.paperWidthMm}mm !important;
+          height: ${printHeightMm}mm !important;
+          overflow: hidden !important;
+          background: ${layout.background || "#ffffff"} !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+        }
+
+        .free-print-stage img {
+          image-rendering: auto;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        @media screen {
+          body {
+            background: #e5e5e5 !important;
+            padding: 20px !important;
+            width: auto !important;
+            height: auto !important;
+          }
+
+          .free-print-stage {
+            box-shadow: 0 18px 40px rgba(0,0,0,.22);
+            margin: 0 auto !important;
+          }
+        }
+
+        @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="free-print-stage">
+        {layout.elements
+          .slice()
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map((el) => (
+            <div key={el.id} style={renderElementStyle(el)}>
+              {el.type === "image" ? (
+                <img
+                  src={el.imageUrl}
+                  alt=""
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      el.textAlign === "right" ? "flex-end" : el.textAlign === "left" ? "flex-start" : "center",
+                    textAlign: el.textAlign || "center",
+                    fontFamily: "Arial, Helvetica, sans-serif",
+                    fontSize: `${el.fontSize || 12}px`,
+                    fontWeight: el.fontWeight || "bold",
+                    lineHeight: 1.15,
+                    color: el.color || "#000000",
+                    padding: "0.8mm",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  {el.text}
+                </div>
+              )}
+            </div>
+          ))}
       </div>
 
-      <FreeReceiptEditor
-        title="Conteúdo da impressão livre"
-        value={value}
-        defaultValue={DEFAULT_LIVRE}
-        onSave={handleSave}
-        onPrintTest={handlePrintTest}
-        saving={saving}
-      />
-    </div>
+      <div className="no-print" style={{ padding: 12, fontFamily: "monospace", textAlign: "center" }}>
+        Comanda LIVRE carregada. A impressão será aberta automaticamente.
+      </div>
+    </>
   );
 };
 

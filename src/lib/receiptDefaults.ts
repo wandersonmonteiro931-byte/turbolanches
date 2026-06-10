@@ -187,6 +187,48 @@ export const DEFAULT_PANFLETO = `[CENTRO][IMAGEMPANFLETO][/CENTRO]
 ---
 [CENTRO][RODAPÉ][/CENTRO]`;
 
+export const DEFAULT_LIVRE = `{
+  "version": 1,
+  "paperWidthMm": 72,
+  "designHeightMm": 160,
+  "cutYmm": 140,
+  "background": "#ffffff",
+  "elements": [
+    {
+      "id": "titulo_livre",
+      "type": "text",
+      "x": 4,
+      "y": 8,
+      "width": 64,
+      "height": 16,
+      "rotation": 0,
+      "zIndex": 1,
+      "text": "TURBO LANCHES",
+      "fontSize": 18,
+      "fontWeight": "900",
+      "textAlign": "center",
+      "color": "#000000",
+      "background": "transparent"
+    },
+    {
+      "id": "texto_livre",
+      "type": "text",
+      "x": 4,
+      "y": 30,
+      "width": 64,
+      "height": 20,
+      "rotation": 0,
+      "zIndex": 2,
+      "text": "Comanda livre: adicione textos, imagens e ajuste a linha de corte.",
+      "fontSize": 10,
+      "fontWeight": "bold",
+      "textAlign": "center",
+      "color": "#000000",
+      "background": "transparent"
+    }
+  ]
+}`;
+
 export const getDefaultTemplate = (type: string): string => {
   switch (type) {
     case "fechamento_rota":
@@ -217,6 +259,8 @@ export const getDefaultTemplate = (type: string): string => {
       return DEFAULT_RELATORIO_ENTREGAS;
     case "relatorio_periodo":
       return DEFAULT_RELATORIO_PERIODO;
+    case "livre":
+      return DEFAULT_LIVRE;
     // Legacy fallbacks
     case "cozinha":
       return DEFAULT_PEDIDO;
