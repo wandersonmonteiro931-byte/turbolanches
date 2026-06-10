@@ -605,29 +605,38 @@ const wrapAddressFullLines = (value: string, cols: number) => {
   return lines.length ? lines : [normalizeHtmlForEscPos(value)];
 };
 
-const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "left") => {
-  // Margem reta ponta-a-ponta: usa a largura inteira configurada.
+const normalizeAddressUppercase = (value: string) =>
+  normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
+
+const renderAddressBlackLines = (b: EscPosBuilder, text: string, cols: number, align: Align = "center") => {
+  // ENDEREÇO:
+  // 1) sempre CAIXA ALTA;
+  // 2) mesmo comportamento do TOTAL A RECEBER: fundo preto ponta-a-ponta;
+  // 3) quebra de linha sem cortar;
+  // 4) fundo único/contínuo, sem bordas desalinhadas e sem margem lateral sobrando.
   const innerCols = Math.max(8, cols);
-  const lines = wrapAddressFullLines(text, innerCols);
+  const addressText = normalizeAddressUppercase(text);
+  const lines = wrapAddressFullLines(addressText, innerCols);
 
   resetStyle(b);
   b.align("left").font("A").bold(true).size(0, 0).invert(true);
 
   for (const line of lines) {
-    b.rawText(fixedLine(line, innerCols, align));
+    b.rawText(fixedLine(line, innerCols, align).slice(0, innerCols));
   }
 
   resetStyle(b);
 };
 
 const renderBoxedWrappedAddress = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  // Endereço do pedido: imprimir inteiro, quebrando em várias linhas,
-  // com fundo preto em cada linha, sem cortar e sem borda de caixa.
-  renderAddressBlackLines(b, text, cols, style.align || "left");
+  // Endereço do pedido: igual TOTAL A RECEBER.
+  // Caixa alta, quebra linha, fundo preto ponta-a-ponta e alinhamento uniforme.
+  renderAddressBlackLines(b, text, cols, style.align || "center");
 };
 
 const renderStyledText = (b: EscPosBuilder, style: LineStyle, text: string, cols: number) => {
-  const finalText = removeInternalPrintMarkers(text);
+  const rawFinalText = removeInternalPrintMarkers(text);
+  const finalText = style.address ? normalizeAddressUppercase(rawFinalText) : rawFinalText;
   if (!finalText.replace(/\s/g, "")) return;
 
   const fittedStyle = fitStyleToSingleLine(style, [finalText], cols);
