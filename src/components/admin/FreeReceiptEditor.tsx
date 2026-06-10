@@ -698,8 +698,8 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               onClick={() => setSelectedId(null)}
               className="relative bg-white shadow-2xl"
               style={{
-                width: `${layout.paperWidthMm * 5}px`,
-                height: `${layout.designHeightMm * 5}px`,
+                width: `${layout.paperWidthMm * PREVIEW_PX_PER_MM}px`,
+                height: `${layout.designHeightMm * PREVIEW_PX_PER_MM}px`,
                 background: layout.background,
               }}
             >
@@ -710,7 +710,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
                   setDraggingCut(true);
                 }}
                 className="absolute left-0 right-0 z-[9999] flex cursor-row-resize items-center"
-                style={{ top: `${layout.cutYmm}mm` }}
+                style={{ top: `${layout.cutYmm * PREVIEW_PX_PER_MM}px` }}
                 title="Arraste para definir onde o papel será cortado"
               >
                 <div className="h-[2px] flex-1 bg-red-600" />
