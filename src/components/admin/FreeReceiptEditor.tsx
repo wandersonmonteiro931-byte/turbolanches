@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image as ImageIcon, Move, Plus, RotateCcw, Save, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
@@ -166,10 +166,24 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lastSerializedRef = useRef<string>(serializeLayout(layout));
+  const pendingSerializedRef = useRef<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  const flushPendingChange = useCallback(() => {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+
+    if (!pendingSerializedRef.current) return;
+    const next = pendingSerializedRef.current;
+    pendingSerializedRef.current = null;
+    onChangeRef.current(next);
+  }, []);
 
   // Push initial serialization to parent so the form's body_template is in sync
   // even if the user clicks Salvar without editing anything.
@@ -181,6 +195,11 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   useEffect(() => {
     if (typeof value !== "string") return;
     if (value === lastSerializedRef.current) return;
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    pendingSerializedRef.current = null;
     const parsed = parseFreeReceiptLayout(value);
     const reserialized = serializeLayout(parsed);
     if (reserialized === lastSerializedRef.current) return;
@@ -193,7 +212,23 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     const serialized = serializeLayout(layout);
     if (serialized === lastSerializedRef.current) return;
     lastSerializedRef.current = serialized;
-    onChangeRef.current(serialized);
+    pendingSerializedRef.current = serialized;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      if (!pendingSerializedRef.current) return;
+      const next = pendingSerializedRef.current;
+      pendingSerializedRef.current = null;
+      onChangeRef.current(next);
+    }, 160);
+
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
   }, [layout]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
