@@ -178,6 +178,31 @@ const completeVariables = (vars: Record<string, string>) => {
   return out;
 };
 
+const parseMoneyToNumber = (value: string) => {
+  const raw = String(value || "")
+    .replace(/[^\d,.-]/g, "")
+    .replace(/\.(?=\d{3}(?:\D|$))/g, "")
+    .replace(",", ".")
+    .trim();
+
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const hasPositiveMoneyValue = (value: string) => parseMoneyToNumber(value) > 0;
+
+const removeZeroTrocoLines = (template: string, variables: Record<string, string>) => {
+  const troco = variables["[TROCO]"] ?? "";
+  if (hasPositiveMoneyValue(troco)) return template;
+
+  // Remove a linha inteira onde existir [TROCO], mesmo que esteja dentro de tags:
+  // [TXTMEDIO][TZTBORDA]TROCO: [TROCO][/TZTBORDA][/TXTMEDIO]
+  return String(template || "")
+    .split("\n")
+    .filter((line) => !/\[TROCO\]/i.test(line))
+    .join("\n");
+};
+
 const replaceTokens = (text: string, vars: Record<string, string>, preserveEmptyItemTokens = true): string => {
   let out = text;
   const mergedVars = completeVariables(vars);
@@ -626,9 +651,44 @@ const wrapAddressFullLines = (value: string, cols: number) => {
 const normalizeAddressUppercase = (value: string) =>
   normalizeHtmlForEscPos(value).replace(/\s+/g, " ").trim().toLocaleUpperCase("pt-BR");
 
-const isItemQuantityLikeLine = (value: string) =>
-  /^\s*\d+\s*[xX]\b/.test(String(value || "").trim()) ||
-  /^\s*(?:\d+\s*[xX]\s*[;:,.-]?|[;:,.-]\s*\d+\s*[xX])/i.test(String(value || "").trim());
+const isItemQuantityLikeLine = (value: string) => splitItemQuantityLine(value) !== null;
+
+const splitItemQuantityLine = (value: string): { qty: string; rest: string } | null => {
+  const match = String(value || "")
+    .trim()
+    .match(/^(\d+\s*[xX])\s*[;:,.\\-]?\s*(.*)$/);
+  if (!match) return null;
+  return {
+    qty: match[1].replace(/\s+/g, "").toLowerCase(),
+    rest: match[2] || "",
+  };
+};
+
+const renderBlackItemQuantityLine = (b: EscPosBuilder, line: string, cols: number) => {
+  const parsed = splitItemQuantityLine(line);
+  if (!parsed) return false;
+
+  resetStyle(b);
+  b.align("left").font("A").bold(true).invert(true);
+  b.lineSpacing(0);
+
+  // Quantidade maior e em negrito, mas sem ficar ilegível.
+  // size(1, 0) = mais largo, altura normal. Fica mais destacado que o nome do item.
+  const qtyBoxNormalCols = 5;
+  b.size(1, 0);
+  b.text(fixedLine(parsed.qty, qtyBoxNormalCols, "center"));
+
+  // Como a quantidade está em largura dupla, ela ocupa fisicamente mais espaço.
+  // O nome fica normal, ainda com fundo preto, preenchendo o resto da linha.
+  b.size(0, 0).bold(true).invert(true);
+  const remainingCols = Math.max(1, cols - qtyBoxNormalCols * 2);
+  b.text(fixedLine(parsed.rest, remainingCols, "left"));
+  b.newline();
+
+  b.defaultLineSpacing();
+  resetStyle(b);
+  return true;
+};
 
 const renderContinuousBlackBlock = (
   b: EscPosBuilder,
@@ -816,11 +876,11 @@ const renderItemQuantityHighlighted = (
   const qtyWidth = Math.min(8, Math.max(4, qty.length + 2));
   const priceWidth = Math.min(12, Math.max(9, price.length));
   const gap = 1;
-  const productWidth = Math.max(1, cols - qtyWidth - priceWidth - gap * 2);
+  const productWidth = Math.max(1, cols - Math.max(4, Math.min(5, qtyWidth)) * 2 - priceWidth - gap * 2);
 
-  // Quantidade do item precisa ser legível: fundo preto normal, sem aumentar altura.
-  b.align("left").font("A").bold(true).size(0, 0).invert(true);
-  b.text(fixedLine(qty, qtyWidth, "center"));
+  // Quantidade do item precisa ficar mais forte e um pouco maior que o nome.
+  b.align("left").font("A").bold(true).size(1, 0).invert(true);
+  b.text(fixedLine(qty, Math.max(4, Math.min(5, qtyWidth)), "center"));
 
   b.invert(false).size(0, 0).bold(true);
   b.text(" ".repeat(gap));
@@ -844,7 +904,10 @@ export const renderTemplateToEscPos = (
   const cols = opts.columns ?? 48;
 
   // 1. Substitui variáveis globais e limpa qualquer HTML vindo do template/variáveis.
-  let resolved = normalizeHtmlForEscPos(replaceTokens(input.template, completeVariables(input.variables), true));
+  // TROCO só imprime quando for maior que 0,00. Se for R$ 0,00/vazio, remove a linha toda antes de substituir.
+  const completedVariables = completeVariables(input.variables);
+  const templateWithoutZeroTroco = removeZeroTrocoLines(input.template, completedVariables);
+  let resolved = normalizeHtmlForEscPos(replaceTokens(templateWithoutZeroTroco, completedVariables, true));
 
   // 2. Expande [ITENS]
   if (input.items && input.items.length > 0) {
@@ -858,7 +921,7 @@ export const renderTemplateToEscPos = (
   //     (ex: [OBS], [CUPOM], [NOMEENTREGADOR] vazios), MAS preserva linhas
   //     em branco intencionais que existiam no template original.
   //   - Colapsa separadores '---' duplicados/consecutivos para um único.
-  const originalLines = input.template.split("\n");
+  const originalLines = templateWithoutZeroTroco.split("\n");
   const resolvedLines = resolved.split("\n");
   const cleaned: string[] = [];
   for (let i = 0; i < resolvedLines.length; i += 1) {
