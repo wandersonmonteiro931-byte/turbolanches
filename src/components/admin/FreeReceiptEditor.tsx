@@ -161,9 +161,10 @@ const RESIZE_HANDLES = [
 interface FreeReceiptEditorProps {
   value?: string | null;
   onChange: (next: string) => void;
+  onFlushReady?: (flush: () => string) => void;
 }
 
-const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
+const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorProps) => {
   const initialLayout = useMemo(() => parseFreeReceiptLayout(value), [value]);
   const [layout, setLayout] = useState<FreeReceiptLayout>(initialLayout);
   const [selectedId, setSelectedId] = useState<string | null>(initialLayout.elements[0]?.id ?? null);
@@ -175,6 +176,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   const [uploading, setUploading] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const layoutRef = useRef<FreeReceiptLayout>(initialLayout);
 
   useEffect(() => {
     const parsed = parseFreeReceiptLayout(value);
@@ -183,8 +185,18 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   }, [value]);
 
   useEffect(() => {
+    layoutRef.current = layout;
     onChange(serializeLayout(layout));
   }, [layout, onChange]);
+
+  useEffect(() => {
+    if (!onFlushReady) return;
+    onFlushReady(() => {
+      const serialized = serializeLayout(layoutRef.current);
+      onChange(serialized);
+      return serialized;
+    });
+  }, [onFlushReady, onChange]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
 
