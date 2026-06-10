@@ -94,6 +94,7 @@ const DEFAULT_LAYOUT: FreeReceiptLayout = {
 };
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+const PREVIEW_PX_PER_MM = 5;
 
 export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout => {
   if (!value) return DEFAULT_LAYOUT;
@@ -538,10 +539,10 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
     const borderWidth = Number(el.borderWidth ?? 0) || 0;
     const commonStyle = {
       position: "absolute" as const,
-      left: `${el.x}mm`,
-      top: `${el.y}mm`,
-      width: `${el.width}mm`,
-      height: `${el.height}mm`,
+      left: `${el.x * PREVIEW_PX_PER_MM}px`,
+      top: `${el.y * PREVIEW_PX_PER_MM}px`,
+      width: `${el.width * PREVIEW_PX_PER_MM}px`,
+      height: `${el.height * PREVIEW_PX_PER_MM}px`,
       transform: `rotate(${el.rotation}deg)`,
       transformOrigin: "center center",
       zIndex: el.zIndex,
@@ -554,7 +555,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
         borderWidth > 0 && el.borderStyle !== "none"
           ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
           : "none",
-      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+      borderRadius: `${(Number(el.borderRadius ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
       opacity: Number(el.opacity ?? 1) || 1,
     };
 
@@ -577,7 +578,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
             className="h-full w-full select-none"
             style={{
               objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+              padding: `${(Number(el.paddingMm ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
               boxSizing: "border-box",
             }}
           />
@@ -591,7 +592,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+              padding: `${(Number(el.paddingMm ?? 0.8) || 0.8) * PREVIEW_PX_PER_MM}px`,
               boxSizing: "border-box",
             }}
           >
