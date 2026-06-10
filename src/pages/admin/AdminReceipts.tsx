@@ -1,5 +1,5 @@
 import TurboLoader from "@/components/TurboLoader";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useReceiptTemplates, useUpdateReceiptTemplate, ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import ReceiptVariableReference from "@/components/admin/ReceiptVariableReference";
@@ -119,6 +119,8 @@ const AdminReceipts = () => {
   const [qzPrinters, setQzPrinters] = useState<string[]>([]);
   const [qzStatus, setQzStatus] = useState<"unknown" | "online" | "offline">("unknown");
   const [qzBusy, setQzBusy] = useState(false);
+  const freeReceiptFlushRef = useRef<() => void>(() => undefined);
+  const freeReceiptBodyRef = useRef<string>(getDefaultTemplate("livre"));
 
   const updateThermalSetting = (field: keyof ThermalPrintSettings, value: number | string | boolean) => {
     const next = saveThermalPrintSettings({ ...thermalSettings, [field]: value as never });
@@ -192,8 +194,13 @@ const AdminReceipts = () => {
     const mode: PrintMode = getPrintMode();
 
     if (type === "livre") {
-      // Salva antes de imprimir para garantir que o popup leia o JSON atual do editor.
-      const data = editData[type];
+      // Sincroniza qualquer edição pendente antes de salvar/imprimir.
+      freeReceiptFlushRef.current();
+      const data = {
+        ...editData[type],
+        template_type: "livre",
+        body_template: freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre"),
+      };
       if (data) {
         try {
           await updateMutation.mutateAsync(
@@ -279,6 +286,7 @@ const AdminReceipts = () => {
       const existing = templates?.find((template) => template.template_type === tab.type);
       map[tab.type] = buildTemplateDraft(tab.type, existing);
     });
+    freeReceiptBodyRef.current = String(map.livre?.body_template || getDefaultTemplate("livre"));
     setEditData(map);
   }, [templates]);
 
@@ -292,7 +300,15 @@ const AdminReceipts = () => {
   };
 
   const handleSave = (type: string) => {
-    const data = editData[type];
+    if (type === "livre") freeReceiptFlushRef.current();
+    const data =
+      type === "livre"
+        ? {
+            ...editData[type],
+            template_type: "livre",
+            body_template: freeReceiptBodyRef.current || editData[type]?.body_template || getDefaultTemplate("livre"),
+          }
+        : editData[type];
     if (!data) return;
     updateMutation.mutate(data as Partial<ReceiptTemplate> & { template_type: string; id?: string });
   };
@@ -670,7 +686,13 @@ const AdminReceipts = () => {
 
                   <FreeReceiptEditor
                     value={bodyTemplate || getDefaultTemplate(tab.type)}
-                    onChange={(next) => updateField(tab.type, "body_template", next)}
+                    onChange={(next) => {
+                      freeReceiptBodyRef.current = next;
+                      updateField(tab.type, "body_template", next);
+                    }}
+                    onFlushReady={(flush) => {
+                      freeReceiptFlushRef.current = flush;
+                    }}
                   />
                 </div>
 

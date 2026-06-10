@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Move, Plus, RotateCcw, Save, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
@@ -94,6 +94,7 @@ const DEFAULT_LAYOUT: FreeReceiptLayout = {
 };
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
+const PREVIEW_PX_PER_MM = 5;
 
 export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout => {
   if (!value) return DEFAULT_LAYOUT;
@@ -150,9 +151,10 @@ const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 interface FreeReceiptEditorProps {
   value?: string | null;
   onChange: (next: string) => void;
+  onFlushReady?: (flush: () => void) => void;
 }
 
-const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
+const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorProps) => {
   const [layout, setLayout] = useState<FreeReceiptLayout>(() => parseFreeReceiptLayout(value));
   const [selectedId, setSelectedId] = useState<string | null>(
     () => parseFreeReceiptLayout(value).elements[0]?.id ?? null,
@@ -163,13 +165,41 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   const [rotating, setRotating] = useState<any>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; elX: number; elY: number } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const layoutRef = useRef(layout);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lastSerializedRef = useRef<string>(serializeLayout(layout));
+  const pendingSerializedRef = useRef<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  layoutRef.current = layout;
+
+  const flushPendingChange = useCallback(() => {
+    const currentSerialized = serializeLayout(layoutRef.current);
+    if (currentSerialized !== lastSerializedRef.current) {
+      lastSerializedRef.current = currentSerialized;
+      pendingSerializedRef.current = currentSerialized;
+    }
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+
+    if (!pendingSerializedRef.current) return;
+    const next = pendingSerializedRef.current;
+    pendingSerializedRef.current = null;
+    onChangeRef.current(next);
+  }, []);
+
+  useEffect(() => {
+    onFlushReady?.(flushPendingChange);
+    return () => onFlushReady?.(() => undefined);
+  }, [flushPendingChange, onFlushReady]);
 
   // Push initial serialization to parent so the form's body_template is in sync
   // even if the user clicks Salvar without editing anything.
@@ -181,6 +211,11 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   useEffect(() => {
     if (typeof value !== "string") return;
     if (value === lastSerializedRef.current) return;
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    pendingSerializedRef.current = null;
     const parsed = parseFreeReceiptLayout(value);
     const reserialized = serializeLayout(parsed);
     if (reserialized === lastSerializedRef.current) return;
@@ -193,7 +228,23 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     const serialized = serializeLayout(layout);
     if (serialized === lastSerializedRef.current) return;
     lastSerializedRef.current = serialized;
-    onChangeRef.current(serialized);
+    pendingSerializedRef.current = serialized;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      if (!pendingSerializedRef.current) return;
+      const next = pendingSerializedRef.current;
+      pendingSerializedRef.current = null;
+      onChangeRef.current(next);
+    }, 160);
+
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+    };
   }, [layout]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
@@ -488,10 +539,10 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
     const borderWidth = Number(el.borderWidth ?? 0) || 0;
     const commonStyle = {
       position: "absolute" as const,
-      left: `${el.x}mm`,
-      top: `${el.y}mm`,
-      width: `${el.width}mm`,
-      height: `${el.height}mm`,
+      left: `${el.x * PREVIEW_PX_PER_MM}px`,
+      top: `${el.y * PREVIEW_PX_PER_MM}px`,
+      width: `${el.width * PREVIEW_PX_PER_MM}px`,
+      height: `${el.height * PREVIEW_PX_PER_MM}px`,
       transform: `rotate(${el.rotation}deg)`,
       transformOrigin: "center center",
       zIndex: el.zIndex,
@@ -504,7 +555,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
         borderWidth > 0 && el.borderStyle !== "none"
           ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
           : "none",
-      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
+      borderRadius: `${(Number(el.borderRadius ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
       opacity: Number(el.opacity ?? 1) || 1,
     };
 
@@ -527,7 +578,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
             className="h-full w-full select-none"
             style={{
               objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
+              padding: `${(Number(el.paddingMm ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
               boxSizing: "border-box",
             }}
           />
@@ -541,7 +592,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
+              padding: `${(Number(el.paddingMm ?? 0.8) || 0.8) * PREVIEW_PX_PER_MM}px`,
               boxSizing: "border-box",
             }}
           >
@@ -647,8 +698,8 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
               onClick={() => setSelectedId(null)}
               className="relative bg-white shadow-2xl"
               style={{
-                width: `${layout.paperWidthMm * 5}px`,
-                height: `${layout.designHeightMm * 5}px`,
+                width: `${layout.paperWidthMm * PREVIEW_PX_PER_MM}px`,
+                height: `${layout.designHeightMm * PREVIEW_PX_PER_MM}px`,
                 background: layout.background,
               }}
             >
@@ -659,7 +710,7 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
                   setDraggingCut(true);
                 }}
                 className="absolute left-0 right-0 z-[9999] flex cursor-row-resize items-center"
-                style={{ top: `${layout.cutYmm}mm` }}
+                style={{ top: `${layout.cutYmm * PREVIEW_PX_PER_MM}px` }}
                 title="Arraste para definir onde o papel será cortado"
               >
                 <div className="h-[2px] flex-1 bg-red-600" />
