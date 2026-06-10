@@ -852,6 +852,30 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     } catch (error) {}
   }
 
+  function waitForImages(cb) {
+    try {
+      var imgs = document.images ? Array.prototype.slice.call(document.images) : [];
+      if (!imgs.length) { cb(); return; }
+      var remaining = imgs.length;
+      var done = false;
+      var finish = function () { if (done) return; done = true; cb(); };
+      var tick = function () { remaining -= 1; if (remaining <= 0) finish(); };
+      imgs.forEach(function (img) {
+        if (img.complete && img.naturalWidth > 0) { tick(); return; }
+        var onAny = function () {
+          img.removeEventListener("load", onAny);
+          img.removeEventListener("error", onAny);
+          tick();
+        };
+        img.addEventListener("load", onAny);
+        img.addEventListener("error", onAny);
+        if (img.decode) { try { img.decode().then(onAny).catch(onAny); } catch (e) {} }
+      });
+      // Hard safety net so we never block forever
+      setTimeout(finish, 4000);
+    } catch (e) { cb(); }
+  }
+
   function firePrint() {
     var run = function () {
       if (printFinished) return;
@@ -863,19 +887,29 @@ if (typeof __LOVA_FIX_TRIGGER__ === "undefined") { var __LOVA_FIX_TRIGGER__ = fa
     if (started) { run(); return; }
     started = true;
 
+    var startWhenReady = function () {
+      waitForImages(function () {
+        try {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(run);
+          });
+        } catch (e) { run(); }
+      });
+    };
+
     if (document.fonts && document.fonts.ready) {
       var fontsReadyResolved = false;
       var runWhenReady = function () {
         if (fontsReadyResolved) return;
         fontsReadyResolved = true;
-        run();
+        startWhenReady();
       };
       document.fonts.ready.then(runWhenReady).catch(runWhenReady);
-      setTimeout(runWhenReady, 220);
+      setTimeout(runWhenReady, 600);
       return;
     }
 
-    setTimeout(run, 60);
+    setTimeout(startWhenReady, 60);
   }
 
   if (document.readyState === "complete") {
