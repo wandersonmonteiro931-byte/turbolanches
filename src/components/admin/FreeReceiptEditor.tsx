@@ -153,9 +153,10 @@ interface FreeReceiptEditorProps {
 }
 
 const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
-  const initialLayout = useMemo(() => parseFreeReceiptLayout(value), [value]);
-  const [layout, setLayout] = useState<FreeReceiptLayout>(initialLayout);
-  const [selectedId, setSelectedId] = useState<string | null>(initialLayout.elements[0]?.id ?? null);
+  const [layout, setLayout] = useState<FreeReceiptLayout>(() => parseFreeReceiptLayout(value));
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => parseFreeReceiptLayout(value).elements[0]?.id ?? null,
+  );
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingCut, setDraggingCut] = useState(false);
   const [resizing, setResizing] = useState<any>(null);
@@ -164,16 +165,36 @@ const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
   const [uploading, setUploading] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const lastSerializedRef = useRef<string>(serializeLayout(layout));
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  // Push initial serialization to parent so the form's body_template is in sync
+  // even if the user clicks Salvar without editing anything.
+  useEffect(() => {
+    onChangeRef.current(lastSerializedRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
+    if (typeof value !== "string") return;
+    if (value === lastSerializedRef.current) return;
     const parsed = parseFreeReceiptLayout(value);
+    const reserialized = serializeLayout(parsed);
+    if (reserialized === lastSerializedRef.current) return;
+    lastSerializedRef.current = reserialized;
     setLayout(parsed);
     setSelectedId((current) => current || parsed.elements[0]?.id || null);
   }, [value]);
 
   useEffect(() => {
-    onChange(serializeLayout(layout));
-  }, [layout, onChange]);
+    const serialized = serializeLayout(layout);
+    if (serialized === lastSerializedRef.current) return;
+    lastSerializedRef.current = serialized;
+    onChangeRef.current(serialized);
+  }, [layout]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
 
