@@ -1791,6 +1791,10 @@ export type Database = {
           items_font_size: number
           label: string
           label_font_size: number
+          logo_image_size: string
+          logo_image_url: string | null
+          panfleto_image_size: string
+          panfleto_image_url: string | null
           print_image_mode: string
           print_image_quality: string
           print_image_url: string | null
@@ -1816,6 +1820,10 @@ export type Database = {
           items_font_size?: number
           label?: string
           label_font_size?: number
+          logo_image_size?: string
+          logo_image_url?: string | null
+          panfleto_image_size?: string
+          panfleto_image_url?: string | null
           print_image_mode?: string
           print_image_quality?: string
           print_image_url?: string | null
@@ -1841,6 +1849,10 @@ export type Database = {
           items_font_size?: number
           label?: string
           label_font_size?: number
+          logo_image_size?: string
+          logo_image_url?: string | null
+          panfleto_image_size?: string
+          panfleto_image_url?: string | null
           print_image_mode?: string
           print_image_quality?: string
           print_image_url?: string | null
