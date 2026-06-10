@@ -637,6 +637,79 @@ const AdminReceipts = () => {
           const fields = getField(tab.type);
           const bodyTemplate = (fields.body_template as string) || "";
 
+          if (tab.type === "livre") {
+            return (
+              <TabsContent key={tab.type} value={tab.type} className="mt-4 space-y-4">
+                <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-background to-muted/40 p-4">
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-black tracking-tight">Comanda LIVRE</h2>
+                      <p className="max-w-3xl text-sm text-muted-foreground">
+                        Área exclusiva de arrasta e solta. Aqui não aparece código, JSON, variáveis nem modelo em texto.
+                        Monte tudo manualmente com imagens e textos exatamente como deseja imprimir.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                      <b>Aviso:</b> a linha vermelha é o corte. Arraste ela até onde o papel deve terminar.
+                    </div>
+                  </div>
+
+                  <FreeReceiptEditor
+                    value={bodyTemplate || getDefaultTemplate(tab.type)}
+                    onChange={(next) => updateField(tab.type, "body_template", next)}
+                  />
+                </div>
+
+                <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-background/95 p-3 shadow-xl backdrop-blur">
+                  <button
+                    type="button"
+                    onClick={() => handleSave(tab.type)}
+                    disabled={updateMutation.isPending}
+                    className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    {updateMutation.isPending ? "Salvando..." : "Salvar montagem"}
+                  </button>
+
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Cópias</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={printQty[tab.type] ?? 1}
+                      onChange={(e) => setPrintQty((prev) => ({ ...prev, [tab.type]: Number(e.target.value) }))}
+                      className="h-9 w-16 text-center"
+                    />
+
+                    <PrintModeSelector />
+
+                    <button
+                      type="button"
+                      onClick={(e) => handlePrintTest(e, tab.type)}
+                      disabled={printing}
+                      className="flex items-center gap-2 rounded-lg bg-foreground px-5 py-2 text-sm font-bold text-background transition-all active:scale-[0.98] disabled:opacity-50"
+                      title="Imprime a montagem LIVRE exatamente como foi salva"
+                    >
+                      <Printer size={16} />
+                      Imprimir
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleResetTemplate(tab.type)}
+                    className="flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                  >
+                    <RotateCcw size={13} />
+                    Restaurar livre
+                  </button>
+                </div>
+              </TabsContent>
+            );
+          }
+
           return (
             <TabsContent key={tab.type} value={tab.type} className="space-y-4 mt-4">
               {/* Quick fields */}
@@ -705,11 +778,12 @@ const AdminReceipts = () => {
                 </div>
               </div>
 
-
               <div className="grid gap-4 rounded-xl border border-dashed border-border bg-muted/20 p-4 md:grid-cols-2">
                 <div className="space-y-3">
                   <div>
-                    <Label className="text-xs font-semibold">Imagem inteira do panfleto — variável [IMAGEMPANFLETO]</Label>
+                    <Label className="text-xs font-semibold">
+                      Imagem inteira do panfleto — variável [IMAGEMPANFLETO]
+                    </Label>
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       Use no modelo: [CENTRO][IMAGEMPANFLETO][/CENTRO]
                     </p>
@@ -740,9 +814,7 @@ const AdminReceipts = () => {
                 <div className="space-y-3">
                   <div>
                     <Label className="text-xs font-semibold">Logotipo da loja — variável [LOGOLOJA]</Label>
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Use no modelo: [CENTRO][LOGOLOJA][/CENTRO]
-                    </p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">Use no modelo: [CENTRO][LOGOLOJA][/CENTRO]</p>
                   </div>
 
                   <ImageUpload
@@ -795,8 +867,6 @@ const AdminReceipts = () => {
                   placeholder="Cole ou edite o modelo da comanda aqui..."
                 />
               </div>
-
-              
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
