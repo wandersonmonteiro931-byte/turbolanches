@@ -5,6 +5,10 @@ import {
   type FreeReceiptElement,
   type FreeReceiptLayout,
 } from "@/components/admin/FreeReceiptEditor";
+import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
+import { isQzAvailable, printRawEscPos } from "@/lib/qzTray";
+
+const FREE_RECEIPT_STORAGE_KEY = "turbo_comanda_livre_layout";
 
 const renderElementStyle = (el: FreeReceiptElement) => {
   const borderWidth = Number(el.borderWidth ?? 0) || 0;
@@ -31,13 +35,247 @@ const renderElementStyle = (el: FreeReceiptElement) => {
   };
 };
 
+const readLocalLayout = () => {
+  try {
+    return window.localStorage.getItem(FREE_RECEIPT_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+};
+
+const loadImageSafe = async (src: string): Promise<HTMLImageElement | null> => {
+  if (!src) return null;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+};
+
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+  const lines: string[] = [];
+
+  for (const paragraph of String(text || "").split("\n")) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      lines.push("");
+      continue;
+    }
+
+    let line = "";
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+
+    if (line) lines.push(line);
+  }
+
+  return lines;
+};
+
+const drawRoundedRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) => {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+};
+
+const renderLayoutToCanvas = async (layout: FreeReceiptLayout, heightMm: number) => {
+  /*
+    POS-80 / JP80H normalmente imprime 576 dots úteis em papel 80mm.
+    Usamos 576 para a largura, e calculamos a altura pela linha de corte.
+    Isso evita o navegador/PDF redimensionar e faz a imagem sair mais fiel na QZ Tray.
+  */
+  const widthDots = layout.paperWidthMm >= 78 ? 576 : Math.round(layout.paperWidthMm * 7.2);
+  const pxPerMm = widthDots / layout.paperWidthMm;
+  const heightDots = Math.max(8, Math.ceil(heightMm * pxPerMm));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = widthDots;
+  canvas.height = heightDots;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas não suportado neste navegador.");
+
+  ctx.fillStyle = layout.background || "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const elements = layout.elements.slice().sort((a, b) => a.zIndex - b.zIndex);
+
+  for (const el of elements) {
+    const x = el.x * pxPerMm;
+    const y = el.y * pxPerMm;
+    const w = el.width * pxPerMm;
+    const h = el.height * pxPerMm;
+    const bw = Number(el.borderWidth ?? 0) || 0;
+    const radius = (Number(el.borderRadius ?? 0) || 0) * pxPerMm;
+    const opacity = Number(el.opacity ?? 1) || 1;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.05, Math.min(1, opacity));
+    ctx.translate(x + w / 2, y + h / 2);
+    ctx.rotate(((el.rotation || 0) * Math.PI) / 180);
+    ctx.translate(-w / 2, -h / 2);
+
+    if (el.background && el.background !== "transparent") {
+      ctx.fillStyle = el.background;
+      drawRoundedRect(ctx, 0, 0, w, h, radius);
+      ctx.fill();
+    }
+
+    if (bw > 0 && el.borderStyle !== "none") {
+      ctx.strokeStyle = el.borderColor || "#000000";
+      ctx.lineWidth = bw;
+      if (el.borderStyle === "dashed") ctx.setLineDash([bw * 3, bw * 2]);
+      drawRoundedRect(ctx, bw / 2, bw / 2, Math.max(0, w - bw), Math.max(0, h - bw), radius);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    const pad = (Number(el.paddingMm ?? (el.type === "image" ? 0 : 0.8)) || 0) * pxPerMm;
+    const contentX = pad;
+    const contentY = pad;
+    const contentW = Math.max(1, w - pad * 2);
+    const contentH = Math.max(1, h - pad * 2);
+
+    if (el.type === "image") {
+      const img = await loadImageSafe(el.imageUrl || "");
+      if (img) {
+        let dx = contentX;
+        let dy = contentY;
+        let dw = contentW;
+        let dh = contentH;
+
+        if (el.objectFit === "contain") {
+          const scale = Math.min(contentW / img.width, contentH / img.height);
+          dw = img.width * scale;
+          dh = img.height * scale;
+          dx = contentX + (contentW - dw) / 2;
+          dy = contentY + (contentH - dh) / 2;
+        } else if (el.objectFit === "cover") {
+          const scale = Math.max(contentW / img.width, contentH / img.height);
+          dw = img.width * scale;
+          dh = img.height * scale;
+          dx = contentX + (contentW - dw) / 2;
+          dy = contentY + (contentH - dh) / 2;
+        }
+
+        ctx.drawImage(img, dx, dy, dw, dh);
+      }
+    } else {
+      const fontSize = Math.max(4, Number(el.fontSize || 12));
+      const weight = el.fontWeight || "bold";
+      const pxFont = fontSize * (pxPerMm / 3.78);
+      const lineHeight = pxFont * 1.18;
+
+      ctx.fillStyle = el.color || "#000000";
+      ctx.font = `${weight} ${pxFont}px Arial, Helvetica, sans-serif`;
+      ctx.textBaseline = "middle";
+      ctx.textAlign = el.textAlign || "center";
+
+      const lines = wrapText(ctx, el.text || "", contentW);
+      const totalTextH = lines.length * lineHeight;
+      let ty = contentY + contentH / 2 - totalTextH / 2 + lineHeight / 2;
+
+      const tx =
+        el.textAlign === "left" ? contentX : el.textAlign === "right" ? contentX + contentW : contentX + contentW / 2;
+
+      for (const line of lines) {
+        ctx.fillText(line, tx, ty);
+        ty += lineHeight;
+      }
+    }
+
+    ctx.restore();
+  }
+
+  return canvas;
+};
+
+const canvasToEscPosRaster = (canvas: HTMLCanvasElement) => {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas inválido.");
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const bytesPerRow = Math.ceil(width / 8);
+  const imageData = ctx.getImageData(0, 0, width, height).data;
+  const raster = new Uint8Array(bytesPerRow * height);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      const r = imageData[idx];
+      const g = imageData[idx + 1];
+      const b = imageData[idx + 2];
+      const a = imageData[idx + 3];
+      const luminance = a < 30 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+
+      if (luminance < 170) {
+        const byteIndex = y * bytesPerRow + Math.floor(x / 8);
+        raster[byteIndex] |= 0x80 >> (x % 8);
+      }
+    }
+  }
+
+  const xL = bytesPerRow & 0xff;
+  const xH = (bytesPerRow >> 8) & 0xff;
+  const yL = height & 0xff;
+  const yH = (height >> 8) & 0xff;
+
+  const header = [0x1b, 0x40, 0x1d, 0x76, 0x30, 0x00, xL, xH, yL, yH];
+  const footer = [0x0a, 0x0a, 0x1d, 0x56, 0x42, 0x00];
+
+  const out = new Uint8Array(header.length + raster.length + footer.length);
+  out.set(header, 0);
+  out.set(raster, header.length);
+  out.set(footer, header.length + raster.length);
+
+  return out;
+};
+
 const AdminFreePrint = () => {
   const [layout, setLayout] = useState<FreeReceiptLayout | null>(null);
   const [error, setError] = useState("");
+  const [printed, setPrinted] = useState(false);
   const printedRef = useRef(false);
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const mode = searchParams.get("mode") || "pdf";
+  const copies = Math.max(1, Math.min(20, Number(searchParams.get("copies") || 1)));
 
   useEffect(() => {
     const load = async () => {
+      const local = readLocalLayout();
+      if (local) {
+        setLayout(parseFreeReceiptLayout(local));
+        return;
+      }
+
       const { data, error } = await supabase
         .from("receipt_templates")
         .select("*")
@@ -66,15 +304,36 @@ const AdminFreePrint = () => {
   }, [layout]);
 
   useEffect(() => {
-    if (!layout || printedRef.current) return;
-    printedRef.current = true;
+    const runPrint = async () => {
+      if (!layout || printedRef.current) return;
+      printedRef.current = true;
 
-    const timer = setTimeout(() => {
-      window.print();
-    }, 400);
+      if (mode !== "pdf") {
+        try {
+          const settings = getThermalPrintSettings();
+          const available = await isQzAvailable();
 
-    return () => clearTimeout(timer);
-  }, [layout]);
+          if (available && settings.qzPrinterName) {
+            const canvas = await renderLayoutToCanvas(layout, printHeightMm);
+            const bytes = canvasToEscPosRaster(canvas);
+            await printRawEscPos(settings.qzPrinterName, bytes, copies);
+            setPrinted(true);
+            setTimeout(() => window.close(), 800);
+            return;
+          }
+        } catch (err) {
+          console.warn("[Comanda LIVRE] QZ raster falhou, usando PDF:", err);
+        }
+      }
+
+      setTimeout(() => {
+        window.print();
+        setPrinted(true);
+      }, 450);
+    };
+
+    runPrint();
+  }, [layout, mode, copies, printHeightMm]);
 
   if (error) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
@@ -199,7 +458,11 @@ const AdminFreePrint = () => {
       </div>
 
       <div className="no-print" style={{ padding: 12, fontFamily: "monospace", textAlign: "center" }}>
-        Comanda LIVRE carregada. A impressão será aberta automaticamente.
+        {printed
+          ? "Comanda LIVRE enviada para impressão."
+          : mode !== "pdf"
+            ? "Gerando imagem raster para QZ Tray/POS-80..."
+            : "Comanda LIVRE carregada. A impressão será aberta automaticamente."}
       </div>
     </>
   );

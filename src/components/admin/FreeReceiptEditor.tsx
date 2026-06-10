@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Image as ImageIcon, Move, Plus, RotateCcw, Save, Trash2, Type, Upload } from "lucide-react";
 import { uploadImage } from "@/lib/uploadImage";
 import { toast } from "sonner";
@@ -94,7 +94,6 @@ const DEFAULT_LAYOUT: FreeReceiptLayout = {
 };
 
 const clamp = (n: number, min: number, max: number) => Math.min(max, Math.max(min, n));
-const PREVIEW_PX_PER_MM = 5;
 
 export const parseFreeReceiptLayout = (value?: string | null): FreeReceiptLayout => {
   if (!value) return DEFAULT_LAYOUT;
@@ -151,101 +150,30 @@ const newId = () => `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 interface FreeReceiptEditorProps {
   value?: string | null;
   onChange: (next: string) => void;
-  onFlushReady?: (flush: () => void) => void;
 }
 
-const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorProps) => {
-  const [layout, setLayout] = useState<FreeReceiptLayout>(() => parseFreeReceiptLayout(value));
-  const [selectedId, setSelectedId] = useState<string | null>(
-    () => parseFreeReceiptLayout(value).elements[0]?.id ?? null,
-  );
+const FreeReceiptEditor = ({ value, onChange }: FreeReceiptEditorProps) => {
+  const initialLayout = useMemo(() => parseFreeReceiptLayout(value), [value]);
+  const [layout, setLayout] = useState<FreeReceiptLayout>(initialLayout);
+  const [selectedId, setSelectedId] = useState<string | null>(initialLayout.elements[0]?.id ?? null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [draggingCut, setDraggingCut] = useState(false);
   const [resizing, setResizing] = useState<any>(null);
   const [rotating, setRotating] = useState<any>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; elX: number; elY: number } | null>(null);
   const [uploading, setUploading] = useState(false);
-  const layoutRef = useRef(layout);
   const stageRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const lastSerializedRef = useRef<string>(serializeLayout(layout));
-  const pendingSerializedRef = useRef<string | null>(null);
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onChangeRef = useRef(onChange);
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  layoutRef.current = layout;
-
-  const flushPendingChange = useCallback(() => {
-    const currentSerialized = serializeLayout(layoutRef.current);
-    if (currentSerialized !== lastSerializedRef.current) {
-      lastSerializedRef.current = currentSerialized;
-      pendingSerializedRef.current = currentSerialized;
-    }
-
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-
-    if (!pendingSerializedRef.current) return;
-    const next = pendingSerializedRef.current;
-    pendingSerializedRef.current = null;
-    onChangeRef.current(next);
-  }, []);
 
   useEffect(() => {
-    onFlushReady?.(flushPendingChange);
-    return () => onFlushReady?.(() => undefined);
-  }, [flushPendingChange, onFlushReady]);
-
-  // Push initial serialization to parent so the form's body_template is in sync
-  // even if the user clicks Salvar without editing anything.
-  useEffect(() => {
-    onChangeRef.current(lastSerializedRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (typeof value !== "string") return;
-    if (value === lastSerializedRef.current) return;
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-    pendingSerializedRef.current = null;
     const parsed = parseFreeReceiptLayout(value);
-    const reserialized = serializeLayout(parsed);
-    if (reserialized === lastSerializedRef.current) return;
-    lastSerializedRef.current = reserialized;
     setLayout(parsed);
     setSelectedId((current) => current || parsed.elements[0]?.id || null);
   }, [value]);
 
   useEffect(() => {
-    const serialized = serializeLayout(layout);
-    if (serialized === lastSerializedRef.current) return;
-    lastSerializedRef.current = serialized;
-    pendingSerializedRef.current = serialized;
-
-    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    syncTimerRef.current = setTimeout(() => {
-      syncTimerRef.current = null;
-      if (!pendingSerializedRef.current) return;
-      const next = pendingSerializedRef.current;
-      pendingSerializedRef.current = null;
-      onChangeRef.current(next);
-    }, 160);
-
-    return () => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = null;
-      }
-    };
-  }, [layout]);
+    onChange(serializeLayout(layout));
+  }, [layout, onChange]);
 
   const selected = layout.elements.find((el) => el.id === selectedId) || null;
 
@@ -470,10 +398,10 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               nextH = resizing.height - dy;
             }
 
-            nextW = clamp(nextW, 4, current.paperWidthMm * 2);
-            nextH = clamp(nextH, 4, current.designHeightMm);
-            nextX = clamp(nextX, -20, current.paperWidthMm + 20);
-            nextY = clamp(nextY, -20, current.designHeightMm + 20);
+            nextW = Math.max(1, nextW);
+            nextH = Math.max(1, nextH);
+            nextX = nextX;
+            nextY = nextY;
 
             return { ...el, x: nextX, y: nextY, width: nextW, height: nextH };
           }),
@@ -510,8 +438,8 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
           el.id === draggingId
             ? {
                 ...el,
-                x: clamp(dragStart.elX + dx, -20, current.paperWidthMm + 20),
-                y: clamp(dragStart.elY + dy, -20, current.designHeightMm + 20),
+                x: dragStart.elX + dx,
+                y: dragStart.elY + dy,
               }
             : el,
         ),
@@ -539,10 +467,10 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
     const borderWidth = Number(el.borderWidth ?? 0) || 0;
     const commonStyle = {
       position: "absolute" as const,
-      left: `${el.x * PREVIEW_PX_PER_MM}px`,
-      top: `${el.y * PREVIEW_PX_PER_MM}px`,
-      width: `${el.width * PREVIEW_PX_PER_MM}px`,
-      height: `${el.height * PREVIEW_PX_PER_MM}px`,
+      left: `${el.x}mm`,
+      top: `${el.y}mm`,
+      width: `${el.width}mm`,
+      height: `${el.height}mm`,
       transform: `rotate(${el.rotation}deg)`,
       transformOrigin: "center center",
       zIndex: el.zIndex,
@@ -555,7 +483,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
         borderWidth > 0 && el.borderStyle !== "none"
           ? `${borderWidth}px ${el.borderStyle || "solid"} ${el.borderColor || "#000000"}`
           : "none",
-      borderRadius: `${(Number(el.borderRadius ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
+      borderRadius: `${Number(el.borderRadius ?? 0) || 0}mm`,
       opacity: Number(el.opacity ?? 1) || 1,
     };
 
@@ -578,7 +506,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
             className="h-full w-full select-none"
             style={{
               objectFit: el.objectFit === "fill" ? "fill" : el.objectFit || "contain",
-              padding: `${(Number(el.paddingMm ?? 0) || 0) * PREVIEW_PX_PER_MM}px`,
+              padding: `${Number(el.paddingMm ?? 0) || 0}mm`,
               boxSizing: "border-box",
             }}
           />
@@ -592,7 +520,7 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               fontSize: `${el.fontSize || 12}px`,
               fontWeight: el.fontWeight || "bold",
               lineHeight: 1.15,
-              padding: `${(Number(el.paddingMm ?? 0.8) || 0.8) * PREVIEW_PX_PER_MM}px`,
+              padding: `${Number(el.paddingMm ?? 0.8) || 0.8}mm`,
               boxSizing: "border-box",
             }}
           >
@@ -641,7 +569,8 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
         <div>
           <h3 className="text-base font-black">Editor Livre de Comanda</h3>
           <p className="text-xs text-muted-foreground">
-            Monte texto e imagens exatamente onde serão impressos. A linha vermelha define o corte.
+            Monte texto e imagens sem limite fixo: arraste, estique pelas alças vermelhas e gire pelo botão ↻. Arraste o
+            botão CORTE para definir o corte.
           </p>
         </div>
 
@@ -698,8 +627,8 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
               onClick={() => setSelectedId(null)}
               className="relative bg-white shadow-2xl"
               style={{
-                width: `${layout.paperWidthMm * PREVIEW_PX_PER_MM}px`,
-                height: `${layout.designHeightMm * PREVIEW_PX_PER_MM}px`,
+                width: `${layout.paperWidthMm * 5}px`,
+                height: `${layout.designHeightMm * 5}px`,
                 background: layout.background,
               }}
             >
@@ -709,12 +638,12 @@ const FreeReceiptEditor = ({ value, onChange, onFlushReady }: FreeReceiptEditorP
                   event.stopPropagation();
                   setDraggingCut(true);
                 }}
-                className="absolute left-0 right-0 z-[9999] flex cursor-row-resize items-center"
-                style={{ top: `${layout.cutYmm * PREVIEW_PX_PER_MM}px` }}
-                title="Arraste para definir onde o papel será cortado"
+                className="pointer-events-none absolute left-0 right-0 z-[9999] flex items-center"
+                style={{ top: `${layout.cutYmm}mm` }}
+                title="Arraste pelo botão CORTE para definir onde o papel será cortado"
               >
                 <div className="h-[2px] flex-1 bg-red-600" />
-                <div className="rounded bg-red-600 px-2 py-0.5 text-[10px] font-black text-white">
+                <div className="pointer-events-auto cursor-row-resize rounded bg-red-600 px-2 py-0.5 text-[10px] font-black text-white shadow">
                   CORTE {layout.cutYmm.toFixed(1)}mm
                 </div>
                 <div className="h-[2px] flex-1 bg-red-600" />
