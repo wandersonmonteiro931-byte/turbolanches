@@ -27,8 +27,9 @@ export const PrintModeSelector = () => {
 
   const opts: { value: PrintMode; label: string; hint: string }[] = [
     { value: "auto", label: "Auto", hint: "Tenta QZ Tray; se falhar, usa PDF" },
-    { value: "qz", label: "QZ Tray", hint: "Todas as impressões saem direto na térmica via QZ Tray" },
-    { value: "pdf", label: "PDF", hint: "Todas as impressões abrem em PDF/popup do navegador" },
+    { value: "qz", label: "QZ Tray", hint: "Imprime direto na térmica via QZ Tray" },
+    { value: "wifi", label: "Wi-Fi", hint: "Envia ESC/POS para a impressora Wi-Fi via bridge local" },
+    { value: "pdf", label: "PDF", hint: "Abre PDF/popup do navegador" },
   ];
 
   return (
