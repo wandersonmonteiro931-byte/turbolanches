@@ -526,14 +526,25 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const bytes = renderTemplateToEscPos(
       { template, variables: qzVariables, items: itemsForTpl },
       {
-        columns: settings.qzColumns,
+        columns: useWifi ? settings.wifi.charsPerLine || 48 : settings.qzColumns,
         codepage: settings.qzCodepage,
         feedLines: settings.qzFeedLines,
       },
     );
 
-    await printRawEscPos(settings.qzPrinterName, bytes, copies);
+    if (useWifi) {
+      const safeCopies = Math.max(1, Math.min(20, copies));
+      for (let i = 0; i < safeCopies; i += 1) {
+        await printWifiEscPos(bytes, settings.wifi);
+      }
+    } else {
+      await printRawEscPos(settings.qzPrinterName, bytes, copies);
+    }
     return true;
+  } catch (err) {
+    console.error("[Print] erro ao imprimir, fallback para HTML", err);
+    return false;
+  }
   } catch (err) {
     console.error("[QZ] erro ao imprimir, fallback para HTML", err);
     return false;
