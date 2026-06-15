@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { buildAdminPrintDocument, stripFormattingTags, escapeHtml } from "@/lib/adminPrintTemplates";
+import { getPrintMode } from "@/lib/printModePreference";
+import { printWifiReceipt, WIFI_BRIDGE_HINT } from "@/lib/wifiPrinter";
+import { toast } from "sonner";
 
 const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
 const ITEM_TEMPLATE_TOKENS = [
