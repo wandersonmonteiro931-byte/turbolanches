@@ -7,6 +7,8 @@ import {
 } from "@/components/admin/FreeReceiptEditor";
 import { getThermalPrintSettings } from "@/lib/thermalPrintSettings";
 import { isQzAvailable, printRawEscPos } from "@/lib/qzTray";
+import { printWifiEscPos, WIFI_BRIDGE_HINT } from "@/lib/wifiPrinter";
+import { toast } from "sonner";
 
 const FREE_RECEIPT_STORAGE_KEY = "turbo_comanda_livre_layout";
 const FREE_RECEIPT_PRINT_PAYLOAD_KEY = "turbo_comanda_livre_print_payload";
@@ -381,10 +383,72 @@ const AdminFreePrint = () => {
     return Math.max(20, Math.min(layout.designHeightMm, layout.cutYmm));
   }, [layout]);
 
+  const printViaWifi = async () => {
+    if (!layout) return;
+    try {
+      const settings = getThermalPrintSettings();
+      const canvas = await renderLayoutToCanvas(layout, printHeightMm);
+      const bytes = canvasToEscPosRaster(canvas);
+      const safeCopies = Math.max(1, Math.min(20, copies));
+      for (let i = 0; i < safeCopies; i += 1) {
+        await printWifiEscPos(bytes, settings.wifi);
+      }
+      setPrinted(true);
+      clearPrintPayload();
+      toast.success("Enviado para a impressora Wi-Fi");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || WIFI_BRIDGE_HINT);
+    }
+  };
+
+  const printViaQz = async () => {
+    if (!layout) return;
+    try {
+      const settings = getThermalPrintSettings();
+      const available = await isQzAvailable();
+      if (!available || !settings.qzPrinterName) {
+        toast.error("QZ Tray indisponível ou impressora não selecionada.");
+        return;
+      }
+      const canvas = await renderLayoutToCanvas(layout, printHeightMm);
+      const bytes = canvasToEscPosRaster(canvas);
+      await printRawEscPos(settings.qzPrinterName, bytes, copies);
+      setPrinted(true);
+      clearPrintPayload();
+      toast.success("Enviado para QZ Tray");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || "Falha ao imprimir via QZ Tray");
+    }
+  };
+
+  const printViaPdf = async () => {
+    setPrintReady(true);
+  };
+
+  const handleManualPrint = () => {
+    if (mode === "wifi") return printViaWifi();
+    if (mode === "qz") return printViaQz();
+    return printViaPdf();
+  };
+
   useEffect(() => {
     const runPrint = async () => {
       if (!layout || jobStartedRef.current) return;
       jobStartedRef.current = true;
+
+      if (mode === "wifi") {
+        try {
+          await printViaWifi();
+          setTimeout(() => window.close(), 800);
+          return;
+        } catch (err) {
+          console.warn("[Comanda LIVRE] Wi-Fi falhou:", err);
+        }
+        // Não cai para PDF automaticamente — usuário pode clicar no botão.
+        return;
+      }
 
       if (mode !== "pdf") {
         try {
@@ -427,6 +491,9 @@ const AdminFreePrint = () => {
 
     firePrint();
   }, [layout, printReady]);
+
+  const printButtonLabel =
+    mode === "qz" ? "Imprimir via QZ Tray" : mode === "wifi" ? "Imprimir via Wi-Fi" : "Gerar / Imprimir PDF";
 
   if (error) {
     return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
@@ -559,12 +626,38 @@ const AdminFreePrint = () => {
           ))}
       </div>
 
-      <div className="no-print" style={{ padding: 12, fontFamily: "monospace", textAlign: "center" }}>
-        {printed
-          ? "Comanda LIVRE enviada para impressão."
-          : mode !== "pdf"
-            ? "Gerando imagem raster para QZ Tray/POS-80..."
-            : "Comanda LIVRE carregada. A impressão será aberta automaticamente."}
+      <div
+        className="no-print"
+        style={{ padding: 12, fontFamily: "monospace", textAlign: "center", display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}
+      >
+        <div>
+          {printed
+            ? "Comanda LIVRE enviada para impressão."
+            : mode === "wifi"
+              ? `Modo Wi-Fi (JP80H-UE — 192.168.1.87:9100). Clique no botão para imprimir.`
+              : mode !== "pdf"
+                ? "Gerando imagem raster para QZ Tray/POS-80..."
+                : "Comanda LIVRE carregada. A impressão será aberta automaticamente."}
+        </div>
+        <button
+          type="button"
+          onClick={handleManualPrint}
+          style={{
+            background: "#EA1D2C",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 18px",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: "pointer",
+          }}
+        >
+          {printButtonLabel}
+        </button>
+        {mode === "wifi" && (
+          <div style={{ fontSize: 11, color: "#666", maxWidth: 360 }}>{WIFI_BRIDGE_HINT}</div>
+        )}
       </div>
     </>
   );
