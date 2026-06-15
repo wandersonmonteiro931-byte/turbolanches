@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getThermalPrintSettings } from "./thermalPrintSettings";
 import { renderTemplateToEscPos, type ItemForTemplate } from "./escposTemplate";
 import { isQzAvailable, printRawEscPos } from "./qzTray";
+import { getPrintMode } from "./printModePreference";
+import { printWifiEscPos } from "./wifiPrinter";
 
 interface PrintOrderViaQzOptions {
   tipo?: string;
