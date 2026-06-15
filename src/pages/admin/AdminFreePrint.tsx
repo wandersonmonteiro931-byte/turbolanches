@@ -554,6 +554,16 @@ const AdminFreePrint = () => {
         }
 
         @media screen {
+          html,
+          body,
+          #root {
+            width: auto !important;
+            height: auto !important;
+            min-height: 100vh !important;
+            max-height: none !important;
+            overflow: visible !important;
+          }
+
           body {
             background: #e5e5e5 !important;
             padding: 20px !important;
