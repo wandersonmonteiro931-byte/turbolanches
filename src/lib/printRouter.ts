@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getThermalPrintSettings } from "./thermalPrintSettings";
 import { renderTemplateToEscPos, type ItemForTemplate } from "./escposTemplate";
 import { isQzAvailable, printRawEscPos } from "./qzTray";
+import { getPrintMode } from "./printModePreference";
+import { printWifiEscPos } from "./wifiPrinter";
 
 interface PrintOrderViaQzOptions {
   tipo?: string;
@@ -241,13 +243,18 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
   if (shouldSkipDuplicatePrint(dedupeKey)) return true;
 
   const settings = getThermalPrintSettings();
-  if (!settings.qzEnabled || !settings.qzPrinterName) return false;
+  const mode = getPrintMode();
+  const useWifi = mode === "wifi";
+
+  if (!useWifi && (!settings.qzEnabled || !settings.qzPrinterName)) return false;
 
   try {
-    const available = await isQzAvailable();
-    if (!available) {
-      console.warn("[QZ] Tray indisponível, caindo no popup HTML");
-      return false;
+    if (!useWifi) {
+      const available = await isQzAvailable();
+      if (!available) {
+        console.warn("[QZ] Tray indisponível, caindo no popup HTML");
+        return false;
+      }
     }
 
     const { data: order, error: orderErr } = await supabase.from("orders").select("*").eq("id", orderId).single();
@@ -519,16 +526,23 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     const bytes = renderTemplateToEscPos(
       { template, variables: qzVariables, items: itemsForTpl },
       {
-        columns: settings.qzColumns,
+        columns: useWifi ? settings.wifi.charsPerLine || 48 : settings.qzColumns,
         codepage: settings.qzCodepage,
         feedLines: settings.qzFeedLines,
       },
     );
 
-    await printRawEscPos(settings.qzPrinterName, bytes, copies);
+    if (useWifi) {
+      const safeCopies = Math.max(1, Math.min(20, copies));
+      for (let i = 0; i < safeCopies; i += 1) {
+        await printWifiEscPos(bytes, settings.wifi);
+      }
+    } else {
+      await printRawEscPos(settings.qzPrinterName, bytes, copies);
+    }
     return true;
   } catch (err) {
-    console.error("[QZ] erro ao imprimir, fallback para HTML", err);
+    console.error("[Print] erro ao imprimir, fallback para HTML", err);
     return false;
   }
 };

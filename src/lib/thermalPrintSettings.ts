@@ -1,3 +1,15 @@
+export interface WifiPrinterSettings {
+  model: string;
+  ip: string;
+  port: number;
+  paperWidth: string;
+  command: string;
+  autoCut: boolean;
+  charsPerLine: number;
+  /** Endpoint HTTP local opcional (bridge) que recebe os bytes ESC/POS. */
+  bridgeUrl: string;
+}
+
 export interface ThermalPrintSettings {
   paperWidthMm: number;
   fixedHeightMm: number;
@@ -5,18 +17,15 @@ export interface ThermalPrintSettings {
   popupWidthPx: number;
   popupHeightPx: number;
   printGapMs: number;
-  /** Quando true, o sistema tenta imprimir via QZ Tray (ESC/POS) antes de cair no popup HTML. */
   qzEnabled: boolean;
-  /** Nome exato da impressora térmica registrada no Windows/macOS para envio raw. */
   qzPrinterName: string;
-  /** Largura útil em colunas (caracteres) — 32 para 58mm, 48 para JP80H/POS-80 em largura total; 42 apenas se o firmware cortar a direita. */
   qzColumns: number;
-  /** Quantidade de linhas em branco antes do corte (alimentação). */
   qzFeedLines: number;
-  /** Codepage ESC/POS (16 = WPC1252, 17 = PC852, etc). */
   qzCodepage: number;
 
-  /** Destaques automáticos aplicados somente na comanda de PEDIDO via QZ Tray. */
+  /** Configuração da impressora Wi-Fi/Rede. */
+  wifi: WifiPrinterSettings;
+
   pedidoHighlightOrderNumber: boolean;
   pedidoHighlightPriorityDeliveries: boolean;
   pedidoHighlightOrderPriority: boolean;
@@ -27,6 +36,17 @@ export interface ThermalPrintSettings {
 }
 
 export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
+
+export const DEFAULT_WIFI_PRINTER_SETTINGS: WifiPrinterSettings = {
+  model: "JP80H-UE",
+  ip: "192.168.1.87",
+  port: 9100,
+  paperWidth: "80mm",
+  command: "ESC/POS",
+  autoCut: true,
+  charsPerLine: 48,
+  bridgeUrl: "",
+};
 
 export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   paperWidthMm: 72,
@@ -40,6 +60,7 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   qzColumns: 48,
   qzFeedLines: 3,
   qzCodepage: 16,
+  wifi: DEFAULT_WIFI_PRINTER_SETTINGS,
   pedidoHighlightOrderNumber: true,
   pedidoHighlightPriorityDeliveries: false,
   pedidoHighlightOrderPriority: false,
@@ -68,6 +89,36 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 48),
   qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
   qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
+  wifi: {
+    model:
+      typeof value?.wifi?.model === "string" && value!.wifi!.model
+        ? value!.wifi!.model
+        : DEFAULT_WIFI_PRINTER_SETTINGS.model,
+    ip:
+      typeof value?.wifi?.ip === "string" && value!.wifi!.ip
+        ? value!.wifi!.ip
+        : DEFAULT_WIFI_PRINTER_SETTINGS.ip,
+    port: clampNumber(value?.wifi?.port, DEFAULT_WIFI_PRINTER_SETTINGS.port, 1, 65535),
+    paperWidth:
+      typeof value?.wifi?.paperWidth === "string" && value!.wifi!.paperWidth
+        ? value!.wifi!.paperWidth
+        : DEFAULT_WIFI_PRINTER_SETTINGS.paperWidth,
+    command:
+      typeof value?.wifi?.command === "string" && value!.wifi!.command
+        ? value!.wifi!.command
+        : DEFAULT_WIFI_PRINTER_SETTINGS.command,
+    autoCut: Boolean(value?.wifi?.autoCut ?? DEFAULT_WIFI_PRINTER_SETTINGS.autoCut),
+    charsPerLine: clampNumber(
+      value?.wifi?.charsPerLine,
+      DEFAULT_WIFI_PRINTER_SETTINGS.charsPerLine,
+      24,
+      64,
+    ),
+    bridgeUrl:
+      typeof value?.wifi?.bridgeUrl === "string"
+        ? value!.wifi!.bridgeUrl
+        : DEFAULT_WIFI_PRINTER_SETTINGS.bridgeUrl,
+  },
   pedidoHighlightOrderNumber: Boolean(
     value?.pedidoHighlightOrderNumber ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightOrderNumber,
   ),
