@@ -1,3 +1,15 @@
+export interface WifiPrinterSettings {
+  model: string;
+  ip: string;
+  port: number;
+  paperWidth: string;
+  command: string;
+  autoCut: boolean;
+  charsPerLine: number;
+  /** Endpoint HTTP local opcional (bridge) que recebe os bytes ESC/POS. */
+  bridgeUrl: string;
+}
+
 export interface ThermalPrintSettings {
   paperWidthMm: number;
   fixedHeightMm: number;
@@ -5,18 +17,15 @@ export interface ThermalPrintSettings {
   popupWidthPx: number;
   popupHeightPx: number;
   printGapMs: number;
-  /** Quando true, o sistema tenta imprimir via QZ Tray (ESC/POS) antes de cair no popup HTML. */
   qzEnabled: boolean;
-  /** Nome exato da impressora térmica registrada no Windows/macOS para envio raw. */
   qzPrinterName: string;
-  /** Largura útil em colunas (caracteres) — 32 para 58mm, 48 para JP80H/POS-80 em largura total; 42 apenas se o firmware cortar a direita. */
   qzColumns: number;
-  /** Quantidade de linhas em branco antes do corte (alimentação). */
   qzFeedLines: number;
-  /** Codepage ESC/POS (16 = WPC1252, 17 = PC852, etc). */
   qzCodepage: number;
 
-  /** Destaques automáticos aplicados somente na comanda de PEDIDO via QZ Tray. */
+  /** Configuração da impressora Wi-Fi/Rede. */
+  wifi: WifiPrinterSettings;
+
   pedidoHighlightOrderNumber: boolean;
   pedidoHighlightPriorityDeliveries: boolean;
   pedidoHighlightOrderPriority: boolean;
@@ -27,6 +36,17 @@ export interface ThermalPrintSettings {
 }
 
 export const THERMAL_PRINT_SETTINGS_KEY = "turbo_thermal_print_settings_v1";
+
+export const DEFAULT_WIFI_PRINTER_SETTINGS: WifiPrinterSettings = {
+  model: "JP80H-UE",
+  ip: "192.168.1.87",
+  port: 9100,
+  paperWidth: "80mm",
+  command: "ESC/POS",
+  autoCut: true,
+  charsPerLine: 48,
+  bridgeUrl: "",
+};
 
 export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   paperWidthMm: 72,
@@ -40,6 +60,7 @@ export const DEFAULT_THERMAL_PRINT_SETTINGS: ThermalPrintSettings = {
   qzColumns: 48,
   qzFeedLines: 3,
   qzCodepage: 16,
+  wifi: DEFAULT_WIFI_PRINTER_SETTINGS,
   pedidoHighlightOrderNumber: true,
   pedidoHighlightPriorityDeliveries: false,
   pedidoHighlightOrderPriority: false,
