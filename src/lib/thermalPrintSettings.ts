@@ -89,6 +89,36 @@ export const normalizeThermalPrintSettings = (value?: Partial<ThermalPrintSettin
   qzColumns: clampNumber(value?.qzColumns, DEFAULT_THERMAL_PRINT_SETTINGS.qzColumns, 24, 48),
   qzFeedLines: clampNumber(value?.qzFeedLines, DEFAULT_THERMAL_PRINT_SETTINGS.qzFeedLines, 0, 10),
   qzCodepage: clampNumber(value?.qzCodepage, DEFAULT_THERMAL_PRINT_SETTINGS.qzCodepage, 0, 255),
+  wifi: {
+    model:
+      typeof value?.wifi?.model === "string" && value!.wifi!.model
+        ? value!.wifi!.model
+        : DEFAULT_WIFI_PRINTER_SETTINGS.model,
+    ip:
+      typeof value?.wifi?.ip === "string" && value!.wifi!.ip
+        ? value!.wifi!.ip
+        : DEFAULT_WIFI_PRINTER_SETTINGS.ip,
+    port: clampNumber(value?.wifi?.port, DEFAULT_WIFI_PRINTER_SETTINGS.port, 1, 65535),
+    paperWidth:
+      typeof value?.wifi?.paperWidth === "string" && value!.wifi!.paperWidth
+        ? value!.wifi!.paperWidth
+        : DEFAULT_WIFI_PRINTER_SETTINGS.paperWidth,
+    command:
+      typeof value?.wifi?.command === "string" && value!.wifi!.command
+        ? value!.wifi!.command
+        : DEFAULT_WIFI_PRINTER_SETTINGS.command,
+    autoCut: Boolean(value?.wifi?.autoCut ?? DEFAULT_WIFI_PRINTER_SETTINGS.autoCut),
+    charsPerLine: clampNumber(
+      value?.wifi?.charsPerLine,
+      DEFAULT_WIFI_PRINTER_SETTINGS.charsPerLine,
+      24,
+      64,
+    ),
+    bridgeUrl:
+      typeof value?.wifi?.bridgeUrl === "string"
+        ? value!.wifi!.bridgeUrl
+        : DEFAULT_WIFI_PRINTER_SETTINGS.bridgeUrl,
+  },
   pedidoHighlightOrderNumber: Boolean(
     value?.pedidoHighlightOrderNumber ?? DEFAULT_THERMAL_PRINT_SETTINGS.pedidoHighlightOrderNumber,
   ),
