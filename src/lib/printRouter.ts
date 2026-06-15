@@ -545,8 +545,4 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     console.error("[Print] erro ao imprimir, fallback para HTML", err);
     return false;
   }
-  } catch (err) {
-    console.error("[QZ] erro ao imprimir, fallback para HTML", err);
-    return false;
-  }
 };
