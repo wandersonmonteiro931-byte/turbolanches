@@ -542,6 +542,7 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
     }
     return true;
   } catch (err) {
+    printDedupeMap.delete(dedupeKey);
     console.error("[Print] erro ao imprimir, fallback para HTML", err);
     return false;
   }
