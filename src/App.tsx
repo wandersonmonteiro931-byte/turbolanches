@@ -44,6 +44,7 @@ import AdminReceipts from "./pages/admin/AdminReceipts";
 import AdminCoupons from "./pages/admin/AdminCoupons";
 import AdminManageAdmins from "./pages/admin/AdminManageAdmins";
 import AdminStoreSettings from "./pages/admin/AdminStoreSettings";
+import AdminWifiPrinter from "./pages/admin/AdminWifiPrinter";
 import AdminScratchCard from "./pages/admin/AdminScratchCard";
 import AdminReviews from "./pages/admin/AdminReviews";
 import AdminPricing from "./pages/admin/AdminPricing";
@@ -244,6 +245,7 @@ const AppInner = () => {
             <Route path="ia" element={<AdminAiControl />} />
             <Route path="tv-publicidade" element={<AdminTvAds />} />
             <Route path="configuracoes" element={<AdminStoreSettings />} />
+            <Route path="impressora-wifi" element={<AdminWifiPrinter />} />
           </Route>
           <Route path="/tv" element={<TvDisplay />} />
           <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
