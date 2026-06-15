@@ -243,13 +243,18 @@ export const tryPrintOrderViaQz = async (orderId: string, options: PrintOrderVia
   if (shouldSkipDuplicatePrint(dedupeKey)) return true;
 
   const settings = getThermalPrintSettings();
-  if (!settings.qzEnabled || !settings.qzPrinterName) return false;
+  const mode = getPrintMode();
+  const useWifi = mode === "wifi";
+
+  if (!useWifi && (!settings.qzEnabled || !settings.qzPrinterName)) return false;
 
   try {
-    const available = await isQzAvailable();
-    if (!available) {
-      console.warn("[QZ] Tray indisponível, caindo no popup HTML");
-      return false;
+    if (!useWifi) {
+      const available = await isQzAvailable();
+      if (!available) {
+        console.warn("[QZ] Tray indisponível, caindo no popup HTML");
+        return false;
+      }
     }
 
     const { data: order, error: orderErr } = await supabase.from("orders").select("*").eq("id", orderId).single();
