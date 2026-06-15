@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ReceiptTemplate } from "@/hooks/useReceiptTemplates";
 import { getDefaultTemplate } from "@/lib/receiptDefaults";
 import { buildAdminPrintDocument, stripFormattingTags, escapeHtml } from "@/lib/adminPrintTemplates";
+import { getPrintMode } from "@/lib/printModePreference";
+import { printWifiReceipt, WIFI_BRIDGE_HINT } from "@/lib/wifiPrinter";
+import { toast } from "sonner";
 
 const ITEM_BLOCK_TOKENS = ["[ITENS]", "[ITEM]"] as const;
 const ITEM_TEMPLATE_TOKENS = [
@@ -499,9 +502,54 @@ const AdminPrint = () => {
     });
   }, [items, order, profile, ready, repeatCount, thermalCutOffsetMm, thermalHeightMm, thermalWidthMm, tipo, tpl]);
 
+  // Detecta modo Wi-Fi: pode vir por URL (?mode=wifi) ou pela preferência global salva.
+  const urlMode = (searchParams.get("mode") || "").toLowerCase();
+  const wifiMode = urlMode === "wifi" || (urlMode === "" && getPrintMode() === "wifi");
+  const qzModeForced = urlMode === "qz";
+
+  const [wifiSent, setWifiSent] = useState(false);
+  const [wifiError, setWifiError] = useState("");
+
+  const extractPlainTextFromHtml = (html: string): string => {
+    try {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      // Remove tags de script/style que poderiam vazar texto.
+      doc.querySelectorAll("script,style").forEach((n) => n.remove());
+      const text = doc.body?.innerText || doc.body?.textContent || "";
+      return text
+        .replace(/\r\n/g, "\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/[ \t]+\n/g, "\n")
+        .trim();
+    } catch {
+      return String(html || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    }
+  };
+
+  const handlePrintWifi = async () => {
+    if (!printableDocument) return;
+    setWifiError("");
+    try {
+      const text = extractPlainTextFromHtml(printableDocument);
+      const safeCopies = Math.max(1, Math.min(20, repeatCount));
+      for (let i = 0; i < safeCopies; i += 1) {
+        await printWifiReceipt(text);
+      }
+      setWifiSent(true);
+      toast.success("Enviado para a impressora Wi-Fi (JP80H-UE)");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setWifiError(msg || WIFI_BRIDGE_HINT);
+      toast.error(msg || WIFI_BRIDGE_HINT);
+    }
+  };
+
   useEffect(() => {
     if (!printableDocument || !ready) return;
     if (printedRef.current) return;
+    // Em modo Wi-Fi NUNCA injetamos o documento de impressão do navegador —
+    // isso evitaria o spooler do Android abrir uma página 58mm.
+    if (wifiMode) return;
     printedRef.current = true;
 
     const timer = setTimeout(
@@ -522,7 +570,7 @@ const AdminPrint = () => {
     );
 
     return () => clearTimeout(timer);
-  }, [keepOpen, printDelayMs, printableDocument, ready]);
+  }, [keepOpen, printDelayMs, printableDocument, ready, wifiMode]);
 
   if (error) return <div style={{ padding: 20, fontFamily: "monospace" }}>{error}</div>;
   if (!ready || !printableDocument) {
@@ -530,6 +578,37 @@ const AdminPrint = () => {
       <div style={{ padding: 20, fontFamily: "monospace" }}>
         <style>{`@media print { body, #root { background: #fff !important; } body * { visibility: hidden !important; } } [data-lovable], a[href*="lovable"], #lovable-badge, [id*="lovable"], [class*="lovable"] { display:none !important; visibility:hidden !important; }`}</style>
         Carregando comanda...
+      </div>
+    );
+  }
+
+  if (wifiMode) {
+    const previewText = extractPlainTextFromHtml(printableDocument);
+    return (
+      <div style={{ padding: 16, fontFamily: "Arial, Helvetica, sans-serif", background: "#f5f5f5", minHeight: "100vh" }}>
+        <div style={{ maxWidth: 420, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ background: "#fff", border: "1px solid #ddd", borderRadius: 8, padding: 12, fontFamily: "monospace", fontSize: 12, whiteSpace: "pre-wrap" }}>
+            {previewText || "(comanda vazia)"}
+          </div>
+          <button
+            type="button"
+            onClick={handlePrintWifi}
+            style={{
+              background: "#EA1D2C",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "12px 18px",
+              fontWeight: 700,
+              fontSize: 15,
+              cursor: "pointer",
+            }}
+          >
+            Imprimir via Wi-Fi (JP80H-UE)
+          </button>
+          {wifiSent && <div style={{ color: "#0a7a2f", fontSize: 13, textAlign: "center" }}>Enviado para a impressora.</div>}
+          <div style={{ fontSize: 11, color: "#666", textAlign: "center" }}>{wifiError || WIFI_BRIDGE_HINT}</div>
+        </div>
       </div>
     );
   }

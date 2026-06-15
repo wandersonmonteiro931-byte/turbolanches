@@ -25,7 +25,7 @@ declare global {
 }
 
 const BRIDGE_HINT =
-  "Para imprimir por Wi-Fi no navegador, é necessário usar o app/bridge de impressão local conectado à impressora 192.168.1.87:9100.";
+  "Para imprimir por Wi-Fi no celular Android, instale e configure o app RawBT apontando para 192.168.1.87:9100 (JP80H-UE). No PC, use o bridge HTTP local. Sem isso o navegador não consegue acessar a impressora.";
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes)
@@ -39,7 +39,33 @@ const toBase64 = (bytes: Uint8Array): string => {
   return "";
 };
 
-/** Tenta enviar bytes ESC/POS via bridge nativa (Android/WebView) ou HTTP local. */
+const isAndroid = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent || "");
+};
+
+/** Dispara intent RawBT no Android. O app RawBT registra o esquema `rawbt:` e
+ * recebe os bytes ESC/POS codificados em base64, mandando direto para a
+ * JP80H-UE em 192.168.1.87:9100 (sem abrir o spooler do Android). */
+const sendViaRawBt = (bytes: Uint8Array): boolean => {
+  if (!isAndroid() || typeof window === "undefined" || typeof document === "undefined") return false;
+  try {
+    const b64 = toBase64(bytes);
+    if (!b64) return false;
+    const a = document.createElement("a");
+    a.href = `rawbt:${b64}`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => a.remove(), 1500);
+    return true;
+  } catch (err) {
+    console.warn("[WiFi] RawBT intent falhou:", err);
+    return false;
+  }
+};
+
+/** Tenta enviar bytes ESC/POS via bridge nativa, RawBT (Android) ou HTTP local. */
 export const printWifiEscPos = async (
   bytes: Uint8Array,
   settings?: WifiPrinterSettings,
@@ -47,7 +73,7 @@ export const printWifiEscPos = async (
   const cfg = settings || getThermalPrintSettings().wifi;
   const hex = toHex(bytes);
 
-  // 1) Bridge nativa injetada por app/WebView
+  // 1) Bridge nativa injetada por app/WebView (TurboWifiPrinter)
   const native = typeof window !== "undefined" ? window.TurboWifiPrinter : undefined;
   if (native && typeof native.printEscPos === "function") {
     try {
@@ -59,12 +85,14 @@ export const printWifiEscPos = async (
       });
       return;
     } catch (err) {
-      console.warn("[WiFi] bridge nativa falhou:", err);
-      throw err instanceof Error ? err : new Error(String(err));
+      console.warn("[WiFi] bridge nativa falhou, tentando RawBT/HTTP:", err);
     }
   }
 
-  // 2) Bridge HTTP local configurada
+  // 2) RawBT (Android) — envia direto para o app que fala TCP 9100 com a JP80H-UE
+  if (sendViaRawBt(bytes)) return;
+
+  // 3) Bridge HTTP local configurada (PC/kiosk)
   if (cfg.bridgeUrl) {
     try {
       const res = await fetch(cfg.bridgeUrl, {
@@ -90,7 +118,7 @@ export const printWifiEscPos = async (
     }
   }
 
-  // 3) Sem bridge disponível
+  // 4) Sem caminho disponível
   throw new Error(BRIDGE_HINT);
 };
 
