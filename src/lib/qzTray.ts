@@ -24,28 +24,28 @@ import { supabase } from "@/integrations/supabase/client";
 const QZ_CDN_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js";
 
 const QZ_DIGITAL_CERTIFICATE = `-----BEGIN CERTIFICATE-----
-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
+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
-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
+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
-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
+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
 -----END CERTIFICATE-----`;
 
 declare global {
@@ -89,6 +89,8 @@ const configureQzSecurity = (qz: any) => {
 
   qz.__turboQzSecurityConfigured = true;
 };
+
+
 
 const loadQzScript = (): Promise<any> => {
   if (typeof window === "undefined") return Promise.reject(new Error("QZ Tray indisponível no servidor"));
@@ -217,7 +219,11 @@ export const resolveQzPrinterName = async (requestedName?: string | null): Promi
  * Envia bytes ESC/POS para a impressora informada.
  * Faz N cópias separadas (cada uma com seu próprio CUT).
  */
-export const printRawEscPos = async (printerName: string, bytes: Uint8Array, copies = 1): Promise<void> => {
+export const printRawEscPos = async (
+  printerName: string,
+  bytes: Uint8Array,
+  copies = 1,
+): Promise<void> => {
   const qz = await loadQzScript();
   await ensureConnected(qz);
 
