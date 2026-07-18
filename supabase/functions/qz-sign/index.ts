@@ -6,9 +6,9 @@ const corsHeaders = {
 
 function pemToArrayBuffer(pem: string) {
   const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\s/g, "");
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
 
   const binary = atob(b64);
   const bytes = new Uint8Array(binary.length);
