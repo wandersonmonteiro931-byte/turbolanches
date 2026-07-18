@@ -5,12 +5,14 @@ const corsHeaders = {
 };
 
 function pemToArrayBuffer(pem: string) {
-  const b64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-    .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\s/g, "");
+  const cleaned = pem
+    .replace(/\\r\\n|\\n|\\r/g, "\n")
+    .replace(/-----BEGIN [^-]+-----/g, "")
+    .replace(/-----END [^-]+-----/g, "")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
 
-  const binary = atob(b64);
+  const padded = cleaned + "=".repeat((4 - (cleaned.length % 4)) % 4);
+  const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
 
   for (let i = 0; i < binary.length; i++) {
