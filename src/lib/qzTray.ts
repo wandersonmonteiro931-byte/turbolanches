@@ -12,9 +12,9 @@
  *   2. Iniciar o aplicativo (ele fica na bandeja do sistema).
  *   3. Conceder permissão "Sempre permitir" para este site na primeira impressão.
  *
- * Modo "promiscuous": usamos o QZ sem assinatura digital. Isso causa um
- * popup de confirmação na PRIMEIRA impressão (depois pode marcar "lembrar").
- * Para produção sem prompt, gere um certificado em qz.io/wiki/2.0-signing-messages.
+ * Segurança: o certificado público é enviado antes da conexão e cada operação
+ * privilegiada é assinada pela Edge Function qz-sign. A chave privada permanece
+ * protegida no Secret QZ_PRIVATE_KEY do Supabase.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -55,46 +55,51 @@ declare global {
 }
 
 let loaderPromise: Promise<any> | null = null;
+let securityConfigured = false;
+let signedConnectionEstablished = false;
 
+/**
+ * Configura certificado e assinatura ANTES de qualquer conexão WebSocket.
+ * Não usa flag gravada no objeto global `qz`, pois ela pode sobreviver durante
+ * atualização em tempo real/preview e reaproveitar uma configuração anônima.
+ */
 const configureQzSecurity = (qz: any) => {
-  if (qz.__turboQzSecurityConfigured) return;
-
-  qz.security.setCertificatePromise((resolve: (cert: string) => void) => {
-    resolve(QZ_DIGITAL_CERTIFICATE);
-  });
+  qz.security.setCertificatePromise(async () => QZ_DIGITAL_CERTIFICATE.trim());
 
   qz.security.setSignatureAlgorithm("SHA512");
 
-  qz.security.setSignaturePromise((toSign: string) => {
-    return async (resolve: (signature: string) => void, reject: (error: Error) => void) => {
-      try {
-        const { data, error } = await supabase.functions.invoke("qz-sign", {
-          body: { request: toSign },
-        });
+  qz.security.setSignaturePromise(async (toSign: string) => {
+    const { data, error } = await supabase.functions.invoke("qz-sign", {
+      body: { request: toSign },
+    });
 
-        if (error) throw error;
+    if (error) {
+      throw new Error(`Falha ao chamar qz-sign: ${error.message || String(error)}`);
+    }
 
-        const signature = data?.signature;
+    const signature = String(data?.signature || "").trim();
 
-        if (!signature) {
-          throw new Error("A Edge Function qz-sign não retornou assinatura.");
-        }
+    if (!signature) {
+      throw new Error("A Edge Function qz-sign não retornou assinatura.");
+    }
 
-        resolve(signature);
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error("Erro ao assinar requisição do QZ Tray."));
-      }
-    };
+    return signature;
   });
 
-  qz.__turboQzSecurityConfigured = true;
+  securityConfigured = true;
 };
 
-
-
 const loadQzScript = (): Promise<any> => {
-  if (typeof window === "undefined") return Promise.reject(new Error("QZ Tray indisponível no servidor"));
-  if ((window as any).qz) return Promise.resolve((window as any).qz);
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("QZ Tray indisponível no servidor"));
+  }
+
+  const existingQz = (window as any).qz;
+  if (existingQz) {
+    configureQzSecurity(existingQz);
+    return Promise.resolve(existingQz);
+  }
+
   if (loaderPromise) return loaderPromise;
 
   loaderPromise = new Promise((resolve, reject) => {
@@ -104,15 +109,18 @@ const loadQzScript = (): Promise<any> => {
     script.onload = () => {
       const qz = (window as any).qz;
       if (!qz) {
-        reject(new Error("Script QZ Tray carregou mas o objeto global não está disponível."));
+        loaderPromise = null;
+        reject(new Error("Script QZ Tray carregou, mas o objeto global não está disponível."));
         return;
       }
+
       try {
         configureQzSecurity(qz);
-      } catch (err) {
-        console.warn("[QZ] não foi possível configurar assinatura/certificado", err);
+        resolve(qz);
+      } catch (error) {
+        loaderPromise = null;
+        reject(error instanceof Error ? error : new Error("Falha ao configurar a segurança do QZ Tray."));
       }
-      resolve(qz);
     };
     script.onerror = () => {
       loaderPromise = null;
@@ -125,20 +133,43 @@ const loadQzScript = (): Promise<any> => {
 };
 
 const ensureConnected = async (qz: any): Promise<void> => {
+  // Reaplica sempre antes de conectar. Assim nenhuma chamada pode iniciar
+  // uma sessão anônima por causa de ordem de carregamento ou hot reload.
   configureQzSecurity(qz);
 
-  if (qz.websocket.isActive()) return;
+  // Se já havia uma conexão aberta antes desta versão/configuração, ela pode
+  // ter sido criada anonimamente. Derruba uma única vez e reconecta assinada.
+  if (qz.websocket.isActive() && !signedConnectionEstablished) {
+    try {
+      await qz.websocket.disconnect();
+    } catch {
+      // A reconexão abaixo é a etapa importante.
+    }
+  }
+
+  if (qz.websocket.isActive() && signedConnectionEstablished) return;
 
   if (!window.__turboQzConnecting) {
     window.__turboQzConnecting = qz.websocket
       .connect({ retries: 1, delay: 1 })
-      .then(() => qz)
+      .then(() => {
+        signedConnectionEstablished = true;
+        return qz;
+      })
+      .catch((error: unknown) => {
+        signedConnectionEstablished = false;
+        throw error;
+      })
       .finally(() => {
         window.__turboQzConnecting = undefined;
       });
   }
 
   await window.__turboQzConnecting;
+
+  if (!securityConfigured || !qz.websocket.isActive()) {
+    throw new Error("Não foi possível abrir uma conexão assinada com o QZ Tray.");
+  }
 };
 
 /** Verifica se o QZ Tray está instalado e respondendo. */
