@@ -1,0 +1,9 @@
+TURBO LANCHES - ATUALIZADOR V7
+
+1. Extraia este ZIP por completo.
+2. Clique duas vezes em "1 - ENVIAR PARA GITHUB E LOVABLE - V7.bat".
+3. O arquivo pode ser executado nesta pasta ou dentro de turbolanches-main.
+4. So considere enviado quando aparecer: ENVIO CONFIRMADO PELO GITHUB COM SUCESSO.
+5. O arquivo ULTIMO_ENVIO_GITHUB.txt sera criado como comprovante.
+
+O atualizador nao envia .env, certificados ou chaves privadas.

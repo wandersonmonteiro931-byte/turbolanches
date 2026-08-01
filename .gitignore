@@ -6,6 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+ATUALIZACAO_GITHUB_LOG.txt
+ULTIMO_ENVIO_GITHUB.txt
 
 node_modules
 dist
@@ -32,3 +34,17 @@ dist-ssr
 *.pfx
 *.pem
 *.key
+*.crt
+*.cer
+.env
+.env.*
+!.env.example
+!supabase/.env.example
+*.p12
+*.pfx
+*.pem
+*.key
+*.crt
+*.cer
+ATUALIZACAO_GITHUB_LOG.txt
+ULTIMO_ENVIO_GITHUB.txt
