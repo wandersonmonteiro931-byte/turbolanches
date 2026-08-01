@@ -28,9 +28,9 @@ const PixPaymentModal = ({
   const [copied, setCopied] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
 
-  // Polling: check payment status every 1s
+  // Polling: o webhook costuma confirmar antes; esta consulta é apenas contingência.
   useEffect(() => {
     if (confirmed) return;
 
@@ -40,7 +40,7 @@ const PixPaymentModal = ({
         if (!session) return;
 
         const resp = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/pix-efi/check-status`,
+          `${supabaseUrl}/functions/v1/pix-efi/check-status`,
           {
             method: "POST",
             headers: {
@@ -50,7 +50,7 @@ const PixPaymentModal = ({
             body: JSON.stringify({ order_id: orderId }),
           }
         );
-        // Order was deleted (client cancelled) — stop polling silently
+        // Pedido indisponível para este usuário — interrompe esta tentativa silenciosamente
         if (resp.status === 404) return;
         const data = await resp.json();
         if (data.confirmed) {
@@ -62,9 +62,10 @@ const PixPaymentModal = ({
       }
     };
 
-    const interval = setInterval(poll, 1000);
+    void poll();
+    const interval = setInterval(poll, 3000);
     return () => clearInterval(interval);
-  }, [orderId, confirmed, projectId, onConfirmed]);
+  }, [orderId, confirmed, supabaseUrl, onConfirmed]);
 
   // Countdown timer
   useEffect(() => {
@@ -76,9 +77,12 @@ const PixPaymentModal = ({
   const handleCancel = useCallback(async () => {
     setCancelling(true);
     try {
-      // Delete items first (FK dependency), then the order
-      await supabase.from("order_items").delete().eq("order_id", orderId);
-      await supabase.from("orders").delete().eq("id", orderId).eq("status", "pending");
+      // O pedido não é apagado: se o cliente pagar o QR Code após fechar a tela,
+      // o webhook ainda conseguirá localizar e conciliar o valor recebido.
+      const { error } = await (supabase as any).rpc("cancel_unpaid_pix_order", {
+        _order_id: orderId,
+      });
+      if (error) throw error;
       toast.info("Pedido cancelado.");
       onCancelled();
     } catch {

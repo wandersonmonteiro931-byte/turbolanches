@@ -12,6 +12,7 @@ const navItems = [
   { path: "/admin/pedidos", icon: ShoppingBag, label: "Pedidos" },
   { path: "/cozinha", icon: UtensilsCrossed, label: "Cozinha" },
   { path: "/admin/fiados", icon: WalletCards, label: "Fiados" },
+  { path: "/admin/financeiro", icon: DollarSign, label: "Financeiro" },
   { path: "/admin/nao-pagos", icon: AlertCircle, label: "Não Pagos" },
   { path: "/admin/produtos", icon: UtensilsCrossed, label: "Produtos" },
   { path: "/admin/cadastros", icon: FolderPlus, label: "Cadastros" },

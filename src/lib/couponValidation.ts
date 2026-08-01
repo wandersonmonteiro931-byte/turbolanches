@@ -30,10 +30,12 @@ export async function validateCouponForOrder({
   couponCode,
   totalPrice,
   userId,
+  storeId,
 }: {
   couponCode: string;
   totalPrice: number;
   userId?: string;
+  storeId?: string | null;
 }): Promise<CouponValidationResult> {
   const normalizedCode = couponCode.trim().toUpperCase();
 
@@ -41,11 +43,12 @@ export async function validateCouponForOrder({
     return { error: "Cupom não encontrado", isScratchCoupon: false, valid: false };
   }
 
-  const { data: coupon, error } = await supabase
+  let couponQuery = supabase
     .from("coupons")
     .select("code, type, value, active, used_count, max_uses, max_uses_per_customer, min_order, expires_at, starts_at, first_purchase_only")
-    .eq("code", normalizedCode)
-    .maybeSingle();
+    .eq("code", normalizedCode);
+  if (storeId) couponQuery = couponQuery.eq("store_id", storeId);
+  const { data: coupon, error } = await couponQuery.maybeSingle();
 
   if (error || !coupon) {
     return { error: "Cupom não encontrado", isScratchCoupon: false, valid: false };
@@ -85,20 +88,24 @@ export async function validateCouponForOrder({
 
   let scratchCoupon: ScratchCouponRecord | null = null;
 
-  const { data: scratchWin } = await supabase
+  let scratchQuery = supabase
     .from("scratch_wins")
     .select("redeemed_at")
     .eq("coupon_code", normalizedCode)
-    .eq("user_id", userId)
-    .maybeSingle();
+    .eq("user_id", userId);
+  if (storeId) scratchQuery = scratchQuery.eq("store_id", storeId);
+  const { data: scratchWin } = await scratchQuery.maybeSingle();
 
   scratchCoupon = (scratchWin as ScratchCouponRecord | null) ?? null;
 
   if (typedCoupon.first_purchase_only) {
-    const { count } = await supabase
+    let firstOrderQuery = supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .neq("status", "cancelled");
+    if (storeId) firstOrderQuery = firstOrderQuery.eq("store_id", storeId);
+    const { count } = await firstOrderQuery;
 
     if (count && count > 0) {
       return { coupon: typedCoupon, error: "Cupom válido apenas para primeira compra", isScratchCoupon: Boolean(scratchCoupon), valid: false };
@@ -112,12 +119,14 @@ export async function validateCouponForOrder({
   const maxPerCustomer = scratchCoupon ? 1 : typedCoupon.max_uses_per_customer;
 
   if (maxPerCustomer) {
-    const { count } = await supabase
+    let couponUseQuery = supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("coupon_code", normalizedCode)
       .neq("status", "cancelled");
+    if (storeId) couponUseQuery = couponUseQuery.eq("store_id", storeId);
+    const { count } = await couponUseQuery;
 
     if (count !== null && count >= maxPerCustomer) {
       return {

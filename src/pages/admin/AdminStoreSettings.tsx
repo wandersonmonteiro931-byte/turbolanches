@@ -199,6 +199,7 @@ const AdminStoreSettings = () => {
   const allSections = [
     { path: "/admin", label: "Dashboard" },
     { path: "/admin/pedidos", label: "Pedidos" },
+    { path: "/admin/financeiro", label: "Financeiro" },
     { path: "/admin/produtos", label: "Produtos" },
     { path: "/admin/cadastros", label: "Cadastros" },
     { path: "/admin/categorias", label: "Categorias" },

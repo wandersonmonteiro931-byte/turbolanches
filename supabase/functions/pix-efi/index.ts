@@ -88,7 +88,14 @@ function getPemCredentials(): { cert: string; keyPkcs8: string; keyPkcs1: string
 // mTLS CLIENT — Deno.connectTls with raw HTTP/1.1
 // ══════════════════════════════════════════════════════════════
 
-const EFI_HOST = "pix.api.efipay.com.br";
+const EFI_HOST = (
+  Deno.env.get("EFI_API_HOST") ||
+  (Deno.env.get("EFI_ENVIRONMENT") === "homologation"
+    ? "pix-h.api.efipay.com.br"
+    : "pix.api.efipay.com.br")
+)
+  .replace(/^https?:\/\//, "")
+  .replace(/\/+$/, "");
 
 interface MtlsResult {
   status: number;
@@ -287,14 +294,27 @@ async function getAccessToken(): Promise<string> {
   return JSON.parse(resp.body).access_token;
 }
 
-async function createPixCharge(token: string, payload: any) {
-  const resp = await mtlsFetchWithRetry("/v2/cob", {
-    method: "POST",
+async function createOrGetPixCharge(token: string, txid: string, payload: any) {
+  // PUT com txid próprio torna a criação idempotente: o mesmo pedido nunca recebe
+  // duas cobranças diferentes mesmo se o cliente clicar novamente ou houver retry.
+  const resp = await mtlsFetchWithRetry(`/v2/cob/${encodeURIComponent(txid)}`, {
+    method: "PUT",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (resp.status < 200 || resp.status >= 300) throw new Error(`Create cob failed (${resp.status}): ${resp.body.substring(0, 200)}`);
-  return JSON.parse(resp.body);
+
+  if (resp.status >= 200 && resp.status < 300) return JSON.parse(resp.body);
+
+  // Se a cobrança já existir, consulta a cobrança com o mesmo txid em vez de criar outra.
+  if (resp.status === 409 || resp.status === 422) {
+    try {
+      return await checkCobStatus(token, txid);
+    } catch {
+      // Mantém o erro original caso a consulta também falhe.
+    }
+  }
+
+  throw new Error(`Create cob failed (${resp.status}): ${resp.body.substring(0, 200)}`);
 }
 
 async function getQrCode(token: string, locId: number) {
@@ -318,7 +338,14 @@ async function checkCobStatus(token: string, txid: string) {
 async function registerWebhookEfi(token: string, pixKey: string, webhookUrl: string) {
   const resp = await mtlsFetchWithRetry(`/v2/webhook/${encodeURIComponent(pixKey)}`, {
     method: "PUT",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      // Supabase Edge Functions não permitem configurar a validação mTLS de entrada.
+      // A Efí oferece skip-mTLS para hospedagens compartilhadas; o callback continua
+      // protegido pelo segredo HMAC longo presente na URL cadastrada.
+      "x-skip-mtls-checking": "true",
+    },
     body: JSON.stringify({ webhookUrl }),
   });
   return { status: resp.status, body: resp.body };
@@ -372,6 +399,19 @@ async function requireAdmin(req: Request): Promise<{ userId: string } | Response
   return result;
 }
 
+async function requirePlatformAdmin(req: Request): Promise<{ userId: string } | Response> {
+  const result = await authenticateUser(req);
+  if (result instanceof Response) return result;
+
+  const { data } = await adminSupa().from("platform_admins")
+    .select("user_id")
+    .eq("user_id", result.userId)
+    .maybeSingle();
+
+  if (!data) return json({ error: "Forbidden" }, 403);
+  return result;
+}
+
 // ══════════════════════════════════════════════════════════════
 // HANDLER
 // ══════════════════════════════════════════════════════════════
@@ -397,12 +437,12 @@ serve(async (req) => {
 
     // Admin endpoints
     if (path === "register-webhook") {
-      const admin = await requireAdmin(req);
+      const admin = await requirePlatformAdmin(req);
       if (admin instanceof Response) return admin;
       return await handleRegisterWebhook();
     }
     if (path === "check-webhook") {
-      const admin = await requireAdmin(req);
+      const admin = await requirePlatformAdmin(req);
       if (admin instanceof Response) return admin;
       return await handleCheckWebhook();
     }
@@ -429,32 +469,73 @@ serve(async (req) => {
 // ══════════════════════════════════════════════════════════════
 
 async function handleCreateCharge(userId: string, body: any) {
-  const { order_id, amount, descricao } = body;
+  const { order_id, descricao } = body;
   console.log("create-charge:", { order_id, userId });
-  if (!order_id || !amount) return json({ error: "order_id and amount required" }, 400);
+  if (!order_id) return json({ error: "order_id required" }, 400);
 
   try {
+    const db = adminSupa();
+    const { data: order, error: orderError } = await db
+      .from("orders")
+      .select("id, user_id, store_id, order_number, total, status, payment_method, payment_confirmed, pix_txid, pix_copia_cola, pix_qrcode_image, pix_loc_id")
+      .eq("id", order_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (orderError) throw orderError;
+    if (!order) return json({ error: "Pedido não encontrado" }, 404);
+    if (order.payment_method !== "pix") return json({ error: "O pedido não utiliza PIX" }, 400);
+    if (order.payment_confirmed) return json({ error: "Pedido já foi pago" }, 409);
+    if (!["pending", "awaiting_payment"].includes(order.status)) {
+      return json({ error: "Pedido não está aguardando pagamento" }, 409);
+    }
+
+    // Reaproveita a cobrança já criada para impedir vários QR Codes para o mesmo pedido.
+    if (order.pix_txid && order.pix_copia_cola && order.pix_qrcode_image) {
+      return json({
+        txid: order.pix_txid,
+        qrcode: order.pix_copia_cola,
+        qrcode_image: order.pix_qrcode_image,
+        expiracao: 3600,
+        reused: true,
+      });
+    }
+
     const pixKey = getEnv("EFI_PIX_KEY");
     const token = await getAccessToken();
+    const description = descricao || `Pedido #${order.order_number || order.id.slice(0, 8)} - Turbo Lanches`;
 
-    const cob = await createPixCharge(token, {
+    // O valor sempre vem do banco. O navegador não escolhe o valor cobrado.
+    const deterministicTxid = order.id.replace(/-/g, "");
+    const cob = await createOrGetPixCharge(token, deterministicTxid, {
       calendario: { expiracao: 3600 },
-      valor: { original: Number(amount).toFixed(2) },
+      valor: { original: Number(order.total).toFixed(2) },
       chave: pixKey,
-      solicitacaoPagador: descricao || "Pedido Turbo Lanches",
+      solicitacaoPagador: String(description).slice(0, 140),
+      infoAdicionais: [
+        { nome: "pedido_id", valor: order.id },
+        { nome: "loja_id", valor: order.store_id || "" },
+      ],
     });
-    console.log("Charge created:", { txid: cob.txid, locId: cob.loc?.id });
+    const chargedAmount = Number(cob?.valor?.original ?? order.total);
+    if (!Number.isFinite(chargedAmount) || Math.abs(chargedAmount - Number(order.total)) > 0.01) {
+      throw new Error("A cobrança PIX existente possui valor diferente do pedido");
+    }
+    if (!cob?.loc?.id) throw new Error("A cobrança PIX não retornou uma localização válida");
+
+    console.log("Charge created:", { txid: cob.txid, locId: cob.loc.id, orderId: order.id });
 
     const qr = await getQrCode(token, cob.loc.id);
 
-    const db = adminSupa();
-    await db.from("orders").update({
+    const { error: updateError } = await db.from("orders").update({
       pix_txid: cob.txid,
       pix_copia_cola: qr.qrcode,
       pix_qrcode_image: qr.imagemQrcode,
       pix_loc_id: cob.loc.id,
       status: "pending",
-    }).eq("id", order_id);
+    }).eq("id", order.id).eq("user_id", userId).eq("payment_confirmed", false);
+
+    if (updateError) throw updateError;
 
     return json({
       txid: cob.txid,
@@ -462,6 +543,7 @@ async function handleCreateCharge(userId: string, body: any) {
       qrcode_image: qr.imagemQrcode,
       location: cob.loc.location,
       expiracao: cob.calendario.expiracao,
+      amount: Number(order.total),
     });
   } catch (err: any) {
     console.error("create-charge ERROR:", err.message);
@@ -488,7 +570,10 @@ async function handleCheckStatus(userId: string, body: any) {
     return json({ status: "pending", confirmed: false });
   }
 
-  if (order.status !== "pending") return json({ status: order.status, confirmed: true });
+  if (order.payment_confirmed) return json({ status: order.status, confirmed: true });
+  if (!["pending", "awaiting_payment"].includes(order.status)) {
+    return json({ status: order.status, confirmed: false });
+  }
 
   if (order.pix_txid) {
     try {
@@ -496,7 +581,14 @@ async function handleCheckStatus(userId: string, body: any) {
       const cobData = await checkCobStatus(token, order.pix_txid);
 
       if (cobData.status === "CONCLUIDA") {
-        await confirmOrder(db, order);
+        const payment = Array.isArray(cobData.pix) ? cobData.pix[0] : null;
+        await confirmOrder(db, order, {
+          txid: order.pix_txid,
+          endToEndId: payment?.endToEndId || payment?.end_to_end_id || null,
+          amount: Number(payment?.valor || order.total),
+          paidAt: payment?.horario || new Date().toISOString(),
+          rawPayload: cobData,
+        });
         return json({ status: "paid", confirmed: true });
       }
     } catch (err: any) {
@@ -507,50 +599,131 @@ async function handleCheckStatus(userId: string, body: any) {
   return json({ status: "pending", confirmed: false });
 }
 
-async function confirmOrder(db: any, order: any) {
-  // Atomic lock: only update if still pending
-  const { data: updated } = await db.from("orders")
-    .update({
-      status: "paid",
-      paid_at: new Date().toISOString(),
-      payment_confirmed: true,
-    })
-    .eq("id", order.id)
-    .eq("status", "pending")
-    .select("id");
-
-  if (!updated || updated.length === 0) {
+async function confirmOrder(
+  db: any,
+  order: any,
+  payment: {
+    txid?: string | null;
+    endToEndId?: string | null;
+    amount?: number | null;
+    paidAt?: string | null;
+    rawPayload?: unknown;
+  }
+) {
+  if (order.payment_confirmed) {
     console.log(`Order ${order.id} already processed — skipping`);
     return;
   }
 
-  console.log(`Order ${order.id} confirmed!`);
+  const paidAmount = Number(payment.amount ?? order.total);
+  const paidAt = payment.paidAt || new Date().toISOString();
+
+  const { error } = await db.rpc("confirm_pix_order_and_credit_wallet", {
+    _order_id: order.id,
+    _txid: payment.txid || order.pix_txid || null,
+    _end_to_end_id: payment.endToEndId || null,
+    _paid_amount: paidAmount,
+    _paid_at: paidAt,
+    _raw_payload: payment.rawPayload || {},
+  });
+
+  if (error) {
+    console.error(`Wallet credit failed for order ${order.id}:`, error.message);
+    throw error;
+  }
+
+  console.log(`Order ${order.id} confirmed and store wallet credited!`);
 }
 
 async function handleWebhook(req: Request) {
+  const expectedSecret = getEnv("EFI_WEBHOOK_SECRET");
+  const suppliedSecret = new URL(req.url).searchParams.get("hmac");
+  if (!suppliedSecret || suppliedSecret !== expectedSecret) {
+    console.warn("Webhook Efí rejected: invalid secret");
+    return json({ error: "Unauthorized webhook" }, 401);
+  }
+
   try {
     const body = await req.json();
     console.log("PIX webhook received");
 
-    const pixArray = body.pix || [];
+    const pixArray = Array.isArray(body.pix) ? body.pix : [];
     const db = adminSupa();
 
     for (const pix of pixArray) {
+      // Retorno de PIX enviado (saque/repasse). Na Efí, o idEnvio vem em gnExtras.
+      const idEnvio = pix?.gnExtras?.idEnvio || pix.idEnvio || pix.id_envio;
+      if (idEnvio) {
+        const status = String(pix.status || "").toUpperCase();
+        const e2eId = pix.endToEndId || pix.e2eId || null;
+
+        if (["REALIZADO", "CONCLUIDA", "LIQUIDADO"].includes(status)) {
+          const { error } = await db.rpc("mark_withdrawal_paid", {
+            _id_envio: idEnvio,
+            _efi_e2e_id: e2eId,
+            _efi_status: status,
+          });
+          if (error) throw error;
+        } else if (["NAO_REALIZADO", "NÃO_REALIZADO", "REJEITADO", "FALHA", "FALHOU", "CANCELADO", "DEVOLVIDO"].includes(status)) {
+          const { data: withdrawal, error: withdrawalError } = await db
+            .from("wallet_withdrawal_requests")
+            .select("id")
+            .eq("id_envio", idEnvio)
+            .maybeSingle();
+          if (withdrawalError) throw withdrawalError;
+          if (withdrawal) {
+            const reason = pix?.gnExtras?.erro?.motivo || pix?.gnExtras?.erro?.descricao || `Repasse ${status}`;
+            const { error } = await db.rpc("mark_withdrawal_failed", {
+              _withdrawal_id: withdrawal.id,
+              _error_message: String(reason),
+              _efi_status: status,
+            });
+            if (error) throw error;
+          }
+        } else {
+          const { data: withdrawal, error: withdrawalError } = await db
+            .from("wallet_withdrawal_requests")
+            .select("id")
+            .eq("id_envio", idEnvio)
+            .maybeSingle();
+          if (withdrawalError) throw withdrawalError;
+          if (withdrawal) {
+            const { error } = await db.rpc("mark_withdrawal_processing", {
+              _withdrawal_id: withdrawal.id,
+              _efi_e2e_id: e2eId,
+              _efi_status: status || "EM_PROCESSAMENTO",
+            });
+            if (error) throw error;
+          }
+        }
+        continue;
+      }
+
+      // PIX recebido de um cliente.
       const txid = pix.txid;
       if (!txid) continue;
 
-      const { data: order } = await db.from("orders")
-        .select("*").eq("pix_txid", txid).single();
+      const { data: order, error: orderError } = await db.from("orders")
+        .select("*").eq("pix_txid", txid).maybeSingle();
 
-      if (order && order.status === "pending") {
-        await confirmOrder(db, order);
+      if (orderError) throw orderError;
+
+      if (order && !order.payment_confirmed) {
+        await confirmOrder(db, order, {
+          txid,
+          endToEndId: pix.endToEndId || pix.e2eId || null,
+          amount: Number(pix.valor || order.total),
+          paidAt: pix.horario || new Date().toISOString(),
+          rawPayload: pix,
+        });
       }
     }
 
     return json({ ok: true });
   } catch (err: any) {
+    // Retorna erro para permitir nova tentativa da Efí. O ledger é idempotente.
     console.error("Webhook error:", err.message);
-    return json({ ok: true });
+    return json({ error: "Webhook processing failed" }, 500);
   }
 }
 
@@ -558,7 +731,9 @@ async function handleRegisterWebhook() {
   try {
     const pixKey = getEnv("EFI_PIX_KEY");
     const supaUrl = getEnv("SUPABASE_URL");
-    const webhookUrl = `${supaUrl}/functions/v1/pix-efi/webhook`;
+    const webhookSecret = getEnv("EFI_WEBHOOK_SECRET");
+    // O parâmetro ignorar evita o sufixo /pix adicionado pela Efí e mantém a rota explícita.
+    const webhookUrl = `${supaUrl}/functions/v1/pix-efi/webhook?hmac=${encodeURIComponent(webhookSecret)}&ignorar=`;
 
     const token = await getAccessToken();
     const result = await registerWebhookEfi(token, pixKey, webhookUrl);
@@ -567,7 +742,7 @@ async function handleRegisterWebhook() {
       registered: result.status >= 200 && result.status < 300,
       status: result.status,
       response: result.body,
-      webhookUrl,
+      webhookBaseUrl: `${supaUrl}/functions/v1/pix-efi/webhook`,
     });
   } catch (err: any) {
     console.error("Register webhook error:", err.message);

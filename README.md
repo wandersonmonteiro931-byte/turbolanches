@@ -71,3 +71,27 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Financeiro com PIX Efí central
+
+O projeto mantém o fluxo de edição no Lovable e ganhou uma seção **Financeiro** preparada para Supabase:
+
+- um único PIX recebedor da plataforma;
+- cobrança identificada por pedido e loja;
+- saldo a receber individual por estabelecimento;
+- extrato e prazo de liberação;
+- solicitação de saque;
+- repasse automático pela API Pix Efí;
+- webhook e idempotência;
+- checkout recalculado no servidor.
+
+Leia antes de publicar:
+
+- [`docs/FINANCEIRO_EFI_CENTRAL.md`](docs/FINANCEIRO_EFI_CENTRAL.md)
+
+Não trate o saldo interno como conta bancária ou conta digital. Valide o modelo centralizado de recebimento e repasse com a Efí, contador e jurídico antes de operar com dinheiro de lojas reais.
+
+
+### Ambiente Efí
+
+Use `EFI_ENVIRONMENT=homologation` nas Edge Functions durante os testes e altere para `EFI_ENVIRONMENT=production` somente após a validação completa. Veja `docs/FINANCEIRO_EFI_CENTRAL.md`.

@@ -75,6 +75,7 @@ const Checkout = () => {
     qrcode: string;
     qrcodeImage: string;
     expiracao: number;
+    total: number;
   } | null>(null);
 
   useEffect(() => {
@@ -82,10 +83,12 @@ const Checkout = () => {
       navigate("/auth", { state: { from: "/checkout" } });
       return;
     }
+    if (!storeId) return;
+
     Promise.all([
       supabase.from("profiles").select("full_name, phone, street, number, complement, neighborhood, quadra, lote, city, state").eq("user_id", user.id).single(),
-      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery").eq("active", true),
-      supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active, prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").limit(1).single(),
+      supabase.from("delivery_zones").select("neighborhood, delivery_fee, distance_km, temp_free_delivery").eq("active", true).eq("store_id", storeId),
+      supabase.from("store_settings").select("free_delivery_min_order, free_delivery_max_km, temp_free_delivery_all, max_serving_km, max_serving_km_active, prep_time_minutes, delivery_time_minutes, pickup_time_minutes, store_address_full").eq("store_id", storeId).limit(1).single(),
     ]).then(([profileRes, zonesRes, configRes]) => {
       if (profileRes.data) {
         const p = profileRes.data;
@@ -117,7 +120,7 @@ const Checkout = () => {
       }
       setProfileLoading(false);
     });
-  }, [user]);
+  }, [navigate, storeId, user]);
 
   const handlePixConfirmed = useCallback(() => {
     toast.success("Pagamento PIX confirmado! 🎉");
@@ -193,70 +196,43 @@ const Checkout = () => {
     : ((deliveryConfig?.prep_time_minutes || 25) + (deliveryConfig?.delivery_time_minutes || 30));
 
   const createOrderAndItems = async () => {
-    if (!user || !profile) throw new Error("Missing user/profile");
+    if (!user || !profile || !storeId) throw new Error("Usuário, perfil ou loja não identificados");
 
-    const isCash = paymentMethod === "dinheiro";
-    const isPix  = paymentMethod === "pix";
-    const isCard = ["cartao","card","debito","credito"].includes(paymentMethod);
-    const changeForNum = isCash && changeFor ? Number(changeFor) : 0;
-    // Cliente que pede troco entrega uma nota maior que o total → registra a nota como
-    // amount_paid_cash e a diferença como troco. Sem troco: amount_paid_cash = total.
-    const amountPaidCash = isCash ? (changeForNum > grandTotal ? changeForNum : grandTotal) : 0;
-    const changeGivenCash = isCash && changeForNum > grandTotal ? (changeForNum - grandTotal) : 0;
-
-    const orderData: any = {
-      user_id: user.id,
-      subtotal: totalPrice,
-      delivery_fee: deliveryFee,
-      discount: safeCouponDiscount,
-      coupon_code: appliedCoupon?.code || null,
-      total: grandTotal,
-      status: "pending",
-      delivery_type: deliveryType === "pickup" ? "retirada" : "delivery",
-      payment_method: paymentMethod,
-      observations: observations || null,
-      change_for: changeForNum || null,
-      amount_paid_cash: amountPaidCash,
-      amount_paid_pix: isPix ? grandTotal : 0,
-      amount_paid_card: isCard ? grandTotal : 0,
-      change_given_cash: changeGivenCash,
-      change_given_pix: 0,
-      change_given_card: 0,
-    };
-
-    if (storeId) orderData.store_id = storeId;
-
-    if (deliveryType === "delivery") {
-      const quadraLote = [profile.quadra ? `Qd. ${profile.quadra}` : "", profile.lote ? `Lt. ${profile.lote}` : ""].filter(Boolean).join(", ");
-      orderData.address_street = profile.street;
-      orderData.address_number = [profile.number, quadraLote].filter(Boolean).join(" - ");
-      orderData.address_complement = profile.complement;
-      orderData.address_neighborhood = profile.neighborhood;
-    }
-
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert(orderData)
-      .select("id")
-      .single();
-
-    if (orderError) throw orderError;
-
-    const orderItems = items.map((item) => ({
-      order_id: order.id,
+    const secureItems = items.map((item) => ({
       product_id: item.product.id,
-      product_name: item.product.name,
-      product_code: (item.product as any).code ?? null,
       quantity: item.quantity,
-      unit_price: item.product.price + item.selectedAddons.reduce((s, a) => s + a.price * (a.quantity || 1), 0),
       observations: item.observations || null,
-      addons_json: item.selectedAddons.length > 0 ? JSON.parse(JSON.stringify(item.selectedAddons)) : null,
+      addons: item.selectedAddons.map((addon) => ({
+        id: addon.id,
+        quantity: addon.quantity || 1,
+      })),
     }));
 
-    const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
-    if (itemsError) throw itemsError;
+    const changeForNum = paymentMethod === "dinheiro" && changeFor
+      ? Number(changeFor.replace(",", "."))
+      : null;
 
-    return order;
+    const { data, error } = await (supabase as any).rpc("create_secure_customer_order", {
+      _store_id: storeId,
+      _items: secureItems,
+      _delivery_type: deliveryType,
+      _payment_method: paymentMethod,
+      _coupon_code: appliedCoupon?.code || null,
+      _observations: observations || null,
+      _change_for: changeForNum,
+    });
+
+    if (error) throw error;
+    if (!data?.id) throw new Error("O pedido não foi criado corretamente");
+
+    return data as {
+      id: string;
+      order_number: number | null;
+      subtotal: number;
+      delivery_fee: number;
+      discount: number;
+      total: number;
+    };
   };
 
   const handlePlaceOrder = async () => {
@@ -271,6 +247,7 @@ const Checkout = () => {
         couponCode: appliedCoupon.code,
         totalPrice,
         userId: user.id,
+        storeId,
       });
 
       if (!validation.valid) {
@@ -286,12 +263,12 @@ const Checkout = () => {
 
       if (paymentMethod === "pix") {
         // Generate PIX charge via edge function
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error("Sessão expirada");
 
         const resp = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/pix-efi/create-charge`,
+          `${supabaseUrl}/functions/v1/pix-efi/create-charge`,
           {
             method: "POST",
             headers: {
@@ -300,7 +277,6 @@ const Checkout = () => {
             },
             body: JSON.stringify({
               order_id: order.id,
-              amount: grandTotal,
               descricao: `Pedido Turbo Lanches #${order.id.slice(0, 8)}`,
             }),
           }
@@ -317,6 +293,7 @@ const Checkout = () => {
           qrcode: pixResult.qrcode,
           qrcodeImage: pixResult.qrcode_image,
           expiracao: pixResult.expiracao || 3600,
+          total: Number(pixResult.amount ?? order.total),
         });
         setShowPixModal(true);
       } else {
@@ -598,7 +575,7 @@ const Checkout = () => {
           orderId={pixData.orderId}
           qrcode={pixData.qrcode}
           qrcodeImage={pixData.qrcodeImage}
-          total={grandTotal}
+          total={pixData.total}
           expiracao={pixData.expiracao}
           onConfirmed={handlePixConfirmed}
           onCancelled={handlePixCancelled}
