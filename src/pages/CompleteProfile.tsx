@@ -177,7 +177,7 @@ const CompleteProfile = () => {
       errors[key] ? "border-destructive" : "border-border"
     }`;
 
-  const Field = ({
+  const renderField = ({
     label,
     keyName,
     placeholder,
@@ -251,8 +251,8 @@ const CompleteProfile = () => {
               <h2 className="text-sm font-bold text-foreground">Dados pessoais</h2>
             </div>
             <div className="space-y-4">
-              <Field label="Nome completo" keyName="full_name" placeholder="Ex: Yasmin Barbosa" />
-              <Field label="WhatsApp" keyName="phone" placeholder="(62) 99999-9999" inputMode="tel" />
+              {renderField({ label: "Nome completo", keyName: "full_name", placeholder: "Ex: Yasmin Barbosa" })}
+              {renderField({ label: "WhatsApp", keyName: "phone", placeholder: "(62) 99999-9999", inputMode: "tel" })}
             </div>
           </section>
 
@@ -262,23 +262,17 @@ const CompleteProfile = () => {
               <h2 className="text-sm font-bold text-foreground">Endereço de entrega</h2>
             </div>
             <div className="space-y-4">
-              <Field
-                label={cepLoading ? "CEP (buscando...)" : "CEP"}
-                keyName="zip_code"
-                placeholder="75000-000"
-                inputMode="numeric"
-                optional
-              />
-              <Field label="Rua / Avenida" keyName="street" placeholder="Ex: Rua Ra 4" />
+              {renderField({ label: cepLoading ? "CEP (buscando...)" : "CEP", keyName: "zip_code", placeholder: "75000-000", inputMode: "numeric", optional: true })}
+              {renderField({ label: "Rua / Avenida", keyName: "street", placeholder: "Ex: Rua Ra 4" })}
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Número" keyName="number" placeholder="123" quickValue="S/N" />
-                <Field label="Complemento" keyName="complement" placeholder="Casa, apto..." optional />
+                {renderField({ label: "Número", keyName: "number", placeholder: "123", quickValue: "S/N" })}
+                {renderField({ label: "Complemento", keyName: "complement", placeholder: "Casa, apto...", optional: true })}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Quadra" keyName="quadra" placeholder="Qd" quickValue="Não tem" />
-                <Field label="Lote" keyName="lote" placeholder="Lt" quickValue="Não tem" />
+                {renderField({ label: "Quadra", keyName: "quadra", placeholder: "Qd", quickValue: "Não tem" })}
+                {renderField({ label: "Lote", keyName: "lote", placeholder: "Lt", quickValue: "Não tem" })}
               </div>
 
               <div>
