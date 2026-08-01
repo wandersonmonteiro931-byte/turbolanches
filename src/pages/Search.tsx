@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search as SearchIcon, X, Flame, Star, Tag } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Search as SearchIcon, X, Flame, Tag } from "lucide-react";
+
 import { useProducts, useCategories } from "@/hooks/useMenu";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import ProductCard from "@/components/ProductCard";
