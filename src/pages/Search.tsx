@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Search as SearchIcon, X, Flame, Star, Tag } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Search as SearchIcon, X, Flame, Tag } from "lucide-react";
+
 import { useProducts, useCategories } from "@/hooks/useMenu";
 import { useStoreStatus } from "@/hooks/useStoreStatus";
 import ProductCard from "@/components/ProductCard";
@@ -65,45 +65,32 @@ const Search = () => {
   return (
     <div className="min-h-screen bg-background pb-36">
       {/* Search header */}
-      <header className="sticky top-0 z-30 bg-background/90 px-4 pt-4 pb-2 backdrop-blur-md">
+      <header className="sticky top-0 z-30 bg-background/95 px-4 pt-4 pb-3 backdrop-blur-md">
         <div className="mx-auto max-w-md space-y-3">
           {/* Search input */}
-          <motion.div
-            initial={{ y: -10, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="flex items-center gap-2 rounded-xl bg-card px-4 py-2.5 ring-1 ring-border focus-within:ring-primary transition-all"
-          >
-            <SearchIcon size={18} className="text-muted-foreground shrink-0" />
+          <div className="flex items-center gap-2.5 rounded-full bg-muted/60 px-4 py-3 transition-colors focus-within:bg-muted">
+            <SearchIcon size={19} className="text-muted-foreground shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nome ou código (ex: 201)..."
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+              placeholder="Buscar no cardápio"
+              className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
               autoFocus
             />
-            <AnimatePresence>
-              {query.length > 0 && (
-                <motion.button
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                  onClick={() => setQuery("")}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X size={16} />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            {query.length > 0 && (
+              <button
+                onClick={() => setQuery("")}
+                aria-label="Limpar busca"
+                className="shrink-0 rounded-full p-1 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
 
-          {/* Quick filters */}
-          <motion.div
-            initial={{ y: -5, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="flex gap-2 overflow-x-auto no-scrollbar"
-          >
+          {/* Filtros rápidos + categorias */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
             {quickFilters.map((f) => {
               const Icon = f.icon;
               const isActive = activeFilter === f.key;
@@ -111,10 +98,10 @@ const Search = () => {
                 <button
                   key={f.key}
                   onClick={() => setActiveFilter(isActive ? null : f.key)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-card text-muted-foreground border border-border hover:border-primary/40"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   <Icon size={13} />
@@ -123,17 +110,16 @@ const Search = () => {
               );
             })}
 
-            {/* Category chips */}
             {categories.map((cat) => {
               const isActive = selectedCategory === cat.id;
               return (
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(isActive ? null : cat.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium whitespace-nowrap transition-colors ${
                     isActive
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-card text-muted-foreground border border-border hover:border-primary/40"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {cat.icon && <span className="text-sm">{cat.icon}</span>}
@@ -141,92 +127,59 @@ const Search = () => {
                 </button>
               );
             })}
-          </motion.div>
+          </div>
 
-          {/* Active filter summary */}
-          <AnimatePresence>
-            {hasActiveFilters && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="flex items-center justify-between"
+          {/* Resumo dos filtros ativos */}
+          {hasActiveFilters && (
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}
+              </p>
+              <button
+                onClick={clearAll}
+                className="text-xs font-semibold text-primary"
               >
-                <p className="text-xs text-muted-foreground">
-                  {filtered.length} {filtered.length === 1 ? "resultado" : "resultados"}
-                </p>
-                <button
-                  onClick={clearAll}
-                  className="text-xs text-primary font-semibold"
-                >
-                  Limpar filtros
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                Limpar
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Results */}
-      <div className="mx-auto max-w-md px-4 mt-2 space-y-3">
-        <AnimatePresence mode="wait">
-          {hasActiveFilters && filtered.length === 0 && (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex flex-col items-center py-16"
-            >
-              <motion.div
-                animate={{ rotate: [0, -10, 10, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 2, repeatDelay: 3 }}
-                className="text-5xl mb-4"
-              >
-                🔍
-              </motion.div>
-              <p className="text-sm text-muted-foreground text-center">
-                Nenhum resultado encontrado
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Tente buscar por outro nome ou categoria
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="mx-auto max-w-md px-4 mt-1 space-y-3">
+        {hasActiveFilters && filtered.length === 0 && (
+          <div className="flex flex-col items-center py-16">
+            <div className="mb-4 text-4xl opacity-70">🔍</div>
+            <p className="text-sm text-muted-foreground text-center">
+              Nada encontrado por aqui
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/60">
+              Tente outro nome ou toque em uma categoria
+            </p>
+          </div>
+        )}
 
-        {/* Show all products when no filter, or filtered results */}
         {(hasActiveFilters ? filtered : []).map((product, i) => (
-          <motion.div
+          <ProductCard
             key={product.id}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-          >
-            <ProductCard product={product} index={i} storeIsOpen={storeIsOpen} />
-          </motion.div>
+            product={product}
+            index={i}
+            storeIsOpen={storeIsOpen}
+          />
         ))}
 
-        {/* Suggestion when no search */}
+        {/* Estado inicial */}
         {!hasActiveFilters && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center py-16"
-          >
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-5xl mb-4"
-            >
-              🍔
-            </motion.div>
-            <p className="text-sm text-muted-foreground text-center">
-              Busque pelo nome do produto ou use os filtros acima
+          <div className="flex flex-col items-center py-14">
+            <div className="mb-3 text-4xl opacity-70">🍔</div>
+            <p className="max-w-[15rem] text-center text-sm text-muted-foreground">
+              Digite o nome do produto ou escolha uma categoria acima
             </p>
-          </motion.div>
+          </div>
         )}
       </div>
+
 
       <CartFloatingButton />
       <BottomNav />
