@@ -106,11 +106,18 @@ const AdminLayout = () => {
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
   const handleNavClick = (path: string) => {
+    if (path === "/admin/funcionarios") {
+      window.open("https://turboponto.lovable.app/", "_blank", "noopener,noreferrer");
+      setSidebarOpen(false);
+      return;
+    }
+
     if (path === "/cozinha") {
       window.open(`/cozinha?kiosk=${Date.now()}`, "kitchen_screen", "popup");
       setSidebarOpen(false);
       return;
     }
+
 
     // Always navigate so sidebar highlights
     navigate(path);
