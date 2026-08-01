@@ -32,7 +32,7 @@ const navItems = [
   { path: "/admin/avaliacoes", icon: Star, label: "Avaliações" },
   { path: "/admin/precificacao", icon: DollarSign, label: "Precificação" },
   { path: "/admin/reposicao", icon: Package, label: "Reposição" },
-  { path: "/admin/funcionarios", icon: UserCog, label: "Funcionários" },
+  { path: "/admin/funcionarios", icon: UserCog, label: "Ponto / Funcionários" },
   { path: "/admin/ia", icon: Bot, label: "IA do Sistema" },
   { path: "/admin/tv-publicidade", icon: Tv, label: "TV / Publicidade" },
   { path: "/admin/impressora-wifi", icon: Wifi, label: "Impressora Wi-Fi" },
@@ -106,11 +106,18 @@ const AdminLayout = () => {
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
   const handleNavClick = (path: string) => {
+    if (path === "/admin/funcionarios") {
+      window.open("https://turboponto.lovable.app/", "_blank", "noopener,noreferrer");
+      setSidebarOpen(false);
+      return;
+    }
+
     if (path === "/cozinha") {
       window.open(`/cozinha?kiosk=${Date.now()}`, "kitchen_screen", "popup");
       setSidebarOpen(false);
       return;
     }
+
 
     // Always navigate so sidebar highlights
     navigate(path);
