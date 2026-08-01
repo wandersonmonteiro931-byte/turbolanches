@@ -32,7 +32,7 @@ const navItems = [
   { path: "/admin/avaliacoes", icon: Star, label: "Avaliações" },
   { path: "/admin/precificacao", icon: DollarSign, label: "Precificação" },
   { path: "/admin/reposicao", icon: Package, label: "Reposição" },
-  { path: "/admin/funcionarios", icon: UserCog, label: "Funcionários" },
+  { path: "/admin/funcionarios", icon: UserCog, label: "Ponto / Funcionários" },
   { path: "/admin/ia", icon: Bot, label: "IA do Sistema" },
   { path: "/admin/tv-publicidade", icon: Tv, label: "TV / Publicidade" },
   { path: "/admin/impressora-wifi", icon: Wifi, label: "Impressora Wi-Fi" },
