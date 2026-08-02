@@ -47,7 +47,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { cn } from "@/lib/utils";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
-import { AdminAccountMode, MODE_LABELS } from "@/lib/adminAccess";
+import { AdminAccountMode, MODE_LABELS, setStoredAccountMode } from "@/lib/adminAccess";
+import AccountSwitchDialog from "@/components/admin/AccountSwitchDialog";
+
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
