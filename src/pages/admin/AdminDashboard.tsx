@@ -219,10 +219,10 @@ const DashboardEmptyState = ({ isSearch }: { isSearch: boolean }) => (
         <path d="M90 126c8-10 14-17 23-18-2 10-8 18-18 22" fill="#43a95b" />
       </g>
     </svg>
-    <h3 className="mt-1 text-[20px] font-extrabold tracking-[-0.025em] text-[#252834]">
+    <h3 className="mt-0.5 text-[18px] font-extrabold tracking-[-0.025em] text-[#252834]">
       {isSearch ? "Nenhum pedido encontrado" : "Nenhum pedido nesta categoria"}
     </h3>
-    <p className="mt-2 text-[15px] text-[#747b87]">
+    <p className="mt-2 text-[14px] text-[#747b87]">
       {isSearch ? "Tente alterar os termos usados na busca." : "Quando novos pedidos chegarem, eles aparecerão aqui."}
     </p>
   </div>
@@ -1979,67 +1979,67 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
   const averageTicket = totalOrdersVisible > 0 ? todayRevenue / totalOrdersVisible : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Cash Register */}
       <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} todayRevenue={todayRevenue} orderCount={totalOrdersVisible} averageTicket={averageTicket} />
 
-      <div className="grid gap-4 xl:grid-cols-[0.92fr_2.08fr]">
-        <section className="rounded-[23px] border border-[#e7e5df] bg-white px-5 py-5 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
-          <div className="mb-5 flex items-center gap-3">
+      <div className="grid gap-3 xl:grid-cols-[0.88fr_2.12fr]">
+        <section className="rounded-[22px] border border-[#e7e5df] bg-white px-4 py-4 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
+          <div className="mb-4 flex items-center gap-2.5">
             <Store size={20} className="text-[#ff9800]" strokeWidth={2} />
-            <h2 className="text-[17px] font-extrabold tracking-[-0.02em] text-[#252834]">Status da Loja</h2>
+            <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#252834]">Status da Loja</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-[1.05fr_.95fr]">
-            <div className="flex min-h-[88px] items-center rounded-[17px] bg-[#eaf8ed] px-5 py-4 text-[#15904a]">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
-                <Store size={24} strokeWidth={1.9} />
+          <div className="grid gap-3 sm:grid-cols-[1.05fr_.95fr]">
+            <div className="flex min-h-[76px] items-center rounded-[16px] bg-[#eaf8ed] px-5 py-4 text-[#15904a]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
+                <Store size={20} strokeWidth={1.9} />
               </div>
-              <div className="ml-4 min-w-0">
-                <div className="text-[15px] font-extrabold uppercase tracking-[-0.01em]">{customerSeesOpen ? "Loja Aberta" : "Loja Fechada"}</div>
-                <div className="mt-2 truncate text-[13px] text-[#5f7868]">
+              <div className="ml-3 min-w-0">
+                <div className="text-[14px] font-extrabold uppercase tracking-[-0.01em]">{customerSeesOpen ? "Loja Aberta" : "Loja Fechada"}</div>
+                <div className="mt-1.5 truncate text-[11px] text-[#5f7868]">
                   {customerSeesOpen ? "Recebendo pedidos agora" : nextOpeningText ? nextOpeningText.replace("(", "").replace(")", "") : "Fora do horário"}
                 </div>
               </div>
             </div>
-            <div className="flex min-h-[88px] items-center rounded-[17px] border border-[#e7e5df] bg-white px-5 py-4">
+            <div className="flex min-h-[76px] items-center rounded-[16px] border border-[#e7e5df] bg-white px-5 py-4">
               <BrasiliaClock />
             </div>
           </div>
         </section>
 
-        <section className="rounded-[23px] border border-[#e7e5df] bg-white px-5 py-5 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
-          <div className="mb-5 flex items-center gap-3">
+        <section className="rounded-[22px] border border-[#e7e5df] bg-white px-4 py-4 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
+          <div className="mb-4 flex items-center gap-2.5">
             <Zap size={21} className="text-[#ff9800]" strokeWidth={2} />
-            <h2 className="text-[17px] font-extrabold tracking-[-0.02em] text-[#252834]">Ações Rápidas</h2>
+            <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-[#252834]">Ações Rápidas</h2>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 xl:grid-cols-7">
             <button
               onClick={requestToggleConfirmation}
               aria-busy={togglingStore}
-              className="group flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#199c52] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="group flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#199c52] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Power size={25} strokeWidth={1.8} />
+              <Power size={22} strokeWidth={1.8} />
               <span>{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
             </button>
             <button
               onClick={() => navigate("/admin/novo-pedido")}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Plus size={27} strokeWidth={1.8} />
+              <Plus size={23} strokeWidth={1.8} />
               <span>Novo Pedido</span>
             </button>
             <button
               onClick={openKitchenWindow}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <ChefHat size={26} strokeWidth={1.8} />
+              <ChefHat size={22} strokeWidth={1.8} />
               <span>Cozinha</span>
             </button>
             <button
               onClick={() => setShowFeeQuery(true)}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <MapPin size={25} strokeWidth={1.8} />
+              <MapPin size={22} strokeWidth={1.8} />
               <span>Consultar Taxa</span>
             </button>
             <button
@@ -2047,23 +2047,23 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                 fetchOrders();
                 toast({ title: "Pedidos atualizados!" });
               }}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#2478f2] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#2478f2] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <RefreshCw size={25} strokeWidth={1.8} />
+              <RefreshCw size={22} strokeWidth={1.8} />
               <span>Atualizar</span>
             </button>
             <button
               onClick={() => setShowExpenseManager(true)}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Wallet size={25} strokeWidth={1.8} />
+              <Wallet size={22} strokeWidth={1.8} />
               <span>Gastos</span>
             </button>
             <button
               onClick={() => setShowCalculator(true)}
-              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-[16px] border border-[#e9e6df] bg-white px-2.5 py-2.5 text-[13px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Calculator size={25} strokeWidth={1.8} />
+              <Calculator size={22} strokeWidth={1.8} />
               <span>Calculadora</span>
             </button>
           </div>
@@ -2071,12 +2071,12 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       </div>
 
       {/* Date Picker + Search + Reports menu */}
-      <div className="flex flex-wrap items-center gap-4 rounded-[20px] border border-[#ebe8e2] bg-white px-5 py-4 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
+      <div className="flex flex-wrap items-center gap-4 rounded-[18px] border border-[#ebe8e2] bg-white px-4 py-3 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn("h-12 w-[340px] justify-start rounded-[15px] border border-[#e7e4de] bg-white px-5 text-left text-[15px] font-semibold text-[#252834]", !selectedDate && "text-muted-foreground")}
+              className={cn("h-10 w-[250px] sm:w-[280px] justify-start rounded-[14px] border border-[#e7e4de] bg-white px-5 text-left text-[14px] font-semibold text-[#252834]", !selectedDate && "text-muted-foreground")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {format(selectedDate, "dd/MM/yyyy")}
@@ -2112,14 +2112,14 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             placeholder="Buscar por nº pedido, nome, telefone, endereço..."
             autoComplete="off"
             name="dashboard-search-nofill"
-            className="h-12 w-full rounded-[15px] border border-[#e7e4de] bg-white py-2.5 pl-12 pr-4 text-[15px] text-[#252834] placeholder:text-[#8a909b] focus:outline-none focus:ring-2 focus:ring-[#ff9800]/20"
+            className="h-10 w-full rounded-[14px] border border-[#e7e4de] bg-white py-2.5 pl-11 pr-4 text-[14px] text-[#252834] placeholder:text-[#8a909b] focus:outline-none focus:ring-2 focus:ring-[#ff9800]/20"
           />
         </div>
 
         {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
         <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
           <PopoverTrigger asChild>
-            <button className="flex h-12 items-center gap-2 rounded-[15px] border border-[#e7e4de] bg-white px-5 py-2.5 text-[15px] font-semibold text-[#252834] hover:bg-[#faf8f5]">
+            <button className="flex h-10 items-center gap-2 rounded-[14px] border border-[#e7e4de] bg-white px-5 py-2.5 text-[14px] font-semibold text-[#252834] hover:bg-[#faf8f5]">
               <FileText size={16} />
               Relatórios
               <ChevronDown size={14} />
@@ -2296,7 +2296,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
 
       {showCloseDay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-3.5">
             <div className="flex items-center gap-3">
               <AlertTriangle size={24} className="text-amber-500" />
               <h3 className="text-lg font-bold text-foreground">Finalizar o Dia?</h3>
@@ -2393,7 +2393,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
         </div>
       )}
 
-      <section className="overflow-hidden rounded-[22px] border border-[#e8e5df] bg-white p-3 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
+      <section className="overflow-hidden rounded-[20px] border border-[#e8e5df] bg-white p-2.5 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           {tabs.map((tab) => {
             const count = stats[tab.key as keyof typeof stats] || 0;
@@ -2404,18 +2404,18 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "flex h-[56px] min-w-0 items-center justify-center gap-3 rounded-[14px] border px-3 text-[14px] font-bold transition-all",
+                  "flex h-[48px] min-w-0 items-center justify-center gap-2 rounded-[13px] border px-2.5 text-[13px] font-bold transition-all",
                   isActive
                     ? "border-transparent bg-[linear-gradient(135deg,#ffa000,#ff8a00)] text-white shadow-[0_8px_18px_rgba(255,152,0,.20)]"
                     : "border-[#ebe8e2] bg-white text-[#252834] hover:bg-[#faf8f5]",
                   isPendingWithOrders && !isActive ? "ring-2 ring-amber-300 ring-offset-1" : "",
                 )}
               >
-                <tab.icon size={18} className="shrink-0" strokeWidth={1.9} />
+                <tab.icon size={16} className="shrink-0" strokeWidth={1.9} />
                 <span className="truncate">{tab.label}</span>
                 <span
                   className={cn(
-                    "flex h-7 min-w-[28px] shrink-0 items-center justify-center rounded-full px-2 text-[12px] font-extrabold",
+                    "flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-full px-2 text-[11px] font-extrabold",
                     isActive ? "bg-white/25 text-white" : "bg-[#f5f5f3] text-[#8a909b]",
                   )}
                 >
@@ -2977,7 +2977,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {/* Cancel Reason Modal */}
       {cancellingOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-3.5">
             <h3 className="text-lg font-bold text-foreground"> Recusar Pedido</h3>
             <p className="text-sm text-muted-foreground">Informe o motivo da recusa para o cliente:</p>
             <textarea
@@ -3036,7 +3036,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {/* Courier Selector Modal */}
       {courierSelectOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-4">
+          <div className="rounded-2xl bg-card p-6 max-w-sm w-full mx-4 space-y-3.5">
             <h3 className="text-lg font-bold text-foreground"> Selecionar Entregador</h3>
             <p className="text-sm text-muted-foreground">Escolha o entregador para esta entrega:</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">

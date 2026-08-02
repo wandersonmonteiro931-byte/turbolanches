@@ -1121,18 +1121,18 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
               : "border-[#f5bf50] bg-[linear-gradient(90deg,#fffaf0_0%,#fffef9_48%,#fff9eb_100%)]",
         )}
       >
-        <div className="grid items-center gap-5 xl:grid-cols-[minmax(360px,1fr)_560px_auto]">
-          <div className="flex min-w-0 items-center gap-5">
+        <div className="grid items-center gap-4 xl:grid-cols-[minmax(320px,1fr)_520px_auto]">
+          <div className="flex min-w-0 items-center gap-4">
             <div
               className={cn(
-                "flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-full",
+                "flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full",
                 isOpenToday ? "bg-emerald-100 text-emerald-600" : "bg-[#ffedae] text-[#ff9800]",
               )}
             >
-              <Wallet size={38} strokeWidth={1.9} />
+              <Wallet size={32} strokeWidth={1.9} />
             </div>
             <div className="min-w-0">
-              <div className={cn("text-[16px] font-extrabold uppercase tracking-[-0.01em]", isOpenToday ? "text-emerald-700" : "text-[#f18a00]") }>
+              <div className={cn("text-[15px] font-extrabold uppercase tracking-[-0.01em]", isOpenToday ? "text-emerald-700" : "text-[#f18a00]") }>
                 {previousDayBlocking
                   ? `CAIXA DE ${register?.business_day} EM ABERTO`
                   : isOpenToday
@@ -1140,7 +1140,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
                     : "CAIXA FECHADO"}
               </div>
               {register ? (
-                <div className="mt-2 space-y-1 text-[14px] leading-5 text-[#667085]">
+                <div className="mt-1.5 space-y-0.5 text-[13px] leading-5 text-[#667085]">
                   <div>Aberto em: <strong className="font-semibold text-[#506077]">{formatDateTimeBR(register.opened_at)}</strong></div>
                   {register.closed_at && <div>Fechado em: <strong className="font-semibold text-[#506077]">{formatDateTimeBR(register.closed_at)}</strong></div>}
                   {isOpenToday && (
@@ -1153,40 +1153,40 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
-                <Banknote size={24} strokeWidth={1.9} />
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className="flex min-h-[72px] items-center gap-2.5 rounded-[16px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <Banknote size={21} strokeWidth={1.9} />
               </div>
               <div>
                 <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Faturamento</div>
-                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{fmt(todayRevenue)}</div>
+                <div className="mt-1 text-[16px] font-extrabold text-[#1fa85b]">{fmt(todayRevenue)}</div>
               </div>
             </div>
-            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
-                <ShoppingBag size={23} strokeWidth={1.9} />
+            <div className="flex min-h-[72px] items-center gap-2.5 rounded-[16px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <ShoppingBag size={20} strokeWidth={1.9} />
               </div>
               <div>
                 <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Pedidos</div>
-                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{orderCount}</div>
+                <div className="mt-1 text-[16px] font-extrabold text-[#1fa85b]">{orderCount}</div>
               </div>
             </div>
-            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
-                <ReceiptText size={23} strokeWidth={1.9} />
+            <div className="flex min-h-[72px] items-center gap-2.5 rounded-[16px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <ReceiptText size={20} strokeWidth={1.9} />
               </div>
               <div>
                 <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Ticket Médio</div>
-                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{fmt(averageTicket)}</div>
+                <div className="mt-1 text-[16px] font-extrabold text-[#1fa85b]">{fmt(averageTicket)}</div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
             <Button
               variant="outline"
-              className="h-12 rounded-[15px] border-[#e5e5e0] bg-white px-5 text-[15px] font-semibold text-[#273044] shadow-[0_5px_14px_rgba(31,41,55,.05)] hover:bg-[#f8f7f4]"
+              className="h-11 rounded-[14px] border-[#e5e5e0] bg-white px-4 text-[14px] font-semibold text-[#273044] shadow-[0_5px_14px_rgba(31,41,55,.05)] hover:bg-[#f8f7f4]"
               onClick={() => setShowHistory(true)}
             >
               <History size={18} className="mr-1" /> Histórico
@@ -1194,7 +1194,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
             {!register || register.business_day !== todayBusinessDay ? (
               <Button
                 onClick={() => setShowOpen(true)}
-                className="h-12 rounded-[15px] bg-[#ff9800] px-5 text-[15px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
+                className="h-11 rounded-[14px] bg-[#ff9800] px-4 text-[14px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
               >
                 <Unlock size={18} className="mr-1" /> Abrir Caixa
               </Button>
@@ -1203,7 +1203,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
                 {register.reopen_count > 0 && register.closed_at && (
                   <Button
                     variant="outline"
-                    className="h-12 rounded-[15px] border-[#e5e5e0] bg-white px-5 text-[15px] font-semibold"
+                    className="h-11 rounded-[14px] border-[#e5e5e0] bg-white px-4 text-[14px] font-semibold"
                     onClick={discardReopen}
                   >
                     <RefreshCw size={18} className="mr-1" /> Descartar Reabertura
@@ -1212,7 +1212,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
                 <Button
                   onClick={() => setShowClose(true)}
                   className={cn(
-                    "h-12 rounded-[15px] px-5 text-[15px] font-bold text-white",
+                    "h-11 rounded-[14px] px-4 text-[14px] font-bold text-white",
                     remindClose
                       ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
                       : "bg-[#ff9800] shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]",
@@ -1225,7 +1225,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
             ) : canReopen ? (
               <Button
                 onClick={() => setShowOpen(true)}
-                className="h-12 rounded-[15px] bg-[#ff9800] px-5 text-[15px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
+                className="h-11 rounded-[14px] bg-[#ff9800] px-4 text-[14px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
               >
                 <RefreshCw size={18} className="mr-1" /> Reabrir Caixa
               </Button>
@@ -1754,7 +1754,7 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
               <div className="text-sm text-muted-foreground text-center py-6">Nenhum caixa registrado.</div>
             )}
             {history.map((r) => (
-              <div key={r.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm">
+              <div key={r.id} className="flex flex-wrap items-center gap-2.5 rounded-lg border border-border p-3 text-sm">
                 <div className="min-w-[140px]">
                   <div className="font-bold">{r.business_day}</div>
                   <div className={cn("text-xs", r.status === "open" ? "text-emerald-600" : "text-muted-foreground")}>
