@@ -108,6 +108,10 @@ Deno.serve(async (req) => {
       const role = String(payload?.role || "");
       if (!displayName) return json({ error: "Informe o nome do funcionário" }, 400);
       if (!allowedRoles.has(role)) return json({ error: "Tipo de conta inválido" }, 400);
+      if (member.role === "admin" && role !== "admin" && (await countAdmins()) <= 1) {
+        return json({ error: "Sempre deve existir uma conta de administrador. Crie outro administrador antes de mudar o tipo desta conta." }, 400);
+      }
+
 
       const rawEmail = String(payload?.email || "").trim().toLowerCase();
       const username = normalizeUsername(String(payload?.username || ""));
