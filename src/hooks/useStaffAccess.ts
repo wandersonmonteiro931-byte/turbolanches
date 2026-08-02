@@ -30,6 +30,7 @@ export const useStaffAccess = () => {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [staff, setStaff] = useState<StaffContext | null>(null);
   const [permissionPaths, setPermissionPaths] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [mode, setModeState] = useState<AdminAccountMode>(() => getStoredAccountMode());
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +39,7 @@ export const useStaffAccess = () => {
     if (!user || !isAdmin) {
       setStaff(null);
       setPermissionPaths([]);
+      setLoadError(false);
       setLoading(false);
       return;
     }
@@ -45,40 +47,48 @@ export const useStaffAccess = () => {
     setLoading(true);
     try {
       const client = supabase as any;
-      const { data: member, error } = await client
+      const { data: rows, error } = await client
         .from("staff_members")
         .select("id, store_id, user_id, role, display_name, email, is_active")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
 
       if (error) {
-        // A migration pode ainda não ter sido aplicada. O administrador já existente
-        // continua como proprietário e mantém acesso total.
+        // Falha ao ler as permissões: por segurança, nada é liberado.
         setStaff(null);
         setPermissionPaths([]);
+        setLoadError(true);
         setLoading(false);
         return;
       }
+
+      const member = (rows || [])[0];
 
       if (!member) {
         setStaff(null);
         setPermissionPaths([]);
+        setLoadError(false);
         setLoading(false);
         return;
       }
 
-      const { data: permissions } = await client
+      const { data: permissions, error: permissionError } = await client
         .from("staff_section_permissions")
         .select("section_path, can_access")
         .eq("staff_member_id", member.id)
         .eq("can_access", true);
 
       setStaff(member as StaffContext);
-      setPermissionPaths((permissions || []).map((item: any) => item.section_path));
+      setLoadError(Boolean(permissionError));
+      setPermissionPaths(
+        permissionError ? [] : (permissions || []).map((item: any) => item.section_path),
+      );
     } finally {
       setLoading(false);
     }
   }, [adminLoading, authLoading, isAdmin, user]);
+
 
   useEffect(() => {
     void refresh();
