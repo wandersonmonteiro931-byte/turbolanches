@@ -424,8 +424,7 @@ const AdminManageAdmins = () => {
                 onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
                 placeholder="ex.: joao.caixa"
                 autoCapitalize="none"
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
               <p className="mt-1 text-[11px] text-muted-foreground">Pode entrar com este usuário e a senha, sem precisar de e-mail.</p>
             </div>
@@ -436,21 +435,21 @@ const AdminManageAdmins = () => {
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 placeholder="usuario@loja.com"
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-bold text-foreground">Senha {editingId ? "" : "*"}</label>
+              <label className="text-sm font-bold text-foreground">{editingId ? "Nova senha" : "Senha *"}</label>
               <input
                 type="password"
                 value={form.password}
+                autoComplete="new-password"
                 onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                placeholder={editingId ? "Mantida sem alteração" : "Mínimo 6 caracteres"}
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
             </div>
+
             <div>
               <label className="text-sm font-bold text-foreground">Loja</label>
               <select
