@@ -115,8 +115,9 @@ export const useStaffAccess = () => {
 
   const availableModes = useMemo<AdminAccountMode[]>(() => {
     if (!isAdmin) return ["client"];
-    if (isOwnerAdmin) return ["administration", "seller", "cashier", "client"];
-    if (staff?.role === "admin") return ["administration", "seller", "cashier", "client"];
+    // Administrador nunca opera como Vendedor ou Caixa: apenas "Administração".
+    if (isOwnerAdmin) return ["administration", "client"];
+    if (staff?.role === "admin") return ["administration", "client"];
     if (staff?.role === "seller") return ["seller", "client"];
     if (staff?.role === "cashier") return ["cashier", "client"];
     return ["client"];
