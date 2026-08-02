@@ -1,11 +1,49 @@
 import TurboLoader from "@/components/TurboLoader";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, UtensilsCrossed, Tag, LogOut, Menu, MapPin, Clock, Users, Bell, Image, FileText, ListPlus, Printer, Ticket, Shield, Settings, Sparkles, Bot, Star, DollarSign, Package, FolderPlus, Lock, Eye, EyeOff, HelpCircle, UserCog, WalletCards, Tv, AlertCircle, Wifi } from "lucide-react";
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  UtensilsCrossed,
+  Tag,
+  LogOut,
+  Menu,
+  MapPin,
+  Clock,
+  Users,
+  Bell,
+  Image,
+  FileText,
+  ListPlus,
+  Printer,
+  Ticket,
+  Shield,
+  Settings,
+  Sparkles,
+  Bot,
+  Star,
+  DollarSign,
+  Package,
+  FolderPlus,
+  Lock,
+  Eye,
+  EyeOff,
+  HelpCircle,
+  UserCog,
+  WalletCards,
+  Tv,
+  AlertCircle,
+  Wifi,
+  ChevronRight,
+  Store,
+  LifeBuoy,
+  PanelLeft,
+} from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -36,7 +74,7 @@ const navItems = [
   { path: "/admin/funcionarios", icon: UserCog, label: "Ponto / Funcionários" },
   { path: "/admin/ia", icon: Bot, label: "IA do Sistema" },
   { path: "/admin/tv-publicidade", icon: Tv, label: "TV / Publicidade" },
-  { path: "/admin/impressora-wifi", icon: Wifi, label: "Impressora Wi-Fi" },
+  { path: "/admin/impressora-wifi", icon: Wifi, label: "Impressora Wi‑Fi" },
   { path: "/admin/configuracoes", icon: Settings, label: "Configurações" },
 ];
 
@@ -52,11 +90,9 @@ const AdminLayout = () => {
   const [passwordError, setPasswordError] = useState(false);
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
-  // Entry gate
   const [entryUnlocked, setEntryUnlocked] = useState(false);
   const [entryPasswordInput, setEntryPasswordInput] = useState("");
   const [entryPasswordError, setEntryPasswordError] = useState(false);
-  // Forgot password
   const [showForgotPw, setShowForgotPw] = useState(false);
   const [forgotAnswers, setForgotAnswers] = useState<string[]>([]);
   const [forgotAttempts, setForgotAttempts] = useState(0);
@@ -73,33 +109,28 @@ const AdminLayout = () => {
     }
 
     if (!isAdmin) {
-      // Sign out the non-admin session so the kiosk can log in with an admin account
       void supabase.auth.signOut().finally(() => {
         navigate(`/auth?redirect=${encodeURIComponent(redirectTarget)}`, { replace: true });
       });
     }
   }, [isAdmin, loading, navigate, redirectTarget, user]);
 
-  // Reset unlocked sections when config changes
   useEffect(() => {
     setUnlockedSections(new Set());
     setEntryUnlocked(false);
   }, [config.password, config.lockedSections.length]);
 
-  // Check if current route needs password
   useEffect(() => {
     if (pwLoading) return;
     const currentPath = location.pathname;
     if (isSectionLocked(currentPath) && !unlockedSections.has(currentPath)) {
       setPendingPath(currentPath);
-      setShowPasswordInput(false); // Show inline gate instead
+      setShowPasswordInput(false);
       setPasswordInput("");
       setPasswordError(false);
     }
-  }, [location.pathname, config, pwLoading]);
+  }, [location.pathname, isSectionLocked, unlockedSections, pwLoading]);
 
-  // Auto-collapse sidebar whenever the route changes — only re-opens via the
-  // hamburger menu, on every screen size.
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
@@ -119,17 +150,14 @@ const AdminLayout = () => {
       return;
     }
 
-
-    // Always navigate so sidebar highlights
     navigate(path);
     setSidebarOpen(false);
-    // If locked, password will be required inline
   };
 
   const handlePasswordSubmit = () => {
     if (passwordInput === config.password) {
       const currentPath = pendingPath || location.pathname;
-      setUnlockedSections(prev => new Set(prev).add(currentPath));
+      setUnlockedSections((prev) => new Set(prev).add(currentPath));
       setShowPasswordInput(false);
       setPendingPath(null);
       setPasswordInput("");
@@ -160,13 +188,14 @@ const AdminLayout = () => {
 
   const handleForgotSubmit = () => {
     const questions = config.securityQuestions || [];
-    const allCorrect = questions.every((q, i) => q.answer.trim().toLowerCase() === (forgotAnswers[i] || "").trim().toLowerCase());
+    const allCorrect = questions.every(
+      (q, i) => q.answer.trim().toLowerCase() === (forgotAnswers[i] || "").trim().toLowerCase(),
+    );
     if (allCorrect) {
       if (forgotContext === "entry") {
         setEntryUnlocked(true);
       } else {
-        // Unlock all sections
-        const allPaths = navItems.map(n => n.path);
+        const allPaths = navItems.map((n) => n.path);
         setUnlockedSections(new Set(allPaths));
       }
       setShowForgotPw(false);
@@ -184,6 +213,18 @@ const AdminLayout = () => {
 
   const hasForgotOption = (config.securityQuestions?.length || 0) >= 5;
 
+  const currentNav = useMemo(() => {
+    return [...navItems]
+      .sort((a, b) => b.path.length - a.path.length)
+      .find((n) => location.pathname === n.path || location.pathname.startsWith(`${n.path}/`));
+  }, [location.pathname]);
+
+  const pageSubtitle = useMemo(() => {
+    const label = currentNav?.label || "Painel";
+    if (label === "Dashboard") return "Visão geral dos pedidos e operações";
+    return `Gerencie a seção de ${label.toLowerCase()}.`;
+  }, [currentNav]);
+
   if (loading || pwLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -194,41 +235,43 @@ const AdminLayout = () => {
 
   if (!isAdmin) return null;
 
-  // Entry gate - require password on system entry
   if (requiresEntryGate) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="w-full max-w-xs space-y-4 text-center mx-4">
-          <Lock size={48} className="mx-auto text-muted-foreground" />
-          <h2 className="text-lg font-bold text-foreground">Painel Administrativo</h2>
-          <p className="text-sm text-muted-foreground">Digite a senha do administrador para acessar o sistema.</p>
+      <div className="admin-theme flex h-screen items-center justify-center bg-background">
+        <div className="w-full max-w-sm rounded-[28px] border border-border bg-card p-6 shadow-sm mx-4 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Lock size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">Painel Administrativo</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Digite a senha do administrador para acessar o sistema.</p>
           <input
             type="password"
             value={entryPasswordInput}
-            onChange={e => { setEntryPasswordInput(e.target.value); setEntryPasswordError(false); }}
-            onKeyDown={e => e.key === "Enter" && handleEntryPasswordSubmit()}
-            placeholder=""
-            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-center text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            onChange={(e) => {
+              setEntryPasswordInput(e.target.value);
+              setEntryPasswordError(false);
+            }}
+            onKeyDown={(e) => e.key === "Enter" && handleEntryPasswordSubmit()}
+            className="mt-5 w-full rounded-2xl border border-border bg-background px-4 py-3 text-center text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             autoFocus
           />
-          {entryPasswordError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
+          {entryPasswordError && <p className="mt-3 text-xs font-medium text-destructive">Senha incorreta</p>}
           <button
             onClick={handleEntryPasswordSubmit}
-            className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+            className="mt-5 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
           >
             Entrar
           </button>
           {hasForgotOption && (
             <button
               onClick={() => openForgotPw("entry")}
-              className="text-xs text-primary hover:underline flex items-center gap-1 mx-auto"
+              className="mx-auto mt-4 flex items-center gap-1 text-xs text-primary hover:underline"
             >
               <HelpCircle size={12} /> Esqueci a senha
             </button>
           )}
         </div>
 
-        {/* Forgot password modal */}
         {showForgotPw && (
           <ForgotPasswordModal
             questions={config.securityQuestions || []}
@@ -250,113 +293,189 @@ const AdminLayout = () => {
   };
 
   const NavContent = () => (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-          <UtensilsCrossed size={16} className="text-primary-foreground" />
+    <div className="flex h-full flex-col admin-sidebar">
+      <div className="border-b border-border px-5 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <UtensilsCrossed size={22} />
+          </div>
+          <div>
+            <p className="text-lg font-extrabold leading-none text-foreground">TURBO LANCHES</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary">Admin</p>
+          </div>
         </div>
-        <span className="text-lg font-bold text-foreground">Turbo Lanches</span>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          const isLocked = isSectionLocked(item.path) && !unlockedSections.has(item.path);
-          return (
-            <button
-              key={item.path}
-              onClick={() => handleNavClick(item.path)}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              <item.icon size={18} />
-              {item.label}
-              {isLocked && <Lock size={14} className="ml-auto opacity-50" />}
-            </button>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="grid gap-1.5">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const isLocked = isSectionLocked(item.path) && !unlockedSections.has(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => handleNavClick(item.path)}
+                className={cn(
+                  "admin-nav-item flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-medium transition-all",
+                  isActive ? "active bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <item.icon size={18} />
+                <span className="truncate">{item.label}</span>
+                {isLocked ? <Lock size={14} className="ml-auto opacity-60" /> : <ChevronRight size={14} className="ml-auto opacity-40" />}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
+      <div className="px-3 pb-3">
+        <div className="admin-support-card rounded-3xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <LifeBuoy size={18} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-foreground">Precisa de ajuda?</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Fale com o suporte para resolver dúvidas do painel.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="border-t border-border p-3">
-        <button
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <LogOut size={18} />
-          Sair
-        </button>
+        <div className="rounded-3xl border border-border bg-card p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-muted text-foreground font-bold">
+              {user?.email?.[0]?.toUpperCase() || "A"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-foreground">Admin</p>
+              <p className="truncate text-xs text-muted-foreground">Administrador</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="rounded-2xl border border-border p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              title="Sair"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  // Determine if current section is locked and not yet unlocked
   const currentLocked = isSectionLocked(location.pathname) && !unlockedSections.has(location.pathname);
 
   return (
-    <div className="flex min-h-screen bg-background print:block print:h-auto print:bg-background">
-      {/* Sidebar overlay — collapses by default, opens via hamburger.
-          Auto-collapses on route change so it never stays expanded. */}
+    <div className="admin-theme admin-shell flex min-h-screen bg-background print:block print:h-auto print:bg-background">
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 print:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-64 bg-card shadow-lg">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] lg:hidden print:hidden">
+          <div className="absolute inset-0" onClick={() => setSidebarOpen(false)} />
+          <aside className="absolute left-0 top-0 h-full w-[300px] max-w-[86vw] bg-card shadow-2xl">
             <NavContent />
           </aside>
         </div>
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden print:block">
-        <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-3 print:hidden">
-          <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu">
-            <Menu size={22} className="text-foreground" />
-          </button>
-          <h1 className="text-lg font-bold text-foreground">
-            {navItems.find((n) => n.path === location.pathname)?.label || "Admin"}
-          </h1>
-        </header>
-        <main className="flex-1 overflow-auto bg-background p-4 print:overflow-visible print:p-0 min-h-0">
-          {currentLocked ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="w-full max-w-xs space-y-4 text-center">
-                <Lock size={48} className="mx-auto text-muted-foreground" />
-                <h2 className="text-lg font-bold text-foreground">Seção Protegida</h2>
-                <p className="text-sm text-muted-foreground">Digite a senha para acessar esta seção.</p>
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={e => { setPasswordInput(e.target.value); setPasswordError(false); }}
-                  onKeyDown={e => e.key === "Enter" && handlePasswordSubmit()}
-                  placeholder=""
-                  className="w-full rounded-lg border border-border bg-card px-4 py-3 text-center text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  autoFocus
-                />
-                {passwordError && <p className="text-xs text-destructive font-medium">Senha incorreta</p>}
-                <button
-                  onClick={handlePasswordSubmit}
-                  className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-                >
-                  Desbloquear
-                </button>
-                {hasForgotOption && location.pathname === "/admin/configuracoes" && (
-                  <button
-                    onClick={() => openForgotPw("section")}
-                    className="text-xs text-primary hover:underline flex items-center gap-1 mx-auto"
-                  >
-                    <HelpCircle size={12} /> Esqueci a senha
-                  </button>
-                )}
+      <aside className="hidden w-[290px] shrink-0 border-r border-border bg-card lg:block print:hidden">
+        <NavContent />
+      </aside>
+
+      <div className="flex min-h-screen flex-1 flex-col overflow-hidden print:block">
+        <header className="border-b border-border bg-card/95 px-4 py-4 backdrop-blur print:hidden sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Abrir menu"
+                className="mt-0.5 rounded-2xl border border-border p-2.5 text-foreground transition hover:bg-muted lg:hidden"
+              >
+                <Menu size={20} />
+              </button>
+              <div className="hidden lg:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <PanelLeft size={22} />
+              </div>
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{currentNav?.label || "Admin"}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">{pageSubtitle}</p>
               </div>
             </div>
-          ) : (
-            <Outlet />
-          )}
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button className="hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
+                <Bell size={18} />
+              </button>
+              <button
+                className="hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                onClick={() => setShowPasswordInput((prev) => !prev)}
+                title="Alternar acesso protegido"
+              >
+                {showPasswordInput ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              <div className="rounded-2xl border border-border bg-background px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+                    {user?.email?.[0]?.toUpperCase() || "A"}
+                  </div>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-semibold text-foreground">Administrador</p>
+                    <p className="text-xs text-muted-foreground">Admin</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-auto bg-background px-4 py-4 print:overflow-visible print:p-0 sm:px-6 lg:px-8 min-h-0">
+          <div className="mx-auto w-full max-w-[1680px]">
+            {currentLocked ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-full max-w-sm rounded-[28px] border border-border bg-card p-6 shadow-sm text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Lock size={32} />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Seção Protegida</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">Digite a senha para acessar esta seção.</p>
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => {
+                      setPasswordInput(e.target.value);
+                      setPasswordError(false);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+                    className="mt-5 w-full rounded-2xl border border-border bg-background px-4 py-3 text-center text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    autoFocus
+                  />
+                  {passwordError && <p className="mt-3 text-xs font-medium text-destructive">Senha incorreta</p>}
+                  <button
+                    onClick={handlePasswordSubmit}
+                    className="mt-5 w-full rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
+                  >
+                    Desbloquear
+                  </button>
+                  {hasForgotOption && location.pathname === "/admin/configuracoes" && (
+                    <button
+                      onClick={() => openForgotPw("section")}
+                      className="mx-auto mt-4 flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <HelpCircle size={12} /> Esqueci a senha
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="admin-page">
+                <Outlet />
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
-      {/* Forgot password modal */}
       {showForgotPw && (
         <ForgotPasswordModal
           questions={config.securityQuestions || []}
@@ -372,7 +491,6 @@ const AdminLayout = () => {
   );
 };
 
-// Forgot Password Modal component
 interface ForgotPasswordModalProps {
   questions: { question: string; answer: string }[];
   answers: string[];
@@ -384,47 +502,50 @@ interface ForgotPasswordModalProps {
 }
 
 const ForgotPasswordModal = ({ questions, answers, setAnswers, error, attempts, onSubmit, onClose }: ForgotPasswordModalProps) => (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50">
-    <div className="w-full max-w-md rounded-2xl bg-card p-6 space-y-4 mx-4 max-h-[90vh] overflow-y-auto">
+  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
+    <div className="w-full max-w-xl rounded-[28px] border border-border bg-card p-6 shadow-xl max-h-[90vh] overflow-y-auto">
       <div className="flex items-center gap-3">
-        <HelpCircle size={24} className="text-primary" />
-        <h3 className="text-lg font-bold text-foreground">Recuperar Acesso</h3>
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <HelpCircle size={22} />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-foreground">Recuperar Acesso</h3>
+          <p className="text-sm text-muted-foreground">Responda as 5 perguntas de segurança corretamente.</p>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground">Responda as 5 perguntas de segurança corretamente.</p>
-      
-      <div className="space-y-3">
+
+      <div className="mt-5 grid gap-4">
         {questions.slice(0, 5).map((q, i) => (
-          <div key={i}>
-            <label className="text-xs font-medium text-foreground">{q.question}</label>
+          <div key={i} className="rounded-2xl border border-border bg-background p-4">
+            <label className="text-sm font-semibold text-foreground">{q.question}</label>
             <input
               type="text"
               value={answers[i] || ""}
-              onChange={e => {
+              onChange={(e) => {
                 const newAnswers = [...answers];
                 newAnswers[i] = e.target.value;
                 setAnswers(newAnswers);
               }}
-              placeholder=""
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="mt-3 w-full rounded-2xl border border-border bg-card px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               disabled={attempts >= 3}
             />
           </div>
         ))}
       </div>
 
-      {error && <p className="text-xs text-destructive font-medium">{error}</p>}
+      {error && <p className="mt-4 text-sm font-medium text-destructive">{error}</p>}
 
-      <div className="flex gap-3">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
         <button
           onClick={onClose}
-          className="flex-1 rounded-lg border border-border py-2.5 text-sm font-medium text-foreground"
+          className="flex-1 rounded-2xl border border-border bg-background py-3 text-sm font-semibold text-foreground transition hover:bg-muted"
         >
           Cancelar
         </button>
         <button
           onClick={onSubmit}
           disabled={attempts >= 3}
-          className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground disabled:opacity-50"
+          className="flex-1 rounded-2xl bg-primary py-3 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
         >
           Verificar
         </button>
