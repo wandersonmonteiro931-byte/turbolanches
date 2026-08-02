@@ -6,6 +6,15 @@ const corsHeaders = {
 };
 
 const allowedRoles = new Set(["admin", "seller", "cashier"]);
+const STAFF_LOGIN_DOMAIN = "equipe.turbolanches.local";
+
+const normalizeUsername = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9._-]/g, "");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -58,7 +67,10 @@ Deno.serve(async (req) => {
     if (action !== "create") return json({ error: "Ação inválida" }, 400);
 
     const displayName = String(payload?.display_name || "").trim();
-    const email = String(payload?.email || "").trim().toLowerCase();
+    const rawEmail = String(payload?.email || "").trim().toLowerCase();
+    const username = normalizeUsername(String(payload?.username || ""));
+    const employeeCode = String(payload?.employee_code || "").trim().toUpperCase();
+    const email = rawEmail || (username ? `${username}@${STAFF_LOGIN_DOMAIN}` : "");
     const password = String(payload?.password || "");
     const role = String(payload?.role || "seller");
     const storeId = payload?.store_id ? String(payload.store_id) : null;
@@ -67,7 +79,7 @@ Deno.serve(async (req) => {
       : [];
 
     if (!displayName || !email || password.length < 6) {
-      return json({ error: "Informe nome, e-mail e uma senha com no mínimo 6 caracteres" }, 400);
+      return json({ error: "Informe nome, e-mail ou usuário, e uma senha com no mínimo 6 caracteres" }, 400);
     }
     if (!allowedRoles.has(role)) return json({ error: "Tipo de conta inválido" }, 400);
     if (!permissions.includes("/admin")) return json({ error: "O acesso ao Dashboard é obrigatório" }, 400);
@@ -100,10 +112,12 @@ Deno.serve(async (req) => {
           role,
           display_name: displayName,
           email,
+          username: username || null,
+          employee_code: employeeCode || null,
           is_active: true,
           created_by: user.id,
         })
-        .select("id, user_id, role, display_name")
+        .select("id, user_id, role, display_name, employee_code, username")
         .single();
       if (memberError) throw memberError;
 
