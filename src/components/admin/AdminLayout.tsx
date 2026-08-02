@@ -47,7 +47,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { cn } from "@/lib/utils";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
-import { AdminAccountMode, MODE_LABELS } from "@/lib/adminAccess";
+import { AdminAccountMode, MODE_LABELS, setStoredAccountMode } from "@/lib/adminAccess";
+import AccountSwitchDialog from "@/components/admin/AccountSwitchDialog";
+
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -115,8 +117,10 @@ const AdminLayout = () => {
   const [forgotContext, setForgotContext] = useState<"entry" | "section">("entry");
   const [showHeaderHelp, setShowHeaderHelp] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState<Exclude<AdminAccountMode, "client"> | null>(null);
   const headerActionsRef = useRef<HTMLDivElement | null>(null);
   const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
+
 
   useEffect(() => {
     if (loading) return;
@@ -191,15 +195,27 @@ const AdminLayout = () => {
   );
 
   const handleAccountModeChange = (nextMode: AdminAccountMode) => {
-    if (!switchMode(nextMode)) return;
     setShowHeaderProfile(false);
     setShowHeaderHelp(false);
+
+    if (nextMode === accountMode) return;
+
     if (nextMode === "client") {
+      if (!switchMode(nextMode)) return;
       navigate("/");
       return;
     }
-    navigate("/admin");
+
+    // Trocar para Administração / Vendedor / Caixa exige autenticação da conta escolhida.
+    setSwitchTarget(nextMode);
   };
+
+  const handleSwitched = (nextMode: AdminAccountMode) => {
+    setSwitchTarget(null);
+    setStoredAccountMode(nextMode);
+    window.location.assign("/admin");
+  };
+
 
   const handleNavClick = (path: string) => {
     if (path === "/admin/funcionarios") {
@@ -566,7 +582,7 @@ const AdminLayout = () => {
                   <div className="mt-3 border-t border-[#eeeae3] pt-3">
                     <p className="px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a909b]">Trocar de conta</p>
                     <div className="mt-2 grid gap-1.5">
-                      {availableModes.map((itemMode) => {
+                      {(["administration", "seller", "cashier", "client"] as AdminAccountMode[]).map((itemMode) => {
                         const isCurrent = accountMode === itemMode;
                         const ModeIcon = itemMode === "administration"
                           ? Shield
@@ -587,16 +603,15 @@ const AdminLayout = () => {
                           >
                             <ModeIcon size={16} className="mr-2.5" />
                             <span className="flex-1">{MODE_LABELS[itemMode]}</span>
-                            {isCurrent && <Check size={15} />}
+                            {isCurrent ? <Check size={15} /> : itemMode !== "client" && <Lock size={13} className="text-[#a8adb6]" />}
                           </button>
                         );
                       })}
                     </div>
-                    {isOwnerAdmin && (
-                      <p className="mt-2 px-2 text-[10px] leading-4 text-[#8a909b]">
-                        A troca altera a visão do sistema sem encerrar sua sessão.
-                      </p>
-                    )}
+                    <p className="mt-2 px-2 text-[10px] leading-4 text-[#8a909b]">
+                      Trocar para Administração, Vendedor ou Caixa exige escolher o funcionário e digitar a senha.
+                    </p>
+
                   </div>
 
                   <div className="mt-3 border-t border-[#eeeae3] pt-3 space-y-1.5">
@@ -672,6 +687,14 @@ const AdminLayout = () => {
           onClose={() => setShowForgotPw(false)}
         />
       )}
+      {switchTarget && (
+        <AccountSwitchDialog
+          targetMode={switchTarget}
+          onClose={() => setSwitchTarget(null)}
+          onSwitched={handleSwitched}
+        />
+      )}
+
     </div>
   );
 };
