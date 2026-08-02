@@ -120,7 +120,10 @@ const AccountSwitchDialog = ({ targetMode, onClose, onSwitched }: AccountSwitchD
 
     setStoredAccountMode(targetMode);
     onSwitched(targetMode);
+    // Recarrega para o painel assumir a nova sessão/permissões imediatamente.
+    window.location.replace("/admin");
   };
+
 
   return (
     <div className="fixed inset-0 z-[130] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-4">
