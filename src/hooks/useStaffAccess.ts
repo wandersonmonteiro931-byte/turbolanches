@@ -6,7 +6,7 @@ import {
   ACCOUNT_MODE_EVENT,
   ADMIN_SECTIONS,
   AdminAccountMode,
-  DEFAULT_ROLE_PERMISSIONS,
+  
   getStoredAccountMode,
   MODE_LABELS,
   normalizeAdminPath,
@@ -30,6 +30,7 @@ export const useStaffAccess = () => {
   const { isAdmin, loading: adminLoading } = useAdmin();
   const [staff, setStaff] = useState<StaffContext | null>(null);
   const [permissionPaths, setPermissionPaths] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [mode, setModeState] = useState<AdminAccountMode>(() => getStoredAccountMode());
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +39,7 @@ export const useStaffAccess = () => {
     if (!user || !isAdmin) {
       setStaff(null);
       setPermissionPaths([]);
+      setLoadError(false);
       setLoading(false);
       return;
     }
@@ -45,40 +47,48 @@ export const useStaffAccess = () => {
     setLoading(true);
     try {
       const client = supabase as any;
-      const { data: member, error } = await client
+      const { data: rows, error } = await client
         .from("staff_members")
         .select("id, store_id, user_id, role, display_name, email, is_active")
         .eq("user_id", user.id)
-        .maybeSingle();
+        .order("created_at", { ascending: true })
+        .limit(1);
 
       if (error) {
-        // A migration pode ainda não ter sido aplicada. O administrador já existente
-        // continua como proprietário e mantém acesso total.
+        // Falha ao ler as permissões: por segurança, nada é liberado.
         setStaff(null);
         setPermissionPaths([]);
+        setLoadError(true);
         setLoading(false);
         return;
       }
+
+      const member = (rows || [])[0];
 
       if (!member) {
         setStaff(null);
         setPermissionPaths([]);
+        setLoadError(false);
         setLoading(false);
         return;
       }
 
-      const { data: permissions } = await client
+      const { data: permissions, error: permissionError } = await client
         .from("staff_section_permissions")
         .select("section_path, can_access")
         .eq("staff_member_id", member.id)
         .eq("can_access", true);
 
       setStaff(member as StaffContext);
-      setPermissionPaths((permissions || []).map((item: any) => item.section_path));
+      setLoadError(Boolean(permissionError));
+      setPermissionPaths(
+        permissionError ? [] : (permissions || []).map((item: any) => item.section_path),
+      );
     } finally {
       setLoading(false);
     }
   }, [adminLoading, authLoading, isAdmin, user]);
+
 
   useEffect(() => {
     void refresh();
@@ -101,7 +111,7 @@ export const useStaffAccess = () => {
     };
   }, []);
 
-  const isOwnerAdmin = Boolean(isAdmin && !staff);
+  const isOwnerAdmin = Boolean(isAdmin && !staff && !loadError);
 
   const availableModes = useMemo<AdminAccountMode[]>(() => {
     if (!isAdmin) return ["client"];
@@ -122,12 +132,14 @@ export const useStaffAccess = () => {
   const effectivePermissions = useMemo(() => {
     if (!isAdmin || mode === "client") return new Set<string>();
     if (isOwnerAdmin) {
-      if (mode === "seller") return new Set(DEFAULT_ROLE_PERMISSIONS.seller);
-      if (mode === "cashier") return new Set(DEFAULT_ROLE_PERMISSIONS.cashier);
+      // Administrador principal (sem conta de equipe) mantém acesso total.
       return new Set(ADMIN_SECTIONS.map((section) => section.path));
     }
-    return new Set(permissionPaths.length ? permissionPaths : DEFAULT_ROLE_PERMISSIONS[staff?.role || "cashier"]);
-  }, [isAdmin, isOwnerAdmin, mode, permissionPaths, staff?.role]);
+    // Contas de equipe: SOMENTE as seções marcadas no cadastro.
+    if (!staff || !staff.is_active || loadError) return new Set<string>();
+    return new Set(permissionPaths.map((path) => normalizeAdminPath(path)));
+  }, [isAdmin, isOwnerAdmin, loadError, mode, permissionPaths, staff]);
+
 
   const canAccess = useCallback(
     (path: string) => {
