@@ -107,9 +107,12 @@ interface Props {
   onChange?: (isOpen: boolean) => void;
   /** Whether the storefront is currently open — used to trigger the "don't forget to close" blink */
   storeIsOpen?: boolean;
+  todayRevenue?: number;
+  orderCount?: number;
+  averageTicket?: number;
 }
 
-export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
+export default function CashRegister({ onChange, storeIsOpen = true, todayRevenue = 0, orderCount = 0, averageTicket = 0 }: Props) {
   const { storeId } = useStore();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -1109,63 +1112,78 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
   return (
     <>
       <div className={cn(
-        "flex flex-wrap items-center gap-3 rounded-xl border-2 p-4",
+        "rounded-[28px] border p-5 lg:p-6",
         remindClose
           ? "border-destructive/60 cash-banner-blink"
           : isOpenToday
-            ? "border-emerald-500/40 bg-emerald-500/5"
+            ? "border-emerald-500/30 bg-emerald-500/5"
             : "border-amber-500/40 bg-amber-500/5",
       )}>
-        <div className="flex items-center gap-2 text-sm font-bold">
-          <Wallet size={20} className={isOpenToday ? "text-emerald-600" : "text-amber-600"} />
-          <span className={isOpenToday ? "text-emerald-700" : "text-amber-700"}>
-            {previousDayBlocking
-              ? `⚠️ CAIXA DE ${register?.business_day} EM ABERTO`
-              : isOpenToday
-                ? "CAIXA ABERTO"
-                : "CAIXA FECHADO"}
-          </span>
-        </div>
-
-        {register && (
-          <div className="text-xs text-muted-foreground">
-            <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
-            {isOpenToday && (
-              <div className="text-emerald-700 font-bold">
-                ⏱ Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div className={cn(
+              "flex h-20 w-20 shrink-0 items-center justify-center rounded-full",
+              isOpenToday ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-500"
+            )}>
+              <Wallet size={36} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-extrabold uppercase tracking-wide text-amber-600">
+                {previousDayBlocking
+                  ? `CAIXA DE ${register?.business_day} EM ABERTO`
+                  : isOpenToday
+                    ? "CAIXA ABERTO"
+                    : "CAIXA FECHADO"}
               </div>
-            )}
-            {register.closed_at && (
-              <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>
-            )}
-            {register.reopen_count > 0 && (
-              <div>Reabertura{register.reopen_count > 1 ? "s" : ""}: <strong>{register.reopen_count}</strong></div>
-            )}
+              {register && (
+                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                  <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
+                  {register.closed_at && <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>}
+                  {isOpenToday && (
+                    <div className="font-semibold text-emerald-700">⏱ Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        )}
 
-        <div className="ml-auto flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setShowHistory(true)}>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:min-w-[560px] xl:max-w-[560px]">
+            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Faturamento</div>
+              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{fmt(todayRevenue)}</div>
+            </div>
+            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Pedidos</div>
+              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{orderCount}</div>
+            </div>
+            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Ticket Médio</div>
+              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{fmt(averageTicket)}</div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 xl:justify-end">
+          <Button variant="outline" className="h-12 rounded-[18px] px-5 text-base font-semibold" onClick={() => setShowHistory(true)}>
             <History size={16} className="mr-1" /> Histórico
           </Button>
           {!register || register.business_day !== todayBusinessDay ? (
             <Button
               onClick={() => setShowOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="h-12 rounded-[18px] bg-amber-500 px-5 text-base font-semibold text-white hover:bg-amber-600"
             >
               <Unlock size={16} className="mr-1" /> Abrir Caixa
             </Button>
           ) : isOpenToday ? (
             <>
               {register.reopen_count > 0 && register.closed_at && (
-                <Button variant="outline" onClick={discardReopen}>
+                <Button variant="outline" className="h-12 rounded-[18px] px-5 text-base font-semibold" onClick={discardReopen}>
                   <RefreshCw size={16} className="mr-1" /> Descartar Reabertura
                 </Button>
               )}
               <Button
                 onClick={() => setShowClose(true)}
                 className={cn(
-                  "text-white",
+                  "h-12 rounded-[18px] px-5 text-base font-semibold text-white",
                   remindClose
                     ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
                     : "bg-amber-600 hover:bg-amber-700",
@@ -1179,12 +1197,14 @@ export default function CashRegister({ onChange, storeIsOpen = true }: Props) {
             <Button
               onClick={() => setShowOpen(true)}
               variant="outline"
+              className="h-12 rounded-[18px] px-5 text-base font-semibold"
             >
               <RefreshCw size={16} className="mr-1" /> Reabrir Caixa
             </Button>
           ) : (
             <span className="text-xs text-muted-foreground">Caixa do dia já encerrado.</span>
           )}
+          </div>
         </div>
       </div>
 

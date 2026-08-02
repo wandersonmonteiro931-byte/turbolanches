@@ -1932,104 +1932,100 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
   return (
     <div className="space-y-4">
       {/* Cash Register */}
-      <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} />
+      <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} todayRevenue={todayRevenue} orderCount={totalOrdersVisible} averageTicket={averageTicket} />
 
-      <div className="grid gap-4 lg:grid-cols-[1.05fr_1.6fr]">
-        <div className="rounded-[24px] border border-border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
+      <div className="grid gap-5 lg:grid-cols-[1.05fr_1.6fr]">
+        <div className="rounded-[28px] border border-border bg-card p-5 shadow-sm lg:p-6">
+          <div className="mb-5 flex items-center gap-2">
             <Store size={18} className="text-primary" />
-            <h3 className="text-[15px] font-bold text-foreground">Status da Loja</h3>
+            <h3 className="text-[15px] font-extrabold text-foreground">Status da Loja</h3>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div
-              className={cn(
-                "rounded-[18px] border p-5",
-                customerSeesOpen
-                  ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-green-200 bg-green-50 text-green-700",
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-full bg-white/70 p-2.5">
-                  <Store size={18} />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex min-h-[144px] items-center rounded-[22px] border border-green-100 bg-[#edf8ef] p-6 text-green-700">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/80 shadow-sm">
+                  <Store size={22} />
                 </div>
                 <div>
-                  <p className="text-lg font-extrabold">{customerSeesOpen ? "LOJA ABERTA" : "LOJA FECHADA"}</p>
+                  <p className="text-[15px] font-extrabold uppercase tracking-wide">{customerSeesOpen ? "Loja Aberta" : "Loja Fechada"}</p>
                   {!customerSeesOpen && nextOpeningText && (
-                    <p className="mt-1 text-sm font-medium text-muted-foreground">{nextOpeningText.replace("(", "").replace(")", "")}</p>
+                    <p className="mt-2 max-w-[180px] text-sm font-medium leading-6 text-green-700/85">{nextOpeningText.replace("(", "").replace(")", "")}</p>
                   )}
+                  {customerSeesOpen && <p className="mt-2 text-sm font-medium">Recebendo pedidos normalmente.</p>}
                 </div>
               </div>
             </div>
-            <div className="rounded-[18px] border border-border bg-background p-5">
-              <BrasiliaClock />
+            <div className="flex min-h-[144px] items-start rounded-[22px] border border-border bg-white p-6">
+              <div className="w-full rounded-[18px] border border-border bg-[#fffdfa] px-5 py-4">
+                <BrasiliaClock />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
+        <div className="rounded-[28px] border border-border bg-card p-5 shadow-sm lg:p-6">
+          <div className="mb-5 flex items-center gap-2">
             <Zap size={18} className="text-primary" />
-            <h3 className="text-[15px] font-bold text-foreground">Ações Rápidas</h3>
+            <h3 className="text-[15px] font-extrabold text-foreground">Ações Rápidas</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
             <button
               onClick={requestToggleConfirmation}
               aria-busy={togglingStore}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-green-600 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-green-600 hover:bg-[#faf8f4]"
             >
-              <Power size={22} />
-              <span>{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
+              <Power size={24} />
+              <span className="text-center leading-5">{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
             </button>
             <button
               onClick={() => navigate("/admin/novo-pedido")}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-orange-500 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-orange-500 hover:bg-[#faf8f4]"
             >
-              <Plus size={22} />
-              <span>Novo Pedido</span>
+              <Plus size={24} />
+              <span className="text-center leading-5">Novo Pedido</span>
             </button>
             <button
               onClick={openKitchenWindow}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-orange-500 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-orange-500 hover:bg-[#faf8f4]"
             >
-              <ChefHat size={22} />
-              <span>Cozinha</span>
+              <ChefHat size={24} />
+              <span className="text-center leading-5">Cozinha</span>
             </button>
             <button
               onClick={() => setShowFeeQuery(true)}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
             >
-              <MapPin size={22} />
-              <span>Consultar Taxa</span>
+              <MapPin size={24} />
+              <span className="text-center leading-5">Consultar Taxa</span>
             </button>
             <button
               onClick={() => {
                 fetchOrders();
-                toast({ title: " Pedidos atualizados!" });
+                toast({ title: "Pedidos atualizados!" });
               }}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-blue-600 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-blue-600 hover:bg-[#faf8f4]"
             >
-              <RefreshCw size={22} />
-              <span>Atualizar</span>
+              <RefreshCw size={24} />
+              <span className="text-center leading-5">Atualizar</span>
             </button>
             <button
               onClick={() => setShowExpenseManager(true)}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
             >
-              <Wallet size={22} />
-              <span>Gastos</span>
+              <Wallet size={24} />
+              <span className="text-center leading-5">Gastos</span>
             </button>
             <button
               onClick={() => setShowCalculator(true)}
-              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
             >
-              <Calculator size={22} />
-              <span>Calculadora</span>
+              <Calculator size={24} />
+              <span className="text-center leading-5">Calculadora</span>
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-border bg-background px-4 py-3">
+          <div className="mt-4 flex flex-col gap-3 rounded-[22px] border border-border bg-white px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
             <PrintModeSelector />
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-5 self-end text-sm xl:self-auto">
               <div className="text-muted-foreground">
                 <span className="font-bold text-foreground">{totalOrdersVisible}</span> pedidos
               </div>
@@ -2038,7 +2034,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
                 <span className="font-bold text-green-600">
                   {valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".", ",")}` : "R$ •••••"}
                 </span>
-                <button onClick={() => setValuesVisible((v) => !v)} className="rounded p-1 hover:bg-muted">
+                <button onClick={() => setValuesVisible((v) => !v)} className="rounded-full p-1.5 hover:bg-muted">
                   {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -2049,12 +2045,12 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
 
       {/* Date Picker + Search + Reports menu */}
       {/* Date Picker + Search + Reports menu */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-border bg-card p-4 shadow-sm">
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn("w-[200px] justify-start text-left font-medium", !selectedDate && "text-muted-foreground")}
+              className={cn("h-12 w-[220px] justify-start rounded-[18px] border border-border bg-white text-left font-semibold", !selectedDate && "text-muted-foreground")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {format(selectedDate, "dd/MM/yyyy")}
@@ -2090,14 +2086,14 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             placeholder="Buscar por nº pedido, nome, telefone, endereço..."
             autoComplete="off"
             name="dashboard-search-nofill"
-            className="w-full rounded-lg border border-border bg-background py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="h-12 w-full rounded-[18px] border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
         {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
         <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted">
+            <button className="flex h-12 items-center gap-2 rounded-[18px] border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted">
               <FileText size={16} />
               Relatórios
               <ChevronDown size={14} />
