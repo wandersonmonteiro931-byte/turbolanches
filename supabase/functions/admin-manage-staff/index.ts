@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
 
       const { data: member, error: memberError } = await adminClient
         .from("staff_members")
-        .select("id, user_id, email, username")
+        .select("id, user_id, email, username, role")
         .eq("id", staffMemberId)
         .maybeSingle();
       if (memberError) throw memberError;
