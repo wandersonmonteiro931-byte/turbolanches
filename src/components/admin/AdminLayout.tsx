@@ -380,53 +380,53 @@ const AdminLayout = () => {
       )}
 
       <div className="flex min-h-screen flex-1 flex-col overflow-hidden print:block">
-        <header className="border-b border-[#ece9e2] bg-white px-5 print:hidden sm:px-7 lg:px-9">
-          <div className="mx-auto flex h-[94px] w-full max-w-[1680px] items-center justify-between gap-5">
-            <div className="flex min-w-0 items-center gap-5">
+        <header className="border-b border-[#ece9e2] bg-white px-4 print:hidden sm:px-5 lg:px-6">
+          <div className="mx-auto flex h-[68px] w-full max-w-[1680px] items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Abrir menu"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#182033] transition hover:bg-[#f7f5f1]"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[#182033] transition hover:bg-[#f7f5f1]"
               >
-                <Menu size={28} strokeWidth={2.1} />
+                <Menu size={24} strokeWidth={2.1} />
               </button>
 
-              <div className="flex shrink-0 items-center gap-2 border-r border-[#ece9e2] pr-7">
-                <div className="leading-[0.86]">
-                  <div className="flex items-end gap-0.5 text-[26px] font-black italic tracking-[-0.06em] text-[#171d2c]">
-                    <span>Turbo</span><Flame size={23} className="mb-0.5 fill-[#ff6a00] text-[#ff6a00]" />
+              <div className="flex shrink-0 items-center gap-1.5 border-r border-[#ece9e2] pr-4">
+                <div className="leading-[0.84]">
+                  <div className="flex items-end gap-0.5 text-[20px] font-black italic tracking-[-0.06em] text-[#171d2c]">
+                    <span>Turbo</span><Flame size={18} className="mb-0.5 fill-[#ff6a00] text-[#ff6a00]" />
                   </div>
-                  <div className="pl-[42px] text-[15px] font-extrabold italic tracking-[-0.03em] text-[#f48b00]">Lanches</div>
+                  <div className="pl-[32px] text-[12px] font-extrabold italic tracking-[-0.03em] text-[#f48b00]">Lanches</div>
                 </div>
               </div>
 
-              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff9800] text-white shadow-[0_8px_20px_rgba(255,152,0,.18)] sm:flex">
-                <PanelLeft size={22} strokeWidth={2.1} />
+              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ff9800] text-white shadow-[0_8px_20px_rgba(255,152,0,.18)] sm:flex">
+                <PanelLeft size={18} strokeWidth={2.1} />
               </div>
 
               <div className="min-w-0">
-                <h1 className="truncate text-[29px] font-extrabold tracking-[-0.035em] text-[#252834]">{currentNav?.label || "Dashboard"}</h1>
-                <p className="mt-1 truncate text-[15px] text-[#737985]">{pageSubtitle}</p>
+                <h1 className="truncate text-[22px] font-extrabold tracking-[-0.03em] text-[#252834]">{currentNav?.label || "Dashboard"}</h1>
+                <p className="mt-0.5 truncate text-[12px] text-[#737985]">{pageSubtitle}</p>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-3">
-              <button className="relative flex h-11 w-11 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
-                <Bell size={24} strokeWidth={1.8} />
-                <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[12px] font-extrabold text-white">3</span>
+            <div className="flex shrink-0 items-center gap-2">
+              <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+                <Bell size={19} strokeWidth={1.8} />
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[10px] font-extrabold text-white">3</span>
               </button>
-              <button className="flex h-11 w-11 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
-                <CircleHelp size={24} strokeWidth={1.8} />
+              <button className="flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+                <CircleHelp size={19} strokeWidth={1.8} />
               </button>
-              <div className="ml-4 flex items-center gap-3 border-l border-[#ece9e2] pl-5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffe0a8] text-[18px] font-extrabold text-[#f39a00]">
+              <div className="ml-2 flex items-center gap-2 border-l border-[#ece9e2] pl-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe0a8] text-[14px] font-extrabold text-[#f39a00]">
                   {user?.email?.[0]?.toUpperCase() || "A"}
                 </div>
-                <div className="hidden min-w-[108px] sm:block">
-                  <p className="text-[15px] font-bold leading-tight text-[#252834]">Administrador</p>
-                  <p className="mt-1 text-[13px] text-[#747b87]">Admin</p>
+                <div className="hidden min-w-[92px] sm:block">
+                  <p className="text-[13px] font-bold leading-tight text-[#252834]">Administrador</p>
+                  <p className="mt-0.5 text-[11px] text-[#747b87]">Admin</p>
                 </div>
-                <ChevronDown size={17} className="hidden text-[#20304a] sm:block" />
+                <ChevronDown size={15} className="hidden text-[#20304a] sm:block" />
               </div>
             </div>
           </div>
