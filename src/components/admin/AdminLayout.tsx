@@ -141,13 +141,17 @@ const AdminLayout = () => {
   useEffect(() => {
     if (pwLoading) return;
     const currentPath = location.pathname;
-    if (isSectionLocked(currentPath) && !unlockedSections.has(currentPath)) {
-      setPendingPath(currentPath);
+    setPendingPath((prev) => {
+      if (prev === currentPath) return prev;
       setShowPasswordInput(false);
       setPasswordInput("");
       setPasswordError(false);
-    }
-  }, [location.pathname, isSectionLocked, unlockedSections, pwLoading]);
+      return currentPath;
+    });
+    // Reinicia o campo apenas quando a rota muda, para não apagar o que está sendo digitado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, pwLoading]);
+
 
   useEffect(() => {
     setSidebarOpen(false);
