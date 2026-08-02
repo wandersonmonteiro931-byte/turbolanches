@@ -670,8 +670,21 @@ const AdminLayout = () => {
               </div>
             ) : (
               <div className="admin-page">
-                <Outlet />
+                {canAccess(location.pathname) ? (
+                  <Outlet />
+                ) : (
+                  <div className="mx-auto mt-10 max-w-md rounded-3xl border border-border bg-card p-6 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                      <Lock size={20} />
+                    </div>
+                    <h2 className="mt-3 text-base font-extrabold text-foreground">Seção não liberada</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Sua conta não tem permissão para acessar esta seção. Fale com o administrador em Equipe e acessos.
+                    </p>
+                  </div>
+                )}
               </div>
+
             )}
           </div>
         </main>
