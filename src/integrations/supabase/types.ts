@@ -2401,6 +2401,85 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_name: string
+          email: string | null
+          id: string
+          is_active: boolean
+          role: string
+          store_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_name: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          role: string
+          store_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          store_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_section_permissions: {
+        Row: {
+          can_access: boolean
+          created_at: string
+          id: string
+          section_path: string
+          staff_member_id: string
+        }
+        Insert: {
+          can_access?: boolean
+          created_at?: string
+          id?: string
+          section_path: string
+          staff_member_id: string
+        }
+        Update: {
+          can_access?: boolean
+          created_at?: string
+          id?: string
+          section_path?: string
+          staff_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_section_permissions_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       storage_configs: {
         Row: {
           active: boolean
@@ -2924,6 +3003,7 @@ export type Database = {
     }
     Functions: {
       admin_owns_store_row: { Args: { _store_id: string }; Returns: boolean }
+      can_manage_staff: { Args: { _user_id: string }; Returns: boolean }
       create_scratch_coupon: {
         Args: {
           _code: string
@@ -2940,6 +3020,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      has_staff_section_access: {
+        Args: { _section_path: string; _user_id: string }
         Returns: boolean
       }
       increment_coupon_used_count: {
