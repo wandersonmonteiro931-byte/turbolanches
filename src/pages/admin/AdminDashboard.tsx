@@ -31,6 +31,7 @@ import {
   Calculator,
   MapPin,
   ChevronDown,
+  Zap,
 } from "lucide-react";
 import { format, eachDayOfInterval } from "date-fns";
 import { formatDateBR, nowUtcMs } from "@/lib/brasiliaTime";
@@ -1925,126 +1926,128 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
     );
   }, [visibleOrders, deliveryTimeMinutes]);
 
+  const totalOrdersVisible = visibleOrders.filter((o) => !o.trashed_at).length;
+  const averageTicket = totalOrdersVisible > 0 ? todayRevenue / totalOrdersVisible : 0;
+
   return (
     <div className="space-y-4">
       {/* Cash Register */}
       <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} />
 
-      {/* Store Control Bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
-        {/* Official Brasília clock (server-synced, not PC) */}
-        <BrasiliaClock />
-
-        {/* Modo de impressão das comandas (Pedido / Fechamento de Rota / Obrigado) */}
-        <PrintModeSelector />
-
-        {/* Status indicator - what customers see */}
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg border-2 px-4 py-3 text-sm font-bold",
-            customerSeesOpen
-              ? "border-green-500 bg-green-500/10 text-green-600"
-              : "border-red-500 bg-red-500/10 text-red-600",
-          )}
-        >
-          <span
-            className={cn("h-3 w-3 rounded-full animate-pulse", customerSeesOpen ? "bg-green-500" : "bg-red-500")}
-          />
-          {customerSeesOpen ? "LOJA ABERTA" : "LOJA FECHADA"}
-          {!customerSeesOpen && nextOpeningText && (
-            <span className="ml-1 text-xs font-normal text-muted-foreground">({nextOpeningText})</span>
-          )}
+      <div className="grid gap-4 lg:grid-cols-[1.05fr_1.6fr]">
+        <div className="rounded-[24px] border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Store size={18} className="text-primary" />
+            <h3 className="text-[15px] font-bold text-foreground">Status da Loja</h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div
+              className={cn(
+                "rounded-[18px] border p-5",
+                customerSeesOpen
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-green-200 bg-green-50 text-green-700",
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-white/70 p-2.5">
+                  <Store size={18} />
+                </div>
+                <div>
+                  <p className="text-lg font-extrabold">{customerSeesOpen ? "LOJA ABERTA" : "LOJA FECHADA"}</p>
+                  {!customerSeesOpen && nextOpeningText && (
+                    <p className="mt-1 text-sm font-medium text-muted-foreground">{nextOpeningText.replace("(", "").replace(")", "")}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-[18px] border border-border bg-background p-5">
+              <BrasiliaClock />
+            </div>
+          </div>
         </div>
 
-        <button
-          onClick={requestToggleConfirmation}
-          aria-busy={togglingStore}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-bold transition-all",
-            customerSeesOpen
-              ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              : "bg-primary text-primary-foreground hover:bg-primary/90",
-            togglingStore && "opacity-70",
-          )}
-        >
-          <Power size={18} />
-          {togglingStore
-            ? customerSeesOpen
-              ? "FECHANDO..."
-              : "ABRINDO..."
-            : customerSeesOpen
-              ? "FECHAR LOJA"
-              : "ABRIR LOJA"}
-        </button>
-
-        <button
-          onClick={() => navigate("/admin/novo-pedido")}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90"
-        >
-          <Plus size={16} />
-          Novo Pedido
-        </button>
-
-        <button
-          onClick={openKitchenWindow}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <ChefHat size={16} />
-          Cozinha
-        </button>
-
-        <button
-          onClick={() => setShowFeeQuery(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <MapPin size={16} />
-          Consultar Taxa
-        </button>
-
-        <button
-          onClick={() => {
-            fetchOrders();
-            toast({ title: " Pedidos atualizados!" });
-          }}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <RefreshCw size={16} />
-          Atualizar
-        </button>
-
-        <button
-          onClick={() => setShowExpenseManager(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Wallet size={16} />
-          Gastos
-        </button>
-
-        <button
-          onClick={() => setShowCalculator(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground hover:bg-muted"
-        >
-          <Calculator size={16} />
-          Calculadora
-        </button>
-
-        <div className="ml-auto flex items-center gap-4 text-sm">
-          <div className="text-muted-foreground">
-            <span className="font-bold text-foreground">{visibleOrders.filter((o) => !o.trashed_at).length}</span>{" "}
-            pedidos
+        <div className="rounded-[24px] border border-border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Zap size={18} className="text-primary" />
+            <h3 className="text-[15px] font-bold text-foreground">Ações Rápidas</h3>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            Faturamento:{" "}
-            <span className="font-bold text-green-600">
-              {valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".", ",")}` : "R$ •••••"}
-            </span>
-            <button onClick={() => setValuesVisible((v) => !v)} className="p-1 rounded hover:bg-muted">
-              {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+            <button
+              onClick={requestToggleConfirmation}
+              aria-busy={togglingStore}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-green-600 hover:bg-muted"
+            >
+              <Power size={22} />
+              <span>{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
             </button>
+            <button
+              onClick={() => navigate("/admin/novo-pedido")}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-orange-500 hover:bg-muted"
+            >
+              <Plus size={22} />
+              <span>Novo Pedido</span>
+            </button>
+            <button
+              onClick={openKitchenWindow}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-orange-500 hover:bg-muted"
+            >
+              <ChefHat size={22} />
+              <span>Cozinha</span>
+            </button>
+            <button
+              onClick={() => setShowFeeQuery(true)}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+            >
+              <MapPin size={22} />
+              <span>Consultar Taxa</span>
+            </button>
+            <button
+              onClick={() => {
+                fetchOrders();
+                toast({ title: " Pedidos atualizados!" });
+              }}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-blue-600 hover:bg-muted"
+            >
+              <RefreshCw size={22} />
+              <span>Atualizar</span>
+            </button>
+            <button
+              onClick={() => setShowExpenseManager(true)}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+            >
+              <Wallet size={22} />
+              <span>Gastos</span>
+            </button>
+            <button
+              onClick={() => setShowCalculator(true)}
+              className="flex min-h-[96px] flex-col items-center justify-center gap-2 rounded-[18px] border border-border bg-background px-4 py-4 text-sm font-semibold text-violet-600 hover:bg-muted"
+            >
+              <Calculator size={22} />
+              <span>Calculadora</span>
+            </button>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-border bg-background px-4 py-3">
+            <PrintModeSelector />
+            <div className="flex items-center gap-4 text-sm">
+              <div className="text-muted-foreground">
+                <span className="font-bold text-foreground">{totalOrdersVisible}</span> pedidos
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                Faturamento:
+                <span className="font-bold text-green-600">
+                  {valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".", ",")}` : "R$ •••••"}
+                </span>
+                <button onClick={() => setValuesVisible((v) => !v)} className="rounded p-1 hover:bg-muted">
+                  {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
+      {/* Date Picker + Search + Reports menu */}
       {/* Date Picker + Search + Reports menu */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <Popover>

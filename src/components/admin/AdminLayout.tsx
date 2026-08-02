@@ -26,8 +26,6 @@ import {
   Package,
   FolderPlus,
   Lock,
-  Eye,
-  EyeOff,
   HelpCircle,
   UserCog,
   WalletCards,
@@ -35,9 +33,9 @@ import {
   AlertCircle,
   Wifi,
   ChevronRight,
-  Store,
   LifeBuoy,
   PanelLeft,
+  CircleHelp,
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -88,7 +86,7 @@ const AdminLayout = () => {
   const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
+  const [, setShowPasswordInput] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [entryUnlocked, setEntryUnlocked] = useState(false);
   const [entryPasswordInput, setEntryPasswordInput] = useState("");
@@ -371,7 +369,7 @@ const AdminLayout = () => {
   return (
     <div className="admin-theme admin-shell flex min-h-screen bg-background print:block print:h-auto print:bg-background">
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] lg:hidden print:hidden">
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[1px] print:hidden">
           <div className="absolute inset-0" onClick={() => setSidebarOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-[300px] max-w-[86vw] bg-card shadow-2xl">
             <NavContent />
@@ -379,57 +377,56 @@ const AdminLayout = () => {
         </div>
       )}
 
-      <aside className="hidden w-[290px] shrink-0 border-r border-border bg-card lg:block print:hidden">
-        <NavContent />
-      </aside>
-
       <div className="flex min-h-screen flex-1 flex-col overflow-hidden print:block">
-        <header className="border-b border-border bg-card/95 px-4 py-4 backdrop-blur print:hidden sm:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
+        <header className="border-b border-border bg-card px-4 py-4 print:hidden sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Abrir menu"
-                className="mt-0.5 rounded-2xl border border-border p-2.5 text-foreground transition hover:bg-muted lg:hidden"
+                className="rounded-2xl p-2.5 text-foreground transition hover:bg-muted"
               >
-                <Menu size={20} />
+                <Menu size={24} />
               </button>
-              <div className="hidden lg:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+
+              <div className="flex items-center gap-3 pr-5 border-r border-border">
+                <div className="leading-none">
+                  <div className="text-[14px] font-black italic tracking-tight text-foreground sm:text-[20px]">Turbo</div>
+                  <div className="-mt-0.5 text-[14px] font-extrabold leading-none text-primary sm:text-[20px]">Lanches</div>
+                </div>
+              </div>
+
+              <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
                 <PanelLeft size={22} />
               </div>
-              <div>
-                <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{currentNav?.label || "Admin"}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">{pageSubtitle}</p>
+
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground">{currentNav?.label || "Dashboard"}</h1>
+                <p className="mt-1 truncate text-sm text-muted-foreground">{pageSubtitle}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button className="hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
+            <div className="flex items-center gap-3">
+              <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 <Bell size={18} />
               </button>
-              <button
-                className="hidden sm:flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                onClick={() => setShowPasswordInput((prev) => !prev)}
-                title="Alternar acesso protegido"
-              >
-                {showPasswordInput ? <EyeOff size={18} /> : <Eye size={18} />}
+              <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
+                <CircleHelp size={18} />
               </button>
-              <div className="rounded-2xl border border-border bg-background px-3 py-2.5 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                    {user?.email?.[0]?.toUpperCase() || "A"}
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-semibold text-foreground">Administrador</p>
-                    <p className="text-xs text-muted-foreground">Admin</p>
-                  </div>
+              <div className="flex items-center gap-3 rounded-full border border-border bg-background px-3 py-2 shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary font-bold">
+                  {user?.email?.[0]?.toUpperCase() || "A"}
+                </div>
+                <div className="hidden sm:block pr-1">
+                  <p className="text-sm font-semibold leading-tight text-foreground">Administrador</p>
+                  <p className="text-xs text-muted-foreground">Admin</p>
                 </div>
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background px-4 py-4 print:overflow-visible print:p-0 sm:px-6 lg:px-8 min-h-0">
+        <main className="flex-1 overflow-auto bg-background px-4 py-5 print:overflow-visible print:p-0 sm:px-5 lg:px-6 min-h-0">
           <div className="mx-auto w-full max-w-[1680px]">
             {currentLocked ? (
               <div className="flex items-center justify-center py-20">
@@ -475,7 +472,6 @@ const AdminLayout = () => {
           </div>
         </main>
       </div>
-
       {showForgotPw && (
         <ForgotPasswordModal
           questions={config.securityQuestions || []}

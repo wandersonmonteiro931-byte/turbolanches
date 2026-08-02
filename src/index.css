@@ -392,3 +392,65 @@ input, select, textarea {
 .admin-theme .focus-visible\:ring-offset-background:focus-visible {
   --tw-ring-offset-color: #fff !important;
 }
+
+/* Target admin redesign refinements */
+.admin-theme {
+  --admin-bg: #f8f8f7;
+  --admin-card: #ffffff;
+  --admin-soft: #faf7f2;
+  --admin-border: #e9e4db;
+  --admin-text: #242833;
+  --admin-muted: #717784;
+  --admin-primary: #f59e0b;
+  --admin-primary-strong: #f59e0b;
+  background: #f8f8f7 !important;
+}
+
+.admin-theme > .flex-1 > header,
+.admin-theme header {
+  background: #fff !important;
+}
+
+.admin-theme .admin-page > .space-y-4 > .rounded-xl,
+.admin-theme .admin-page > .space-y-4 > .rounded-\[24px\],
+.admin-theme .admin-page > .space-y-4 > div > .rounded-\[24px\] {
+  border-radius: 24px !important;
+}
+
+.admin-theme .admin-page .rounded-\[18px\] {
+  border-radius: 18px !important;
+}
+
+.admin-theme .admin-page button[class*="rounded-lg"],
+.admin-theme .admin-page .rounded-lg {
+  border-radius: 18px !important;
+}
+
+.admin-theme .admin-page button:not(.bg-primary):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-destructive"]) {
+  box-shadow: none;
+}
+
+.admin-theme .admin-page .border-2.border-red-500,
+.admin-theme .admin-page .border-red-500 {
+  border-color: #ef4444 !important;
+  background: #fff !important;
+}
+
+.admin-theme .admin-page .bg-green-500\/10,
+.admin-theme .admin-page .bg-green-50 {
+  background: #eef8ef !important;
+}
+
+.admin-theme .admin-page .text-green-600 {
+  color: #20a05b !important;
+}
+
+.admin-theme .admin-page .text-violet-600 { color: #7c3aed !important; }
+.admin-theme .admin-page .text-blue-600 { color: #2563eb !important; }
+.admin-theme .admin-page .text-orange-500 { color: #f59e0b !important; }
+
+.admin-theme .admin-page input,
+.admin-theme .admin-page button,
+.admin-theme .admin-page [role="combobox"] {
+  font-size: 0.95rem;
+}
