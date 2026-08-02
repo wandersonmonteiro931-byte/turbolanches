@@ -2407,36 +2407,42 @@ export type Database = {
           created_by: string | null
           display_name: string
           email: string | null
+          employee_code: string | null
           id: string
           is_active: boolean
           role: string
           store_id: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           display_name: string
           email?: string | null
+          employee_code?: string | null
           id?: string
           is_active?: boolean
           role: string
           store_id?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           display_name?: string
           email?: string | null
+          employee_code?: string | null
           id?: string
           is_active?: boolean
           role?: string
           store_id?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: [
           {
@@ -3032,6 +3038,10 @@ export type Database = {
       }
       next_employee_code: { Args: never; Returns: string }
       next_product_code: { Args: { _category_id: string }; Returns: number }
+      next_staff_employee_code: {
+        Args: { _store_id?: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
