@@ -305,7 +305,18 @@ const AdminManageAdmins = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const adminCount = useMemo(() => members.filter((m) => m.role === "admin").length, [members]);
+  const isLastAdmin = (member: StaffMember) => member.role === "admin" && adminCount <= 1;
+
   const toggleStatus = async (member: StaffMember) => {
+    if (member.is_active && isLastAdmin(member)) {
+      toast({
+        title: "Administrador obrigatório",
+        description: "Sempre deve existir uma conta de administrador ativa. Crie outro administrador antes de suspender esta.",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
       const { error } = await (supabase as any)
         .from("staff_members")
@@ -320,6 +331,14 @@ const AdminManageAdmins = () => {
   };
 
   const deleteMember = async (member: StaffMember) => {
+    if (isLastAdmin(member)) {
+      toast({
+        title: "Conta não pode ser excluída",
+        description: "O administrador é obrigatório. Crie outra conta de administrador antes de excluir esta.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!confirm(`Excluir definitivamente a conta de ${member.display_name}?`)) return;
     try {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
@@ -334,6 +353,7 @@ const AdminManageAdmins = () => {
       toast({ title: "Não foi possível excluir", description: error?.message, variant: "destructive" });
     }
   };
+
 
   const filteredMembers = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -656,16 +676,23 @@ const AdminManageAdmins = () => {
                   <button type="button" onClick={() => startEdit(member)} className="flex items-center justify-center gap-1.5 rounded-xl bg-muted px-2 py-2 text-xs font-bold text-foreground hover:bg-muted/70">
                     <Pencil size={13} /> Editar
                   </button>
-                  <button type="button" onClick={() => toggleStatus(member)} className={cn(
-                    "rounded-xl px-2 py-2 text-xs font-bold",
+                  <button type="button" onClick={() => toggleStatus(member)} disabled={member.is_active && isLastAdmin(member)} className={cn(
+                    "rounded-xl px-2 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40",
                     member.is_active ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700",
                   )}>
                     {member.is_active ? "Suspender" : "Ativar"}
                   </button>
-                  <button type="button" onClick={() => deleteMember(member)} className="flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-2 py-2 text-xs font-bold text-red-600 hover:bg-red-100">
-                    <Trash2 size={13} /> Excluir
+                  <button
+                    type="button"
+                    onClick={() => deleteMember(member)}
+                    disabled={isLastAdmin(member)}
+                    title={isLastAdmin(member) ? "O administrador é obrigatório e não pode ser excluído" : undefined}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-2 py-2 text-xs font-bold text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 size={13} /> {isLastAdmin(member) ? "Fixo" : "Excluir"}
                   </button>
                 </div>
+
               </article>
             );
           })}
