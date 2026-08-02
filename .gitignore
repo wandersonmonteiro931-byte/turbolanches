@@ -36,15 +36,3 @@ dist-ssr
 *.key
 *.crt
 *.cer
-.env
-.env.*
-!.env.example
-!supabase/.env.example
-*.p12
-*.pfx
-*.pem
-*.key
-*.crt
-*.cer
-ATUALIZACAO_GITHUB_LOG.txt
-ULTIMO_ENVIO_GITHUB.txt
