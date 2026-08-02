@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveLoginEmail } from "@/lib/staffLogin";
 import { lovable } from "@/integrations/lovable/index";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,7 +55,10 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
+          email: resolveLoginEmail(email),
+          password,
+        });
         if (error) throw error;
         toast.success("Login realizado com sucesso!");
         const currentSession = await refreshSession();
@@ -119,10 +123,12 @@ const Auth = () => {
           <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3">
             <Mail size={18} className="text-muted-foreground" />
             <input
-              type="email"
+              type={isLogin ? "text" : "email"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              placeholder={isLogin ? "E-mail ou usuário" : "Email"}
+              autoCapitalize="none"
+              autoCorrect="off"
               required
               className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
