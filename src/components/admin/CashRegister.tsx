@@ -1189,11 +1189,11 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-[13px] border-[#e5e5e0] bg-white px-3.5 text-[13px] font-semibold text-[#273044] shadow-[0_5px_14px_rgba(31,41,55,.05)] hover:bg-[#f8f7f4]"
+              title={valuesVisible ? "Ocultar valores" : "Ver valores"}
+              className="h-10 w-10 rounded-[13px] border-[#e5e5e0] bg-white p-0 text-[#273044] shadow-[0_5px_14px_rgba(31,41,55,.05)] hover:bg-[#f8f7f4]"
               onClick={() => onToggleValues?.()}
             >
-              {valuesVisible ? <EyeOff size={16} className="mr-1" /> : <Eye size={16} className="mr-1" />}
-              {valuesVisible ? "Ocultar" : "Ver valores"}
+              {valuesVisible ? <EyeOff size={17} /> : <Eye size={17} />}
             </Button>
             <Button
               variant="outline"

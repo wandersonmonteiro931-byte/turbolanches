@@ -180,7 +180,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
     <button
       onClick={onClick}
       className={cn(
-        "h-14 rounded-lg text-xl font-bold transition-colors active:scale-95",
+        "h-12 rounded-lg text-lg font-bold transition-colors active:scale-95",
         variant === "num" && "bg-muted hover:bg-muted/70 text-foreground",
         variant === "op" && "bg-secondary hover:bg-secondary/70 text-secondary-foreground",
         variant === "fn" && "bg-destructive/10 hover:bg-destructive/20 text-destructive",
@@ -194,21 +194,21 @@ const CalculatorModal = ({ open, onClose }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl p-0 max-h-[92vh] overflow-y-auto">
-        <DialogHeader className="border-b border-border p-4">
+      <DialogContent className="flex h-[min(92vh,760px)] w-[calc(100vw-20px)] max-w-[980px] flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-border px-4 py-3">
           <DialogTitle className="flex items-center gap-2">
             <CalcIcon size={20} /> Calculadora
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 p-4 md:grid-cols-[1fr_280px]">
+        <div className="grid min-h-0 flex-1 gap-3 p-3 md:grid-cols-[minmax(0,1fr)_270px] lg:gap-4 lg:p-4">
           {/* Calculator */}
-          <div className="space-y-3">
+          <div className="min-h-0 overflow-y-auto pr-1 space-y-3">
             <div className="flex gap-2">
               <button
                 onClick={() => setMode("calc")}
                 className={cn(
-                  "flex-1 rounded-lg px-3 py-2 text-sm font-semibold",
+                  "flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold",
                   mode === "calc" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                 )}
               >
@@ -217,7 +217,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
               <button
                 onClick={() => setMode("change")}
                 className={cn(
-                  "flex-1 rounded-lg px-3 py-2 text-sm font-semibold",
+                  "flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold",
                   mode === "change" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
                 )}
               >
@@ -227,11 +227,11 @@ const CalculatorModal = ({ open, onClose }: Props) => {
 
             {mode === "calc" ? (
               <>
-                <div className="rounded-xl border border-border bg-card p-4">
+                <div className="rounded-xl border border-border bg-card p-3.5">
                   <div className="min-h-[20px] text-right text-xs text-muted-foreground">
                     {previous !== null ? `${formatBRL(previous)} ${opLabel(op)}` : "\u00A0"}
                   </div>
-                  <div className="break-all text-right text-4xl font-bold text-foreground">
+                  <div className="break-all text-right text-3xl font-bold text-foreground md:text-4xl">
                     {display.includes(".") ? display : display}
                   </div>
                 </div>
@@ -272,7 +272,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                     )}
                   >
                     <div className="text-xs font-semibold text-muted-foreground">TOTAL DA COMPRA</div>
-                    <div className="text-2xl font-bold text-foreground">
+                    <div className="text-[30px] font-bold leading-none text-foreground">
                       R$ {total ? formatBRL(parseFloat(total)) : "0,00"}
                     </div>
                   </button>
@@ -284,15 +284,15 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                     )}
                   >
                     <div className="text-xs font-semibold text-muted-foreground">VALOR RECEBIDO</div>
-                    <div className="text-2xl font-bold text-foreground">
+                    <div className="text-[30px] font-bold leading-none text-foreground">
                       R$ {received ? formatBRL(parseFloat(received)) : "0,00"}
                     </div>
                   </button>
                 </div>
 
-                <div className="rounded-2xl bg-primary p-5 text-center text-primary-foreground shadow-lg">
+                <div className="rounded-2xl bg-primary p-4 text-center text-primary-foreground shadow-lg">
                   <div className="text-xs font-semibold uppercase opacity-90">Troco a devolver</div>
-                  <div className="break-all text-5xl font-black tracking-tight">
+                  <div className="break-all text-4xl font-black tracking-tight md:text-5xl">
                     R$ {formatBRL(Math.max(0, change))}
                   </div>
                   {change < 0 && (
@@ -302,7 +302,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {["7","8","9","4","5","6","1","2","3"].map((d) => (
                     <Btn key={d} onClick={() => inputDigit(d)}>{d}</Btn>
                   ))}
@@ -311,7 +311,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                   <Btn variant="fn" onClick={backspace}><ArrowLeft size={20} className="mx-auto" /></Btn>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <Button variant="outline" onClick={() => { setReceived(""); setTotal(""); }}>
                     Limpar
                   </Button>
@@ -324,7 +324,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
           </div>
 
           {/* History */}
-          <div className="rounded-xl border border-border bg-card p-3">
+          <div className="min-h-0 overflow-hidden rounded-xl border border-border bg-card p-3">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground">Histórico</h3>
               {history.length > 0 && (
@@ -337,7 +337,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                 </button>
               )}
             </div>
-            <div className="max-h-[420px] space-y-2 overflow-y-auto">
+            <div className="h-full max-h-[calc(92vh-170px)] space-y-2 overflow-y-auto pr-1 md:max-h-none">
               {history.length === 0 ? (
                 <p className="py-8 text-center text-xs text-muted-foreground">Nenhum cálculo ainda</p>
               ) : (
@@ -352,7 +352,7 @@ const CalculatorModal = ({ open, onClose }: Props) => {
                     )}
                   >
                     <div className="text-xs text-muted-foreground">{h.expression}</div>
-                    <div className="text-lg font-bold text-foreground">= R$ {h.result}</div>
+                    <div className="text-base font-bold text-foreground">= R$ {h.result}</div>
                   </div>
                 ))
               )}

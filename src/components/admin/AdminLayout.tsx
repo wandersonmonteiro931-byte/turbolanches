@@ -1,5 +1,5 @@
 import TurboLoader from "@/components/TurboLoader";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -98,6 +98,9 @@ const AdminLayout = () => {
   const [forgotAttempts, setForgotAttempts] = useState(0);
   const [forgotError, setForgotError] = useState("");
   const [forgotContext, setForgotContext] = useState<"entry" | "section">("entry");
+  const [showHeaderHelp, setShowHeaderHelp] = useState(false);
+  const [showHeaderProfile, setShowHeaderProfile] = useState(false);
+  const headerActionsRef = useRef<HTMLDivElement | null>(null);
   const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
 
   useEffect(() => {
@@ -133,7 +136,21 @@ const AdminLayout = () => {
 
   useEffect(() => {
     setSidebarOpen(false);
+    setShowHeaderHelp(false);
+    setShowHeaderProfile(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showHeaderHelp && !showHeaderProfile) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (headerActionsRef.current && !headerActionsRef.current.contains(event.target as Node)) {
+        setShowHeaderHelp(false);
+        setShowHeaderProfile(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showHeaderHelp, showHeaderProfile]);
 
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
 
@@ -152,6 +169,25 @@ const AdminLayout = () => {
 
     navigate(path);
     setSidebarOpen(false);
+  };
+
+  const openNotifications = () => {
+    navigate("/admin/notificacoes");
+    setShowHeaderHelp(false);
+    setShowHeaderProfile(false);
+  };
+
+  const openSettings = () => {
+    navigate("/admin/configuracoes");
+    setShowHeaderHelp(false);
+    setShowHeaderProfile(false);
+  };
+
+  const handleSignOut = async () => {
+    setShowHeaderHelp(false);
+    setShowHeaderProfile(false);
+    await signOut();
+    navigate("/auth", { replace: true });
   };
 
   const handlePasswordSubmit = () => {
@@ -287,11 +323,6 @@ const AdminLayout = () => {
     );
   }
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   const NavContent = () => (
     <div className="flex h-full flex-col admin-sidebar">
       <div className="border-b border-border px-5 py-5">
@@ -410,15 +441,35 @@ const AdminLayout = () => {
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
-              <button className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+            <div ref={headerActionsRef} className="relative flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={openNotifications}
+                title="Abrir notificações"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]"
+              >
                 <Bell size={19} strokeWidth={1.8} />
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[10px] font-extrabold text-white">3</span>
               </button>
-              <button className="flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHeaderHelp((v) => !v);
+                  setShowHeaderProfile(false);
+                }}
+                title="Ajuda rápida"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]"
+              >
                 <CircleHelp size={19} strokeWidth={1.8} />
               </button>
-              <div className="ml-2 flex items-center gap-2 border-l border-[#ece9e2] pl-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowHeaderProfile((v) => !v);
+                  setShowHeaderHelp(false);
+                }}
+                className="ml-2 flex items-center gap-2 rounded-full border-l border-[#ece9e2] pl-3 text-left"
+              >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe0a8] text-[14px] font-extrabold text-[#f39a00]">
                   {user?.email?.[0]?.toUpperCase() || "A"}
                 </div>
@@ -426,8 +477,45 @@ const AdminLayout = () => {
                   <p className="text-[13px] font-bold leading-tight text-[#252834]">Administrador</p>
                   <p className="mt-0.5 text-[11px] text-[#747b87]">Admin</p>
                 </div>
-                <ChevronDown size={15} className="hidden text-[#20304a] sm:block" />
-              </div>
+                <ChevronDown size={15} className={cn("hidden text-[#20304a] transition sm:block", showHeaderProfile && "rotate-180")} />
+              </button>
+
+              {showHeaderHelp && (
+                <div className="absolute right-[118px] top-[52px] z-40 w-[250px] rounded-2xl border border-[#ece9e2] bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,.12)]">
+                  <p className="text-[13px] font-bold text-[#252834]">Ajuda rápida</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#747b87]">Acesse notificações, configurações ou saia do painel com segurança.</p>
+                  <div className="mt-3 space-y-2">
+                    <button type="button" onClick={openNotifications} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                      <Bell size={15} className="mr-2" /> Notificações
+                    </button>
+                    <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                      <Settings size={15} className="mr-2" /> Configurações
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {showHeaderProfile && (
+                <div className="absolute right-0 top-[52px] z-40 w-[240px] rounded-2xl border border-[#ece9e2] bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,.12)]">
+                  <div className="flex items-center gap-3 rounded-xl bg-[#faf8f4] p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffe0a8] text-[14px] font-extrabold text-[#f39a00]">
+                      {user?.email?.[0]?.toUpperCase() || "A"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-bold text-[#252834]">Administrador</p>
+                      <p className="truncate text-[11px] text-[#747b87]">{user?.email || "admin@turbolanches"}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                      <Settings size={15} className="mr-2" /> Configurações
+                    </button>
+                    <button type="button" onClick={handleSignOut} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#d44545] transition hover:bg-[#fff3f3]">
+                      <LogOut size={15} className="mr-2" /> Sair
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
