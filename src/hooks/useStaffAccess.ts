@@ -6,7 +6,7 @@ import {
   ACCOUNT_MODE_EVENT,
   ADMIN_SECTIONS,
   AdminAccountMode,
-  DEFAULT_ROLE_PERMISSIONS as _unusedDefaults,
+  
   getStoredAccountMode,
   MODE_LABELS,
   normalizeAdminPath,
