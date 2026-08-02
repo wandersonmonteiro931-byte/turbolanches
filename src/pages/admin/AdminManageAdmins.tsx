@@ -66,6 +66,23 @@ const roleDescription: Record<StaffRole, string> = {
   cashier: "Opera caixa, pagamentos, fiados e pedidos do balcão.",
 };
 
+/** Lê a mensagem real de erro retornada pela edge function (status 4xx/5xx). */
+const readFunctionError = async (error: any) => {
+  try {
+    const response = error?.context;
+    if (response && typeof response.text === "function") {
+      const raw = await response.text();
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (parsed?.error) return String(parsed.error);
+      if (raw) return raw;
+    }
+  } catch {
+    /* ignora falha de leitura e usa a mensagem padrão */
+  }
+  return error?.message || "Erro ao chamar o servidor";
+};
+
+
 const AdminManageAdmins = () => {
   const { toast } = useToast();
   const { storeId } = useStore();
@@ -235,8 +252,9 @@ const AdminManageAdmins = () => {
             permissions: form.permissions,
           },
         });
-        if (error) throw error;
+        if (error) throw new Error(await readFunctionError(error));
         if (data?.error) throw new Error(data.error);
+
         toast({ title: form.password ? "Conta e senha atualizadas" : "Acesso atualizado com sucesso" });
       } else {
 
@@ -253,8 +271,9 @@ const AdminManageAdmins = () => {
             permissions: form.permissions,
           },
         });
-        if (error) throw error;
+        if (error) throw new Error(await readFunctionError(error));
         if (data?.error) throw new Error(data.error);
+
         toast({ title: `${ROLE_LABELS[form.role]} cadastrado com sucesso` });
       }
       resetForm();
@@ -306,8 +325,9 @@ const AdminManageAdmins = () => {
       const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
         body: { action: "delete", staff_member_id: member.id },
       });
-      if (error) throw error;
+      if (error) throw new Error(await readFunctionError(error));
       if (data?.error) throw new Error(data.error);
+
       toast({ title: "Conta excluída" });
       await fetchMembers();
     } catch (error: any) {
