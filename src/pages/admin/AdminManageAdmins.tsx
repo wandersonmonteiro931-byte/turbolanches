@@ -118,7 +118,7 @@ const AdminManageAdmins = () => {
     } catch (error: any) {
       toast({
         title: "Não foi possível carregar a equipe",
-        description: error?.message || "Aplique a nova migration no Supabase.",
+        description: error?.message || "Ative o backend pelo Lovable usando o arquivo 2 - ATIVAR EQUIPE PELO LOVABLE.bat.",
         variant: "destructive",
       });
       setMembers([]);
@@ -258,7 +258,7 @@ const AdminManageAdmins = () => {
     } catch (error: any) {
       toast({
         title: "Não foi possível salvar",
-        description: error?.message || "Verifique a configuração do Supabase.",
+        description: error?.message || "Verifique se a ativação pelo Lovable foi concluída.",
         variant: "destructive",
       });
     } finally {

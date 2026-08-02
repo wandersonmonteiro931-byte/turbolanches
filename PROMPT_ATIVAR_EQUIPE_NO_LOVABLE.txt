@@ -1,0 +1,44 @@
+ATIVAR EQUIPE E PERMISSOES NO BACKEND ATUAL DO TURBO LANCHES
+
+Use o backend que JA esta conectado a este projeto no Lovable.
+NAO crie outro projeto Supabase, outro Lovable Cloud, outro banco ou novas credenciais.
+NAO peça login, token, senha do banco ou acesso ao painel do Supabase ao usuário.
+
+Execute estas ações no backend atual do projeto:
+
+1. Localize e aplique, de forma idempotente, a migration:
+   supabase/migrations/20260801235900_staff_accounts_permissions.sql
+
+2. Confirme que foram criados/atualizados:
+   - public.staff_members
+   - public.staff_section_permissions
+   - public.has_staff_section_access(uuid, text)
+   - public.can_manage_staff(uuid)
+   - políticas RLS e permissões definidas na migration
+
+3. Publique ou atualize a Edge Function existente em:
+   supabase/functions/admin-manage-staff/index.ts
+
+4. Mantenha a configuração desta função conforme:
+   supabase/config.toml
+   [functions.admin-manage-staff]
+   verify_jwt = false
+
+5. Não altere o design, o dashboard, os pedidos, o financeiro, as rotas existentes, os dados atuais ou outras migrations.
+
+6. Verifique usando a conta administradora atual:
+   - abrir /admin/administradores
+   - listar equipe sem erro
+   - cadastrar uma conta de teste com função vendedor ou caixa
+   - salvar permissões por seção
+   - entrar com a conta criada e confirmar que apenas as seções permitidas aparecem
+   - excluir a conta de teste ao terminar
+
+7. Se este projeto estiver usando Lovable Cloud, aplique tudo pelo Cloud atual.
+   Se estiver usando Supabase conectado ao Lovable, use a conexão atual do projeto.
+
+Ao finalizar, informe exatamente:
+- migration aplicada ou já existente
+- Edge Function publicada
+- teste de cadastro concluído
+- qualquer erro real encontrado nos logs

@@ -1,15 +1,38 @@
-TURBO LANCHES - EQUIPE E ACESSOS
+TURBO LANCHES - EQUIPE E ACESSOS - ATIVACAO PELO LOVABLE
 
-1. Execute "1 - ENVIAR PARA GITHUB E LOVABLE - CORRIGIDO.bat".
-2. Depois execute "2 - ATIVAR EQUIPE E PERMISSOES NO SUPABASE.bat".
-3. No painel, abra "Equipe e acessos".
-4. Cadastre Administradores, Vendedores ou Caixas.
-5. Marque exatamente quais seções cada conta poderá acessar.
+Este projeto esta no Lovable e voce nao precisa ter acesso ao painel do Supabase.
+Nao use Supabase CLI, token, senha do banco ou login do Supabase.
 
-No menu do perfil, o administrador principal pode trocar de visão entre:
-- Administração
+ORDEM CORRETA:
+
+1. Execute:
+   1 - ENVIAR PARA GITHUB E LOVABLE - CORRIGIDO.bat
+
+2. Aguarde o projeto sincronizar no Lovable.
+
+3. Execute:
+   2 - ATIVAR EQUIPE PELO LOVABLE.bat
+
+4. O navegador sera aberto e o comando sera copiado automaticamente.
+   Abra o projeto Turbo Lanches, pressione CTRL + V no chat e envie.
+
+5. Aguarde o Lovable confirmar:
+   - migration aplicada
+   - Edge Function admin-manage-staff publicada
+   - teste realizado
+
+6. Clique em Publish/Update no Lovable.
+
+Depois disso, no painel, abra "Equipe e acessos" para cadastrar:
+- Administradores
+- Vendedores
+- Caixas
+- Permissoes individuais por secao
+
+No menu do perfil, a conta principal podera alternar entre:
+- Administracao
 - Vendedor
 - Caixa
 - Cliente
 
-A troca de visão não encerra a sessão.
+A troca de visao nao encerra a sessao.

@@ -7,3 +7,8 @@ TURBO LANCHES - ATUALIZADOR V7
 5. O arquivo ULTIMO_ENVIO_GITHUB.txt sera criado como comprovante.
 
 O atualizador nao envia .env, certificados ou chaves privadas.
+
+EQUIPE E PERMISSOES:
+A ativacao do backend deve ser feita pelo arquivo
+"2 - ATIVAR EQUIPE PELO LOVABLE.bat".
+Nao use Supabase CLI neste projeto.
