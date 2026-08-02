@@ -16,6 +16,21 @@ const normalizeUsername = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9._-]/g, "");
 
+const translateAuthError = (message: string) => {
+  const text = String(message || "");
+  if (/known to be weak|easy to guess|pwned|leaked/i.test(text)) {
+    return "Senha muito fraca ou vazada. Use uma senha diferente, com letras, números e um símbolo (ex.: Turbo@2026).";
+  }
+  if (/already been registered|already registered|already exists/i.test(text)) {
+    return "Já existe uma conta com este e-mail ou usuário de acesso.";
+  }
+  if (/password should be at least|at least 6/i.test(text)) {
+    return "A senha precisa ter no mínimo 6 caracteres.";
+  }
+  return text || "Erro ao salvar a conta";
+};
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -105,7 +120,7 @@ Deno.serve(async (req) => {
       if (password) authUpdate.password = password;
 
       const { error: authError } = await adminClient.auth.admin.updateUserById(member.user_id, authUpdate);
-      if (authError) return json({ error: authError.message }, 400);
+      if (authError) return json({ error: translateAuthError(authError.message) }, 400);
 
       const { error: updateError } = await adminClient
         .from("staff_members")
@@ -166,7 +181,7 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { full_name: displayName, staff_role: role },
     });
-    if (createError) return json({ error: createError.message }, 400);
+    if (createError) return json({ error: translateAuthError(createError.message) }, 400);
     const newUser = created.user;
     if (!newUser) return json({ error: "Usuário não foi criado" }, 500);
 
