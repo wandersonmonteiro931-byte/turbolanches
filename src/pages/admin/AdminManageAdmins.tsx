@@ -188,24 +188,8 @@ const AdminManageAdmins = () => {
     }));
   };
 
-  const savePermissions = async (memberId: string, permissions: string[]) => {
-    const client = supabase as any;
-    const { error: deleteError } = await client
-      .from("staff_section_permissions")
-      .delete()
-      .eq("staff_member_id", memberId);
-    if (deleteError) throw deleteError;
 
-    if (!permissions.length) return;
-    const { error: insertError } = await client.from("staff_section_permissions").insert(
-      permissions.map((sectionPath) => ({
-        staff_member_id: memberId,
-        section_path: sectionPath,
-        can_access: true,
-      })),
-    );
-    if (insertError) throw insertError;
-  };
+
 
   const saveMember = async () => {
     const usernameValue = normalizeStaffUsername(form.username);
