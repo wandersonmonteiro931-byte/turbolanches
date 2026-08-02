@@ -687,6 +687,14 @@ const AdminLayout = () => {
           onClose={() => setShowForgotPw(false)}
         />
       )}
+      {switchTarget && (
+        <AccountSwitchDialog
+          targetMode={switchTarget}
+          onClose={() => setSwitchTarget(null)}
+          onSwitched={handleSwitched}
+        />
+      )}
+
     </div>
   );
 };
