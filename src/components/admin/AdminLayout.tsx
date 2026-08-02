@@ -191,15 +191,27 @@ const AdminLayout = () => {
   );
 
   const handleAccountModeChange = (nextMode: AdminAccountMode) => {
-    if (!switchMode(nextMode)) return;
     setShowHeaderProfile(false);
     setShowHeaderHelp(false);
+
+    if (nextMode === accountMode) return;
+
     if (nextMode === "client") {
+      if (!switchMode(nextMode)) return;
       navigate("/");
       return;
     }
-    navigate("/admin");
+
+    // Trocar para Administração / Vendedor / Caixa exige autenticação da conta escolhida.
+    setSwitchTarget(nextMode);
   };
+
+  const handleSwitched = (nextMode: AdminAccountMode) => {
+    setSwitchTarget(null);
+    setStoredAccountMode(nextMode);
+    window.location.assign("/admin");
+  };
+
 
   const handleNavClick = (path: string) => {
     if (path === "/admin/funcionarios") {
