@@ -3036,6 +3036,17 @@ export type Database = {
         Args: { _code: string }
         Returns: undefined
       }
+      list_switchable_staff_accounts: {
+        Args: never
+        Returns: {
+          display_name: string
+          email: string
+          employee_code: string
+          id: string
+          role: string
+          username: string
+        }[]
+      }
       next_employee_code: { Args: never; Returns: string }
       next_product_code: { Args: { _category_id: string }; Returns: number }
       next_staff_employee_code: {
