@@ -111,7 +111,7 @@ export const useStaffAccess = () => {
     };
   }, []);
 
-  const isOwnerAdmin = Boolean(isAdmin && !staff);
+  const isOwnerAdmin = Boolean(isAdmin && !staff && !loadError);
 
   const availableModes = useMemo<AdminAccountMode[]>(() => {
     if (!isAdmin) return ["client"];
@@ -132,12 +132,14 @@ export const useStaffAccess = () => {
   const effectivePermissions = useMemo(() => {
     if (!isAdmin || mode === "client") return new Set<string>();
     if (isOwnerAdmin) {
-      if (mode === "seller") return new Set(DEFAULT_ROLE_PERMISSIONS.seller);
-      if (mode === "cashier") return new Set(DEFAULT_ROLE_PERMISSIONS.cashier);
+      // Administrador principal (sem conta de equipe) mantém acesso total.
       return new Set(ADMIN_SECTIONS.map((section) => section.path));
     }
-    return new Set(permissionPaths.length ? permissionPaths : DEFAULT_ROLE_PERMISSIONS[staff?.role || "cashier"]);
-  }, [isAdmin, isOwnerAdmin, mode, permissionPaths, staff?.role]);
+    // Contas de equipe: SOMENTE as seções marcadas no cadastro.
+    if (!staff || !staff.is_active || loadError) return new Set<string>();
+    return new Set(permissionPaths.map((path) => normalizeAdminPath(path)));
+  }, [isAdmin, isOwnerAdmin, loadError, mode, permissionPaths, staff]);
+
 
   const canAccess = useCallback(
     (path: string) => {
