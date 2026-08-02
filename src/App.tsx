@@ -62,6 +62,9 @@ import CourierPortal from "./pages/CourierPortal";
 import AdminEmployees from "./pages/admin/AdminEmployees";
 import AdminUnpaid from "./pages/admin/AdminUnpaid";
 import EmployeePortal from "./pages/EmployeePortal";
+import AccountModeReturn from "./components/AccountModeReturn";
+import { getStoredAccountMode } from "./lib/adminAccess";
+import { useStaffAccess } from "./hooks/useStaffAccess";
 
 const queryClient = new QueryClient();
 
@@ -94,7 +97,20 @@ const AdminKioskRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user && isAdmin && getStoredAccountMode() !== "client") return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+};
+
+const AdminSectionRoute = ({ sectionPath, children }: { sectionPath: string; children: React.ReactNode }) => {
+  const { isAdmin, canAccess, loading } = useStaffAccess();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <TurboLoader size={120} />
+      </div>
+    );
+  }
+  if (!isAdmin || !canAccess(sectionPath)) return <Navigate to="/admin" replace />;
   return <>{children}</>;
 };
 
@@ -128,6 +144,7 @@ const AppInner = () => {
       <NotificationBanner />
       <BrowserRouter>
         <RouterEffects userId={user?.id} />
+        <AccountModeReturn />
         <Routes>
           {/* Public routes - accessible without login */}
           <Route
@@ -250,18 +267,34 @@ const AppInner = () => {
             <Route path="impressora-wifi" element={<AdminWifiPrinter />} />
           </Route>
           <Route path="/tv" element={<TvDisplay />} />
-          <Route path="/admin/novo-pedido" element={<AdminManualOrder />} />
-          <Route path="/admin/imprimir/:id" element={<AdminPrint />} />
-          <Route path="/admin/imprimir-livre" element={<AdminFreePrint />} />
+          <Route path="/admin/novo-pedido" element={
+            <ProtectedRoute>
+              <AdminSectionRoute sectionPath="/admin/novo-pedido"><AdminManualOrder /></AdminSectionRoute>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/imprimir/:id" element={
+            <ProtectedRoute>
+              <AdminSectionRoute sectionPath="/admin/comandas"><AdminPrint /></AdminSectionRoute>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/imprimir-livre" element={
+            <ProtectedRoute>
+              <AdminSectionRoute sectionPath="/admin/comandas"><AdminFreePrint /></AdminSectionRoute>
+            </ProtectedRoute>
+          } />
           <Route
             path="/cozinha"
             element={
               <ProtectedRoute>
-                <Kitchen />
+                <AdminSectionRoute sectionPath="/cozinha"><Kitchen /></AdminSectionRoute>
               </ProtectedRoute>
             }
           />
-          <Route path="/admin/cardapio-png" element={<MenuExport />} />
+          <Route path="/admin/cardapio-png" element={
+            <ProtectedRoute>
+              <AdminSectionRoute sectionPath="/admin/produtos"><MenuExport /></AdminSectionRoute>
+            </ProtectedRoute>
+          } />
           <Route path="/entregador" element={<CourierPortal />} />
           <Route path="/funcionario" element={<EmployeePortal />} />
           <Route path="*" element={<CaseInsensitiveRedirect />} />

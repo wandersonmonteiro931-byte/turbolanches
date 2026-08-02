@@ -38,12 +38,16 @@ import {
   CircleHelp,
   ChevronDown,
   Flame,
+  UserRound,
+  Check,
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminSectionPassword } from "@/hooks/useAdminSectionPassword";
 import { cn } from "@/lib/utils";
+import { useStaffAccess } from "@/hooks/useStaffAccess";
+import { AdminAccountMode, MODE_LABELS } from "@/lib/adminAccess";
 
 const navItems = [
   { path: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -66,7 +70,7 @@ const navItems = [
   { path: "/admin/comandas", icon: Printer, label: "Comandas" },
   { path: "/admin/etiquetas", icon: Tag, label: "Etiquetas" },
   { path: "/admin/etiquetas-preco", icon: DollarSign, label: "Etiq. Preço" },
-  { path: "/admin/administradores", icon: Shield, label: "Admins" },
+  { path: "/admin/administradores", icon: Shield, label: "Equipe e acessos" },
   { path: "/admin/raspadinha", icon: Sparkles, label: "Raspadinha" },
   { path: "/admin/avaliacoes", icon: Star, label: "Avaliações" },
   { path: "/admin/precificacao", icon: DollarSign, label: "Precificação" },
@@ -83,6 +87,17 @@ const AdminLayout = () => {
   const location = useLocation();
   const { isAdmin, loading } = useAdmin();
   const { user, signOut } = useAuth();
+  const {
+    mode: accountMode,
+    accountLabel,
+    roleLabel,
+    availableModes,
+    canAccess,
+    switchMode,
+    staff,
+    isOwnerAdmin,
+    loading: accessLoading,
+  } = useStaffAccess();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { config, isSectionLocked, loading: pwLoading } = useAdminSectionPassword();
   const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
@@ -141,6 +156,18 @@ const AdminLayout = () => {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (accessLoading) return;
+    if (accountMode === "client") {
+      navigate("/", { replace: true });
+      return;
+    }
+    if (!canAccess(location.pathname)) {
+      const fallback = navItems.find((item) => canAccess(item.path))?.path || "/admin";
+      navigate(fallback, { replace: true });
+    }
+  }, [accessLoading, accountMode, canAccess, location.pathname, navigate]);
+
+  useEffect(() => {
     if (!showHeaderHelp && !showHeaderProfile) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (headerActionsRef.current && !headerActionsRef.current.contains(event.target as Node)) {
@@ -153,6 +180,22 @@ const AdminLayout = () => {
   }, [showHeaderHelp, showHeaderProfile]);
 
   const requiresEntryGate = config.password && config.requireOnEntry && !entryUnlocked;
+
+  const visibleNavItems = useMemo(
+    () => navItems.filter((item) => canAccess(item.path)),
+    [canAccess],
+  );
+
+  const handleAccountModeChange = (nextMode: AdminAccountMode) => {
+    if (!switchMode(nextMode)) return;
+    setShowHeaderProfile(false);
+    setShowHeaderHelp(false);
+    if (nextMode === "client") {
+      navigate("/");
+      return;
+    }
+    navigate("/admin");
+  };
 
   const handleNavClick = (path: string) => {
     if (path === "/admin/funcionarios") {
@@ -172,12 +215,14 @@ const AdminLayout = () => {
   };
 
   const openNotifications = () => {
+    if (!canAccess("/admin/notificacoes")) return;
     navigate("/admin/notificacoes");
     setShowHeaderHelp(false);
     setShowHeaderProfile(false);
   };
 
   const openSettings = () => {
+    if (!canAccess("/admin/configuracoes")) return;
     navigate("/admin/configuracoes");
     setShowHeaderHelp(false);
     setShowHeaderProfile(false);
@@ -261,7 +306,7 @@ const AdminLayout = () => {
     return `Gerencie a seção de ${label.toLowerCase()}.`;
   }, [currentNav]);
 
-  if (loading || pwLoading) {
+  if (loading || pwLoading || accessLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <TurboLoader size={120} />
@@ -339,7 +384,7 @@ const AdminLayout = () => {
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <div className="grid gap-1.5">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             const isLocked = isSectionLocked(item.path) && !unlockedSections.has(item.path);
             return (
@@ -381,8 +426,8 @@ const AdminLayout = () => {
               {user?.email?.[0]?.toUpperCase() || "A"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-foreground">Admin</p>
-              <p className="truncate text-xs text-muted-foreground">Administrador</p>
+              <p className="truncate text-sm font-semibold text-foreground">{staff?.display_name || "Administrador"}</p>
+              <p className="truncate text-xs text-muted-foreground">{accountLabel}</p>
             </div>
             <button
               onClick={handleSignOut}
@@ -442,15 +487,17 @@ const AdminLayout = () => {
             </div>
 
             <div ref={headerActionsRef} className="relative flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={openNotifications}
-                title="Abrir notificações"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]"
-              >
-                <Bell size={19} strokeWidth={1.8} />
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[10px] font-extrabold text-white">3</span>
-              </button>
+              {canAccess("/admin/notificacoes") && (
+                <button
+                  type="button"
+                  onClick={openNotifications}
+                  title="Abrir notificações"
+                  className="relative flex h-9 w-9 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]"
+                >
+                  <Bell size={19} strokeWidth={1.8} />
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[10px] font-extrabold text-white">3</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -474,8 +521,8 @@ const AdminLayout = () => {
                   {user?.email?.[0]?.toUpperCase() || "A"}
                 </div>
                 <div className="hidden min-w-[92px] sm:block">
-                  <p className="text-[13px] font-bold leading-tight text-[#252834]">Administrador</p>
-                  <p className="mt-0.5 text-[11px] text-[#747b87]">Admin</p>
+                  <p className="text-[13px] font-bold leading-tight text-[#252834]">{staff?.display_name || "Administrador"}</p>
+                  <p className="mt-0.5 text-[11px] text-[#747b87]">{accountLabel}</p>
                 </div>
                 <ChevronDown size={15} className={cn("hidden text-[#20304a] transition sm:block", showHeaderProfile && "rotate-180")} />
               </button>
@@ -485,31 +532,75 @@ const AdminLayout = () => {
                   <p className="text-[13px] font-bold text-[#252834]">Ajuda rápida</p>
                   <p className="mt-1 text-[12px] leading-5 text-[#747b87]">Acesse notificações, configurações ou saia do painel com segurança.</p>
                   <div className="mt-3 space-y-2">
-                    <button type="button" onClick={openNotifications} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
-                      <Bell size={15} className="mr-2" /> Notificações
-                    </button>
-                    <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
-                      <Settings size={15} className="mr-2" /> Configurações
-                    </button>
+                    {canAccess("/admin/notificacoes") && (
+                      <button type="button" onClick={openNotifications} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                        <Bell size={15} className="mr-2" /> Notificações
+                      </button>
+                    )}
+                    {canAccess("/admin/configuracoes") && (
+                      <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                        <Settings size={15} className="mr-2" /> Configurações
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
               {showHeaderProfile && (
-                <div className="absolute right-0 top-[52px] z-40 w-[240px] rounded-2xl border border-[#ece9e2] bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,.12)]">
+                <div className="absolute right-0 top-[52px] z-40 w-[280px] rounded-2xl border border-[#ece9e2] bg-white p-3 shadow-[0_18px_45px_rgba(15,23,42,.14)]">
                   <div className="flex items-center gap-3 rounded-xl bg-[#faf8f4] p-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ffe0a8] text-[14px] font-extrabold text-[#f39a00]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#ffe0a8] text-[14px] font-extrabold text-[#f39a00]">
                       {user?.email?.[0]?.toUpperCase() || "A"}
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-bold text-[#252834]">Administrador</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-bold text-[#252834]">{staff?.display_name || "Administrador"}</p>
                       <p className="truncate text-[11px] text-[#747b87]">{user?.email || "admin@turbolanches"}</p>
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-[#f39a00]">{roleLabel}</p>
                     </div>
                   </div>
-                  <div className="mt-3 space-y-2">
-                    <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
-                      <Settings size={15} className="mr-2" /> Configurações
-                    </button>
+
+                  <div className="mt-3 border-t border-[#eeeae3] pt-3">
+                    <p className="px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a909b]">Trocar de conta</p>
+                    <div className="mt-2 grid gap-1.5">
+                      {availableModes.map((itemMode) => {
+                        const isCurrent = accountMode === itemMode;
+                        const ModeIcon = itemMode === "administration"
+                          ? Shield
+                          : itemMode === "seller"
+                            ? ShoppingBag
+                            : itemMode === "cashier"
+                              ? WalletCards
+                              : UserRound;
+                        return (
+                          <button
+                            key={itemMode}
+                            type="button"
+                            onClick={() => handleAccountModeChange(itemMode)}
+                            className={cn(
+                              "flex w-full items-center rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition",
+                              isCurrent ? "bg-[#fff4df] text-[#d97706]" : "text-[#273044] hover:bg-[#f7f5f1]",
+                            )}
+                          >
+                            <ModeIcon size={16} className="mr-2.5" />
+                            <span className="flex-1">{MODE_LABELS[itemMode]}</span>
+                            {isCurrent && <Check size={15} />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {isOwnerAdmin && (
+                      <p className="mt-2 px-2 text-[10px] leading-4 text-[#8a909b]">
+                        A troca altera a visão do sistema sem encerrar sua sessão.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-3 border-t border-[#eeeae3] pt-3 space-y-1.5">
+                    {canAccess("/admin/configuracoes") && (
+                      <button type="button" onClick={openSettings} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#273044] transition hover:bg-[#f7f5f1]">
+                        <Settings size={15} className="mr-2" /> Configurações
+                      </button>
+                    )}
                     <button type="button" onClick={handleSignOut} className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#d44545] transition hover:bg-[#fff3f3]">
                       <LogOut size={15} className="mr-2" /> Sair
                     </button>

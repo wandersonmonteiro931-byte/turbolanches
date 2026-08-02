@@ -1,0 +1,15 @@
+TURBO LANCHES - EQUIPE E ACESSOS
+
+1. Execute "1 - ENVIAR PARA GITHUB E LOVABLE - CORRIGIDO.bat".
+2. Depois execute "2 - ATIVAR EQUIPE E PERMISSOES NO SUPABASE.bat".
+3. No painel, abra "Equipe e acessos".
+4. Cadastre Administradores, Vendedores ou Caixas.
+5. Marque exatamente quais seções cada conta poderá acessar.
+
+No menu do perfil, o administrador principal pode trocar de visão entre:
+- Administração
+- Vendedor
+- Caixa
+- Cliente
+
+A troca de visão não encerra a sessão.

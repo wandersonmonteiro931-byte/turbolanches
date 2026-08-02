@@ -135,6 +135,9 @@ echo.
 echo O Lovable deve sincronizar a branch main automaticamente.
 echo Se a versao publicada nao mudar, abra o Lovable e clique em Publish.
 echo.
+echo IMPORTANTE: para ativar contas, vendedores, caixas e permissoes,
+echo execute depois: 2 - ATIVAR EQUIPE E PERMISSOES NO SUPABASE.bat
+echo.
 echo Abrindo o historico do GitHub para conferencia...
 start "" "%REPO_PAGE%"
 echo.
