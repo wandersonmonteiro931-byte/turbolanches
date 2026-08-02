@@ -64,7 +64,83 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    if (action === "update") {
+      const staffMemberId = String(payload?.staff_member_id || "");
+      if (!staffMemberId) return json({ error: "Conta da equipe não informada" }, 400);
+
+      const { data: member, error: memberError } = await adminClient
+        .from("staff_members")
+        .select("id, user_id, email, username")
+        .eq("id", staffMemberId)
+        .maybeSingle();
+      if (memberError) throw memberError;
+      if (!member) return json({ error: "Conta não encontrada" }, 404);
+
+      const displayName = String(payload?.display_name || "").trim();
+      const role = String(payload?.role || "");
+      if (!displayName) return json({ error: "Informe o nome do funcionário" }, 400);
+      if (!allowedRoles.has(role)) return json({ error: "Tipo de conta inválido" }, 400);
+
+      const rawEmail = String(payload?.email || "").trim().toLowerCase();
+      const username = normalizeUsername(String(payload?.username || ""));
+      const employeeCode = String(payload?.employee_code || "").trim().toUpperCase();
+      const password = String(payload?.password || "");
+      const storeId = payload?.store_id ? String(payload.store_id) : null;
+      const permissions = Array.isArray(payload?.permissions)
+        ? [...new Set(payload.permissions.map((value: unknown) => String(value)).filter(Boolean))]
+        : [];
+      if (!permissions.includes("/admin")) return json({ error: "O acesso ao Dashboard é obrigatório" }, 400);
+      if (password && password.length < 6) {
+        return json({ error: "A nova senha precisa ter no mínimo 6 caracteres" }, 400);
+      }
+
+      const loginEmail = rawEmail || (username ? `${username}@${STAFF_LOGIN_DOMAIN}` : member.email);
+      if (!loginEmail) return json({ error: "Informe e-mail ou usuário de acesso" }, 400);
+
+      const authUpdate: Record<string, unknown> = {
+        email: loginEmail,
+        email_confirm: true,
+        user_metadata: { full_name: displayName, staff_role: role },
+      };
+      if (password) authUpdate.password = password;
+
+      const { error: authError } = await adminClient.auth.admin.updateUserById(member.user_id, authUpdate);
+      if (authError) return json({ error: authError.message }, 400);
+
+      const { error: updateError } = await adminClient
+        .from("staff_members")
+        .update({
+          display_name: displayName,
+          role,
+          store_id: storeId,
+          email: loginEmail,
+          username: username || null,
+          employee_code: employeeCode || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", staffMemberId);
+      if (updateError) throw updateError;
+
+      const { error: clearError } = await adminClient
+        .from("staff_section_permissions")
+        .delete()
+        .eq("staff_member_id", staffMemberId);
+      if (clearError) throw clearError;
+
+      const { error: permissionsError } = await adminClient.from("staff_section_permissions").insert(
+        permissions.map((sectionPath: string) => ({
+          staff_member_id: staffMemberId,
+          section_path: sectionPath,
+          can_access: true,
+        })),
+      );
+      if (permissionsError) throw permissionsError;
+
+      return json({ success: true });
+    }
+
     if (action !== "create") return json({ error: "Ação inválida" }, 400);
+
 
     const displayName = String(payload?.display_name || "").trim();
     const rawEmail = String(payload?.email || "").trim().toLowerCase();
