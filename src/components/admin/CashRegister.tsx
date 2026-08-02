@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { Wallet, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2, History, Printer, Pencil } from "lucide-react";
+import { Wallet, Lock, Unlock, RefreshCw, AlertTriangle, CheckCircle2, History, Printer, Pencil, Banknote, ShoppingBag, ReceiptText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/contexts/StoreContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1111,99 +1111,127 @@ export default function CashRegister({ onChange, storeIsOpen = true, todayRevenu
 
   return (
     <>
-      <div className={cn(
-        "rounded-[28px] border p-5 lg:p-6",
-        remindClose
-          ? "border-destructive/60 cash-banner-blink"
-          : isOpenToday
-            ? "border-emerald-500/30 bg-emerald-500/5"
-            : "border-amber-500/40 bg-amber-500/5",
-      )}>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <div className={cn(
-              "flex h-20 w-20 shrink-0 items-center justify-center rounded-full",
-              isOpenToday ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-500"
-            )}>
-              <Wallet size={36} />
+      <div
+        className={cn(
+          "overflow-hidden rounded-[24px] border px-6 py-5 shadow-[0_8px_30px_rgba(31,41,55,0.035)] lg:px-7",
+          remindClose
+            ? "border-destructive/60 cash-banner-blink"
+            : isOpenToday
+              ? "border-emerald-300 bg-[linear-gradient(90deg,#f4fff8_0%,#ffffff_50%,#f8fff9_100%)]"
+              : "border-[#f5bf50] bg-[linear-gradient(90deg,#fffaf0_0%,#fffef9_48%,#fff9eb_100%)]",
+        )}
+      >
+        <div className="grid items-center gap-5 xl:grid-cols-[minmax(360px,1fr)_560px_auto]">
+          <div className="flex min-w-0 items-center gap-5">
+            <div
+              className={cn(
+                "flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-full",
+                isOpenToday ? "bg-emerald-100 text-emerald-600" : "bg-[#ffedae] text-[#ff9800]",
+              )}
+            >
+              <Wallet size={38} strokeWidth={1.9} />
             </div>
             <div className="min-w-0">
-              <div className="text-[13px] font-extrabold uppercase tracking-wide text-amber-600">
+              <div className={cn("text-[16px] font-extrabold uppercase tracking-[-0.01em]", isOpenToday ? "text-emerald-700" : "text-[#f18a00]") }>
                 {previousDayBlocking
                   ? `CAIXA DE ${register?.business_day} EM ABERTO`
                   : isOpenToday
                     ? "CAIXA ABERTO"
                     : "CAIXA FECHADO"}
               </div>
-              {register && (
-                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                  <div>Aberto em: <strong>{formatDateTimeBR(register.opened_at)}</strong></div>
-                  {register.closed_at && <div>Fechado em: <strong>{formatDateTimeBR(register.closed_at)}</strong></div>}
+              {register ? (
+                <div className="mt-2 space-y-1 text-[14px] leading-5 text-[#667085]">
+                  <div>Aberto em: <strong className="font-semibold text-[#506077]">{formatDateTimeBR(register.opened_at)}</strong></div>
+                  {register.closed_at && <div>Fechado em: <strong className="font-semibold text-[#506077]">{formatDateTimeBR(register.closed_at)}</strong></div>}
                   {isOpenToday && (
-                    <div className="font-semibold text-emerald-700">⏱ Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}</div>
+                    <div className="font-semibold text-emerald-700">Tempo aberto: {formatDuration(now.getTime() - new Date(register.opened_at).getTime())}</div>
                   )}
                 </div>
+              ) : (
+                <div className="mt-2 text-[14px] text-[#7a828e]">Nenhum caixa aberto no momento.</div>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:min-w-[560px] xl:max-w-[560px]">
-            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
-              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Faturamento</div>
-              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{fmt(todayRevenue)}</div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <Banknote size={24} strokeWidth={1.9} />
+              </div>
+              <div>
+                <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Faturamento</div>
+                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{fmt(todayRevenue)}</div>
+              </div>
             </div>
-            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
-              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Pedidos</div>
-              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{orderCount}</div>
+            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <ShoppingBag size={23} strokeWidth={1.9} />
+              </div>
+              <div>
+                <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Pedidos</div>
+                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{orderCount}</div>
+              </div>
             </div>
-            <div className="rounded-[20px] border border-border bg-white px-5 py-4 shadow-sm">
-              <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Ticket Médio</div>
-              <div className="mt-2 text-[15px] font-extrabold text-emerald-600">{fmt(averageTicket)}</div>
+            <div className="flex min-h-[80px] items-center gap-4 rounded-[18px] bg-white px-4 py-3 shadow-[0_7px_18px_rgba(31,41,55,0.045)]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#edf9ef] text-[#28a85f]">
+                <ReceiptText size={23} strokeWidth={1.9} />
+              </div>
+              <div>
+                <div className="text-[12px] font-extrabold uppercase tracking-[-0.01em] text-[#4e5667]">Ticket Médio</div>
+                <div className="mt-1 text-[17px] font-extrabold text-[#1fa85b]">{fmt(averageTicket)}</div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 xl:justify-end">
-          <Button variant="outline" className="h-12 rounded-[18px] px-5 text-base font-semibold" onClick={() => setShowHistory(true)}>
-            <History size={16} className="mr-1" /> Histórico
-          </Button>
-          {!register || register.business_day !== todayBusinessDay ? (
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button
-              onClick={() => setShowOpen(true)}
-              className="h-12 rounded-[18px] bg-amber-500 px-5 text-base font-semibold text-white hover:bg-amber-600"
-            >
-              <Unlock size={16} className="mr-1" /> Abrir Caixa
-            </Button>
-          ) : isOpenToday ? (
-            <>
-              {register.reopen_count > 0 && register.closed_at && (
-                <Button variant="outline" className="h-12 rounded-[18px] px-5 text-base font-semibold" onClick={discardReopen}>
-                  <RefreshCw size={16} className="mr-1" /> Descartar Reabertura
-                </Button>
-              )}
-              <Button
-                onClick={() => setShowClose(true)}
-                className={cn(
-                  "h-12 rounded-[18px] px-5 text-base font-semibold text-white",
-                  remindClose
-                    ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
-                    : "bg-amber-600 hover:bg-amber-700",
-                )}
-              >
-                <Lock size={16} className="mr-1" />
-                {remindClose ? "FECHAR CAIXA AGORA" : "Fechar Caixa"}
-              </Button>
-            </>
-          ) : canReopen ? (
-            <Button
-              onClick={() => setShowOpen(true)}
               variant="outline"
-              className="h-12 rounded-[18px] px-5 text-base font-semibold"
+              className="h-12 rounded-[15px] border-[#e5e5e0] bg-white px-5 text-[15px] font-semibold text-[#273044] shadow-[0_5px_14px_rgba(31,41,55,.05)] hover:bg-[#f8f7f4]"
+              onClick={() => setShowHistory(true)}
             >
-              <RefreshCw size={16} className="mr-1" /> Reabrir Caixa
+              <History size={18} className="mr-1" /> Histórico
             </Button>
-          ) : (
-            <span className="text-xs text-muted-foreground">Caixa do dia já encerrado.</span>
-          )}
+            {!register || register.business_day !== todayBusinessDay ? (
+              <Button
+                onClick={() => setShowOpen(true)}
+                className="h-12 rounded-[15px] bg-[#ff9800] px-5 text-[15px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
+              >
+                <Unlock size={18} className="mr-1" /> Abrir Caixa
+              </Button>
+            ) : isOpenToday ? (
+              <>
+                {register.reopen_count > 0 && register.closed_at && (
+                  <Button
+                    variant="outline"
+                    className="h-12 rounded-[15px] border-[#e5e5e0] bg-white px-5 text-[15px] font-semibold"
+                    onClick={discardReopen}
+                  >
+                    <RefreshCw size={18} className="mr-1" /> Descartar Reabertura
+                  </Button>
+                )}
+                <Button
+                  onClick={() => setShowClose(true)}
+                  className={cn(
+                    "h-12 rounded-[15px] px-5 text-[15px] font-bold text-white",
+                    remindClose
+                      ? "bg-destructive hover:bg-destructive/90 cash-blink font-extrabold"
+                      : "bg-[#ff9800] shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]",
+                  )}
+                >
+                  <Lock size={18} className="mr-1" />
+                  {remindClose ? "FECHAR CAIXA AGORA" : "Fechar Caixa"}
+                </Button>
+              </>
+            ) : canReopen ? (
+              <Button
+                onClick={() => setShowOpen(true)}
+                className="h-12 rounded-[15px] bg-[#ff9800] px-5 text-[15px] font-bold text-white shadow-[0_8px_18px_rgba(255,152,0,.22)] hover:bg-[#ed8d00]"
+              >
+                <RefreshCw size={18} className="mr-1" /> Reabrir Caixa
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">Caixa do dia já encerrado.</span>
+            )}
           </div>
         </div>
       </div>

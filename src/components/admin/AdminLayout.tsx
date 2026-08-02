@@ -37,6 +37,7 @@ import {
   PanelLeft,
   CircleHelp,
   ChevronDown,
+  Flame,
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -379,57 +380,59 @@ const AdminLayout = () => {
       )}
 
       <div className="flex min-h-screen flex-1 flex-col overflow-hidden print:block">
-        <header className="border-b border-border bg-card px-4 py-4 print:hidden sm:px-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-4">
+        <header className="border-b border-[#ece9e2] bg-white px-5 print:hidden sm:px-7 lg:px-9">
+          <div className="mx-auto flex h-[94px] w-full max-w-[1680px] items-center justify-between gap-5">
+            <div className="flex min-w-0 items-center gap-5">
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Abrir menu"
-                className="rounded-2xl p-2.5 text-foreground transition hover:bg-muted"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#182033] transition hover:bg-[#f7f5f1]"
               >
-                <Menu size={24} />
+                <Menu size={28} strokeWidth={2.1} />
               </button>
 
-              <div className="flex items-center gap-3 pr-5 border-r border-border">
-                <div className="leading-none">
-                  <div className="text-[14px] font-black italic tracking-tight text-foreground sm:text-[20px]">Turbo</div>
-                  <div className="-mt-0.5 text-[14px] font-extrabold leading-none text-primary sm:text-[20px]">Lanches</div>
+              <div className="flex shrink-0 items-center gap-2 border-r border-[#ece9e2] pr-7">
+                <div className="leading-[0.86]">
+                  <div className="flex items-end gap-0.5 text-[26px] font-black italic tracking-[-0.06em] text-[#171d2c]">
+                    <span>Turbo</span><Flame size={23} className="mb-0.5 fill-[#ff6a00] text-[#ff6a00]" />
+                  </div>
+                  <div className="pl-[42px] text-[15px] font-extrabold italic tracking-[-0.03em] text-[#f48b00]">Lanches</div>
                 </div>
               </div>
 
-              <div className="hidden sm:flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-                <PanelLeft size={22} />
+              <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#ff9800] text-white shadow-[0_8px_20px_rgba(255,152,0,.18)] sm:flex">
+                <PanelLeft size={22} strokeWidth={2.1} />
               </div>
 
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground">{currentNav?.label || "Dashboard"}</h1>
-                <p className="mt-1 truncate text-sm text-muted-foreground">{pageSubtitle}</p>
+                <h1 className="truncate text-[29px] font-extrabold tracking-[-0.035em] text-[#252834]">{currentNav?.label || "Dashboard"}</h1>
+                <p className="mt-1 truncate text-[15px] text-[#737985]">{pageSubtitle}</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
-                <Bell size={18} />
-                <span className="absolute right-0.5 top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">3</span>
+            <div className="flex shrink-0 items-center gap-3">
+              <button className="relative flex h-11 w-11 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+                <Bell size={24} strokeWidth={1.8} />
+                <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-[24px] items-center justify-center rounded-full border-2 border-white bg-[#ef2b2d] px-1 text-[12px] font-extrabold text-white">3</span>
               </button>
-              <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
-                <CircleHelp size={18} />
+              <button className="flex h-11 w-11 items-center justify-center rounded-full text-[#20304a] transition hover:bg-[#f7f5f1]">
+                <CircleHelp size={24} strokeWidth={1.8} />
               </button>
-              <div className="flex items-center gap-3 rounded-full border border-border bg-background px-3 py-2 shadow-sm">
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary font-bold">
+              <div className="ml-4 flex items-center gap-3 border-l border-[#ece9e2] pl-5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ffe0a8] text-[18px] font-extrabold text-[#f39a00]">
                   {user?.email?.[0]?.toUpperCase() || "A"}
                 </div>
-                <div className="hidden sm:block pr-1">
-                  <p className="text-sm font-semibold leading-tight text-foreground">Administrador</p>
-                  <p className="text-xs text-muted-foreground">Admin</p>
+                <div className="hidden min-w-[108px] sm:block">
+                  <p className="text-[15px] font-bold leading-tight text-[#252834]">Administrador</p>
+                  <p className="mt-1 text-[13px] text-[#747b87]">Admin</p>
                 </div>
-                <ChevronDown size={16} className="hidden sm:block text-muted-foreground" />
+                <ChevronDown size={17} className="hidden text-[#20304a] sm:block" />
               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-background px-4 py-5 print:overflow-visible print:p-0 sm:px-5 lg:px-6 min-h-0">
+        <main className="flex-1 overflow-auto bg-[#fafafa] px-5 py-5 print:overflow-visible print:p-0 sm:px-6 lg:px-7 min-h-0">
           <div className="mx-auto w-full max-w-[1680px]">
             {currentLocked ? (
               <div className="flex items-center justify-center py-20">

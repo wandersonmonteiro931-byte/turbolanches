@@ -179,6 +179,55 @@ const getPaymentDisplay = (paymentMethod: string, paymentConfirmed: boolean): st
   return paymentConfirmed ? `${paymentMethod.toUpperCase()} (PAGO)` : paymentMethod.toUpperCase();
 };
 
+const DashboardEmptyState = ({ isSearch }: { isSearch: boolean }) => (
+  <div className="flex min-h-[276px] flex-col items-center justify-center px-6 py-10 text-center">
+    <svg viewBox="0 0 260 180" className="h-[170px] w-[250px] max-w-full" aria-hidden="true">
+      <defs>
+        <linearGradient id="emptyBlob" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#fff8e7" />
+          <stop offset="1" stopColor="#fff1d2" />
+        </linearGradient>
+        <filter id="emptyShadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="7" stdDeviation="7" floodColor="#9a7650" floodOpacity="0.13" />
+        </filter>
+      </defs>
+      <path d="M39 112c-9-25 6-45 30-47 7-27 35-39 61-26 20-16 50-4 51 23 23 2 39 21 34 43-5 22-28 33-52 32H76c-18 0-31-9-37-25Z" fill="url(#emptyBlob)" />
+      <circle cx="42" cy="90" r="10" fill="#fff" opacity=".78" />
+      <circle cx="211" cy="82" r="8" fill="#fff" opacity=".75" />
+      <path d="M191 40l3.3 7.2 7.7 2.8-7.7 2.8L191 60l-3.3-7.2L180 50l7.7-2.8L191 40Z" fill="#ff9800" />
+      <path d="M62 43l2.5 5.5 5.5 2-5.5 2L62 58l-2.5-5.5-5.5-2 5.5-2L62 43Z" fill="#ffd982" />
+      <g filter="url(#emptyShadow)">
+        <rect x="103" y="53" width="67" height="90" rx="9" fill="#8697b3" />
+        <rect x="110" y="61" width="53" height="74" rx="5" fill="#fff" />
+        <rect x="124" y="46" width="26" height="15" rx="6" fill="#9aa9c1" />
+        <rect x="129" y="50" width="16" height="5" rx="2.5" fill="#fff" opacity=".85" />
+        <path d="M129 89c0-7 5.5-12.5 12.5-12.5S154 82 154 89v2h3v5h-31v-5h3v-2Z" fill="#8d9db8" />
+        <path d="M135 77v-4c0-2 1.7-4 4-4h5c2.3 0 4 2 4 4v4" stroke="#8d9db8" strokeWidth="3" strokeLinecap="round" />
+        <rect x="120" y="108" width="34" height="4" rx="2" fill="#d8dee8" />
+        <rect x="120" y="116" width="26" height="4" rx="2" fill="#e7eaf0" />
+      </g>
+      <g filter="url(#emptyShadow)">
+        <circle cx="167" cy="126" r="21" fill="#fff" stroke="#f28a00" strokeWidth="6" />
+        <path d="m182 142 16 16" stroke="#f28a00" strokeWidth="8" strokeLinecap="round" />
+        <path d="m183 143 15 15" stroke="#bc5c00" strokeWidth="3" strokeLinecap="round" opacity=".35" />
+      </g>
+      <g filter="url(#emptyShadow)">
+        <rect x="67" y="127" width="39" height="14" rx="3" fill="#d66e00" />
+        <path d="M70 141h33l-4 17H74l-4-17Z" fill="#ef8e17" />
+        <path d="M86 126c-1-15 1-24 4-30 4 7 6 17 2 30" fill="#47a95d" />
+        <path d="M84 126c-9-9-13-18-12-27 9 3 17 12 17 27" fill="#56bd69" />
+        <path d="M90 126c8-10 14-17 23-18-2 10-8 18-18 22" fill="#43a95b" />
+      </g>
+    </svg>
+    <h3 className="mt-1 text-[20px] font-extrabold tracking-[-0.025em] text-[#252834]">
+      {isSearch ? "Nenhum pedido encontrado" : "Nenhum pedido nesta categoria"}
+    </h3>
+    <p className="mt-2 text-[15px] text-[#747b87]">
+      {isSearch ? "Tente alterar os termos usados na busca." : "Quando novos pedidos chegarem, eles aparecerão aqui."}
+    </p>
+  </div>
+);
+
 const AdminDashboard = () => {
   const { storeId, loading: storeLoading } = useStore();
   const { isOpen: customerSeesOpen, nextOpeningText } = useStoreStatus();
@@ -1934,123 +1983,100 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
       {/* Cash Register */}
       <CashRegister onChange={setCashRegisterOpen} storeIsOpen={customerSeesOpen} todayRevenue={todayRevenue} orderCount={totalOrdersVisible} averageTicket={averageTicket} />
 
-      <div className="grid gap-5 lg:grid-cols-[1.05fr_1.6fr]">
-        <div className="rounded-[28px] border border-border bg-card p-5 shadow-sm lg:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Store size={18} className="text-primary" />
-            <h3 className="text-[15px] font-extrabold text-foreground">Status da Loja</h3>
+      <div className="grid gap-4 xl:grid-cols-[0.92fr_2.08fr]">
+        <section className="rounded-[23px] border border-[#e7e5df] bg-white px-5 py-5 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
+          <div className="mb-5 flex items-center gap-3">
+            <Store size={20} className="text-[#ff9800]" strokeWidth={2} />
+            <h2 className="text-[17px] font-extrabold tracking-[-0.02em] text-[#252834]">Status da Loja</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex min-h-[144px] items-center rounded-[22px] border border-green-100 bg-[#edf8ef] p-6 text-green-700">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/80 shadow-sm">
-                  <Store size={22} />
-                </div>
-                <div>
-                  <p className="text-[15px] font-extrabold uppercase tracking-wide">{customerSeesOpen ? "Loja Aberta" : "Loja Fechada"}</p>
-                  {!customerSeesOpen && nextOpeningText && (
-                    <p className="mt-2 max-w-[180px] text-sm font-medium leading-6 text-green-700/85">{nextOpeningText.replace("(", "").replace(")", "")}</p>
-                  )}
-                  {customerSeesOpen && <p className="mt-2 text-sm font-medium">Recebendo pedidos normalmente.</p>}
+          <div className="grid gap-4 sm:grid-cols-[1.05fr_.95fr]">
+            <div className="flex min-h-[88px] items-center rounded-[17px] bg-[#eaf8ed] px-5 py-4 text-[#15904a]">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/85 shadow-sm">
+                <Store size={24} strokeWidth={1.9} />
+              </div>
+              <div className="ml-4 min-w-0">
+                <div className="text-[15px] font-extrabold uppercase tracking-[-0.01em]">{customerSeesOpen ? "Loja Aberta" : "Loja Fechada"}</div>
+                <div className="mt-2 truncate text-[13px] text-[#5f7868]">
+                  {customerSeesOpen ? "Recebendo pedidos agora" : nextOpeningText ? nextOpeningText.replace("(", "").replace(")", "") : "Fora do horário"}
                 </div>
               </div>
             </div>
-            <div className="flex min-h-[144px] items-start rounded-[22px] border border-border bg-white p-6">
-              <div className="w-full rounded-[18px] border border-border bg-[#fffdfa] px-5 py-4">
-                <BrasiliaClock />
-              </div>
+            <div className="flex min-h-[88px] items-center rounded-[17px] border border-[#e7e5df] bg-white px-5 py-4">
+              <BrasiliaClock />
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="rounded-[28px] border border-border bg-card p-5 shadow-sm lg:p-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Zap size={18} className="text-primary" />
-            <h3 className="text-[15px] font-extrabold text-foreground">Ações Rápidas</h3>
+        <section className="rounded-[23px] border border-[#e7e5df] bg-white px-5 py-5 shadow-[0_8px_28px_rgba(31,41,55,0.035)]">
+          <div className="mb-5 flex items-center gap-3">
+            <Zap size={21} className="text-[#ff9800]" strokeWidth={2} />
+            <h2 className="text-[17px] font-extrabold tracking-[-0.02em] text-[#252834]">Ações Rápidas</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
             <button
               onClick={requestToggleConfirmation}
               aria-busy={togglingStore}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-green-600 hover:bg-[#faf8f4]"
+              className="group flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#199c52] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Power size={24} />
-              <span className="text-center leading-5">{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
+              <Power size={25} strokeWidth={1.8} />
+              <span>{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
             </button>
             <button
               onClick={() => navigate("/admin/novo-pedido")}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-orange-500 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Plus size={24} />
-              <span className="text-center leading-5">Novo Pedido</span>
+              <Plus size={27} strokeWidth={1.8} />
+              <span>Novo Pedido</span>
             </button>
             <button
               onClick={openKitchenWindow}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-orange-500 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#ff7a00] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <ChefHat size={24} />
-              <span className="text-center leading-5">Cozinha</span>
+              <ChefHat size={26} strokeWidth={1.8} />
+              <span>Cozinha</span>
             </button>
             <button
               onClick={() => setShowFeeQuery(true)}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <MapPin size={24} />
-              <span className="text-center leading-5">Consultar Taxa</span>
+              <MapPin size={25} strokeWidth={1.8} />
+              <span>Consultar Taxa</span>
             </button>
             <button
               onClick={() => {
                 fetchOrders();
                 toast({ title: "Pedidos atualizados!" });
               }}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-blue-600 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#2478f2] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <RefreshCw size={24} />
-              <span className="text-center leading-5">Atualizar</span>
+              <RefreshCw size={25} strokeWidth={1.8} />
+              <span>Atualizar</span>
             </button>
             <button
               onClick={() => setShowExpenseManager(true)}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Wallet size={24} />
-              <span className="text-center leading-5">Gastos</span>
+              <Wallet size={25} strokeWidth={1.8} />
+              <span>Gastos</span>
             </button>
             <button
               onClick={() => setShowCalculator(true)}
-              className="flex min-h-[104px] flex-col items-center justify-center gap-3 rounded-[20px] border border-border bg-white px-3 py-4 text-sm font-semibold text-violet-600 hover:bg-[#faf8f4]"
+              className="flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[17px] border border-[#e9e6df] bg-white px-3 py-3 text-[14px] font-bold text-[#8236d8] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
             >
-              <Calculator size={24} />
-              <span className="text-center leading-5">Calculadora</span>
+              <Calculator size={25} strokeWidth={1.8} />
+              <span>Calculadora</span>
             </button>
           </div>
-          <div className="mt-4 flex flex-col gap-3 rounded-[22px] border border-border bg-white px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
-            <PrintModeSelector />
-            <div className="flex items-center gap-5 self-end text-sm xl:self-auto">
-              <div className="text-muted-foreground">
-                <span className="font-bold text-foreground">{totalOrdersVisible}</span> pedidos
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                Faturamento:
-                <span className="font-bold text-green-600">
-                  {valuesVisible ? `R$ ${todayRevenue.toFixed(2).replace(".", ",")}` : "R$ •••••"}
-                </span>
-                <button onClick={() => setValuesVisible((v) => !v)} className="rounded-full p-1.5 hover:bg-muted">
-                  {valuesVisible ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
 
       {/* Date Picker + Search + Reports menu */}
-      {/* Date Picker + Search + Reports menu */}
-      <div className="flex flex-wrap items-center gap-3 rounded-[24px] border border-border bg-card p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-[20px] border border-[#ebe8e2] bg-white px-5 py-4 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={cn("h-12 w-[220px] justify-start rounded-[18px] border border-border bg-white text-left font-semibold", !selectedDate && "text-muted-foreground")}
+              className={cn("h-12 w-[340px] justify-start rounded-[15px] border border-[#e7e4de] bg-white px-5 text-left text-[15px] font-semibold text-[#252834]", !selectedDate && "text-muted-foreground")}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {format(selectedDate, "dd/MM/yyyy")}
@@ -2086,20 +2112,23 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             placeholder="Buscar por nº pedido, nome, telefone, endereço..."
             autoComplete="off"
             name="dashboard-search-nofill"
-            className="h-12 w-full rounded-[18px] border border-border bg-white py-2.5 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="h-12 w-full rounded-[15px] border border-[#e7e4de] bg-white py-2.5 pl-12 pr-4 text-[15px] text-[#252834] placeholder:text-[#8a909b] focus:outline-none focus:ring-2 focus:ring-[#ff9800]/20"
           />
         </div>
 
         {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
         <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
           <PopoverTrigger asChild>
-            <button className="flex h-12 items-center gap-2 rounded-[18px] border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted">
+            <button className="flex h-12 items-center gap-2 rounded-[15px] border border-[#e7e4de] bg-white px-5 py-2.5 text-[15px] font-semibold text-[#252834] hover:bg-[#faf8f5]">
               <FileText size={16} />
               Relatórios
               <ChevronDown size={14} />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-60 p-1">
+          <PopoverContent align="end" className="w-72 rounded-2xl border border-[#e7e4de] p-2 shadow-xl">
+            <div className="mb-2 rounded-xl bg-[#faf8f4] p-2">
+              <PrintModeSelector />
+            </div>
             <button
               onClick={() => {
                 setShowReportsMenu(false);
@@ -2364,48 +2393,43 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
         </div>
       )}
 
-      <div className="flex w-full flex-wrap gap-1.5 pb-1 sm:gap-2">
-        {tabs.map((tab) => {
-          const count = stats[tab.key as keyof typeof stats] || 0;
-          const isActive = activeTab === tab.key;
-          const isPendingWithOrders = tab.key === "pending" && count > 0;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex min-w-0 flex-1 basis-0 items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-semibold transition-all sm:gap-2 sm:px-3 sm:py-2.5 sm:text-sm ${
-                isActive ? `${tab.color} text-white` : "bg-card border border-border text-foreground hover:bg-muted"
-              } ${isPendingWithOrders ? "animate-pulse ring-2 ring-amber-400 ring-offset-1" : ""}`}
-            >
-              <tab.icon size={14} className="shrink-0" />
-              <span className="truncate">{tab.label}</span>
-              {count > 0 && (
+      <section className="overflow-hidden rounded-[22px] border border-[#e8e5df] bg-white p-3 shadow-[0_8px_28px_rgba(31,41,55,.03)]">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+          {tabs.map((tab) => {
+            const count = stats[tab.key as keyof typeof stats] || 0;
+            const isActive = activeTab === tab.key;
+            const isPendingWithOrders = tab.key === "pending" && count > 0;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "flex h-[56px] min-w-0 items-center justify-center gap-3 rounded-[14px] border px-3 text-[14px] font-bold transition-all",
+                  isActive
+                    ? "border-transparent bg-[linear-gradient(135deg,#ffa000,#ff8a00)] text-white shadow-[0_8px_18px_rgba(255,152,0,.20)]"
+                    : "border-[#ebe8e2] bg-white text-[#252834] hover:bg-[#faf8f5]",
+                  isPendingWithOrders && !isActive ? "ring-2 ring-amber-300 ring-offset-1" : "",
+                )}
+              >
+                <tab.icon size={18} className="shrink-0" strokeWidth={1.9} />
+                <span className="truncate">{tab.label}</span>
                 <span
-                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold sm:text-xs ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : isPendingWithOrders
-                        ? "bg-amber-500 text-white"
-                        : "bg-muted text-foreground"
-                  }`}
+                  className={cn(
+                    "flex h-7 min-w-[28px] shrink-0 items-center justify-center rounded-full px-2 text-[12px] font-extrabold",
+                    isActive ? "bg-white/25 text-white" : "bg-[#f5f5f3] text-[#8a909b]",
+                  )}
                 >
                   {count}
                 </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Orders List */}
-      {filteredOrders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Package size={40} className="mb-3 opacity-40" />
-          <p className="text-sm">
-            {searchQuery ? "Nenhum pedido encontrado para essa busca" : "Nenhum pedido nesta categoria"}
-          </p>
+              </button>
+            );
+          })}
         </div>
-      ) : (
+
+        {/* Orders List */}
+        {filteredOrders.length === 0 ? (
+          <DashboardEmptyState isSearch={Boolean(searchQuery)} />
+        ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {filteredOrders.map((order) => {
             const next = order.status === "awaiting_payment" ? null : getNextStatusForOrder(order);
@@ -2948,6 +2972,8 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
           })}
         </div>
       )}
+      </section>
+
       {/* Cancel Reason Modal */}
       {cancellingOrderId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
