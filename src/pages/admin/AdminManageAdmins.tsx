@@ -188,24 +188,8 @@ const AdminManageAdmins = () => {
     }));
   };
 
-  const savePermissions = async (memberId: string, permissions: string[]) => {
-    const client = supabase as any;
-    const { error: deleteError } = await client
-      .from("staff_section_permissions")
-      .delete()
-      .eq("staff_member_id", memberId);
-    if (deleteError) throw deleteError;
 
-    if (!permissions.length) return;
-    const { error: insertError } = await client.from("staff_section_permissions").insert(
-      permissions.map((sectionPath) => ({
-        staff_member_id: memberId,
-        section_path: sectionPath,
-        can_access: true,
-      })),
-    );
-    if (insertError) throw insertError;
-  };
+
 
   const saveMember = async () => {
     const usernameValue = normalizeStaffUsername(form.username);
@@ -213,6 +197,14 @@ const AdminManageAdmins = () => {
       toast({
         title: "Preencha os dados obrigatórios",
         description: "Informe nome, e-mail ou usuário de acesso, e uma senha com pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (editingId && form.password && form.password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A nova senha precisa ter pelo menos 6 caracteres.",
         variant: "destructive",
       });
       return;
@@ -229,22 +221,25 @@ const AdminManageAdmins = () => {
     setSaving(true);
     try {
       if (editingId) {
-        const client = supabase as any;
-        const { error } = await client
-          .from("staff_members")
-          .update({
+        const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
+          body: {
+            action: "update",
+            staff_member_id: editingId,
             display_name: form.displayName.trim(),
+            email: form.email.trim().toLowerCase(),
+            username: usernameValue,
+            employee_code: form.employeeCode.trim().toUpperCase(),
+            password: form.password,
             role: form.role,
-            store_id: form.storeId || null,
-            email: form.email.trim().toLowerCase() || null,
-            employee_code: form.employeeCode.trim().toUpperCase() || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingId);
+            store_id: form.storeId || storeId,
+            permissions: form.permissions,
+          },
+        });
         if (error) throw error;
-        await savePermissions(editingId, form.permissions);
-        toast({ title: "Acesso atualizado com sucesso" });
+        if (data?.error) throw new Error(data.error);
+        toast({ title: form.password ? "Conta e senha atualizadas" : "Acesso atualizado com sucesso" });
       } else {
+
         const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
           body: {
             action: "create",
@@ -413,8 +408,7 @@ const AdminManageAdmins = () => {
                 onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
                 placeholder="ex.: joao.caixa"
                 autoCapitalize="none"
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
               <p className="mt-1 text-[11px] text-muted-foreground">Pode entrar com este usuário e a senha, sem precisar de e-mail.</p>
             </div>
@@ -425,21 +419,21 @@ const AdminManageAdmins = () => {
                 value={form.email}
                 onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 placeholder="usuario@loja.com"
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label className="text-sm font-bold text-foreground">Senha {editingId ? "" : "*"}</label>
+              <label className="text-sm font-bold text-foreground">{editingId ? "Nova senha" : "Senha *"}</label>
               <input
                 type="password"
                 value={form.password}
+                autoComplete="new-password"
                 onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-                placeholder={editingId ? "Mantida sem alteração" : "Mínimo 6 caracteres"}
-                disabled={Boolean(editingId)}
-                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+                placeholder={editingId ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
               />
             </div>
+
             <div>
               <label className="text-sm font-bold text-foreground">Loja</label>
               <select

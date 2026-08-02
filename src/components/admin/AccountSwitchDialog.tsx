@@ -81,25 +81,42 @@ const AccountSwitchDialog = ({ targetMode, onClose, onSwitched }: AccountSwitchD
       return;
     }
 
-    const identifier = selected.username || selected.email;
-    if (!identifier) {
+    const candidates = Array.from(
+      new Set(
+        [
+          selected.email ? selected.email.trim().toLowerCase() : "",
+          selected.username ? resolveLoginEmail(selected.username) : "",
+        ].filter(Boolean),
+      ),
+    );
+
+    if (!candidates.length) {
       setError("Esta conta não tem usuário ou e-mail de acesso cadastrado.");
       return;
     }
 
     setSubmitting(true);
     setError("");
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: resolveLoginEmail(identifier),
-      password,
-    });
+
+    let signedIn = false;
+    for (const candidate of candidates) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: candidate,
+        password,
+      });
+      if (!signInError) {
+        signedIn = true;
+        break;
+      }
+    }
     setSubmitting(false);
 
-    if (signInError) {
+    if (!signedIn) {
       setPassword("");
       setError("Senha incorreta. Tente novamente.");
       return;
     }
+
 
     setStoredAccountMode(targetMode);
     onSwitched(targetMode);
