@@ -217,6 +217,14 @@ const AdminManageAdmins = () => {
       });
       return;
     }
+    if (editingId && form.password && form.password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A nova senha precisa ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!form.permissions.includes("/admin")) {
       toast({
         title: "Dashboard obrigatório",
@@ -229,22 +237,25 @@ const AdminManageAdmins = () => {
     setSaving(true);
     try {
       if (editingId) {
-        const client = supabase as any;
-        const { error } = await client
-          .from("staff_members")
-          .update({
+        const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
+          body: {
+            action: "update",
+            staff_member_id: editingId,
             display_name: form.displayName.trim(),
+            email: form.email.trim().toLowerCase(),
+            username: usernameValue,
+            employee_code: form.employeeCode.trim().toUpperCase(),
+            password: form.password,
             role: form.role,
-            store_id: form.storeId || null,
-            email: form.email.trim().toLowerCase() || null,
-            employee_code: form.employeeCode.trim().toUpperCase() || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", editingId);
+            store_id: form.storeId || storeId,
+            permissions: form.permissions,
+          },
+        });
         if (error) throw error;
-        await savePermissions(editingId, form.permissions);
-        toast({ title: "Acesso atualizado com sucesso" });
+        if (data?.error) throw new Error(data.error);
+        toast({ title: form.password ? "Conta e senha atualizadas" : "Acesso atualizado com sucesso" });
       } else {
+
         const { data, error } = await supabase.functions.invoke("admin-manage-staff", {
           body: {
             action: "create",
