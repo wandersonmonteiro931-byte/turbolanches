@@ -72,7 +72,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<StaffRole, string[]> = {
 };
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
-  admin: "Administrador",
+  admin: "Administração",
   seller: "Vendedor",
   cashier: "Caixa",
 };
