@@ -676,16 +676,23 @@ const AdminManageAdmins = () => {
                   <button type="button" onClick={() => startEdit(member)} className="flex items-center justify-center gap-1.5 rounded-xl bg-muted px-2 py-2 text-xs font-bold text-foreground hover:bg-muted/70">
                     <Pencil size={13} /> Editar
                   </button>
-                  <button type="button" onClick={() => toggleStatus(member)} className={cn(
-                    "rounded-xl px-2 py-2 text-xs font-bold",
+                  <button type="button" onClick={() => toggleStatus(member)} disabled={member.is_active && isLastAdmin(member)} className={cn(
+                    "rounded-xl px-2 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40",
                     member.is_active ? "bg-amber-50 text-amber-700" : "bg-green-50 text-green-700",
                   )}>
                     {member.is_active ? "Suspender" : "Ativar"}
                   </button>
-                  <button type="button" onClick={() => deleteMember(member)} className="flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-2 py-2 text-xs font-bold text-red-600 hover:bg-red-100">
-                    <Trash2 size={13} /> Excluir
+                  <button
+                    type="button"
+                    onClick={() => deleteMember(member)}
+                    disabled={isLastAdmin(member)}
+                    title={isLastAdmin(member) ? "O administrador é obrigatório e não pode ser excluído" : undefined}
+                    className="flex items-center justify-center gap-1.5 rounded-xl bg-red-50 px-2 py-2 text-xs font-bold text-red-600 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 size={13} /> {isLastAdmin(member) ? "Fixo" : "Excluir"}
                   </button>
                 </div>
+
               </article>
             );
           })}
