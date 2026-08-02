@@ -36,6 +36,7 @@ import {
   LifeBuoy,
   PanelLeft,
   CircleHelp,
+  ChevronDown,
 } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
@@ -371,7 +372,7 @@ const AdminLayout = () => {
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[1px] print:hidden">
           <div className="absolute inset-0" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 h-full w-[300px] max-w-[86vw] bg-card shadow-2xl">
+          <aside className="absolute left-0 top-0 h-full w-[320px] max-w-[88vw] border-r border-border bg-card shadow-2xl">
             <NavContent />
           </aside>
         </div>
@@ -407,8 +408,9 @@ const AdminLayout = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
+              <button className="relative flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 <Bell size={18} />
+                <span className="absolute right-0.5 top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">3</span>
               </button>
               <button className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 <CircleHelp size={18} />
@@ -421,6 +423,7 @@ const AdminLayout = () => {
                   <p className="text-sm font-semibold leading-tight text-foreground">Administrador</p>
                   <p className="text-xs text-muted-foreground">Admin</p>
                 </div>
+                <ChevronDown size={16} className="hidden sm:block text-muted-foreground" />
               </div>
             </div>
           </div>
