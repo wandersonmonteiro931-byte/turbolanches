@@ -117,8 +117,10 @@ const AdminLayout = () => {
   const [forgotContext, setForgotContext] = useState<"entry" | "section">("entry");
   const [showHeaderHelp, setShowHeaderHelp] = useState(false);
   const [showHeaderProfile, setShowHeaderProfile] = useState(false);
+  const [switchTarget, setSwitchTarget] = useState<Exclude<AdminAccountMode, "client"> | null>(null);
   const headerActionsRef = useRef<HTMLDivElement | null>(null);
   const redirectTarget = `${location.pathname}${location.search}${location.hash}`;
+
 
   useEffect(() => {
     if (loading) return;
