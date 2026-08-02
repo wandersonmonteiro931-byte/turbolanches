@@ -582,7 +582,7 @@ const AdminLayout = () => {
                   <div className="mt-3 border-t border-[#eeeae3] pt-3">
                     <p className="px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a909b]">Trocar de conta</p>
                     <div className="mt-2 grid gap-1.5">
-                      {availableModes.map((itemMode) => {
+                      {(["administration", "seller", "cashier", "client"] as AdminAccountMode[]).map((itemMode) => {
                         const isCurrent = accountMode === itemMode;
                         const ModeIcon = itemMode === "administration"
                           ? Shield
@@ -603,16 +603,15 @@ const AdminLayout = () => {
                           >
                             <ModeIcon size={16} className="mr-2.5" />
                             <span className="flex-1">{MODE_LABELS[itemMode]}</span>
-                            {isCurrent && <Check size={15} />}
+                            {isCurrent ? <Check size={15} /> : itemMode !== "client" && <Lock size={13} className="text-[#a8adb6]" />}
                           </button>
                         );
                       })}
                     </div>
-                    {isOwnerAdmin && (
-                      <p className="mt-2 px-2 text-[10px] leading-4 text-[#8a909b]">
-                        A troca altera a visão do sistema sem encerrar sua sessão.
-                      </p>
-                    )}
+                    <p className="mt-2 px-2 text-[10px] leading-4 text-[#8a909b]">
+                      Trocar para Administração, Vendedor ou Caixa exige escolher o funcionário e digitar a senha.
+                    </p>
+
                   </div>
 
                   <div className="mt-3 border-t border-[#eeeae3] pt-3 space-y-1.5">
