@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isStaffInternalEmail, normalizeStaffUsername } from "@/lib/staffLogin";
 
 interface StaffMember {
   id: string;
@@ -35,6 +36,8 @@ interface StaffMember {
   role: StaffRole;
   display_name: string;
   email: string | null;
+  employee_code: string | null;
+  username: string | null;
   is_active: boolean;
   created_at: string;
   permissions: string[];
@@ -42,6 +45,8 @@ interface StaffMember {
 
 const emptyForm = {
   displayName: "",
+  employeeCode: "",
+  username: "",
   email: "",
   password: "",
   role: "seller" as StaffRole,
@@ -88,7 +93,7 @@ const AdminManageAdmins = () => {
       const client = supabase as any;
       let query = client
         .from("staff_members")
-        .select("id, store_id, user_id, role, display_name, email, is_active, created_at")
+        .select("id, store_id, user_id, role, display_name, email, employee_code, username, is_active, created_at")
         .order("created_at", { ascending: false });
       if (storeId) query = query.eq("store_id", storeId);
 
@@ -203,10 +208,11 @@ const AdminManageAdmins = () => {
   };
 
   const saveMember = async () => {
-    if (!form.displayName.trim() || !form.email.trim() || (!editingId && form.password.length < 6)) {
+    const usernameValue = normalizeStaffUsername(form.username);
+    if (!form.displayName.trim() || (!form.email.trim() && !usernameValue) || (!editingId && form.password.length < 6)) {
       toast({
         title: "Preencha os dados obrigatórios",
-        description: "Informe nome, e-mail e uma senha com pelo menos 6 caracteres.",
+        description: "Informe nome, e-mail ou usuário de acesso, e uma senha com pelo menos 6 caracteres.",
         variant: "destructive",
       });
       return;
@@ -230,7 +236,8 @@ const AdminManageAdmins = () => {
             display_name: form.displayName.trim(),
             role: form.role,
             store_id: form.storeId || null,
-            email: form.email.trim().toLowerCase(),
+            email: form.email.trim().toLowerCase() || null,
+            employee_code: form.employeeCode.trim().toUpperCase() || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", editingId);
@@ -243,6 +250,8 @@ const AdminManageAdmins = () => {
             action: "create",
             display_name: form.displayName.trim(),
             email: form.email.trim().toLowerCase(),
+            username: usernameValue,
+            employee_code: form.employeeCode.trim().toUpperCase(),
             password: form.password,
             role: form.role,
             store_id: form.storeId || storeId,
@@ -270,7 +279,9 @@ const AdminManageAdmins = () => {
     setEditingId(member.id);
     setForm({
       displayName: member.display_name,
-      email: member.email || "",
+      employeeCode: member.employee_code || "",
+      username: member.username || "",
+      email: isStaffInternalEmail(member.email) ? "" : member.email || "",
       password: "",
       role: member.role,
       storeId: member.store_id || storeId || "",
@@ -387,7 +398,28 @@ const AdminManageAdmins = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-bold text-foreground">E-mail de acesso *</label>
+              <label className="text-sm font-bold text-foreground">Matrícula</label>
+              <input
+                value={form.employeeCode}
+                onChange={(event) => setForm((current) => ({ ...current, employeeCode: event.target.value.toUpperCase() }))}
+                placeholder="Gerada automaticamente"
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-bold text-foreground">Usuário de acesso</label>
+              <input
+                value={form.username}
+                onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))}
+                placeholder="ex.: joao.caixa"
+                autoCapitalize="none"
+                disabled={Boolean(editingId)}
+                className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm disabled:bg-muted"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">Pode entrar com este usuário e a senha, sem precisar de e-mail.</p>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-foreground">E-mail de acesso</label>
               <input
                 type="email"
                 value={form.email}
