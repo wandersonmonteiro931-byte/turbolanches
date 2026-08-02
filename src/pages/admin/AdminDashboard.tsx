@@ -2106,7 +2106,7 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
         )}
 
         <div className="relative flex-1 min-w-[200px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search size={16} className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground" />
           <input
             ref={searchInputRef}
             type="text"
@@ -2115,9 +2115,10 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             placeholder="Buscar por nº pedido, nome, telefone, endereço..."
             autoComplete="off"
             name="dashboard-search-nofill"
-            className="h-9 w-full rounded-[13px] border border-[#e7e4de] bg-white py-2.5 pl-10 pr-4 text-[14px] text-[#252834] placeholder:text-[#8a909b] focus:outline-none focus:ring-2 focus:ring-[#ff9800]/20"
+            className="h-10 w-full rounded-[13px] border border-[#e7e4de] bg-white py-2.5 pl-11 pr-4 text-[14px] text-[#252834] placeholder:text-[#8a909b] focus:outline-none focus:ring-2 focus:ring-[#ff9800]/20"
           />
         </div>
+
 
         {/* Relatórios — agrupa Reimprimir, Período e Entregas */}
         <Popover open={showReportsMenu} onOpenChange={setShowReportsMenu}>
