@@ -61,23 +61,36 @@ Deno.serve(async (req) => {
     const payload = await req.json();
     const action = String(payload?.action || "create");
 
+    const countAdmins = async () => {
+      const { count, error } = await adminClient
+        .from("staff_members")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if (error) throw error;
+      return count || 0;
+    };
+
     if (action === "delete") {
       const staffMemberId = String(payload?.staff_member_id || "");
       if (!staffMemberId) return json({ error: "Conta da equipe não informada" }, 400);
 
       const { data: member, error: memberError } = await adminClient
         .from("staff_members")
-        .select("id, user_id")
+        .select("id, user_id, role")
         .eq("id", staffMemberId)
         .maybeSingle();
       if (memberError) throw memberError;
       if (!member) return json({ error: "Conta não encontrada" }, 404);
       if (member.user_id === user.id) return json({ error: "Você não pode excluir a própria conta" }, 400);
+      if (member.role === "admin" && (await countAdmins()) <= 1) {
+        return json({ error: "O administrador é obrigatório e não pode ser excluído. Crie outro administrador antes." }, 400);
+      }
 
       const { error: deleteUserError } = await adminClient.auth.admin.deleteUser(member.user_id);
       if (deleteUserError) throw deleteUserError;
       return json({ success: true });
     }
+
 
     if (action === "update") {
       const staffMemberId = String(payload?.staff_member_id || "");
