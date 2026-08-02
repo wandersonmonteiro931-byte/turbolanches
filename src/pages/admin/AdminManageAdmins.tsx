@@ -324,7 +324,7 @@ const AdminManageAdmins = () => {
     const term = search.trim().toLowerCase();
     if (!term) return members;
     return members.filter((member) =>
-      `${member.display_name} ${member.email || ""} ${ROLE_LABELS[member.role]}`.toLowerCase().includes(term),
+      `${member.display_name} ${member.email || ""} ${member.username || ""} ${member.employee_code || ""} ${ROLE_LABELS[member.role]}`.toLowerCase().includes(term),
     );
   }, [members, search]);
 
@@ -623,7 +623,15 @@ const AdminManageAdmins = () => {
                         {member.is_active ? "Ativo" : "Suspenso"}
                       </span>
                     </div>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">{member.email}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {member.employee_code ? `Matrícula ${member.employee_code}` : "Sem matrícula"}
+                      {" · "}
+                      {member.username
+                        ? `Usuário ${member.username}`
+                        : isStaffInternalEmail(member.email)
+                          ? "Acesso interno"
+                          : member.email}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-bold text-foreground">{ROLE_LABELS[member.role]}</span>
                       <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[11px] font-bold text-orange-700">{member.permissions.length} seções</span>
