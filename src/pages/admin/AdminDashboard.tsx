@@ -2019,7 +2019,12 @@ TOTAL LÍQUIDO: R$ ${liquido.toFixed(2).replace(".", ",")}
             <button
               onClick={requestToggleConfirmation}
               aria-busy={togglingStore}
-              className="group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-[15px] border border-[#e9e6df] bg-white px-2 py-2 text-[12px] font-bold text-[#199c52] transition hover:-translate-y-0.5 hover:border-[#d9d4ca] hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]"
+              className={cn(
+                "group flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-[15px] border px-2 py-2 text-[12px] font-bold transition hover:-translate-y-0.5 hover:shadow-[0_9px_20px_rgba(31,41,55,.06)]",
+                customerSeesOpen
+                  ? "border-[#f5c6c6] bg-[#fff5f5] text-[#d32f2f] hover:border-[#e8a5a5] hover:bg-[#ffe8e8]"
+                  : "border-[#e9e6df] bg-white text-[#199c52] hover:border-[#d9d4ca]"
+              )}
             >
               <Power size={20} strokeWidth={1.8} />
               <span>{customerSeesOpen ? "Fechar Loja" : "Abrir Loja"}</span>
