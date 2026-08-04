@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
 import { AdminAccountMode, MODE_LABELS, setStoredAccountMode } from "@/lib/adminAccess";
 import AccountSwitchDialog from "@/components/admin/AccountSwitchDialog";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
 
 
 const navItems = [
