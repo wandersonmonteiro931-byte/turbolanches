@@ -37,14 +37,8 @@ export function BrasiliaClock({ className }: { className?: string }) {
       )}
       title={synced ? "Horário oficial de Brasília (sincronizado)" : "Sincronizando horário oficial..."}
     >
-      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
         <Clock size={16} className={cn("text-primary", !synced && "animate-pulse")} />
-        <span
-          className={cn(
-            "absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-card",
-            synced ? "bg-emerald-500" : "bg-amber-500 animate-pulse",
-          )}
-        />
       </span>
       <div className="flex flex-col leading-none">
         <span className="font-mono text-base font-bold tabular-nums tracking-tight text-foreground">
