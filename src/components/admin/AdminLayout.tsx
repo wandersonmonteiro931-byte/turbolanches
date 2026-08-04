@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { useStaffAccess } from "@/hooks/useStaffAccess";
 import { AdminAccountMode, MODE_LABELS, setStoredAccountMode } from "@/lib/adminAccess";
 import AccountSwitchDialog from "@/components/admin/AccountSwitchDialog";
+import { useStoreLogo } from "@/hooks/useStoreLogo";
 
 
 const navItems = [
@@ -101,6 +102,7 @@ const AdminLayout = () => {
     loading: accessLoading,
   } = useStaffAccess();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const storeLogo = useStoreLogo();
   const { config, isSectionLocked, loading: pwLoading } = useAdminSectionPassword();
   const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
   const [passwordInput, setPasswordInput] = useState("");
@@ -488,12 +490,20 @@ const AdminLayout = () => {
               </button>
 
               <div className="flex shrink-0 items-center gap-1.5 border-r border-[#ece9e2] pr-4">
-                <div className="leading-[0.84]">
-                  <div className="flex items-end gap-0.5 text-[20px] font-black italic tracking-[-0.06em] text-[#171d2c]">
-                    <span>Turbo</span><Flame size={18} className="mb-0.5 fill-[#ff6a00] text-[#ff6a00]" />
+                {storeLogo ? (
+                  <img
+                    src={storeLogo}
+                    alt="Logotipo da loja"
+                    className="h-9 w-auto max-w-[150px] object-contain"
+                  />
+                ) : (
+                  <div className="leading-[0.84]">
+                    <div className="flex items-end gap-0.5 text-[20px] font-black italic tracking-[-0.06em] text-[#171d2c]">
+                      <span>Turbo</span><Flame size={18} className="mb-0.5 fill-[#ff6a00] text-[#ff6a00]" />
+                    </div>
+                    <div className="pl-[32px] text-[12px] font-extrabold italic tracking-[-0.03em] text-[#f48b00]">Lanches</div>
                   </div>
-                  <div className="pl-[32px] text-[12px] font-extrabold italic tracking-[-0.03em] text-[#f48b00]">Lanches</div>
-                </div>
+                )}
               </div>
 
               <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#ff9800] text-white shadow-[0_8px_20px_rgba(255,152,0,.18)] sm:flex">
