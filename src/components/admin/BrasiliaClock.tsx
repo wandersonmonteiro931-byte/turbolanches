@@ -32,10 +32,10 @@ export function BrasiliaClock({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "group inline-flex items-center gap-3 rounded-xl border border-border/70 bg-card px-3.5 py-2 shadow-sm transition-colors hover:border-primary/40",
+        "group inline-flex items-center gap-3 rounded-xl bg-card px-3.5 py-2 shadow-sm transition-colors",
         className,
       )}
-      title={synced ? "Horário oficial de Brasília (sincronizado)" : "Sincronizando horário oficial..."}
+      title={synced ? "Horário oficial (sincronizado)" : "Sincronizando horário oficial..."}
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
         <Clock size={16} className={cn("text-primary", !synced && "animate-pulse")} />
@@ -44,10 +44,8 @@ export function BrasiliaClock({ className }: { className?: string }) {
         <span className="font-mono text-base font-bold tabular-nums tracking-tight text-foreground">
           {formatClockBR(now)}
         </span>
-        <span className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
-          <span className="tabular-nums">{formatFullDateBR(now)}</span>
-          <span className="h-2.5 w-px bg-border" />
-          <span className="uppercase tracking-wider">Brasília</span>
+        <span className="mt-1 text-[10px] font-medium text-muted-foreground tabular-nums">
+          {formatFullDateBR(now)}
         </span>
       </div>
     </div>
