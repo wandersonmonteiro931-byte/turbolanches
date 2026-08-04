@@ -655,3 +655,7 @@ input, select, textarea {
 .admin-theme .admin-page .divide-y > :not([hidden]) ~ :not([hidden]) {
   border-color: #f0ece5 !important;
 }
+
+#lovable-badge {
+  display: none !important;
+}
