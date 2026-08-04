@@ -32,18 +32,31 @@ export function BrasiliaClock({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium",
+        "group inline-flex items-center gap-3 rounded-xl border border-border/70 bg-card px-3.5 py-2 shadow-sm transition-colors hover:border-primary/40",
         className,
       )}
       title={synced ? "Horário oficial de Brasília (sincronizado)" : "Sincronizando horário oficial..."}
     >
-      <Clock size={16} className={cn("text-primary", !synced && "animate-pulse")} />
-      <div className="flex flex-col leading-tight">
-        <span className="font-mono font-bold tabular-nums">{formatClockBR(now)}</span>
-        <span className="text-[10px] text-muted-foreground">
-          {formatFullDateBR(now)} · Brasília
+      <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <Clock size={16} className={cn("text-primary", !synced && "animate-pulse")} />
+        <span
+          className={cn(
+            "absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-card",
+            synced ? "bg-emerald-500" : "bg-amber-500 animate-pulse",
+          )}
+        />
+      </span>
+      <div className="flex flex-col leading-none">
+        <span className="font-mono text-base font-bold tabular-nums tracking-tight text-foreground">
+          {formatClockBR(now)}
+        </span>
+        <span className="mt-1 flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
+          <span className="tabular-nums">{formatFullDateBR(now)}</span>
+          <span className="h-2.5 w-px bg-border" />
+          <span className="uppercase tracking-wider">Brasília</span>
         </span>
       </div>
     </div>
   );
 }
+
