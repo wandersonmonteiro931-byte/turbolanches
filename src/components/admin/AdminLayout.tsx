@@ -102,6 +102,7 @@ const AdminLayout = () => {
     loading: accessLoading,
   } = useStaffAccess();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const storeLogo = useStoreLogo();
   const { config, isSectionLocked, loading: pwLoading } = useAdminSectionPassword();
   const [unlockedSections, setUnlockedSections] = useState<Set<string>>(new Set());
   const [passwordInput, setPasswordInput] = useState("");
