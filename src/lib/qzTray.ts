@@ -10,20 +10,32 @@
  * IMPORTANTE — pré-requisitos no PC:
  *   1. Instalar QZ Tray (https://qz.io/download/) — Windows/Mac/Linux.
  *   2. Iniciar o aplicativo (ele fica na bandeja do sistema).
- *   3. Conceder permissão "Sempre permitir" para este site na primeira impressão.
+ *   3. Instalar o assinador local com INSTALAR_QZ_TURBOLANCHES.bat.
+ *   4. Manter o QZ Tray aberto na bandeja do sistema.
  *
- * Modo "promiscuous": usamos o QZ sem assinatura digital. Isso causa um
- * popup de confirmação na PRIMEIRA impressão (depois pode marcar "lembrar").
- * Para produção sem prompt, gere um certificado em qz.io/wiki/2.0-signing-messages.
+ * A assinatura é feita localmente em 127.0.0.1:8182 usando a chave privada
+ * criada pelo QZ Tray neste computador. A chave nunca é enviada ao site.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const QZ_CDN_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js";
+const QZ_LOCAL_SIGNER_URL = "http://127.0.0.1:8182";
 
-// QZ Tray funciona gratuitamente sem assinatura digital. Nesse modo o QZ
-// pode pedir confirmação ao usuário, mas não depende de certificado/chave no
-// Supabase e consegue listar/imprimir nas impressoras instaladas no Windows.
+type LocalRequestInit = RequestInit & {
+  targetAddressSpace?: "loopback" | "local" | "public";
+};
+
+const localSignerFetch = (path: string, init: RequestInit = {}) => {
+  const request = new Request(`${QZ_LOCAL_SIGNER_URL}${path}`, {
+    ...init,
+    cache: "no-store",
+    mode: "cors",
+    targetAddressSpace: "loopback",
+  } as LocalRequestInit);
+
+  return fetch(request);
+};
 
 declare global {
   interface Window {
@@ -36,17 +48,50 @@ let loaderPromise: Promise<any> | null = null;
 const configureQzSecurity = (qz: any) => {
   if (qz.__turboQzSecurityConfigured) return;
 
-  // Modo sem assinatura (suportado pelo QZ Tray gratuito). A configuração
-  // anterior usava um certificado de demonstração e dependia da Edge
-  // Function qz-sign; quando a chave privada não estava configurada, o QZ
-  // conectava ao WebSocket mas falhava em printers.find()/print(), resultando
-  // em "0 impressoras detectadas" e queda indevida para PDF.
-  qz.security.setCertificatePromise((resolve: (cert: string) => void) => {
-    resolve("");
+  // O certificado público e a assinatura são fornecidos por um pequeno
+  // assinador que roda SOMENTE neste PC em 127.0.0.1. A private-key.pem
+  // nunca é enviada ao Lovable/GitHub nem fica dentro do frontend.
+  qz.security.setCertificatePromise((resolve: (cert: string) => void, reject: (error: unknown) => void) => {
+    localSignerFetch("/certificate")
+      .then(async (response) => {
+        if (!response.ok) throw new Error(await response.text());
+        return response.text();
+      })
+      .then(resolve)
+      .catch((error) => {
+        reject(
+          new Error(
+            `Assinador local do QZ não está disponível. Execute INSTALAR_QZ_TURBOLANCHES.bat neste computador. (${
+              error instanceof Error ? error.message : String(error)
+            })`,
+          ),
+        );
+      });
   });
 
-  qz.security.setSignaturePromise(() => {
-    return (resolve: (signature: string) => void) => resolve("");
+  qz.security.setSignatureAlgorithm("SHA512");
+  qz.security.setSignaturePromise((toSign: string) => {
+    return (resolve: (signature: string) => void, reject: (error: unknown) => void) => {
+      localSignerFetch("/sign", {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: toSign,
+      })
+        .then(async (response) => {
+          if (!response.ok) throw new Error(await response.text());
+          return response.text();
+        })
+        .then(resolve)
+        .catch((error) => {
+          reject(
+            new Error(
+              `Falha ao assinar a solicitação do QZ. Verifique o assinador local. (${
+                error instanceof Error ? error.message : String(error)
+              })`,
+            ),
+          );
+        });
+    };
   });
 
   qz.__turboQzSecurityConfigured = true;
