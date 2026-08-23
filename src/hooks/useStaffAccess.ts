@@ -34,7 +34,7 @@ export const useStaffAccess = () => {
   const [mode, setModeState] = useState<AdminAccountMode>(() => getStoredAccountMode());
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (background = false) => {
     if (authLoading || adminLoading) return;
     if (!user || !isAdmin) {
       setStaff(null);
@@ -44,7 +44,7 @@ export const useStaffAccess = () => {
       return;
     }
 
-    setLoading(true);
+    if (!background) setLoading(true);
     try {
       const client = supabase as any;
       const { data: rows, error } = await client
@@ -59,7 +59,7 @@ export const useStaffAccess = () => {
         setStaff(null);
         setPermissionPaths([]);
         setLoadError(true);
-        setLoading(false);
+        if (!background) setLoading(false);
         return;
       }
 
@@ -69,7 +69,7 @@ export const useStaffAccess = () => {
         setStaff(null);
         setPermissionPaths([]);
         setLoadError(false);
-        setLoading(false);
+        if (!background) setLoading(false);
         return;
       }
 
@@ -85,14 +85,14 @@ export const useStaffAccess = () => {
         permissionError ? [] : (permissions || []).map((item: any) => item.section_path),
       );
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [adminLoading, authLoading, isAdmin, user]);
 
 
   useEffect(() => {
     void refresh();
-    const handleFocus = () => void refresh();
+    const handleFocus = () => void refresh(true);
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [refresh]);
