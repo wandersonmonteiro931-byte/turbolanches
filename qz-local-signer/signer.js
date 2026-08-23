@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const HOST = '127.0.0.1';
-const PORT = 8182;
+const PORT = 9192;
 const BASE_DIR = __dirname;
 const CERT_PATH = path.join(BASE_DIR, 'digital-certificate.txt');
 const KEY_PATH = path.join(BASE_DIR, 'private-key.pem');

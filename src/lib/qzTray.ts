@@ -13,14 +13,14 @@
  *   3. Instalar o assinador local com INSTALAR_QZ_TURBOLANCHES.bat.
  *   4. Manter o QZ Tray aberto na bandeja do sistema.
  *
- * A assinatura é feita localmente em 127.0.0.1:8182 usando a chave privada
+ * A assinatura é feita localmente em 127.0.0.1:9192 usando a chave privada
  * criada pelo QZ Tray neste computador. A chave nunca é enviada ao site.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const QZ_CDN_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js";
-const QZ_LOCAL_SIGNER_URL = "http://127.0.0.1:8182";
+const QZ_LOCAL_SIGNER_URL = "http://127.0.0.1:9192";
 
 type LocalRequestInit = RequestInit & {
   targetAddressSpace?: "loopback" | "local" | "public";

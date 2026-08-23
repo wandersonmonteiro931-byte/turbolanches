@@ -148,14 +148,24 @@ timeout /t 1 /nobreak >nul
 start "" wscript.exe "%INSTALL_DIR%\start-signer.vbs"
 timeout /t 2 /nobreak >nul
 
-echo [6/6] Testando http://127.0.0.1:8182/health ...
+echo [6/6] Testando http://127.0.0.1:9192/health ...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "try { $r=Invoke-RestMethod -Uri 'http://127.0.0.1:8182/health' -TimeoutSec 5; if(-not $r.ok){exit 2}; Write-Host ('       OK - certificado=' + $r.certificateOk + ' chave=' + $r.privateKeyOk); exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
+  "try { $r=Invoke-RestMethod -Uri 'http://127.0.0.1:9192/health' -TimeoutSec 5; if(-not $r.ok){exit 2}; Write-Host ('       OK - certificado=' + $r.certificateOk + ' chave=' + $r.privateKeyOk); exit 0 } catch { Write-Host $_.Exception.Message; exit 1 }"
 if errorlevel 1 (
     echo.
     echo [ERRO] O assinador foi instalado, mas nao respondeu ao teste.
-    echo Veja o arquivo de log:
-    echo %INSTALL_DIR%\signer.log
+    echo.
+    echo Log do assinador:
+    echo ------------------------------------------------------------
+    if exist "%INSTALL_DIR%\signer.log" (
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Content -LiteralPath '%INSTALL_DIR%\signer.log' -Tail 20"
+    ) else (
+        echo O arquivo signer.log ainda nao foi criado.
+    )
+    echo ------------------------------------------------------------
+    echo.
+    echo O assinador desta versao usa a porta 9192.
+    echo A porta 8182 pertence ao QZ Tray e nao deve ser usada pelo assinador.
     goto :erro
 )
 
