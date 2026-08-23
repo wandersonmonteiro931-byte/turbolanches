@@ -19,34 +19,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { supabase } from "@/integrations/supabase/client";
-
 const QZ_CDN_URL = "https://cdn.jsdelivr.net/npm/qz-tray@2.2.5/qz-tray.js";
 
-const QZ_DIGITAL_CERTIFICATE = `-----BEGIN CERTIFICATE-----
-MIIECzCCAvOgAwIBAgIGAZ92rYSGMA0GCSqGSIb3DQEBCwUAMIGiMQswCQYDVQQG
-EwJVUzELMAkGA1UECAwCTlkxEjAQBgNVBAcMCUNhbmFzdG90YTEbMBkGA1UECgwS
-UVogSW5kdXN0cmllcywgTExDMRswGQYDVQQLDBJRWiBJbmR1c3RyaWVzLCBMTEMx
-HDAaBgkqhkiG9w0BCQEWDXN1cHBvcnRAcXouaW8xGjAYBgNVBAMMEVFaIFRyYXkg
-RGVtbyBDZXJ0MB4XDTI2MDcxNzE5MjE1MFoXDTQ2MDcxNzE5MjE1MFowgaIxCzAJ
-BgNVBAYTAlVTMQswCQYDVQQIDAJOWTESMBAGA1UEBwwJQ2FuYXN0b3RhMRswGQYD
-VQQKDBJRWiBJbmR1c3RyaWVzLCBMTEMxGzAZBgNVBAsMElFaIEluZHVzdHJpZXMs
-IExMQzEcMBoGCSqGSIb3DQEJARYNc3VwcG9ydEBxei5pbzEaMBgGA1UEAwwRUVog
-VHJheSBEZW1vIENlcnQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDG
-0gVMpqsY5u7YEhwdEIadaj9z7cUMxcey5RD+hitYdsExJ7Oq7m8DqqRVTx7PkqXN
-EPbfzVLLNW4kwuf6fj2UFHeTCNTyKWtX1KAHEco9VZ7kO4ZKPaWg4tHdoejHbKMI
-GxiBhVWKRugnyr2du0r6RpgID+nweUBgtjJuSx3COA1918CTkAInKHgmNBAR8XRm
-l6EsrhvKE/5VgTbNTRYaa7HWOucMtX3zEGIQ9H1zcbeaTlXt5OriPPBow1kxVw3K
-e+UHbO2qYul5bHHLhFXljjBXYK2iWGmrhcVGHo0bHk6mk6S0htj0+hzs0vqb8qhp
-apgkcIc3j0Bhz8ABmwnLAgMBAAGjRTBDMBIGA1UdEwEB/wQIMAYBAf8CAQEwDgYD
-VR0PAQH/BAQDAgEGMB0GA1UdDgQWBBQ1IzAiwkOmBJ+wusmCW8xunZLZ5jANBgkq
-hkiG9w0BAQsFAAOCAQEABsxu3Jhf829knDaSXASJAl3wfVxDx9B3k9H/TbcKVtyZ
-X3lRJ9S+TjiA/Q15TuBcMBh7sLRG9n7tST5y6ijzwlTY7ej8Hx1+ayfclkrvpI7L
-HUquTIc+Ai6LwiqKrZcglmpwXC+GwyXnv1iKkLSFKql9AMISig45+4W2JYoB2LwA
-srbxKZ3rNip8MTtgabMKG81CQV8X9rJl9zQJeLD77Qh2thgj1LKHdeFPJeRcPMzm
-IgLx8d04wvlvXh8B5hHj55dhdwphOuImQ5NMO6HykO9H7Ogxg4BGsDbaLPldZnFL
-fj1oXFG1CeTSObaJZSDFv+lMkhgKZ2NnQq7dtBlCwQ==
------END CERTIFICATE-----`;
+// QZ Tray funciona gratuitamente sem assinatura digital. Nesse modo o QZ
+// pode pedir confirmação ao usuário, mas não depende de certificado/chave no
+// Supabase e consegue listar/imprimir nas impressoras instaladas no Windows.
 
 declare global {
   interface Window {
@@ -59,32 +36,17 @@ let loaderPromise: Promise<any> | null = null;
 const configureQzSecurity = (qz: any) => {
   if (qz.__turboQzSecurityConfigured) return;
 
+  // Modo sem assinatura (suportado pelo QZ Tray gratuito). A configuração
+  // anterior usava um certificado de demonstração e dependia da Edge
+  // Function qz-sign; quando a chave privada não estava configurada, o QZ
+  // conectava ao WebSocket mas falhava em printers.find()/print(), resultando
+  // em "0 impressoras detectadas" e queda indevida para PDF.
   qz.security.setCertificatePromise((resolve: (cert: string) => void) => {
-    resolve(QZ_DIGITAL_CERTIFICATE);
+    resolve("");
   });
 
-  qz.security.setSignatureAlgorithm("SHA512");
-
-  qz.security.setSignaturePromise((toSign: string) => {
-    return async (resolve: (signature: string) => void, reject: (error: Error) => void) => {
-      try {
-        const { data, error } = await supabase.functions.invoke("qz-sign", {
-          body: { request: toSign },
-        });
-
-        if (error) throw error;
-
-        const signature = data?.signature;
-
-        if (!signature) {
-          throw new Error("A Edge Function qz-sign não retornou assinatura.");
-        }
-
-        resolve(signature);
-      } catch (error) {
-        reject(error instanceof Error ? error : new Error("Erro ao assinar requisição do QZ Tray."));
-      }
-    };
+  qz.security.setSignaturePromise(() => {
+    return (resolve: (signature: string) => void) => resolve("");
   });
 
   qz.__turboQzSecurityConfigured = true;
@@ -164,14 +126,42 @@ export const listQzPrinters = async (): Promise<string[]> => {
   const qz = await loadQzScript();
   await ensureConnected(qz);
 
+  let findError: unknown = null;
   try {
     const printers = await qz.printers.find();
     const list = Array.isArray(printers) ? printers : [printers].filter(Boolean);
-    return Array.from(new Set(list.map((name) => String(name || "").trim()).filter(Boolean)));
+    const normalized = Array.from(new Set(list.map((name) => String(name || "").trim()).filter(Boolean)));
+
+    // Alguns drivers/QZ retornam a impressora padrão mesmo quando a listagem
+    // geral vem vazia. Incluí-la evita o falso "0 impressoras detectadas".
+    try {
+      const def = await qz.printers.getDefault();
+      const defaultName = String(def || "").trim();
+      if (defaultName && !normalized.includes(defaultName)) normalized.unshift(defaultName);
+    } catch {
+      // A listagem já funcionou; a impressora padrão é apenas um reforço.
+    }
+
+    return normalized;
   } catch (error) {
+    findError = error;
     console.warn("[QZ] falha ao listar impressoras:", error);
-    return [];
   }
+
+  // Fallback: se a listagem completa falhar, ainda tenta usar a padrão do Windows.
+  try {
+    const def = await qz.printers.getDefault();
+    const defaultName = String(def || "").trim();
+    if (defaultName) return [defaultName];
+  } catch (defaultError) {
+    console.warn("[QZ] falha ao obter impressora padrão:", defaultError);
+  }
+
+  const detail = findError instanceof Error ? ` (${findError.message})` : "";
+  throw new Error(
+    `QZ Tray está online, mas não conseguiu acessar as impressoras do Windows${detail}. ` +
+      'No QZ Tray, permita este site e marque "Remember this decision / Sempre permitir".',
+  );
 };
 
 /** Retorna o nome da impressora padrão do SO. */
@@ -210,7 +200,7 @@ export const resolveQzPrinterName = async (requestedName?: string | null): Promi
 
   throw new Error(
     wanted
-      ? `Cannot find printer with name "${wanted}". Clique em Detectar e selecione o nome exato da impressora no Windows.`
+      ? `Não foi possível encontrar a impressora "${wanted}". Clique em Detectar e selecione a impressora instalada no Windows.`
       : "Nenhuma impressora foi encontrada pelo QZ Tray. Instale o driver da JP80H no Windows e reinicie o QZ Tray.",
   );
 };

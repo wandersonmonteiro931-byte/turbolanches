@@ -153,10 +153,23 @@ const AdminReceipts = () => {
       if (ok) {
         const [printers, def] = await Promise.all([listQzPrinters(), getQzDefaultPrinter()]);
         setQzPrinters(printers);
-        if (!thermalSettings.qzPrinterName && def) {
-          updateThermalSetting("qzPrinterName", def);
+
+        if (printers.length === 0) {
+          toast.error(
+            'QZ Tray está online, mas nenhuma impressora do Windows foi encontrada. Verifique se a impressora está instalada e ligada.',
+          );
+          return;
         }
-        toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s).`);
+
+        const configured = String(thermalSettings.qzPrinterName || "").trim();
+        const configuredExists = configured && printers.includes(configured);
+        const selectedPrinter = configuredExists ? configured : def && printers.includes(def) ? def : printers[0];
+
+        if (selectedPrinter && selectedPrinter !== configured) {
+          updateThermalSetting("qzPrinterName", selectedPrinter);
+        }
+
+        toast.success(`QZ Tray online — ${printers.length} impressora(s) detectada(s). Usando: ${selectedPrinter}.`);
       } else {
         toast.error("QZ Tray não está rodando neste computador. Instale e abra o QZ Tray.");
       }

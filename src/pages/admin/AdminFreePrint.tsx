@@ -407,13 +407,13 @@ const AdminFreePrint = () => {
     try {
       const settings = getThermalPrintSettings();
       const available = await isQzAvailable();
-      if (!available || !settings.qzPrinterName) {
-        toast.error("QZ Tray indisponível ou impressora não selecionada.");
+      if (!available) {
+        toast.error("QZ Tray indisponível. Abra o QZ Tray e tente novamente.");
         return;
       }
       const canvas = await renderLayoutToCanvas(layout, printHeightMm);
       const bytes = canvasToEscPosRaster(canvas);
-      await printRawEscPos(settings.qzPrinterName, bytes, copies);
+      await printRawEscPos(settings.qzPrinterName || "", bytes, copies);
       setPrinted(true);
       clearPrintPayload();
       toast.success("Enviado para QZ Tray");
@@ -455,17 +455,27 @@ const AdminFreePrint = () => {
           const settings = getThermalPrintSettings();
           const available = await isQzAvailable();
 
-          if (available && settings.qzPrinterName) {
-            const canvas = await renderLayoutToCanvas(layout, printHeightMm);
-            const bytes = canvasToEscPosRaster(canvas);
-            await printRawEscPos(settings.qzPrinterName, bytes, copies);
-            setPrinted(true);
-            clearPrintPayload();
-            setTimeout(() => window.close(), 800);
+          if (!available) {
+            throw new Error("QZ Tray não está disponível neste computador.");
+          }
+
+          const canvas = await renderLayoutToCanvas(layout, printHeightMm);
+          const bytes = canvasToEscPosRaster(canvas);
+          await printRawEscPos(settings.qzPrinterName || "", bytes, copies);
+          setPrinted(true);
+          clearPrintPayload();
+          setTimeout(() => window.close(), 800);
+          return;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn("[Comanda LIVRE] QZ raster falhou:", err);
+
+          // Quando o usuário escolheu QZ Tray, NÃO trocar silenciosamente para
+          // PDF. O modo Auto continua podendo usar o PDF como fallback.
+          if (mode === "qz") {
+            toast.error(msg || "Falha ao imprimir via QZ Tray");
             return;
           }
-        } catch (err) {
-          console.warn("[Comanda LIVRE] QZ raster falhou, usando PDF:", err);
         }
       }
 
